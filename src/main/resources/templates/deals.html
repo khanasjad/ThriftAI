@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html}">
+<head th:fragment="page-head">
+    <title>AI Deals - ThriftAI</title>
+</head>
+
+<body>
+<main th:fragment="content" class="container">
+    <!-- Real-time Status Indicator -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-wifi fa-2x text-primary"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="mb-1">🤖 AI-Powered Live Deal Finder</h5>
+                    <p class="mb-0 text-muted">Real-time recommendations updated every 30 seconds</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-success" id="live-indicator">
+                        <i class="fas fa-circle me-1"></i>Live
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deal Controls -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-primary mb-0">
+                <i class="fas fa-magic me-2"></i>
+                <span th:if="${isAIEnhanced}">🤖 AI-Enhanced Deals</span>
+                <span th:unless="${isAIEnhanced}">Smart Deal Recommendations</span>
+            </h2>
+            <p class="text-muted">Personalized for your preferences • Updated in real-time</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary" onclick="refreshDeals()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+                <button type="button" class="btn btn-primary" onclick="requestAIDeals()" th:unless="${isAIEnhanced}">
+                    <i class="fas fa-robot me-1"></i>AI Boost
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Preferences Display -->
+    <div class="row mb-4" th:if="${userPreferences}">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">
+                        <i class="fas fa-user-cog me-2"></i>Your Preferences
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-primary" th:each="category : ${userPreferences.preferredCategories}">
+                            <i class="fas fa-tag me-1"></i><span th:text="${category}">Category</span>
+                        </span>
+                        <span class="badge bg-success" th:each="brand : ${userPreferences.preferredBrands}">
+                            <i class="fas fa-star me-1"></i><span th:text="${brand}">Brand</span>
+                        </span>
+                        <span class="badge bg-info">
+                            <i class="fas fa-dollar-sign me-1"></i>Budget: $<span th:text="${userPreferences.maxBudget}">500</span>
+                        </span>
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-percentage me-1"></i>Min Discount: <span th:text="${userPreferences.minDiscountThreshold}">15</span>%
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deals Grid -->
+    <div class="row" id="deals-container">
+        <div class="col-12" th:if="${deals.isEmpty()}">
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No deals found</h4>
+                <p class="text-muted">Try adjusting your preferences or check back later for new deals!</p>
+                <button class="btn btn-primary" onclick="refreshDeals()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh Deals
+                </button>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-4" th:each="deal : ${deals}">
+            <div class="card deal-card border-0 shadow-sm h-100" 
+                 th:classappend="'deal-' + ${#strings.toLowerCase(#strings.replace(deal.dealQuality, '_', '-'))}">
+                
+                <!-- Deal Quality Header -->
+                <div class="card-header text-white text-center" 
+                     th:classappend="${deal.dealQuality == 'EXCEPTIONAL' ? 'bg-success' : 
+                                   deal.dealQuality == 'EXCELLENT' ? 'bg-info' : 
+                                   deal.dealQuality == 'VERY_GOOD' ? 'bg-primary' : 
+                                   deal.dealQuality == 'GOOD' ? 'bg-warning' : 'bg-secondary'}">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>
+                        <span class="deal-quality" th:text="${#strings.replace(deal.dealQuality, '_', ' ')}">Quality</span>
+                    </h5>
+                    <small>AI Score: <span class="deal-score" th:text="${#numbers.formatDecimal(deal.dealScore, 1, 1)}">0</span>/100</small>
+                </div>
+
+                <!-- Product Image Placeholder -->
+                <div class="product-image d-flex align-items-center justify-content-center bg-light">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+
+                <div class="card-body">
+                    <h5 class="card-title" th:text="${deal.product.name}">Product Name</h5>
+                    
+                    <!-- Product Details -->
+                    <div class="mb-3">
+                        <span class="badge bg-secondary me-1" th:text="${deal.product.category}">Category</span>
+                        <span class="badge bg-info me-1" th:text="${deal.product.brand}">Brand</span>
+                        <span class="badge bg-success" th:text="${deal.product.condition}">Condition</span>
+                        <span class="badge bg-warning text-dark ms-1" th:if="${deal.product.size}" th:text="${deal.product.size}">Size</span>
+                    </div>
+
+                    <!-- Pricing -->
+                    <div class="pricing mb-3">
+                        <h4 class="text-primary mb-1 product-price">
+                            $<span th:text="${#numbers.formatDecimal(deal.product.price, 1, 2)}">0</span>
+                        </h4>
+                        <div th:if="${deal.product.originalPrice > 0}">
+                            <span class="text-muted text-decoration-line-through me-2">
+                                $<span th:text="${#numbers.formatDecimal(deal.product.originalPrice, 1, 2)}">0</span>
+                            </span>
+                            <span class="badge bg-danger discount-badge">
+                                <span th:text="${#numbers.formatDecimal(deal.product.discountPercentage, 1, 0)}">0</span>% OFF
+                            </span>
+                        </div>
+                        <div class="text-success small mt-1">
+                            <i class="fas fa-piggy-bank me-1"></i>
+                            You save: $<span th:text="${#numbers.formatDecimal(deal.savingsAmount, 1, 2)}">0</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Explanation -->
+                    <div class="alert alert-light border-0 p-2 mb-3">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-lightbulb text-warning me-2 mt-1"></i>
+                            <small class="text-muted deal-reason" th:text="${deal.dealReason}">Deal reason</small>
+                        </div>
+                    </div>
+
+                    <!-- Product Description -->
+                    <p class="card-text text-muted small" th:if="${deal.product.description}" 
+                       th:text="${#strings.abbreviate(deal.product.description, 100)}">Description</p>
+                </div>
+
+                <!-- Card Actions -->
+                <div class="card-footer bg-transparent border-0">
+                    <div class="d-grid gap-2">
+                        <a th:href="@{'/products/' + ${deal.product.id}}" class="btn btn-primary">
+                            <i class="fas fa-eye me-1"></i>View Details
+                        </a>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    th:onclick="'ThriftAI.addToFavorites(\'' + ${deal.product.id} + '\')'">
+                                <i class="fas fa-heart me-1"></i>Save
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    th:onclick="'ThriftAI.shareProduct(\'' + ${deal.product.id} + '\', \'' + ${deal.product.name} + '\')'">
+                                <i class="fas fa-share me-1"></i>Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load More Button -->
+    <div class="row mt-4" th:if="${!deals.isEmpty()}">
+        <div class="col-12 text-center">
+            <button class="btn btn-outline-primary btn-lg" onclick="loadMoreDeals()">
+                <i class="fas fa-plus me-2"></i>Load More Deals
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Update Indicator -->
+    <div class="position-fixed bottom-0 start-0 m-3" id="live-update-status" style="display: none;">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-sync-alt fa-spin me-2"></i>
+            <strong>Live Update!</strong> New deals available.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+</main>
+
+<!-- Page-specific scripts -->
+<th:block th:fragment="scripts-extra">
+    <!-- SockJS and STOMP for WebSocket -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+    
+    <!-- WebSocket functionality -->
+    <script th:src="@{/js/websocket.js}"></script>
+    
+    <script>
+        function refreshDeals() {
+            if (window.thriftAIWebSocket && window.thriftAIWebSocket.isConnected()) {
+                window.thriftAIWebSocket.requestLatestDeals(12);
+                ThriftAI.showNotification('Refreshing deals...', 'info');
+            } else {
+                window.location.reload();
+            }
+        }
+        
+        function requestAIDeals() {
+            if (window.thriftAIWebSocket && window.thriftAIWebSocket.isConnected()) {
+                window.thriftAIWebSocket.requestAIDeals(12);
+                ThriftAI.showNotification('Getting AI-enhanced deals...', 'info');
+            } else {
+                window.location.href = '/ai-deals';
+            }
+        }
+        
+        function loadMoreDeals() {
+            // This would load more deals via AJAX
+            ThriftAI.showNotification('Loading more deals...', 'info');
+        }
+        
+        // Listen for WebSocket events
+        $(document).on('thriftai:deals-updated', function(event, deals) {
+            $('#live-update-status').show();
+            setTimeout(() => $('#live-update-status').hide(), 5000);
+        });
+        
+        $(document).on('thriftai:live-update', function(event, update) {
+            if (update.type === 'DEAL_UPDATE') {
+                $('#live-indicator').removeClass('bg-secondary').addClass('bg-success');
+                setTimeout(() => {
+                    $('#live-indicator').removeClass('bg-success').addClass('bg-secondary');
+                }, 2000);
+            }
+        });
+    </script>
+</th:block>
+</body>
+</html>

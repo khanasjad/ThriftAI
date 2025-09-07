@@ -1,20 +1,66 @@
 package com.projectai.models;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
+@Entity
+@Table(name = "products")
 public class Product {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+    
+    @NotBlank(message = "Product name is required")
+    @Size(min = 2, max = 100, message = "Product name must be between 2 and 100 characters")
+    @Column(nullable = false)
     private String name;
+    
+    @NotBlank(message = "Category is required")
+    @Column(nullable = false)
     private String category;
+    
     private String brand;
+    
+    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
+    @Column(nullable = false)
     private double price;
+    
+    @DecimalMin(value = "0.0", message = "Original price must be 0 or greater")
     private double originalPrice;
+    
     private String condition;
+    
+    @Column(columnDefinition = "TEXT")
     private String description;
+    
     private String imageUrl;
+    
+    @Column(name = "store_id")
     private String storeId;
+    
     private String size;
+    
+    @Column(name = "is_available", nullable = false)
     private boolean isAvailable;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
     
     public Product(String id, String name, String category, double price) {
         this.id = id;
@@ -47,6 +93,8 @@ public class Product {
     public void setStoreId(String storeId) { this.storeId = storeId; }
     public void setSize(String size) { this.size = size; }
     public void setAvailable(boolean available) { this.isAvailable = available; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
     
     // Calculate discount percentage
     public double getDiscountPercentage() {

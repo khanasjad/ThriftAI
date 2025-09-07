@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html}">
+<head th:fragment="page-head">
+    <title>Home - ThriftAI</title>
+</head>
+
+<body>
+<main th:fragment="content" class="container-fluid">
+    <!-- Hero Section -->
+    <div class="hero-section bg-gradient-primary text-white py-5 mb-5 rounded">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold mb-3">
+                <i class="fas fa-robot me-3"></i>Welcome to ThriftAI
+            </h1>
+            <p class="lead mb-4">AI-powered thrift shopping for the smartest deals. Find amazing bargains with our intelligent recommendation system.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a th:href="@{/deals}" class="btn btn-light btn-lg">
+                    <i class="fas fa-magic me-2"></i>Find AI Deals
+                </a>
+                <a th:href="@{/products}" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-search me-2"></i>Browse Products
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Platform Stats -->
+        <div class="row mb-5" th:if="${overview}">
+            <div class="col-12 text-center mb-4">
+                <h2 class="fw-bold text-primary">Platform Overview</h2>
+                <p class="text-muted">Real-time statistics from our AI-powered platform</p>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
+                        <h3 class="fw-bold text-primary" th:text="${overview.totalProducts}">0</h3>
+                        <p class="text-muted mb-0">Total Products</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-tags fa-3x text-success mb-3"></i>
+                        <h3 class="fw-bold text-success" th:text="${overview.totalCategories}">0</h3>
+                        <p class="text-muted mb-0">Categories</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-store fa-3x text-warning mb-3"></i>
+                        <h3 class="fw-bold text-warning" th:text="${overview.totalBrands}">0</h3>
+                        <p class="text-muted mb-0">Brands</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-percentage fa-3x text-danger mb-3"></i>
+                        <h3 class="fw-bold text-danger">
+                            <span th:text="${overview.averageDiscount}">0</span>%
+                        </h3>
+                        <p class="text-muted mb-0">Avg Discount</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Featured Deals -->
+        <div class="row mb-5" th:if="${featuredDeals and !featuredDeals.isEmpty()}">
+            <div class="col-12 text-center mb-4">
+                <h2 class="fw-bold text-primary">🔥 AI-Recommended Featured Deals</h2>
+                <p class="text-muted">Handpicked by our AI for the best value</p>
+            </div>
+            <div class="col-lg-4 col-md-6 mb-4" th:each="deal : ${featuredDeals}">
+                <div class="card border-0 shadow-sm h-100 deal-card">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-trophy me-2"></i>
+                            <span th:text="${deal.dealQuality}">Quality</span>
+                        </h5>
+                        <small>AI Score: <span th:text="${#numbers.formatDecimal(deal.dealScore, 1, 1)}">0</span>/100</small>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title" th:text="${deal.product.name}">Product Name</h5>
+                        <p class="text-muted small" th:text="${deal.product.description}">Description</p>
+                        
+                        <div class="mb-3">
+                            <span class="badge bg-secondary me-1" th:text="${deal.product.category}">Category</span>
+                            <span class="badge bg-info me-1" th:text="${deal.product.brand}">Brand</span>
+                            <span class="badge bg-success" th:text="${deal.product.condition}">Condition</span>
+                        </div>
+
+                        <div class="pricing mb-3">
+                            <h4 class="text-primary mb-1">$<span th:text="${#numbers.formatDecimal(deal.product.price, 1, 2)}">0</span></h4>
+                            <div th:if="${deal.product.originalPrice > 0}">
+                                <span class="text-muted text-decoration-line-through">
+                                    $<span th:text="${#numbers.formatDecimal(deal.product.originalPrice, 1, 2)}">0</span>
+                                </span>
+                                <span class="badge bg-danger ms-2">
+                                    <span th:text="${#numbers.formatDecimal(deal.product.discountPercentage, 1, 0)}">0</span>% OFF
+                                </span>
+                            </div>
+                        </div>
+
+                        <p class="card-text text-success small">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            <span th:text="${deal.dealReason}">Deal reason</span>
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <a th:href="@{'/products/' + ${deal.product.id}}" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="fas fa-eye me-1"></i>View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="row mb-5">
+            <div class="col-12 text-center mb-4">
+                <h2 class="fw-bold text-primary">Why Choose ThriftAI?</h2>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                <h4>AI-Powered</h4>
+                <p class="text-muted">Advanced algorithms analyze deals and recommend the best value for your preferences.</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-bolt fa-3x text-warning mb-3"></i>
+                <h4>Real-Time</h4>
+                <p class="text-muted">Live updates on deals and prices across multiple thrift stores and marketplaces.</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-heart fa-3x text-danger mb-3"></i>
+                <h4>Personalized</h4>
+                <p class="text-muted">Customized recommendations based on your shopping history and preferences.</p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row">
+            <div class="col-12 text-center">
+                <h3 class="mb-4">Get Started Now</h3>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a th:href="@{/deals}" class="btn btn-primary">
+                        <i class="fas fa-magic me-2"></i>AI Deal Finder
+                    </a>
+                    <a th:href="@{/products?category=CLOTHING}" class="btn btn-outline-primary">
+                        <i class="fas fa-tshirt me-2"></i>Clothing
+                    </a>
+                    <a th:href="@{/products?category=ELECTRONICS}" class="btn btn-outline-primary">
+                        <i class="fas fa-laptop me-2"></i>Electronics
+                    </a>
+                    <a th:href="@{/analytics}" class="btn btn-outline-secondary">
+                        <i class="fas fa-chart-line me-2"></i>Market Insights
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>
