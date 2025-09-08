@@ -62,6 +62,11 @@ public class Product {
         updatedAt = LocalDateTime.now();
     }
     
+    // No-argument constructor for JPA
+    public Product() {
+        this.isAvailable = true;
+    }
+    
     public Product(String id, String name, String category, double price) {
         this.id = id;
         this.name = name;
@@ -85,6 +90,10 @@ public class Product {
     public boolean isAvailable() { return isAvailable; }
     
     // Setters
+    public void setId(String id) { this.id = id; }
+    public void setName(String name) { this.name = name; }
+    public void setCategory(String category) { this.category = category; }
+    public void setPrice(double price) { this.price = price; }
     public void setBrand(String brand) { this.brand = brand; }
     public void setOriginalPrice(double originalPrice) { this.originalPrice = originalPrice; }
     public void setCondition(String condition) { this.condition = condition; }

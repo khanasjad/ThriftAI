@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html}">
+<head th:fragment="page-head">
+    <title>Seller Dashboard - ThriftAI</title>
+</head>
+
+<body>
+<main th:fragment="content" class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-primary mb-1">Welcome back, <span th:text="${seller.ownerName}">Owner</span>!</h2>
+            <p class="text-muted mb-0">
+                <strong th:text="${seller.businessName}">Business Name</strong> Dashboard
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{'/sellers/profile/' + ${seller.id}}" class="btn btn-outline-primary">
+                <i class="fas fa-user me-1"></i>Profile
+            </a>
+            <a href="#" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Add Product
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Alert -->
+    <div class="alert alert-info alert-dismissible fade show mb-4" role="alert" 
+         th:if="${seller.status.name() == 'PENDING'}">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Account Under Review:</strong> Your seller application is being reviewed. 
+        You'll be notified once approved.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert" 
+         th:if="${seller.status.name() == 'APPROVED'}">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong>Account Approved:</strong> Congratulations! Your seller account is active.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-soft h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-shopping-bag fa-2x text-primary mb-3"></i>
+                    <h4 class="fw-bold text-primary" th:text="${totalSales}">0</h4>
+                    <p class="text-muted mb-0">Total Sales</p>
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up"></i> +12% this month
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-soft h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-dollar-sign fa-2x text-success mb-3"></i>
+                    <h4 class="fw-bold text-success">$<span th:text="${#numbers.formatDecimal(totalRevenue, 1, 2)}">0.00</span></h4>
+                    <p class="text-muted mb-0">Total Revenue</p>
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up"></i> +18% this month
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-soft h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-star fa-2x text-warning mb-3"></i>
+                    <h4 class="fw-bold text-warning" th:text="${#numbers.formatDecimal(rating, 1, 1)}">0.0</h4>
+                    <p class="text-muted mb-0">Average Rating</p>
+                    <div class="text-warning">
+                        <i class="fas fa-star" th:each="i : ${#numbers.sequence(1, 5)}" 
+                           th:class="${i <= rating ? 'fas fa-star' : 'far fa-star'}"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-soft h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-eye fa-2x text-info mb-3"></i>
+                    <h4 class="fw-bold text-info">1,234</h4>
+                    <p class="text-muted mb-0">Profile Views</p>
+                    <small class="text-info">
+                        <i class="fas fa-arrow-up"></i> +5% this week
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Activity -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-soft h-100">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">New Order Received</h6>
+                                <p class="text-muted mb-1">Order #12345 for Vintage Leather Jacket</p>
+                                <small class="text-muted">2 hours ago</small>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Product Listed</h6>
+                                <p class="text-muted mb-1">Added Nike Air Max Sneakers to inventory</p>
+                                <small class="text-muted">1 day ago</small>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Review Received</h6>
+                                <p class="text-muted mb-1">5-star review from customer Jane D.</p>
+                                <small class="text-muted">2 days ago</small>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Profile Updated</h6>
+                                <p class="text-muted mb-1">Business description updated</p>
+                                <small class="text-muted">3 days ago</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-soft h-100">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">
+                        <i class="fas fa-rocket me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add New Product
+                        </button>
+                        
+                        <button class="btn btn-outline-primary">
+                            <i class="fas fa-box me-2"></i>Manage Inventory
+                        </button>
+                        
+                        <button class="btn btn-outline-success">
+                            <i class="fas fa-chart-line me-2"></i>View Analytics
+                        </button>
+                        
+                        <button class="btn btn-outline-info">
+                            <i class="fas fa-comments me-2"></i>Customer Messages
+                        </button>
+                        
+                        <a th:href="@{'/sellers/edit/' + ${seller.id}}" class="btn btn-outline-secondary">
+                            <i class="fas fa-cog me-2"></i>Account Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional CSS for Timeline -->
+    <style>
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border-color);
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            left: -22px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .timeline-content h6 {
+            color: var(--text-primary);
+        }
+    </style>
+</main>
+</body>
+</html>

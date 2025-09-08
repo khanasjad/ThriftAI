@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html}">
+<head th:fragment="page-head">
+    <title>Buyers - ThriftAI</title>
+</head>
+
+<body>
+<main th:fragment="content" class="container-fluid">
+    <!-- Hero Section -->
+    <div class="hero-section bg-gradient-primary text-white py-5 mb-5 rounded">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold mb-3">
+                <i class="fas fa-shopping-cart me-3"></i>Buyer Dashboard
+            </h1>
+            <p class="lead mb-4">Discover amazing deals on unique items from trusted sellers worldwide</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a th:href="@{/buyers/register}" class="btn btn-light btn-lg">
+                    <i class="fas fa-user-plus me-2"></i>Join as Buyer
+                </a>
+                <a th:href="@{/deals}" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-magic me-2"></i>Browse AI Deals
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Platform Stats -->
+        <div class="row mb-5">
+            <div class="col-12 text-center mb-4">
+                <h2 class="fw-bold text-gradient-primary">Community Overview</h2>
+                <p class="text-muted">Join thousands of smart shoppers</p>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-0 shadow-soft h-100 stat-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                        <h3 class="fw-bold text-primary stat-number" th:text="${totalBuyers}">0</h3>
+                        <p class="text-muted mb-0">Total Buyers</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-0 shadow-soft h-100 stat-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h3 class="fw-bold text-success stat-number" th:text="${activeBuyers}">0</h3>
+                        <p class="text-muted mb-0">Active Buyers</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-0 shadow-soft h-100 stat-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-shield-alt fa-3x text-info mb-3"></i>
+                        <h3 class="fw-bold text-info stat-number" th:text="${verifiedBuyers}">0</h3>
+                        <p class="text-muted mb-0">Verified Buyers</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-0 shadow-soft h-100 stat-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                        <h3 class="fw-bold text-warning stat-number">4.8</h3>
+                        <p class="text-muted mb-0">Avg Satisfaction</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Buyers -->
+        <div class="row mb-5" th:if="${topBuyers and !topBuyers.isEmpty()}">
+            <div class="col-12 text-center mb-4">
+                <h2 class="fw-bold text-gradient-primary">Top Buyers</h2>
+                <p class="text-muted">Our most valued community members</p>
+            </div>
+            <div class="col-lg-12">
+                <div class="row">
+                    <div class="col-md-6 col-lg-4 mb-4" th:each="buyer : ${topBuyers}">
+                        <div class="card border-0 shadow-soft h-100 buyer-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="buyer-avatar bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                         style="width: 50px; height: 50px;">
+                                        <span th:text="${#strings.substring(buyer.firstName, 0, 1)}">B</span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1" th:text="${buyer.fullName}">Buyer Name</h6>
+                                        <small class="text-muted" th:text="${buyer.city + ', ' + buyer.state}">Location</small>
+                                        <div>
+                                            <span class="badge bg-primary small" th:text="${buyer.buyerType}">Type</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <small class="text-muted">Orders</small>
+                                        <div class="fw-bold" th:text="${buyer.totalOrders}">0</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Spent</small>
+                                        <div class="fw-bold">$<span th:text="${#numbers.formatDecimal(buyer.totalSpent, 1, 0)}">0</span></div>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">Points</small>
+                                        <div class="fw-bold text-warning" th:text="${#numbers.formatDecimal(buyer.loyaltyPoints, 1, 0)}">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Buyers -->
+        <div class="row mb-5" th:if="${recentBuyers and !recentBuyers.isEmpty()}">
+            <div class="col-12 text-center mb-4">
+                <h2 class="fw-bold text-gradient-primary">Welcome New Buyers!</h2>
+                <p class="text-muted">Recently joined community members</p>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3" th:each="buyer : ${recentBuyers}">
+                <div class="card border-0 shadow-soft h-100 text-center">
+                    <div class="card-body">
+                        <div class="buyer-avatar bg-info text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px;">
+                            <span th:text="${#strings.substring(buyer.firstName, 0, 1)}">B</span>
+                        </div>
+                        <h6 class="mb-1" th:text="${buyer.fullName}">Buyer Name</h6>
+                        <small class="text-muted" th:text="${buyer.city}">City</small>
+                        <div class="mt-2">
+                            <span class="badge bg-secondary small" 
+                                  th:text="${buyer.emailVerified ? 'Verified' : 'Pending'}">Status</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="row mb-5">
+            <div class="col-12 text-center mb-4">
+                <h2 class="fw-bold text-gradient-primary">Why Choose ThriftAI?</h2>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+                <h4>AI-Powered Matching</h4>
+                <p class="text-muted">Our advanced AI finds the perfect items based on your preferences and style.</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
+                <h4>Trusted Sellers</h4>
+                <p class="text-muted">All sellers are verified and rated by our community for your peace of mind.</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <i class="fas fa-piggy-bank fa-3x text-warning mb-3"></i>
+                <h4>Amazing Deals</h4>
+                <p class="text-muted">Find unique items at unbeatable prices with our smart deal detection.</p>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-soft bg-gradient-primary text-white">
+                    <div class="card-body text-center py-5">
+                        <h3 class="mb-3">Ready to Start Shopping Smart?</h3>
+                        <p class="mb-4">Join our community of savvy shoppers and discover amazing deals</p>
+                        <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            <a th:href="@{/buyers/register}" class="btn btn-light btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Join Now
+                            </a>
+                            <a th:href="@{/buyers/directory}" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-users me-2"></i>Browse Community
+                            </a>
+                            <a th:href="@{/buyers/analytics}" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-chart-line me-2"></i>View Insights
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

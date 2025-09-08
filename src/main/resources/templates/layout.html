@@ -20,10 +20,11 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
             <a class="navbar-brand fw-bold" th:href="@{/}">
-                <i class="fas fa-shopping-bag me-2"></i>ThriftAI
+                <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -33,23 +34,33 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/}" th:classappend="${#request.requestURI == '/' ? 'active' : ''}">
+                        <a class="nav-link" th:href="@{/}">
                             <i class="fas fa-home me-1"></i>Home
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/products}" th:classappend="${#strings.startsWith(#request.requestURI, '/products') ? 'active' : ''}">
+                        <a class="nav-link" th:href="@{/products}">
                             <i class="fas fa-box-open me-1"></i>Products
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/deals}" th:classappend="${#strings.startsWith(#request.requestURI, '/deals') ? 'active' : ''}">
+                        <a class="nav-link" th:href="@{/deals}">
                             <i class="fas fa-tags me-1"></i>AI Deals
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/analytics}" th:classappend="${#request.requestURI == '/analytics' ? 'active' : ''}">
+                        <a class="nav-link" th:href="@{/analytics}">
                             <i class="fas fa-chart-bar me-1"></i>Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/sellers}">
+                            <i class="fas fa-store me-1"></i>Sellers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/buyers}">
+                            <i class="fas fa-shopping-cart me-1"></i>Buyers
                         </a>
                     </li>
                 </ul>
@@ -78,11 +89,14 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-dark text-light mt-5 py-4">
+    <footer class="text-light mt-5 py-4">
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <h5><i class="fas fa-shopping-bag me-2"></i>ThriftAI</h5>
+                    <h5>
+                        <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                        <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
+                    </h5>
                     <p class="mb-0">AI-powered thrift shopping for the smartest deals.</p>
                 </div>
                 <div class="col-md-6 text-md-end">

@@ -12,8 +12,8 @@ import java.util.*;
 import java.util.concurrent.Executors;
 
 /**
- * Simple Web Server for ThriftAI Demo
- * This demonstrates the web interface without external dependencies
+ * Advanced ThriftAI Web Server with Seller/Buyer Platform
+ * Includes AI-powered search, visual search, and thrift store integration
  */
 public class SimpleWebServer {
     
@@ -24,21 +24,31 @@ public class SimpleWebServer {
         try {
             SimpleWebServer webServer = new SimpleWebServer();
             webServer.start();
-            System.out.println("🚀 ThriftAI Web Server started successfully!");
+            System.out.println("🚀 ThriftAI Advanced Web Server started successfully!");
             System.out.println("🌐 Open your browser and navigate to:");
             System.out.println("   http://localhost:8080");
             System.out.println("   http://127.0.0.1:8080");
             System.out.println();
             System.out.println("💡 Available endpoints:");
-            System.out.println("   /          - Homepage");
-            System.out.println("   /api/deals - AI Deals API");
-            System.out.println("   /api/stats - Platform Statistics");
+            System.out.println("   /          - Advanced Seller/Buyer Homepage");
+            System.out.println("   /api/v1/deals - AI Deals API");
+            System.out.println("   /api/v1/stats - Platform Statistics");
+            System.out.println("   /api/v1/search - ChatGPT Search API");
+            System.out.println("   /api/v1/pricing - AI Pricing Analysis");
+            System.out.println();
+            System.out.println("🎯 Features:");
+            System.out.println("   • ChatGPT-Powered Search Interface");
+            System.out.println("   • Visual Search with Image Upload");
+            System.out.println("   • Instagram Style Matching");
+            System.out.println("   • AI Pricing & Market Analysis");
+            System.out.println("   • Thrift Store Network Integration");
+            System.out.println("   • Real-time Price Comparison");
             System.out.println();
             System.out.println("Press Ctrl+C to stop the server...");
             
             // Keep the server running
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println("\n👋 Shutting down ThriftAI Web Server...");
+                System.out.println("\n👋 Shutting down ThriftAI Advanced Web Server...");
                 webServer.stop();
             }));
             
@@ -54,13 +64,17 @@ public class SimpleWebServer {
     public void start() throws IOException {
         server = HttpServer.create(new InetSocketAddress(port), 0);
         
-        // Homepage
-        server.createContext("/", new HomeHandler());
+        // Homepage with advanced seller/buyer platform
+        server.createContext("/", new AdvancedHomeHandler());
         
-        // API endpoints
-        server.createContext("/api/deals", new DealsAPIHandler());
-        server.createContext("/api/stats", new StatsAPIHandler());
-        server.createContext("/api/health", new HealthAPIHandler());
+        // API endpoints for advanced features
+        server.createContext("/api/v1/deals", new DealsAPIHandler());
+        server.createContext("/api/v1/stats", new StatsAPIHandler());
+        server.createContext("/api/v1/health", new HealthAPIHandler());
+        server.createContext("/api/v1/search", new ChatGPTSearchHandler());
+        server.createContext("/api/v1/pricing", new AIPricingHandler());
+        server.createContext("/api/v1/visual-search", new VisualSearchHandler());
+        server.createContext("/api/v1/instagram", new InstagramSearchHandler());
         
         // Static resources
         server.createContext("/css", new StaticResourceHandler("text/css"));
@@ -76,2136 +90,1329 @@ public class SimpleWebServer {
         }
     }
     
-    // Homepage Handler
-    static class HomeHandler implements HttpHandler {
+    // Advanced Homepage Handler with Seller/Buyer Platform
+    static class AdvancedHomeHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String response = generateHomepage();
+            String response = generateAdvancedHomepage();
             sendResponse(exchange, response, "text/html");
         }
         
-        private String generateHomepage() {
-            String htmlPart1 = """
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>ThriftAI - Smart Thrift Shopping</title>
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-                    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-                    <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
-                        
-                        :root {
-                            /* Modern AI Platform Colors */
-                            --pure-white: #FFFFFF;
-                            --off-white: #FEFEFE;
-                            --light-gray: #F8F9FA;
-                            --neutral-gray: #F1F3F4;
-                            --mid-gray: #E1E5E9;
-                            --cool-gray: #9AA0A6;
-                            --dark-gray: #5F6368;
-                            --charcoal: #202124;
-                            --deep-black: #0A0A0A;
-                            
-                            /* AI Brand Colors - Inspired by OpenAI, Anthropic */
-                            --ai-purple: #6366F1;
-                            --ai-purple-light: #818CF8;
-                            --ai-purple-dark: #4F46E5;
-                            --ai-green: #10B981;
-                            --ai-blue: #0EA5E9;
-                            --ai-orange: #F59E0B;
-                            
-                            /* System Colors */
-                            --background: var(--pure-white);
-                            --surface: var(--light-gray);
-                            --surface-elevated: var(--pure-white);
-                            --border: var(--mid-gray);
-                            --border-light: var(--neutral-gray);
-                            
-                            /* Text Hierarchy */
-                            --text-primary: var(--deep-black);
-                            --text-secondary: var(--dark-gray);
-                            --text-muted: var(--cool-gray);
-                            --text-on-dark: var(--pure-white);
-                            --text-on-color: var(--pure-white);
-                            
-                            /* Interactive States */
-                            --primary: var(--ai-purple);
-                            --primary-hover: var(--ai-purple-dark);
-                            --secondary: var(--charcoal);
-                            --accent: var(--ai-green);
-                            --accent-hover: #059669;
-                            
-                            /* Status Colors */
-                            --success: var(--ai-green);
-                            --warning: var(--ai-orange);
-                            --error: #EF4444;
-                            --info: var(--ai-blue);
-                            
-                            /* GenZ Gradients */
-                            --gradient-primary: linear-gradient(135deg, var(--ai-purple) 0%, var(--ai-blue) 100%);
-                            --gradient-accent: linear-gradient(135deg, var(--ai-green) 0%, var(--ai-blue) 100%);
-                            --gradient-dark: linear-gradient(135deg, var(--charcoal) 0%, var(--deep-black) 100%);
-                        }
-                        
-                        * {
-                            -webkit-font-smoothing: antialiased;
-                            -moz-osx-font-smoothing: grayscale;
-                        }
-                        
-                        body { 
-                            background: var(--background);
-                            color: var(--text-primary);
-                            font-family: 'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-                            font-weight: 400;
-                            line-height: 1.6;
-                            letter-spacing: -0.01em;
-                        }
-                        
-                        .hero-section { 
-                            background: var(--gradient-dark);
-                            padding: 140px 0;
-                            position: relative;
-                            overflow: hidden;
-                        }
-                        
-                        .hero-section::before {
-                            content: '';
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
-                            pointer-events: none;
-                        }
-                        
-                        .ai-logo {
-                            font-family: 'Inter', -apple-system, sans-serif;
-                            font-weight: 700;
-                            font-size: 1.75rem;
-                            background: var(--gradient-primary);
-                            -webkit-background-clip: text;
-                            -webkit-text-fill-color: transparent;
-                            background-clip: text;
-                            position: relative;
-                        }
-                        
-                        .ai-logo::before {
-                            content: '◆';
-                            position: absolute;
-                            left: -30px;
-                            background: var(--gradient-primary);
-                            -webkit-background-clip: text;
-                            -webkit-text-fill-color: transparent;
-                            background-clip: text;
-                        }
-                        
-                        .navbar {
-                            background: rgba(255, 255, 255, 0.95) !important;
-                            backdrop-filter: blur(20px);
-                            -webkit-backdrop-filter: blur(20px);
-                            border-bottom: 1px solid var(--border-light);
-                            padding: 16px 0;
-                            box-shadow: 0 1px 0 rgba(0,0,0,0.05);
-                        }
-                        
-                        .navbar-brand {
-                            font-weight: 700;
-                            font-size: 1.5rem;
-                            color: var(--text-primary) !important;
-                            letter-spacing: -0.02em;
-                        }
-                        
-                        .nav-link {
-                            font-weight: 500;
-                            color: var(--text-secondary) !important;
-                            transition: color 0.2s ease;
-                        }
-                        
-                        .nav-link:hover {
-                            color: var(--primary) !important;
-                        }
-                        
-                        .card { 
-                            background: var(--surface-elevated);
-                            border: 1px solid var(--border-light);
-                            border-radius: 12px;
-                            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-                            overflow: hidden;
-                        }
-                        
-                        .card:hover { 
-                            transform: translateY(-4px);
-                            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-                            border-color: var(--border);
-                        }
-                        
-                        .card-header {
-                            background: var(--surface) !important;
-                            border-bottom: 1px solid var(--border-light);
-                            font-weight: 600;
-                            padding: 20px 24px;
-                            color: var(--text-primary);
-                        }
-                        
-                        .card-body {
-                            padding: 24px;
-                            background: var(--surface-elevated);
-                        }
-                        
-                        .stat-card { 
-                            border-radius: 16px;
-                            background: var(--surface-elevated);
-                            border: 1px solid var(--border-light);
-                            position: relative;
-                        }
-                        
-                        .stat-card::before {
-                            content: '';
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            height: 3px;
-                            background: linear-gradient(90deg, var(--charcoal), var(--slate-gray));
-                            border-radius: 16px 16px 0 0;
-                        }
-                        
-                        .deal-card { 
-                            border-left: 4px solid var(--accent);
-                            background: var(--surface-elevated);
-                        }
-                        
-                        .btn {
-                            font-weight: 600;
-                            border-radius: 12px;
-                            padding: 12px 24px;
-                            font-size: 16px;
-                            transition: all 0.2s ease;
-                            border: none;
-                            letter-spacing: -0.01em;
-                        }
-                        
-                        .btn-primary {
-                            background: var(--accent);
-                            color: var(--text-on-color);
-                            border: 2px solid var(--accent);
-                        }
-                        
-                        .btn-primary:hover {
-                            background: var(--accent-hover);
-                            border-color: var(--accent-hover);
-                            transform: translateY(-2px);
-                            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
-                        }
-                        
-                        .btn-outline-primary {
-                            border: 2px solid var(--primary);
-                            color: var(--primary);
-                            background: transparent;
-                        }
-                        
-                        .btn-outline-primary:hover {
-                            background: var(--primary);
-                            color: var(--text-on-dark);
-                            transform: translateY(-2px);
-                            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-                        }
-                        
-                        .btn-light {
-                            background: var(--pure-white);
-                            color: var(--primary);
-                            border: 2px solid var(--pure-white);
-                        }
-                        
-                        .btn-light:hover {
-                            background: var(--light-gray);
-                            border-color: var(--light-gray);
-                            transform: translateY(-2px);
-                            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-                        }
-                        
-                        .display-4 {
-                            font-weight: 700;
-                            font-size: 3.5rem;
-                            letter-spacing: -0.03em;
-                            line-height: 1.1;
-                        }
-                        
-                        h1, h2, h3, h4, h5, h6 {
-                            font-weight: 600;
-                            letter-spacing: -0.02em;
-                            color: var(--text-primary);
-                        }
-                        
-                        h2 {
-                            font-size: 2.5rem;
-                            font-weight: 700;
-                        }
-                        
-                        .text-primary { color: var(--primary) !important; }
-                        .text-secondary { color: var(--text-secondary) !important; }
-                        .text-muted { color: var(--text-muted) !important; }
-                        
-                        .bg-primary { background: var(--primary) !important; }
-                        .bg-success { background: var(--success) !important; }
-                        .bg-info { background: var(--info) !important; }
-                        .bg-warning { background: var(--warning) !important; }
-                        .bg-danger { background: var(--error) !important; }
-                        .bg-secondary { background: var(--secondary) !important; }
-                        .bg-dark { background: var(--charcoal) !important; }
-                        .bg-light { background: var(--surface) !important; }
-                        
-                        .badge {
-                            font-weight: 600;
-                            font-size: 0.75rem;
-                            padding: 6px 12px;
-                            border-radius: 8px;
-                            letter-spacing: 0.01em;
-                        }
-                        
-                        footer {
-                            background: var(--surface) !important;
-                            border-top: 1px solid var(--border-light);
-                            color: var(--text-secondary);
-                        }
-                        
-                        .lead {
-                            font-size: 1.25rem;
-                            font-weight: 400;
-                            opacity: 0.9;
-                        }
-                        
-                        /* Apple-style focus states */
-                        .btn:focus, .form-control:focus {
-                            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
-                            outline: none;
-                        }
-                        
-                        /* Nike-inspired animations */
-                        @keyframes nike-swoosh {
-                            0% { transform: translateX(-100%); opacity: 0; }
-                            100% { transform: translateX(0); opacity: 1; }
-                        }
-                        
-                        .animate-swoosh {
-                            animation: nike-swoosh 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
-                        }
-                        
-                        /* Elegant hover effects */
-                        .elegant-hover {
-                            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-                        }
-                        
-                        .elegant-hover:hover {
-                            transform: scale(1.02);
-                        }
-                        
-                        /* Monochromatic scrollbar */
-                        ::-webkit-scrollbar {
-                            width: 10px;
-                        }
-                        
-                        ::-webkit-scrollbar-track {
-                            background: var(--light-gray);
-                        }
-                        
-                        ::-webkit-scrollbar-thumb {
-                            background: var(--slate-gray);
-                            border-radius: 5px;
-                            border: 2px solid var(--light-gray);
-                        }
-                        
-                        ::-webkit-scrollbar-thumb:hover {
-                            background: var(--dark-gray);
-                        }
-                        
-                        /* Sophisticated shadow system */
-                        .shadow-soft {
-                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
-                        }
-                        
-                        .shadow-medium {
-                            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
-                        }
-                        
-                        .shadow-strong {
-                            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.18) !important;
-                        }
-                        
-                        .category-card {
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                        }
-                        
-                        .category-card:hover {
-                            transform: translateY(-8px);
-                            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15) !important;
-                        }
-                        
-                        .elegant-hover {
-                            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-                        }
-                        
-                        .elegant-hover:hover {
-                            transform: translateY(-5px);
-                            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
-                        }
-                        
-                        .border-top {
-                            border-color: var(--border-light) !important;
-                        }
-                        
-                        .platform-card {
-                            cursor: pointer;
-                            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-                            border-radius: 16px;
-                        }
-                        
-                        .platform-card:hover {
-                            transform: translateY(-8px);
-                            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12) !important;
-                        }
-                        
-                        .platform-icon {
-                            transition: all 0.3s ease;
-                        }
-                        
-                        .platform-card:hover .platform-icon {
-                            transform: scale(1.1);
-                        }
-                        
-                        .badge {
-                            border-radius: 6px;
-                            font-size: 0.7rem;
-                            font-weight: 600;
-                            letter-spacing: 0.025em;
-                        }
-                        
-                        /* Premium spacing */
-                        .container {
-                            max-width: 1200px;
-                        }
-                        
-                        .section-padding {
-                            padding: 80px 0;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <!-- Navigation -->
-                    <nav class="navbar navbar-expand-lg">
-                        <div class="container">
-                            <a class="navbar-brand ai-logo" href="/">
-                                ThriftAI
-                            </a>
-                            <div class="navbar-nav ms-auto">
-                                <a class="nav-link" href="/" onclick="showBuyerMode()">🛒 Buyer Mode</a>
-                                <a class="nav-link" href="#" onclick="showSellerMode()">💼 Seller Mode</a>
-                                <a class="nav-link" href="#" onclick="showAIAssistant()">🤖 AI Assistant</a>
-                                <a class="nav-link" href="#" onclick="showVisualSearch()">📸 Visual Search</a>
-                            </div>
-                        </div>
-                    </nav>
-
-                    <!-- Hero Section -->
-                    <div class="hero-section text-white py-5">
-                        <div class="container text-center">
-                            <h1 class="display-3 mb-4 text-white fw-bold" style="font-size: 3.5rem; letter-spacing: -0.02em;">
-                                AI-Powered Thrift <br>
-                                <span style="background: var(--gradient-accent); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                                    Marketplace
-                                </span>
-                            </h1>
-                            <p class="lead mb-5 text-white-50" style="font-size: 1.3rem; max-width: 600px; margin: 0 auto;">
-                                Your personal AI finds the perfect thrift deals while you sell items effortlessly. 
-                                <strong class="text-white">Sustainable shopping, reimagined.</strong>
-                            </p>
-                            <div class="row text-center mb-5">
-                                <div class="col-md-6">
-                                    <h5 class="text-white mb-2">💰 For Sellers</h5>
-                                    <p class="text-white-50">List your thrift items and reach buyers with our AI matching system</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5 class="text-white mb-2">🎯 For Buyers</h5>
-                                    <p class="text-white-50">Get personalized deals that match your style and budget preferences</p>
-                                </div>
-                            </div>
-                            <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                                <button class="btn btn-primary btn-lg px-4 py-3" onclick="showBuyerPreferences()" style="border-radius: 12px; font-weight: 600;">
-                                    <i class="fas fa-sparkles me-2"></i>Get AI Recommendations
-                                </button>
-                                <button class="btn btn-outline-light btn-lg px-4 py-3" onclick="showSellModal()" style="border-radius: 12px; font-weight: 600; border-width: 2px;">
-                                    <i class="fas fa-upload me-2"></i>List Your Items
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Platform Stats -->
-                    <div class="container section-padding">
-                        <div class="row mb-5">
-                            <div class="col-12 text-center mb-5">
-                                <h2 class="text-primary mb-3">Platform Overview</h2>
-                                <p class="text-muted lead">Real-time insights from our AI-powered marketplace</p>
-                            </div>
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="card stat-card border-0 shadow-sm h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
-                                        <h3 class="fw-bold text-primary">5</h3>
-                                        <p class="text-muted mb-0">Total Products</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="card stat-card border-0 shadow-sm h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-tags fa-3x text-success mb-3"></i>
-                                        <h3 class="fw-bold text-success">3</h3>
-                                        <p class="text-muted mb-0">Categories</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="card stat-card border-0 shadow-sm h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-store fa-3x text-warning mb-3"></i>
-                                        <h3 class="fw-bold text-warning">3</h3>
-                                        <p class="text-muted mb-0">Partner Stores</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6 mb-3">
-                                <div class="card stat-card border-0 shadow-sm h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-percentage fa-3x text-danger mb-3"></i>
-                                        <h3 class="fw-bold text-danger">55%</h3>
-                                        <p class="text-muted mb-0">Avg Discount</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- AI Deals Section -->
-                        <div class="row">
-                            <div class="col-12 text-center mb-4">
-                                <h2 class="fw-bold text-primary">🔥 AI-Recommended Featured Deals</h2>
-                                <p class="text-muted">Powered by our intelligent deal scoring algorithm</p>
-                            </div>
-                        </div>
-
-                        <div id="deals-container" class="row">
-                            <div class="col-12 text-center py-5">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading deals...</span>
-                                </div>
-                                <p class="mt-3 text-muted">Loading AI-powered deals...</p>
-                            </div>
-                        </div>
-
-                        <!-- Platform Integrations -->
-                        <div class="row mt-5 pt-5 border-top">
-                            <div class="col-12 text-center mb-5">
-                                <h2 class="fw-bold text-primary">Connect All Your Platforms</h2>
-                                <p class="text-muted lead">ThriftAI syncs with everywhere you already shop and sell</p>
-                            </div>
-                            
-                            <!-- Marketplace Platforms -->
-                            <div class="col-12 mb-4">
-                                <h4 class="text-secondary mb-3"><i class="fas fa-store me-2"></i>Marketplace Integrations</h4>
-                                <div class="row">
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('ebay')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #E53238; font-size: 2.5rem;">
-                                                    <i class="fab fa-ebay"></i>
-                                                </div>
-                                                <h6 class="fw-bold">eBay</h6>
-                                                <p class="small text-muted mb-2">Cross-list your items automatically</p>
-                                                <span class="badge bg-success">AI Sync</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('mercari')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #FF6B35; font-size: 2.5rem;">
-                                                    <i class="fas fa-shopping-cart"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Mercari</h6>
-                                                <p class="small text-muted mb-2">Import listings & sync inventory</p>
-                                                <span class="badge bg-info">Beta</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('facebook')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #1877F2; font-size: 2.5rem;">
-                                                    <i class="fab fa-facebook"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Facebook Marketplace</h6>
-                                                <p class="small text-muted mb-2">Reach local buyers instantly</p>
-                                                <span class="badge bg-primary">Popular</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('offerup')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #00A651; font-size: 2.5rem;">
-                                                    <i class="fas fa-mobile-alt"></i>
-                                                </div>
-                                                <h6 class="fw-bold">OfferUp</h6>
-                                                <p class="small text-muted mb-2">Mobile-first local selling</p>
-                                                <span class="badge bg-success">Live</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Social Media Platforms -->
-                            <div class="col-12 mb-4">
-                                <h4 class="text-secondary mb-3"><i class="fas fa-share-alt me-2"></i>Social Media & Sharing</h4>
-                                <div class="row">
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('instagram')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #E4405F; font-size: 2.5rem;">
-                                                    <i class="fab fa-instagram"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Instagram</h6>
-                                                <p class="small text-muted mb-2">Auto-post your best finds</p>
-                                                <span class="badge bg-warning">Coming Soon</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('tiktok')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #000000; font-size: 2.5rem;">
-                                                    <i class="fab fa-tiktok"></i>
-                                                </div>
-                                                <h6 class="fw-bold">TikTok Shop</h6>
-                                                <p class="small text-muted mb-2">Viral thrift content creation</p>
-                                                <span class="badge bg-dark">New</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('pinterest')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #BD081C; font-size: 2.5rem;">
-                                                    <i class="fab fa-pinterest"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Pinterest</h6>
-                                                <p class="small text-muted mb-2">Style inspiration & boards</p>
-                                                <span class="badge bg-danger">AI Visual</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('twitter')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #1DA1F2; font-size: 2.5rem;">
-                                                    <i class="fab fa-twitter"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Twitter/X</h6>
-                                                <p class="small text-muted mb-2">Share deals & discoveries</p>
-                                                <span class="badge bg-info">Auto-Tweet</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Authentication & Storage -->
-                            <div class="col-12 mb-4">
-                                <h4 class="text-secondary mb-3"><i class="fas fa-user-shield me-2"></i>Sign In & Storage</h4>
-                                <div class="row">
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('google')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #4285F4; font-size: 2.5rem;">
-                                                    <i class="fab fa-google"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Google Account</h6>
-                                                <p class="small text-muted mb-2">One-click sign in & sync</p>
-                                                <span class="badge bg-primary">Secure</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('apple')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #000000; font-size: 2.5rem;">
-                                                    <i class="fab fa-apple"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Sign in with Apple</h6>
-                                                <p class="small text-muted mb-2">Privacy-focused login</p>
-                                                <span class="badge bg-dark">Private</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('dropbox')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #0061FF; font-size: 2.5rem;">
-                                                    <i class="fab fa-dropbox"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Dropbox</h6>
-                                                <p class="small text-muted mb-2">Photo backup & sharing</p>
-                                                <span class="badge bg-info">Cloud</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6 mb-3">
-                                        <div class="card platform-card border-0 shadow-sm h-100" onclick="connectPlatform('stripe')">
-                                            <div class="card-body text-center py-4">
-                                                <div class="platform-icon mb-3" style="color: #635BFF; font-size: 2.5rem;">
-                                                    <i class="fab fa-stripe"></i>
-                                                </div>
-                                                <h6 class="fw-bold">Stripe Payments</h6>
-                                                <p class="small text-muted mb-2">Secure payment processing</p>
-                                                <span class="badge bg-success">Trusted</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- API Demo Section -->
-                        <div class="row mt-5 pt-5 border-top">
-                            <div class="col-12 text-center">
-                                <h3 class="text-primary mb-4">Developer API</h3>
-                                <p class="text-muted mb-4">Build on our AI-powered platform</p>
-                                <div class="d-flex flex-wrap justify-content-center gap-3">
-                                    <button class="btn btn-outline-primary" onclick="testAPI('/api/deals')">
-                                        <i class="fas fa-database me-2"></i>Deals API
-                                    </button>
-                                    <button class="btn btn-outline-primary" onclick="testAPI('/api/stats')">
-                                        <i class="fas fa-chart-line me-2"></i>Analytics API
-                                    </button>
-                                    <button class="btn btn-outline-primary" onclick="testAPI('/api/health')">
-                                        <i class="fas fa-heartbeat me-2"></i>Health Check
-                                    </button>
-                                </div>
-                                <div id="api-result" class="mt-4"></div>
-                            </div>
-                        </div>
-
-                        <!-- How It Works Section -->
-                        <div class="row mt-5 pt-5 border-top">
-                            <div class="col-12 text-center mb-5">
-                                <h2 class="fw-bold text-primary">How It Actually Works</h2>
-                                <p class="text-muted lead">Dead simple. AI-powered. Actually sustainable.</p>
-                            </div>
-                            <div class="col-lg-4 mb-4">
-                                <div class="card border-0 h-100 text-center">
-                                    <div class="card-body p-4">
-                                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                            <i class="fas fa-camera fa-2x text-white"></i>
-                                        </div>
-                                        <h4 class="text-primary">1. List Your Items</h4>
-                                        <p class="text-muted">Take photos, add descriptions, and set your price. Our AI suggests optimal pricing based on market data.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-4 mb-4">
-                                <div class="card border-0 h-100 text-center">
-                                    <div class="card-body p-4">
-                                        <div class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                            <i class="fas fa-robot fa-2x text-white"></i>
-                                        </div>
-                                        <h4 class="text-success">2. AI Matching</h4>
-                                        <p class="text-muted">Our intelligent algorithm matches your items with buyers looking for exactly what you're selling.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-4 mb-4">
-                                <div class="card border-0 h-100 text-center">
-                                    <div class="card-body p-4">
-                                        <div class="bg-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                            <i class="fas fa-handshake fa-2x text-white"></i>
-                                        </div>
-                                        <h4 class="text-warning">3. Secure Transaction</h4>
-                                        <p class="text-muted">Complete your sale securely. We handle payment processing and take just 8% commission.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Categories Section -->
-                        <div class="row mt-5 pt-5 border-top">
-                            <div class="col-12 text-center mb-5">
-                                <h2 class="fw-bold text-primary">Popular Categories</h2>
-                                <p class="text-muted lead">Discover amazing deals across all categories</p>
-                            </div>
-                            <div class="col-md-3 col-sm-6 mb-4">
-                                <div class="card category-card border-0 shadow-sm h-100" onclick="filterByCategory('Clothing')">
-                                    <div class="card-body text-center py-4">
-                                        <i class="fas fa-tshirt fa-3x text-primary mb-3"></i>
-                                        <h5 class="text-primary">Fashion & Clothing</h5>
-                                        <p class="text-muted small mb-2">Vintage, designer, and everyday wear</p>
-                                        <span class="badge bg-primary">25+ items</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6 mb-4">
-                                <div class="card category-card border-0 shadow-sm h-100" onclick="filterByCategory('Electronics')">
-                                    <div class="card-body text-center py-4">
-                                        <i class="fas fa-laptop fa-3x text-success mb-3"></i>
-                                        <h5 class="text-success">Electronics</h5>
-                                        <p class="text-muted small mb-2">Phones, laptops, gaming gear</p>
-                                        <span class="badge bg-success">15+ items</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6 mb-4">
-                                <div class="card category-card border-0 shadow-sm h-100" onclick="filterByCategory('Home')">
-                                    <div class="card-body text-center py-4">
-                                        <i class="fas fa-home fa-3x text-warning mb-3"></i>
-                                        <h5 class="text-warning">Home & Garden</h5>
-                                        <p class="text-muted small mb-2">Furniture, decor, appliances</p>
-                                        <span class="badge bg-warning">30+ items</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6 mb-4">
-                                <div class="card category-card border-0 shadow-sm h-100" onclick="filterByCategory('Books')">
-                                    <div class="card-body text-center py-4">
-                                        <i class="fas fa-book fa-3x text-info mb-3"></i>
-                                        <h5 class="text-info">Books & Media</h5>
-                                        <p class="text-muted small mb-2">Books, movies, music, games</p>
-                                        <span class="badge bg-info">20+ items</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Testimonials Section -->
-                        <div class="row mt-5 pt-5 border-top">
-                            <div class="col-12 text-center mb-5">
-                                <h2 class="fw-bold text-primary">What Our Users Say</h2>
-                                <p class="text-muted lead">Real stories from our ThriftAI community</p>
-                            </div>
-                            <div class="col-lg-4 mb-4">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body p-4">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
-                                                <i class="fas fa-user fa-lg text-white"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">Sarah M.</h6>
-                                                <small class="text-muted">Seller</small>
-                                            </div>
-                                        </div>
-                                        <p class="text-muted">"I sold my vintage jacket within 2 days! The AI recommendations helped me price it perfectly. Made $120 after the small commission."</p>
-                                        <div class="text-warning">
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-4 mb-4">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body p-4">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
-                                                <i class="fas fa-user fa-lg text-white"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">Mike T.</h6>
-                                                <small class="text-muted">Buyer</small>
-                                            </div>
-                                        </div>
-                                        <p class="text-muted">"The AI found me exactly the gaming chair I wanted, 60% off retail price! The quality matching feature is incredible."</p>
-                                        <div class="text-warning">
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-4 mb-4">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body p-4">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="bg-info rounded-circle d-inline-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
-                                                <i class="fas fa-user fa-lg text-white"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">Lisa K.</h6>
-                                                <small class="text-muted">Power User</small>
-                                            </div>
-                                        </div>
-                                        <p class="text-muted">"Both buying and selling here is amazing. The AI suggestions save me hours of browsing. I've made over $800 selling items I don't use!"</p>
-                                        <div class="text-warning">
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Call to Action -->
-                        <div class="row mt-5 pt-5 mb-5">
-                            <div class="col-12">
-                                <div class="card border-0 shadow-lg" style="background: var(--gradient-primary); border-radius: 20px;">
-                                    <div class="card-body py-5 text-center text-white">
-                                        <h2 class="fw-bold mb-3" style="font-size: 2.5rem;">Ready to upgrade your thrifting game?</h2>
-                                        <p class="lead mb-4 opacity-90">Join the AI revolution in sustainable shopping. No more endless scrolling.</p>
-                                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center mb-4">
-                                            <button class="btn btn-light btn-lg px-4 py-3" onclick="showBuyerPreferences()" style="border-radius: 12px; font-weight: 600; box-shadow: 0 4px 15px rgba(255,255,255,0.3);">
-                                                <i class="fas fa-sparkles me-2"></i>Get AI Recommendations
-                                            </button>
-                                            <button class="btn btn-outline-light btn-lg px-4 py-3" onclick="showSellModal()" style="border-radius: 12px; font-weight: 600; border-width: 2px;">
-                                                <i class="fas fa-upload me-2"></i>Start Selling
-                                            </button>
-                                        </div>
-                                        <div class="d-flex flex-wrap justify-content-center gap-4 small opacity-75">
-                                            <span><i class="fas fa-brain me-1"></i>AI-Powered</span>
-                                            <span><i class="fas fa-leaf me-1"></i>Sustainable</span>
-                                            <span><i class="fas fa-shield-alt me-1"></i>Secure</span>
-                                            <span><i class="fas fa-zap me-1"></i>Fast</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                """;
+        private String generateAdvancedHomepage() {
+            StringBuilder html = new StringBuilder();
             
-            String htmlPart2 = """
-                    <!-- Footer -->
-                    <!-- Modals -->
-                    <!-- Buyer Preferences Modal -->
-                    <div class="modal fade" id="buyerPreferencesModal" tabindex="-1">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title"><i class="fas fa-user-cog me-2"></i>Set Your Preferences & Budget</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form id="buyerPreferencesForm">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Budget Range ($)</label>
-                                                <div class="row">
-                                                    <div class="col-6">
-                                                        <input type="number" class="form-control" id="minBudget" placeholder="Min" value="10">
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <input type="number" class="form-control" id="maxBudget" placeholder="Max" value="500">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Preferred Categories</label>
-                                                <div class="form-check-container">
-                                                    <div class="form-check"><input class="form-check-input" type="checkbox" id="cat_clothing" checked><label class="form-check-label">👕 Clothing</label></div>
-                                                    <div class="form-check"><input class="form-check-input" type="checkbox" id="cat_shoes"><label class="form-check-label">👟 Shoes</label></div>
-                                                    <div class="form-check"><input class="form-check-input" type="checkbox" id="cat_electronics"><label class="form-check-label">📱 Electronics</label></div>
-                                                    <div class="form-check"><input class="form-check-input" type="checkbox" id="cat_accessories"><label class="form-check-label">👜 Accessories</label></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mt-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Preferred Brands (optional)</label>
-                                                <input type="text" class="form-control" id="preferredBrands" placeholder="e.g., Nike, Levi's, Apple">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Minimum Quality</label>
-                                                <select class="form-select" id="minQuality">
-                                                    <option value="FAIR">Fair</option>
-                                                    <option value="GOOD">Good</option>
-                                                    <option value="VERY_GOOD" selected>Very Good</option>
-                                                    <option value="EXCELLENT">Excellent</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="mt-3">
-                                            <label class="form-label">What are you looking for? (AI will use this)</label>
-                                            <textarea class="form-control" id="searchDescription" rows="3" placeholder="Describe what you're looking for, your style preferences, or any specific needs..."></textarea>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" onclick="savePreferencesAndSearch()">Find My Deals</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Sell Items Modal -->
-                    <div class="modal fade" id="sellModal" tabindex="-1">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>List Your Thrift Item</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form id="sellItemForm">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Item Name *</label>
-                                                <input type="text" class="form-control" id="itemName" required>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Category *</label>
-                                                <select class="form-select" id="itemCategory" required>
-                                                    <option value="">Select category</option>
-                                                    <option value="CLOTHING">👕 Clothing</option>
-                                                    <option value="SHOES">👟 Shoes</option>
-                                                    <option value="ELECTRONICS">📱 Electronics</option>
-                                                    <option value="ACCESSORIES">👜 Accessories</option>
-                                                    <option value="HOME">🏠 Home</option>
-                                                    <option value="BOOKS">📚 Books</option>
-                                                    <option value="SPORTS">⚽ Sports</option>
-                                                    <option value="BEAUTY">💄 Beauty</option>
-                                                    <option value="JEWELRY">💎 Jewelry</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="row mt-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Brand</label>
-                                                <input type="text" class="form-control" id="itemBrand">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Condition *</label>
-                                                <select class="form-select" id="itemCondition" required>
-                                                    <option value="">Select condition</option>
-                                                    <option value="EXCELLENT">Excellent</option>
-                                                    <option value="VERY_GOOD">Very Good</option>
-                                                    <option value="GOOD">Good</option>
-                                                    <option value="FAIR">Fair</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="row mt-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Your Price ($) *</label>
-                                                <input type="number" class="form-control" id="itemPrice" step="0.01" required>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Original Price (optional)</label>
-                                                <input type="number" class="form-control" id="itemOriginalPrice" step="0.01">
-                                            </div>
-                                        </div>
-                                        <div class="mt-3">
-                                            <label class="form-label">Description</label>
-                                            <textarea class="form-control" id="itemDescription" rows="3" placeholder="Describe your item, its condition, size, etc..."></textarea>
-                                        </div>
-                                        <div class="mt-3">
-                                            <div class="alert alert-info">
-                                                <i class="fas fa-info-circle me-2"></i>
-                                                <strong>Commission:</strong> ThriftAI charges 8% commission on successful sales to help connect you with the right buyers through our AI system.
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-success" onclick="listItem()">List Item (8% commission)</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <footer class="py-5 mt-5 border-top">
-                        <div class="container text-center">
-                            <div class="ai-logo mb-3">ThriftAI</div>
-                            <p class="text-muted mb-3">Sustainable shopping powered by artificial intelligence</p>
-                            <div class="d-flex flex-wrap justify-content-center gap-4 mb-3 small text-muted">
-                                <span><i class="fas fa-brain me-1 text-primary"></i>AI-Powered Matching</span>
-                                <span><i class="fas fa-leaf me-1 text-success"></i>Sustainable Commerce</span>
-                                <span><i class="fas fa-shield-alt me-1 text-info"></i>Secure Platform</span>
-                                <span><i class="fas fa-chart-line me-1 text-warning"></i>8% Commission</span>
-                            </div>
-                            <small class="text-muted">&copy; 2024 ThriftAI. Building the future of sustainable commerce.</small>
-                        </div>
-                    </footer>
-
-                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-                    <script>
-                        function loadDeals() {
-                            const container = document.getElementById('deals-container');
-                            container.innerHTML = `
-                                <div class="col-12 text-center py-5">
-                                    <div class="spinner-border text-primary mb-4" role="status"></div>
-                                    <p class="text-muted">Loading 100 amazing deals...</p>
-                                </div>
-                            `;
-                            
-                            fetch('/api/deals')
-                                .then(response => response.json())
-                                .then(data => {
-                                    displayProducts(data.data);
-                                })
-                                .catch(error => {
-                                    container.innerHTML = `
-                                        <div class="col-12 text-center py-5">
-                                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                                            <h4>Error loading deals</h4>
-                                            <p class="text-muted">${error.message}</p>
-                                            <button class="btn btn-primary" onclick="loadDeals()">Try Again</button>
-                                        </div>
-                                    `;
-                                });
-                        }
-                        
-                        function displayProducts(products) {
-                            const container = document.getElementById('deals-container');
-                            let html = '';
-                            
-                            products.slice(0, 20).forEach(deal => {  // Show first 20 products
-                                const product = deal.product;
-                                const qualityClass = getQualityClass(deal.dealQuality);
-                                const categoryIcon = getCategoryIcon(product.category);
-                                const imageUrl = generateProductImage(product.category, product.name, product.brand);
-                                
-                                html += `
-                                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                                        <div class="card deal-card border-0 shadow-sm h-100 elegant-hover">
-                                            <div class="product-image-container position-relative">
-                                                <img src="${imageUrl}" class="card-img-top product-image" alt="${product.name}" 
-                                                     style="height: 200px; object-fit: cover;" 
-                                                     onerror="this.src='https://via.placeholder.com/300x200/f8f9fa/6c757d?text=${encodeURIComponent(product.name)}'">
-                                                <div class="position-absolute top-0 end-0 m-2">
-                                                    <span class="badge ${qualityClass} shadow-sm">
-                                                        ${deal.dealQuality.replace('_', ' ')}
-                                                    </span>
-                                                </div>
-                                                <div class="position-absolute bottom-0 start-0 m-2">
-                                                    <span class="badge bg-danger shadow-sm">
-                                                        ${product.discountPercentage}% OFF
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="card-body p-3">
-                                                <h6 class="card-title mb-2 fw-bold">${product.name}</h6>
-                                                
-                                                <div class="mb-2">
-                                                    <span class="badge bg-secondary me-1">${categoryIcon} ${product.category}</span>
-                                                    <span class="badge bg-primary me-1">${product.brand}</span>
-                                                </div>
-                                                
-                                                <div class="pricing mb-2">
-                                                    <h5 class="text-primary mb-1">$${product.price.toFixed(2)}</h5>
-                                                    ${product.originalPrice > product.price ? `
-                                                        <div>
-                                                            <span class="text-muted text-decoration-line-through small">
-                                                                $${product.originalPrice.toFixed(2)}
-                                                            </span>
-                                                            <span class="text-success small ms-2">
-                                                                Save $${(product.originalPrice - product.price).toFixed(2)}
-                                                            </span>
-                                                        </div>
-                                                    ` : ''}
-                                                </div>
-                                                
-                                                <div class="ai-score mb-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <small class="text-muted me-2">AI Score:</small>
-                                                        <div class="progress flex-grow-1 me-2" style="height: 4px;">
-                                                            <div class="progress-bar ${qualityClass.replace('badge ', 'bg')}" 
-                                                                 style="width: ${deal.dealScore}%"></div>
-                                                        </div>
-                                                        <small class="fw-bold">${deal.dealScore.toFixed(0)}</small>
-                                                    </div>
-                                                </div>
-                                                
-                                                <p class="card-text small text-muted mb-2" style="font-size: 0.8rem;">
-                                                    ${deal.dealReason}
-                                                </p>
-                                                
-                                                <div class="d-grid gap-1">
-                                                    <button class="btn btn-primary btn-sm">
-                                                        <i class="fas fa-shopping-cart me-1"></i>View Deal
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                            
-                            // Add load more button
-                            html += `
-                                <div class="col-12 text-center mt-4">
-                                    <button class="btn btn-outline-primary btn-lg" onclick="loadMoreProducts()">
-                                        <i class="fas fa-plus me-2"></i>Load More Products
-                                        <span class="badge bg-primary ms-2">${products.length - 20} remaining</span>
-                                    </button>
-                                </div>
-                            `;
-                            
-                            container.innerHTML = html;
-                            window.allProducts = products; // Store all products globally
-                        }
-                        
-                        function loadMoreProducts() {
-                            if (!window.allProducts) return;
-                            
-                            const container = document.getElementById('deals-container');
-                            const currentProducts = container.querySelectorAll('.deal-card').length;
-                            const nextBatch = window.allProducts.slice(currentProducts, currentProducts + 20);
-                            
-                            if (nextBatch.length === 0) return;
-                            
-                            // Remove load more button
-                            const loadMoreBtn = container.querySelector('.col-12.text-center.mt-4');
-                            if (loadMoreBtn) loadMoreBtn.remove();
-                            
-                            let html = '';
-                            nextBatch.forEach(deal => {
-                                const product = deal.product;
-                                const qualityClass = getQualityClass(deal.dealQuality);
-                                const categoryIcon = getCategoryIcon(product.category);
-                                const imageUrl = generateProductImage(product.category, product.name, product.brand);
-                                
-                                html += `
-                                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                                        <div class="card deal-card border-0 shadow-sm h-100 elegant-hover">
-                                            <div class="product-image-container position-relative">
-                                                <img src="${imageUrl}" class="card-img-top product-image" alt="${product.name}" 
-                                                     style="height: 200px; object-fit: cover;" 
-                                                     onerror="this.src='https://via.placeholder.com/300x200/f8f9fa/6c757d?text=${encodeURIComponent(product.name)}'">
-                                                <div class="position-absolute top-0 end-0 m-2">
-                                                    <span class="badge ${qualityClass} shadow-sm">
-                                                        ${deal.dealQuality.replace('_', ' ')}
-                                                    </span>
-                                                </div>
-                                                <div class="position-absolute bottom-0 start-0 m-2">
-                                                    <span class="badge bg-danger shadow-sm">
-                                                        ${product.discountPercentage}% OFF
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="card-body p-3">
-                                                <h6 class="card-title mb-2 fw-bold">${product.name}</h6>
-                                                
-                                                <div class="mb-2">
-                                                    <span class="badge bg-secondary me-1">${categoryIcon} ${product.category}</span>
-                                                    <span class="badge bg-primary me-1">${product.brand}</span>
-                                                </div>
-                                                
-                                                <div class="pricing mb-2">
-                                                    <h5 class="text-primary mb-1">$${product.price.toFixed(2)}</h5>
-                                                    ${product.originalPrice > product.price ? `
-                                                        <div>
-                                                            <span class="text-muted text-decoration-line-through small">
-                                                                $${product.originalPrice.toFixed(2)}
-                                                            </span>
-                                                            <span class="text-success small ms-2">
-                                                                Save $${(product.originalPrice - product.price).toFixed(2)}
-                                                            </span>
-                                                        </div>
-                                                    ` : ''}
-                                                </div>
-                                                
-                                                <div class="ai-score mb-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <small class="text-muted me-2">AI Score:</small>
-                                                        <div class="progress flex-grow-1 me-2" style="height: 4px;">
-                                                            <div class="progress-bar ${qualityClass.replace('badge ', 'bg')}" 
-                                                                 style="width: ${deal.dealScore}%"></div>
-                                                        </div>
-                                                        <small class="fw-bold">${deal.dealScore.toFixed(0)}</small>
-                                                    </div>
-                                                </div>
-                                                
-                                                <p class="card-text small text-muted mb-2" style="font-size: 0.8rem;">
-                                                    ${deal.dealReason}
-                                                </p>
-                                                
-                                                <div class="d-grid gap-1">
-                                                    <button class="btn btn-primary btn-sm">
-                                                        <i class="fas fa-shopping-cart me-1"></i>View Deal
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                            
-                            // Add new products
-                            container.insertAdjacentHTML('beforeend', html);
-                            
-                            // Add load more button if there are more products
-                            const remaining = window.allProducts.length - (currentProducts + nextBatch.length);
-                            if (remaining > 0) {
-                                container.insertAdjacentHTML('beforeend', `
-                                    <div class="col-12 text-center mt-4">
-                                        <button class="btn btn-outline-primary btn-lg" onclick="loadMoreProducts()">
-                                            <i class="fas fa-plus me-2"></i>Load More Products
-                                            <span class="badge bg-primary ms-2">${remaining} remaining</span>
-                                        </button>
-                                    </div>
-                                `);
-                            }
-                        }
-                        
-                        function getQualityClass(quality) {
-                            switch(quality) {
-                                case 'EXCEPTIONAL': return 'badge bg-success';
-                                case 'EXCELLENT': return 'badge bg-info';
-                                case 'VERY_GOOD': return 'badge bg-primary';
-                                case 'GOOD': return 'badge bg-warning';
-                                default: return 'badge bg-secondary';
-                            }
-                        }
-                        
-                        function getCategoryIcon(category) {
-                            const icons = {
-                                'CLOTHING': '👕',
-                                'SHOES': '👟',
-                                'ELECTRONICS': '📱',
-                                'ACCESSORIES': '👜',
-                                'HOME': '🏠',
-                                'BOOKS': '📚',
-                                'SPORTS': '⚽',
-                                'BEAUTY': '💄',
-                                'JEWELRY': '💎',
-                                'AUTOMOTIVE': '🚗'
-                            };
-                            return icons[category] || '📦';
-                        }
-                        
-                        function generateProductImage(category, name, brand) {
-                            // Generate placeholder images with category-specific colors and designs
-                            const categoryColors = {
-                                'CLOTHING': '4a90e2',
-                                'SHOES': 'f5a623',
-                                'ELECTRONICS': '7ed321',
-                                'ACCESSORIES': 'd0021b',
-                                'HOME': '9013fe',
-                                'BOOKS': '50e3c2',
-                                'SPORTS': 'bd10e0',
-                                'BEAUTY': 'f8e71c',
-                                'JEWELRY': 'b8e986',
-                                'AUTOMOTIVE': '5c7cfa'
-                            };
-                            
-                            const color = categoryColors[category] || '6c757d';
-                            const icon = getCategoryIcon(category);
-                            
-                            return `https://via.placeholder.com/300x200/${color}/ffffff?text=${icon}+${encodeURIComponent(brand)}`;
-                        }
-
-                        function showStats() {
-                            fetch('/api/stats')
-                                .then(response => response.json())
-                                .then(data => {
-                                    const stats = data.data;
-                                    const categoryList = Object.entries(stats.categoryStats)
-                                        .map(([cat, count]) => `• ${getCategoryIcon(cat)} ${cat}: ${count} products`)
-                                        .join('\\n');
-                                    
-                                    alert(`📊 Platform Statistics:\\n\\n• Total Products: ${stats.totalProducts}\\n• Categories: ${stats.totalCategories}\\n• Brands: ${stats.totalBrands}\\n• Partner Stores: ${stats.totalStores}\\n• Average Discount: ${stats.averageDiscount}%\\n• AI Accuracy: ${stats.aiAccuracy}%\\n\\nCategory Breakdown:\\n${categoryList}`);
-                                })
-                                .catch(error => {
-                                    alert('Error loading statistics: ' + error.message);
-                                });
-                        }
-
-                        function testAPI(endpoint) {
-                            const resultDiv = document.getElementById('api-result');
-                            resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Calling API...';
-                            
-                            fetch(endpoint)
-                                .then(response => response.json())
-                                .then(data => {
-                                    resultDiv.innerHTML = `
-                                        <div class="alert alert-success mt-3">
-                                            <strong>✅ API Response from ${endpoint}:</strong>
-                                            <pre class="mt-2 mb-0">${JSON.stringify(data, null, 2)}</pre>
-                                        </div>
-                                    `;
-                                })
-                                .catch(error => {
-                                    resultDiv.innerHTML = `
-                                        <div class="alert alert-danger mt-3">
-                                            <strong>❌ API Error:</strong> ${error.message}
-                                        </div>
-                                    `;
-                                });
-                        }
-
-                        // Marketplace Functions
-                        function showBuyerPreferences() {
-                            const modal = new bootstrap.Modal(document.getElementById('buyerPreferencesModal'));
-                            modal.show();
-                        }
-                        
-                        function showSellModal() {
-                            const modal = new bootstrap.Modal(document.getElementById('sellModal'));
-                            modal.show();
-                        }
-                        
-                        function savePreferencesAndSearch() {
-                            const preferences = {
-                                minBudget: document.getElementById('minBudget').value,
-                                maxBudget: document.getElementById('maxBudget').value,
-                                categories: Array.from(document.querySelectorAll('input[id^="cat_"]:checked')).map(cb => cb.id.replace('cat_', '').toUpperCase()),
-                                brands: document.getElementById('preferredBrands').value.split(',').map(b => b.trim()).filter(b => b),
-                                minQuality: document.getElementById('minQuality').value,
-                                searchDescription: document.getElementById('searchDescription').value
-                            };
-                            
-                            // Store preferences
-                            localStorage.setItem('thriftai_preferences', JSON.stringify(preferences));
-                            
-                            // Close modal
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('buyerPreferencesModal'));
-                            modal.hide();
-                            
-                            // Load personalized deals
-                            loadPersonalizedDeals(preferences);
-                            
-                            // Show success message
-                            showNotification('Preferences saved! Loading personalized deals...', 'success');
-                        }
-                        
-                        function listItem() {
-                            const item = {
-                                name: document.getElementById('itemName').value,
-                                category: document.getElementById('itemCategory').value,
-                                brand: document.getElementById('itemBrand').value,
-                                condition: document.getElementById('itemCondition').value,
-                                price: parseFloat(document.getElementById('itemPrice').value),
-                                originalPrice: parseFloat(document.getElementById('itemOriginalPrice').value) || 0,
-                                description: document.getElementById('itemDescription').value,
-                                sellerId: 'seller_' + Date.now(), // In real app, this would be user ID
-                                listedAt: new Date().toISOString()
-                            };
-                            
-                            // Validate required fields
-                            if (!item.name || !item.category || !item.condition || !item.price) {
-                                showNotification('Please fill in all required fields', 'error');
-                                return;
-                            }
-                            
-                            // Calculate commission
-                            const commission = (item.price * 0.08).toFixed(2);
-                            const netEarnings = (item.price * 0.92).toFixed(2);
-                            
-                            // Store item (in real app, this would go to database)
-                            let listedItems = JSON.parse(localStorage.getItem('thriftai_listed_items') || '[]');
-                            listedItems.push(item);
-                            localStorage.setItem('thriftai_listed_items', JSON.stringify(listedItems));
-                            
-                            // Close modal
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('sellModal'));
-                            modal.hide();
-                            
-                            // Show success
-                            showNotification(`Item listed successfully! You'll earn $${netEarnings} after 8% commission ($${commission})`, 'success');
-                            
-                            // Clear form
-                            document.getElementById('sellItemForm').reset();
-                        }
-                        
-                        function loadPersonalizedDeals(preferences) {
-                            const container = document.getElementById('deals-container');
-                            container.innerHTML = `
-                                <div class="col-12 text-center py-5">
-                                    <div class="spinner-border text-primary mb-4" role="status"></div>
-                                    <h4 class="text-primary">🤖 AI is finding your perfect deals...</h4>
-                                    <p class="text-muted">Analyzing ${preferences.categories.length} categories within your $${preferences.minBudget}-$${preferences.maxBudget} budget</p>
-                                </div>
-                            `;
-                            
-                            // Simulate AI processing
-                            setTimeout(() => {
-                                fetch('/api/deals')
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        // Filter and score products based on preferences
-                                        const personalizedDeals = filterAndScoreDeals(data.data, preferences);
-                                        displayPersonalizedProducts(personalizedDeals, preferences);
-                                    });
-                            }, 2000);
-                        }
-                        
-                        function filterAndScoreDeals(deals, preferences) {
-                            return deals
-                                .filter(deal => {
-                                    const product = deal.product;
-                                    
-                                    // Budget filter
-                                    if (product.price < preferences.minBudget || product.price > preferences.maxBudget) {
-                                        return false;
-                                    }
-                                    
-                                    // Category filter
-                                    if (preferences.categories.length > 0 && !preferences.categories.includes(product.category)) {
-                                        return false;
-                                    }
-                                    
-                                    // Quality filter
-                                    const qualityRank = { FAIR: 1, GOOD: 2, VERY_GOOD: 3, EXCELLENT: 4 };
-                                    if (qualityRank[product.condition] < qualityRank[preferences.minQuality]) {
-                                        return false;
-                                    }
-                                    
-                                    return true;
-                                })
-                                .map(deal => {
-                                    // Calculate AI match score based on preferences
-                                    let matchScore = deal.dealScore;
-                                    
-                                    // Boost score for preferred brands
-                                    if (preferences.brands.length > 0 && 
-                                        preferences.brands.some(brand => deal.product.brand.toLowerCase().includes(brand.toLowerCase()))) {
-                                        matchScore += 15;
-                                    }
-                                    
-                                    // Boost score based on description matching
-                                    if (preferences.searchDescription) {
-                                        const searchTerms = preferences.searchDescription.toLowerCase().split(' ');
-                                        const productText = (deal.product.name + ' ' + deal.product.description + ' ' + deal.dealReason).toLowerCase();
-                                        const matches = searchTerms.filter(term => productText.includes(term)).length;
-                                        matchScore += matches * 5;
-                                    }
-                                    
-                                    // Budget sweet spot boost (prefer middle of budget range)
-                                    const budgetRange = preferences.maxBudget - preferences.minBudget;
-                                    const pricePosition = (deal.product.price - preferences.minBudget) / budgetRange;
-                                    if (pricePosition >= 0.3 && pricePosition <= 0.7) {
-                                        matchScore += 10;
-                                    }
-                                    
-                                    return { ...deal, matchScore: Math.min(matchScore, 100) };
-                                })
-                                .sort((a, b) => b.matchScore - a.matchScore);
-                        }
-                        
-                        function displayPersonalizedProducts(deals, preferences) {
-                            const container = document.getElementById('deals-container');
-                            
-                            if (deals.length === 0) {
-                                container.innerHTML = `
-                                    <div class="col-12 text-center py-5">
-                                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                                        <h4>No matches found</h4>
-                                        <p class="text-muted">Try adjusting your budget range or preferences to see more deals</p>
-                                        <button class="btn btn-primary" onclick="showBuyerPreferences()">
-                                            <i class="fas fa-cog me-1"></i>Adjust Preferences
-                                        </button>
-                                    </div>
-                                `;
-                                return;
-                            }
-                            
-                            let html = `
-                                <div class="col-12 mb-4">
-                                    <div class="alert alert-success">
-                                        <i class="fas fa-robot me-2"></i>
-                                        <strong>AI Found ${deals.length} Perfect Matches!</strong> 
-                                        Sorted by compatibility with your preferences and budget ($${preferences.minBudget}-$${preferences.maxBudget})
-                                    </div>
-                                </div>
-                            `;
-                            
-                            deals.slice(0, 20).forEach(deal => {
-                                const product = deal.product;
-                                const qualityClass = getQualityClass(deal.dealQuality);
-                                const categoryIcon = getCategoryIcon(product.category);
-                                const imageUrl = generateProductImage(product.category, product.name, product.brand);
-                                
-                                // Commission calculation for display
-                                const commission = (product.price * 0.08).toFixed(2);
-                                
-                                html += `
-                                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                                        <div class="card deal-card border-0 shadow-sm h-100 elegant-hover">
-                                            <div class="product-image-container position-relative">
-                                                <img src="${imageUrl}" class="card-img-top product-image" alt="${product.name}" 
-                                                     style="height: 200px; object-fit: cover;" 
-                                                     onerror="this.src='https://via.placeholder.com/300x200/f8f9fa/6c757d?text=${encodeURIComponent(product.name)}'">
-                                                <div class="position-absolute top-0 end-0 m-2">
-                                                    <span class="badge bg-success shadow-sm">
-                                                        <i class="fas fa-robot me-1"></i>${deal.matchScore.toFixed(0)}% Match
-                                                    </span>
-                                                </div>
-                                                <div class="position-absolute bottom-0 start-0 m-2">
-                                                    <span class="badge bg-danger shadow-sm">
-                                                        ${product.discountPercentage}% OFF
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="card-body p-3">
-                                                <h6 class="card-title mb-2 fw-bold">${product.name}</h6>
-                                                
-                                                <div class="mb-2">
-                                                    <span class="badge bg-secondary me-1">${categoryIcon} ${product.category}</span>
-                                                    <span class="badge bg-primary me-1">${product.brand}</span>
-                                                </div>
-                                                
-                                                <div class="pricing mb-2">
-                                                    <h5 class="text-primary mb-1">$${product.price.toFixed(2)}</h5>
-                                                    ${product.originalPrice > product.price ? `
-                                                        <div>
-                                                            <span class="text-muted text-decoration-line-through small">
-                                                                $${product.originalPrice.toFixed(2)}
-                                                            </span>
-                                                            <span class="text-success small ms-2">
-                                                                Save $${(product.originalPrice - product.price).toFixed(2)}
-                                                            </span>
-                                                        </div>
-                                                    ` : ''}
-                                                </div>
-                                                
-                                                <div class="ai-score mb-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <small class="text-muted me-2">AI Match:</small>
-                                                        <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                                            <div class="progress-bar bg-success" 
-                                                                 style="width: ${deal.matchScore}%"></div>
-                                                        </div>
-                                                        <small class="fw-bold text-success">${deal.matchScore.toFixed(0)}%</small>
-                                                    </div>
-                                                </div>
-                                                
-                                                <p class="card-text small text-muted mb-2" style="font-size: 0.8rem;">
-                                                    ${deal.dealReason}
-                                                </p>
-                                                
-                                                <div class="d-grid gap-1">
-                                                    <button class="btn btn-success btn-sm" onclick="buyItem('${deal.id}', ${product.price}, '${commission}')">
-                                                        <i class="fas fa-shopping-cart me-1"></i>Buy Now - Seller gets $${(product.price * 0.92).toFixed(2)}
-                                                    </button>
-                                                    <small class="text-muted text-center">8% commission to ThriftAI</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                            
-                            container.innerHTML = html;
-                            window.personalizedDeals = deals;
-                        }
-                        
-                        function buyItem(dealId, price, commission) {
-                            if (confirm(`Purchase this item for $${price.toFixed(2)}?\\n\\nBreakdown:\\n• Item: $${price.toFixed(2)}\\n• Seller receives: $${(price * 0.92).toFixed(2)}\\n• ThriftAI commission: $${commission}`)) {
-                                showNotification('🎉 Purchase successful! Connecting you with the seller...', 'success');
-                                // In real app, this would process the transaction
-                            }
-                        }
-                        
-                        function showSellerDashboard() {
-                            const listedItems = JSON.parse(localStorage.getItem('thriftai_listed_items') || '[]');
-                            
-                            let dashboardHTML = `
-                                <div class="alert alert-info">
-                                    <h5><i class="fas fa-store me-2"></i>Your Seller Dashboard</h5>
-                                    <p class="mb-0">You have ${listedItems.length} items listed. ThriftAI takes 8% commission on successful sales.</p>
-                                </div>
-                            `;
-                            
-                            if (listedItems.length === 0) {
-                                dashboardHTML += `
-                                    <div class="text-center py-4">
-                                        <i class="fas fa-plus-circle fa-3x text-muted mb-3"></i>
-                                        <h5>No items listed yet</h5>
-                                        <button class="btn btn-primary" onclick="showSellModal()">List Your First Item</button>
-                                    </div>
-                                `;
-                            } else {
-                                listedItems.forEach((item, index) => {
-                                    const commission = (item.price * 0.08).toFixed(2);
-                                    const earnings = (item.price * 0.92).toFixed(2);
-                                    
-                                    dashboardHTML += `
-                                        <div class="card mb-3">
-                                            <div class="card-body">
-                                                <div class="row">
-                                                    <div class="col-md-8">
-                                                        <h6 class="card-title">${item.name}</h6>
-                                                        <p class="text-muted small">${getCategoryIcon(item.category)} ${item.category} • ${item.brand || 'No brand'} • ${item.condition}</p>
-                                                        <p class="card-text small">${item.description || 'No description'}</p>
-                                                    </div>
-                                                    <div class="col-md-4 text-end">
-                                                        <h5 class="text-primary">$${item.price.toFixed(2)}</h5>
-                                                        <small class="text-success">You earn: $${earnings}</small><br>
-                                                        <small class="text-muted">Commission: $${commission}</small>
-                                                        <div class="mt-2">
-                                                            <span class="badge bg-warning">Listed</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                });
-                            }
-                            
-                            // Show dashboard in a modal or replace content
-                            document.getElementById('deals-container').innerHTML = `
-                                <div class="col-12">
-                                    <div class="d-flex justify-content-between align-items-center mb-4">
-                                        <h3><i class="fas fa-store me-2"></i>Seller Dashboard</h3>
-                                        <div>
-                                            <button class="btn btn-primary me-2" onclick="showSellModal()">
-                                                <i class="fas fa-plus me-1"></i>List New Item
-                                            </button>
-                                            <button class="btn btn-outline-secondary" onclick="loadDeals()">
-                                                <i class="fas fa-arrow-left me-1"></i>Back to Deals
-                                            </button>
-                                        </div>
-                                    </div>
-                                    ${dashboardHTML}
-                                </div>
-                            `;
-                        }
-                        
-                        function showNotification(message, type = 'info') {
-                            const alertClass = type === 'success' ? 'alert-success' : 
-                                             type === 'error' ? 'alert-danger' : 'alert-info';
-                            
-                            const notification = document.createElement('div');
-                            notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
-                            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-                            notification.innerHTML = `
-                                ${message}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            `;
-                            
-                            document.body.appendChild(notification);
-                            
-                            setTimeout(() => {
-                                if (notification.parentNode) {
-                                    notification.remove();
-                                }
-                            }, 5000);
-                        }
-
-                        // Auto-load deals on page load, or preferences if they exist
-                        window.addEventListener('load', function() {
-                            const savedPreferences = localStorage.getItem('thriftai_preferences');
-                            if (savedPreferences) {
-                                setTimeout(() => {
-                                    const preferences = JSON.parse(savedPreferences);
-                                    loadPersonalizedDeals(preferences);
-                                }, 1000);
-                            } else {
-                                setTimeout(loadDeals, 1500);
-                            }
-                        });
-                        
-                        // Platform connection function
-                        function connectPlatform(platform) {
-                            const platformNames = {
-                                'ebay': 'eBay',
-                                'mercari': 'Mercari',
-                                'facebook': 'Facebook Marketplace',
-                                'offerup': 'OfferUp',
-                                'instagram': 'Instagram',
-                                'tiktok': 'TikTok Shop',
-                                'pinterest': 'Pinterest',
-                                'twitter': 'Twitter/X',
-                                'google': 'Google Account',
-                                'apple': 'Apple ID',
-                                'dropbox': 'Dropbox',
-                                'stripe': 'Stripe Payments'
-                            };
-                            
-                            // Show connecting animation
-                            const platformCard = event.currentTarget;
-                            const originalContent = platformCard.innerHTML;
-                            
-                            platformCard.innerHTML = `
-                                <div class="card-body text-center py-4">
-                                    <div class="spinner-border text-primary mb-3" role="status"></div>
-                                    <h6 class="fw-bold">Connecting...</h6>
-                                    <p class="small text-muted mb-0">Setting up ${platformNames[platform]}</p>
-                                </div>
-                            `;
-                            
-                            // Simulate connection process
-                            setTimeout(() => {
-                                platformCard.innerHTML = originalContent;
-                                
-                                // Show success notification
-                                showPlatformNotification(`Successfully connected to ${platformNames[platform]}!`, 'success');
-                                
-                                // Update card to show connected state
-                                const badge = platformCard.querySelector('.badge');
-                                badge.className = 'badge bg-success';
-                                badge.innerHTML = '<i class="fas fa-check me-1"></i>Connected';
-                                
-                                // Store connection in localStorage
-                                const connections = JSON.parse(localStorage.getItem('platformConnections') || '[]');
-                                if (!connections.includes(platform)) {
-                                    connections.push(platform);
-                                    localStorage.setItem('platformConnections', JSON.stringify(connections));
-                                }
-                                
-                                // Show platform dashboard after connection
-                                setTimeout(() => {
-                                    showPlatformDashboard();
-                                }, 1500);
-                                
-                            }, 2000);
-                        }
-                        
-                        // Platform dashboard modal
-                        function showPlatformDashboard() {
-                            const connections = JSON.parse(localStorage.getItem('platformConnections') || '[]');
-                            
-                            const modalHtml = `
-                                <div class="modal fade" id="platformDashboard" tabindex="-1">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header border-0">
-                                                <h5 class="modal-title"><i class="fas fa-link me-2"></i>Platform Connections</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="alert alert-success border-0">
-                                                    <i class="fas fa-check-circle me-2"></i>
-                                                    <strong>Connected!</strong> Your platforms are now synced with ThriftAI's AI engine.
-                                                </div>
-                                                
-                                                <h6 class="mb-3">Connected Platforms (${connections.length})</h6>
-                                                <div class="row">
-                                                    ${connections.map(platform => `
-                                                        <div class="col-md-6 mb-2">
-                                                            <div class="d-flex align-items-center p-2 bg-light rounded">
-                                                                <i class="fas fa-check-circle text-success me-2"></i>
-                                                                <span class="fw-medium">${platform.charAt(0).toUpperCase() + platform.slice(1)}</span>
-                                                                <span class="badge bg-success ms-auto">Live</span>
-                                                            </div>
-                                                        </div>
-                                                    `).join('')}
-                                                </div>
-                                                
-                                                <hr class="my-4">
-                                                
-                                                <h6 class="mb-3">AI Sync Features</h6>
-                                                <div class="row">
-                                                    <div class="col-md-6">
-                                                        <div class="d-flex align-items-center mb-2">
-                                                            <i class="fas fa-robot text-primary me-2"></i>
-                                                            <span>Auto cross-listing</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center mb-2">
-                                                            <i class="fas fa-sync text-info me-2"></i>
-                                                            <span>Inventory sync</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center mb-2">
-                                                            <i class="fas fa-chart-line text-success me-2"></i>
-                                                            <span>Performance tracking</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="d-flex align-items-center mb-2">
-                                                            <i class="fas fa-dollar-sign text-warning me-2"></i>
-                                                            <span>Price optimization</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center mb-2">
-                                                            <i class="fas fa-camera text-purple me-2"></i>
-                                                            <span>Photo enhancement</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center mb-2">
-                                                            <i class="fas fa-bell text-danger me-2"></i>
-                                                            <span>Smart notifications</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer border-0">
-                                                <button type="button" class="btn btn-primary">
-                                                    <i class="fas fa-cog me-1"></i>Manage Settings
-                                                </button>
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                            
-                            // Remove existing modal
-                            const existingModal = document.getElementById('platformDashboard');
-                            if (existingModal) existingModal.remove();
-                            
-                            // Add modal to page
-                            document.body.insertAdjacentHTML('beforeend', modalHtml);
-                            
-                            // Show modal
-                            const modal = new bootstrap.Modal(document.getElementById('platformDashboard'));
-                            modal.show();
-                        }
-                        
-                        // Platform notification function
-                        function showPlatformNotification(message, type) {
-                            const alertClass = type === 'success' ? 'alert-success' : 'alert-info';
-                            const icon = type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
-                            
-                            const notification = document.createElement('div');
-                            notification.className = 'position-fixed bottom-0 end-0 m-3';
-                            notification.style.zIndex = '9999';
-                            notification.innerHTML = `
-                                <div class="alert ${alertClass} alert-dismissible fade show shadow" role="alert">
-                                    <i class="fas ${icon} me-2"></i>${message}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                </div>
-                            `;
-                            
-                            document.body.appendChild(notification);
-                            
-                            // Auto-remove after 5 seconds
-                            setTimeout(() => {
-                                notification.remove();
-                            }, 5000);
-                        }
-                        
-                        // Category filtering function
-                        function filterByCategory(category) {
-                            // Smooth scroll to deals section
-                            document.getElementById('deals-container').scrollIntoView({ 
-                                behavior: 'smooth',
-                                block: 'start'
-                            });
-                            
-                            // Show loading
-                            document.getElementById('deals-container').innerHTML = `
-                                <div class="col-12 text-center py-5">
-                                    <div class="spinner-border text-primary mb-4" role="status"></div>
-                                    <p class="text-muted">Finding ${category} deals...</p>
-                                </div>
-                            `;
-                            
-                            // Simulate API call and filter deals
-                            setTimeout(() => {
-                                fetch('/api/deals')
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        const filteredDeals = data.data.filter(deal => 
-                                            deal.product.category.toLowerCase().includes(category.toLowerCase())
-                                        );
-                                        displayProducts(filteredDeals);
-                                        
-                                        // Update section title
-                                        const sectionTitle = document.querySelector('#deals-container').previousElementSibling.previousElementSibling.querySelector('h2');
-                                        sectionTitle.innerHTML = `🔍 ${category} Deals Found`;
-                                    })
-                                    .catch(error => {
-                                        console.error('Error filtering deals:', error);
-                                        loadDeals(); // Fallback to all deals
-                                    });
-                            }, 800);
-                        }
-                    </script>
-                </body>
-                </html>
-                """;
+            // HTML Header
+            appendHtmlHeader(html);
+            appendAdvancedStyles(html);
+            html.append("</head>\n");
+            html.append("<body>\n");
             
-            return htmlPart1 + htmlPart2;
+            // Navigation
+            appendAdvancedNavigation(html);
+            
+            // Main Content Container
+            html.append("<div class=\"container mt-4\">\n");
+            
+            // Mode Selection Header
+            appendModeSelection(html);
+            
+            // Dynamic Content Areas
+            appendBuyerInterface(html);
+            appendSellerInterface(html);
+            appendAIDiscussion(html);
+            appendAIAssistant(html);
+            appendVisualSearch(html);
+            appendNeuralNetwork(html);
+            
+            html.append("</div>\n");
+            
+            // Modals
+            appendModals(html);
+            
+            // Scripts
+            appendAdvancedScripts(html);
+            
+            html.append("</body>\n");
+            html.append("</html>");
+            
+            return html.toString();
+        }
+        
+        private void appendHtmlHeader(StringBuilder html) {
+            html.append("<!DOCTYPE html>\n");
+            html.append("<html lang=\"en\">\n");
+            html.append("<head>\n");
+            html.append("    <meta charset=\"UTF-8\">\n");
+            html.append("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
+            html.append("    <title>ThriftAI - Advanced Seller/Buyer Platform</title>\n");
+            html.append("    <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n");
+            html.append("    <link href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\" rel=\"stylesheet\">\n");
+            html.append("    <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js\"></script>\n");
+        }
+        
+        private void appendAdvancedStyles(StringBuilder html) {
+            html.append("    <style>\n");
+            html.append("        :root {\n");
+            // Elegant Dark Theme with Cyan Accents
+            html.append("            --bg-primary: #1a1a1a;\n");        // Deep black
+            html.append("            --bg-secondary: #2c3e50;\n");      // Dark blue-gray
+            html.append("            --bg-tertiary: #34495e;\n");       // Lighter blue-gray
+            html.append("            --bg-card: #2c3e50;\n");           // Card background 
+            html.append("            --bg-surface: #34495e;\n");        // Input/surface
+            html.append("            --text-primary: #ffffff;\n");      // Pure white
+            html.append("            --text-secondary: #a0a0a0;\n");    // Light gray 
+            html.append("            --text-muted: #8a92b2;\n");        // Muted blue-gray
+            html.append("            --accent-primary: #00d4ff;\n");    // Bright cyan
+            html.append("            --accent-secondary: #00f2fe;\n");  // Light cyan
+            html.append("            --accent-success: #00f2fe;\n");    // Success cyan
+            html.append("            --accent-warning: #ffd93d;\n");    // Golden yellow
+            html.append("            --accent-danger: #ff6b6b;\n");     // Soft red
+            html.append("            --border-color: rgba(0, 212, 255, 0.1);\n");      // Subtle cyan borders
+            html.append("            --border-light: rgba(0, 212, 255, 0.2);\n");      // Light cyan borders
+            html.append("            --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);\n");
+            html.append("            --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.4);\n");
+            html.append("            --shadow-large: 0 8px 24px rgba(0, 0, 0, 0.5);\n");
+            html.append("        }\n");
+            html.append("        * { box-sizing: border-box; }\n");
+            html.append("        body { \n");
+            html.append("            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', Roboto, Helvetica, Arial, sans-serif;\n");
+            html.append("            background: var(--bg-primary);\n");
+            html.append("            color: var(--text-primary);\n");
+            html.append("            margin: 0;\n");
+            html.append("            padding: 0;\n");
+            html.append("            min-height: 100vh;\n");
+            html.append("            font-weight: 400;\n");
+            html.append("            line-height: 1.5;\n");
+            html.append("            -webkit-font-smoothing: antialiased;\n");
+            html.append("        }\n");
+            
+            // Premium Bootstrap overrides
+            html.append("        .bg-dark { background: var(--bg-secondary) !important; }\n");
+            html.append("        .card { background: var(--bg-card); border: 1px solid var(--border-color); box-shadow: var(--shadow-medium); border-radius: 12px; }\n");
+            html.append("        .card-header { background: transparent; border-bottom: 1px solid var(--border-color); font-weight: 600; }\n");
+            html.append("        .form-control { background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; padding: 12px 16px; font-size: 16px; }\n");
+            html.append("        .form-control:focus { background: var(--bg-secondary); border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.25); color: var(--text-primary); }\n");
+            html.append("        .form-control::placeholder { color: #666666; opacity: 1; }\n");
+            html.append("        .form-select { background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; padding: 12px 16px; font-size: 16px; }\n");
+            html.append("        .btn-primary { background: linear-gradient(135deg, #00d4ff 0%, #001f3f 100%); color: var(--text-primary); border: 1px solid rgba(0, 212, 255, 0.3); font-weight: 500; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2); }\n");
+            html.append("        .btn-primary:hover { background: linear-gradient(135deg, #00f2fe 0%, #00d4ff 100%); color: var(--text-primary); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4); border-color: rgba(0, 212, 255, 0.5); }\n");
+            html.append("        .btn-success { background: var(--accent-success); border: none; border-radius: 8px; font-weight: 500; }\n");
+            html.append("        .btn-outline-primary { color: var(--accent-primary); border: 1px solid var(--accent-primary); background: transparent; border-radius: 8px; }\n");
+            html.append("        .btn-outline-primary:hover { background: var(--accent-primary); color: var(--bg-primary); border-color: var(--accent-primary); box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3); }\n");
+            html.append("        .text-muted { color: var(--text-muted) !important; }\n");
+            html.append("        .alert-info { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; }\n");
+            
+            // Premium interface components with high-contrast text
+            html.append("        .mode-card { \n");
+            html.append("            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); \n");
+            html.append("            cursor: pointer; \n");
+            html.append("            border: 1px solid var(--border-color); \n");
+            html.append("            background: var(--bg-card);\n");
+            html.append("            border-radius: 12px;\n");
+            html.append("            color: var(--text-primary) !important;\n");
+            html.append("        }\n");
+            html.append("        .mode-card * { \n");
+            html.append("            color: var(--text-primary) !important;\n");
+            html.append("        }\n");
+            html.append("        .mode-card h5 { \n");
+            html.append("            color: var(--text-primary) !important;\n");
+            html.append("            font-weight: 600;\n");
+            html.append("        }\n");
+            html.append("        .mode-card p { \n");
+            html.append("            color: var(--text-secondary) !important;\n");
+            html.append("        }\n");
+            html.append("        .mode-card:hover { \n");
+            html.append("            transform: translateY(-2px); \n");
+            html.append("            border-color: var(--border-light); \n");
+            html.append("            box-shadow: var(--shadow-large);\n");
+            html.append("        }\n");
+            html.append("        .mode-card.active { \n");
+            html.append("            border-color: var(--text-primary); \n");
+            html.append("            background: var(--bg-surface);\n");
+            html.append("            box-shadow: var(--shadow-medium);\n");
+            html.append("        }\n");
+            html.append("        .content-area { display: none; }\n");
+            html.append("        .content-area.active { display: block; animation: fadeIn 0.3s ease; }\n");
+            html.append("        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }\n");
+            
+            // Premium chat interface styles
+            html.append("        .chat-container { \n");
+            html.append("            height: 500px; \n");
+            html.append("            overflow-y: auto; \n");
+            html.append("            background: var(--bg-primary);\n");
+            html.append("            border: 1px solid var(--border-color);\n");
+            html.append("            border-radius: 12px;\n");
+            html.append("            padding: 16px;\n");
+            html.append("        }\n");
+            html.append("        .chat-message { \n");
+            html.append("            margin: 12px 0; \n");
+            html.append("            padding: 12px 16px; \n");
+            html.append("            border-radius: 12px; \n");
+            html.append("            max-width: 75%;\n");
+            html.append("            word-wrap: break-word;\n");
+            html.append("        }\n");
+            html.append("        .chat-message.user { \n");
+            html.append("            background: var(--text-primary); \n");
+            html.append("            color: var(--bg-primary); \n");
+            html.append("            margin-left: auto;\n");
+            html.append("            text-align: right;\n");
+            html.append("            font-weight: 500;\n");
+            html.append("        }\n");
+            html.append("        .chat-message.ai { \n");
+            html.append("            background: var(--bg-surface); \n");
+            html.append("            color: var(--text-primary); \n");
+            html.append("            border: 1px solid var(--border-color);\n");
+            html.append("            margin-right: auto;\n");
+            html.append("        }\n");
+            html.append("        .chat-input { \n");
+            html.append("            background: #ffffff !important; \n");
+            html.append("            border: 2px solid var(--border-light); \n");
+            html.append("            color: #000000 !important;\n");
+            html.append("            border-radius: 25px;\n");
+            html.append("            padding: 12px 20px;\n");
+            html.append("            font-size: 16px;\n");
+            html.append("        }\n");
+            html.append("        .chat-input::placeholder { \n");
+            html.append("            color: #666666 !important;\n");
+            html.append("            opacity: 1;\n");
+            html.append("        }\n");
+            html.append("        .chat-input:focus { \n");
+            html.append("            border-color: var(--accent-primary); \n");
+            html.append("            box-shadow: var(--shadow-ai);\n");
+            html.append("        }\n");
+            
+            // Visual search enhancements
+            html.append("        .upload-zone { \n");
+            html.append("            border: 2px dashed var(--accent-primary); \n");
+            html.append("            background: var(--bg-card);\n");
+            html.append("            transition: all 0.3s ease; \n");
+            html.append("            border-radius: 12px;\n");
+            html.append("        }\n");
+            html.append("        .upload-zone:hover { \n");
+            html.append("            background: rgba(0, 212, 255, 0.05); \n");
+            html.append("            box-shadow: var(--shadow-ai);\n");
+            html.append("        }\n");
+            html.append("        .upload-zone.dragover { \n");
+            html.append("            background: rgba(0, 212, 255, 0.1); \n");
+            html.append("            border-color: var(--accent-secondary);\n");
+            html.append("            box-shadow: var(--shadow-ai);\n");
+            html.append("        }\n");
+            
+            // Search result styling
+            html.append("        .search-result-item { \n");
+            html.append("            border-left: 4px solid var(--accent-primary); \n");
+            html.append("            background: var(--bg-card);\n");
+            html.append("            transition: all 0.3s ease;\n");
+            html.append("        }\n");
+            html.append("        .search-result-item:hover { \n");
+            html.append("            box-shadow: var(--shadow-ai); \n");
+            html.append("            transform: translateX(5px);\n");
+            html.append("        }\n");
+            
+            // AI provider indicators
+            html.append("        .ai-provider { \n");
+            html.append("            display: inline-block;\n");
+            html.append("            padding: 4px 12px;\n");
+            html.append("            border-radius: 20px;\n");
+            html.append("            font-size: 0.8em;\n");
+            html.append("            margin: 2px;\n");
+            html.append("        }\n");
+            html.append("        .ai-provider.chatgpt { background: rgba(16, 163, 127, 0.2); color: #10a37f; }\n");
+            html.append("        .ai-provider.claude { background: rgba(255, 120, 0, 0.2); color: #ff7800; }\n");
+            html.append("        .ai-provider.ollama { background: rgba(99, 102, 241, 0.2); color: #6366f1; }\n");
+            
+            // Animations
+            html.append("        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }\n");
+            html.append("        .ai-thinking { animation: pulse 1.5s ease-in-out infinite; }\n");
+            html.append("        .typing-indicator { \n");
+            html.append("            display: inline-block;\n");
+            html.append("            width: 8px;\n");
+            html.append("            height: 8px;\n");
+            html.append("            border-radius: 50%;\n");
+            html.append("            background: var(--accent-primary);\n");
+            html.append("            margin: 0 2px;\n");
+            html.append("            animation: pulse 1.4s ease-in-out infinite;\n");
+            html.append("        }\n");
+            html.append("        .typing-indicator:nth-child(2) { animation-delay: 0.2s; }\n");
+            html.append("        .typing-indicator:nth-child(3) { animation-delay: 0.4s; }\n");
+            
+            html.append("    </style>\n");
+        }
+        
+        private void appendAdvancedNavigation(StringBuilder html) {
+            html.append("<nav class=\"navbar navbar-expand-lg\" style=\"background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);\">\n");
+            html.append("    <div class=\"container\">\n");
+            html.append("        <a class=\"navbar-brand text-white fw-bold d-flex align-items-center\" href=\"#\" style=\"font-size: 1.5rem; letter-spacing: -0.02em; text-decoration: none;\">\n");
+            html.append("            <div class=\"logo-text\">\n");
+            html.append("                <span style=\"background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;\">Thrift</span><span style=\"color: var(--text-primary); font-weight: 300;\">AI</span>\n");
+            html.append("                <small class=\"ms-2 d-none d-md-inline\" style=\"font-size: 0.55em; opacity: 0.8; color: var(--text-muted);\">Neural Marketplace</small>\n");
+            html.append("            </div>\n");
+            html.append("        </a>\n");
+            html.append("    </div>\n");
+            html.append("</nav>\n");
+        }
+        
+        private void appendModeSelection(StringBuilder html) {
+            html.append("<div class=\"row mb-4\">\n");
+            html.append("    <div class=\"col-12\">\n");
+            html.append("        <h2 class=\"text-center mb-4\" style=\"color: var(--text-primary); font-weight: 600; letter-spacing: -0.02em;\">Choose Your Mode</h2>\n");
+            html.append("        <div class=\"row g-3\">\n");
+            
+            // Buyer Mode
+            html.append("            <div class=\"col-lg-2 col-md-4\">\n");
+            html.append("                <div class=\"card mode-card h-100\" onclick=\"showMode('buyer')\" id=\"buyer-mode-card\">\n");
+            html.append("                    <div class=\"card-body text-center\">\n");
+            html.append("                        <h6>Buyer Mode</h6>\n");
+            html.append("                        <small class=\"text-muted\">AI Search & Discovery</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            
+            // Seller Mode
+            html.append("            <div class=\"col-lg-2 col-md-4\">\n");
+            html.append("                <div class=\"card mode-card h-100\" onclick=\"showMode('seller')\" id=\"seller-mode-card\">\n");
+            html.append("                    <div class=\"card-body text-center\">\n");
+            html.append("                        <h6>Seller Mode</h6>\n");
+            html.append("                        <small class=\"text-muted\">AI Pricing & Analytics</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            
+            // AI Discussion
+            html.append("            <div class=\"col-lg-2 col-md-4\">\n");
+            html.append("                <div class=\"card mode-card h-100\" onclick=\"showMode('ai-discussion')\" id=\"ai-discussion-mode-card\">\n");
+            html.append("                    <div class=\"card-body text-center\">\n");
+            html.append("                        <h6>AI Chat</h6>\n");
+            html.append("                        <small class=\"text-muted\">Multi-AI Discussion</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            
+            // AI Assistant
+            html.append("            <div class=\"col-lg-2 col-md-4\">\n");
+            html.append("                <div class=\"card mode-card h-100\" onclick=\"showMode('ai-assistant')\" id=\"ai-assistant-mode-card\">\n");
+            html.append("                    <div class=\"card-body text-center\">\n");
+            html.append("                        <h6>AI Assistant</h6>\n");
+            html.append("                        <small class=\"text-muted\">Smart Analytics</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            
+            // Visual Search
+            html.append("            <div class=\"col-lg-2 col-md-4\">\n");
+            html.append("                <div class=\"card mode-card h-100\" onclick=\"showMode('visual-search')\" id=\"visual-search-mode-card\">\n");
+            html.append("                    <div class=\"card-body text-center\">\n");
+            html.append("                        <h6>Visual Search</h6>\n");
+            html.append("                        <small class=\"text-muted\">Neural Vision</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            
+            // Neural Network
+            html.append("            <div class=\"col-lg-2 col-md-4\">\n");
+            html.append("                <div class=\"card mode-card h-100\" onclick=\"showMode('neural-network')\" id=\"neural-network-mode-card\">\n");
+            html.append("                    <div class=\"card-body text-center\">\n");
+            html.append("                        <h6>Neural Net</h6>\n");
+            html.append("                        <small class=\"text-muted\">AI Database</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            
+            html.append("        </div>\n");
+            html.append("    </div>\n");
+            html.append("</div>\n");
+        }
+        
+        private void appendBuyerInterface(StringBuilder html) {
+            html.append("<div id=\"buyer-content\" class=\"content-area\">\n");
+            html.append("    <div class=\"row\">\n");
+            html.append("        <div class=\"col-lg-8\">\n");
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header gradient-bg text-white\">\n");
+            html.append("                    <h5 class=\"mb-0\"><i class=\"fas fa-comments me-2\"></i>ChatGPT Smart Search</h5>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"mb-3\">\n");
+            html.append("                        <label class=\"form-label\">What are you looking for?</label>\n");
+            html.append("                        <div class=\"input-group\">\n");
+            html.append("                            <input type=\"text\" class=\"form-control\" id=\"chatgpt-search\" placeholder=\"e.g., 'vintage leather jacket under $100, size medium'\">\n");
+            html.append("                            <button class=\"btn btn-primary\" onclick=\"performChatGPTSearch()\">\n");
+            html.append("                                <i class=\"fas fa-magic me-1\"></i>AI Search\n");
+            html.append("                            </button>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"row\">\n");
+            html.append("                        <div class=\"col-md-6\">\n");
+            html.append("                            <label class=\"form-label\">Budget Range</label>\n");
+            html.append("                            <div class=\"input-group input-group-sm\">\n");
+            html.append("                                <span class=\"input-group-text\">$</span>\n");
+            html.append("                                <input type=\"number\" class=\"form-control\" id=\"min-budget\" placeholder=\"Min\" value=\"10\">\n");
+            html.append("                                <span class=\"input-group-text\">-</span>\n");
+            html.append("                                <span class=\"input-group-text\">$</span>\n");
+            html.append("                                <input type=\"number\" class=\"form-control\" id=\"max-budget\" placeholder=\"Max\" value=\"500\">\n");
+            html.append("                            </div>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"col-md-6\">\n");
+            html.append("                            <label class=\"form-label\">Distance</label>\n");
+            html.append("                            <select class=\"form-select form-select-sm\" id=\"search-radius\">\n");
+            html.append("                                <option value=\"5\">Within 5 miles</option>\n");
+            html.append("                                <option value=\"15\" selected>Within 15 miles</option>\n");
+            html.append("                                <option value=\"50\">Within 50 miles</option>\n");
+            html.append("                                <option value=\"0\">Nationwide</option>\n");
+            html.append("                            </select>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("            \n");
+            html.append("            <!-- Search Results -->\n");
+            html.append("            <div class=\"card mt-3\" id=\"search-results-card\" style=\"display: none;\">\n");
+            html.append("                <div class=\"card-header\">\n");
+            html.append("                    <h5 class=\"mb-0\"><i class=\"fas fa-list me-2\"></i>Search Results</h5>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\" id=\"search-results\"></div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            
+            html.append("        <div class=\"col-lg-4\">\n");
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header\">\n");
+            html.append("                    <h6 class=\"mb-0\"><i class=\"fas fa-lightbulb me-2\"></i>Smart Suggestions</h6>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"d-grid gap-2\">\n");
+            html.append("                        <button class=\"btn btn-outline-primary btn-sm\" onclick=\"quickSearch('vintage denim jacket')\">\n");
+            html.append("                            👕 Vintage Denim Jacket\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-outline-success btn-sm\" onclick=\"quickSearch('nike air jordans')\">\n");
+            html.append("                            👟 Nike Air Jordans\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-outline-info btn-sm\" onclick=\"quickSearch('designer handbag')\">\n");
+            html.append("                            👜 Designer Handbag\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-outline-warning btn-sm\" onclick=\"quickSearch('apple macbook pro')\">\n");
+            html.append("                            💻 Apple MacBook Pro\n");
+            html.append("                        </button>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            html.append("    </div>\n");
+            html.append("</div>\n");
+        }
+        
+        private void appendSellerInterface(StringBuilder html) {
+            html.append("<div id=\"seller-content\" class=\"content-area\">\n");
+            html.append("    <div class=\"row\">\n");
+            html.append("        <div class=\"col-lg-8\">\n");
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header gradient-bg text-white\">\n");
+            html.append("                    <h5 class=\"mb-0\"><i class=\"fas fa-upload me-2\"></i>List Your Item</h5>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"row\">\n");
+            html.append("                        <div class=\"col-md-6\">\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Item Name</label>\n");
+            html.append("                                <input type=\"text\" class=\"form-control\" id=\"item-name\" placeholder=\"e.g., Vintage Levi's 501 Jeans\">\n");
+            html.append("                            </div>\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Category</label>\n");
+            html.append("                                <select class=\"form-select\" id=\"item-category\">\n");
+            html.append("                                    <option>👕 Clothing</option>\n");
+            html.append("                                    <option>👟 Shoes</option>\n");
+            html.append("                                    <option>👜 Accessories</option>\n");
+            html.append("                                    <option>📱 Electronics</option>\n");
+            html.append("                                    <option>🏠 Home & Garden</option>\n");
+            html.append("                                    <option>📚 Books & Media</option>\n");
+            html.append("                                </select>\n");
+            html.append("                            </div>\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Condition</label>\n");
+            html.append("                                <select class=\"form-select\" id=\"item-condition\">\n");
+            html.append("                                    <option>New with Tags</option>\n");
+            html.append("                                    <option>Like New</option>\n");
+            html.append("                                    <option>Very Good</option>\n");
+            html.append("                                    <option>Good</option>\n");
+            html.append("                                    <option>Fair</option>\n");
+            html.append("                                </select>\n");
+            html.append("                            </div>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"col-md-6\">\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Brand</label>\n");
+            html.append("                                <input type=\"text\" class=\"form-control\" id=\"item-brand\" placeholder=\"e.g., Levi's\">\n");
+            html.append("                            </div>\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Size</label>\n");
+            html.append("                                <input type=\"text\" class=\"form-control\" id=\"item-size\" placeholder=\"e.g., Medium, 32x34\">\n");
+            html.append("                            </div>\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Your Asking Price ($)</label>\n");
+            html.append("                                <div class=\"input-group\">\n");
+            html.append("                                    <span class=\"input-group-text\">$</span>\n");
+            html.append("                                    <input type=\"number\" class=\"form-control\" id=\"asking-price\" placeholder=\"0.00\">\n");
+            html.append("                                    <button class=\"btn btn-outline-secondary\" onclick=\"performAIPricing()\">\n");
+            html.append("                                        <i class=\"fas fa-robot me-1\"></i>AI Price\n");
+            html.append("                                    </button>\n");
+            html.append("                                </div>\n");
+            html.append("                            </div>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"mb-3\">\n");
+            html.append("                        <label class=\"form-label\">Description</label>\n");
+            html.append("                        <textarea class=\"form-control\" id=\"item-description\" rows=\"3\" placeholder=\"Describe your item...\"></textarea>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"d-grid\">\n");
+            html.append("                        <button class=\"btn btn-success\" onclick=\"listItem()\">\n");
+            html.append("                            <i class=\"fas fa-plus me-2\"></i>List Item with AI Pricing\n");
+            html.append("                        </button>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            
+            html.append("        <div class=\"col-lg-4\">\n");
+            html.append("            <!-- AI Pricing Results -->\n");
+            html.append("            <div class=\"card\" id=\"pricing-results\" style=\"display: none;\">\n");
+            html.append("                <div class=\"card-header price-comparison text-white\">\n");
+            html.append("                    <h6 class=\"mb-0\"><i class=\"fas fa-chart-line me-2\"></i>AI Pricing Analysis</h6>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\" id=\"pricing-content\"></div>\n");
+            html.append("            </div>\n");
+            
+            html.append("            <!-- Thrift Store Integration -->\n");
+            html.append("            <div class=\"card mt-3\">\n");
+            html.append("                <div class=\"card-header\">\n");
+            html.append("                    <h6 class=\"mb-0\"><i class=\"fas fa-store me-2\"></i>Partner Stores</h6>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"list-group list-group-flush\">\n");
+            html.append("                        <div class=\"list-group-item d-flex align-items-center\">\n");
+            html.append("                            <i class=\"fas fa-check-circle text-success me-2\"></i>\n");
+            html.append("                            <small>Goodwill - Connected</small>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"list-group-item d-flex align-items-center\">\n");
+            html.append("                            <i class=\"fas fa-check-circle text-success me-2\"></i>\n");
+            html.append("                            <small>Salvation Army - Connected</small>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"list-group-item d-flex align-items-center\">\n");
+            html.append("                            <i class=\"fas fa-plus-circle text-primary me-2\"></i>\n");
+            html.append("                            <small>Local Consignment Shops</small>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            html.append("    </div>\n");
+            html.append("</div>\n");
+        }
+        
+        private void appendAIDiscussion(StringBuilder html) {
+            html.append("<div id=\"ai-discussion-content\" class=\"content-area\">\n");
+            html.append("    <div class=\"row\">\n");
+            html.append("        <div class=\"col-lg-8\">\n");
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header bg-dark text-white d-flex justify-content-between align-items-center\" style=\"border-bottom: 1px solid var(--border-color);\">\n");
+            html.append("                    <h5 class=\"mb-0\"><i class=\"fas fa-comments me-2\"></i>AI Discussion Hub</h5>\n");
+            html.append("                    <div class=\"d-flex align-items-center\">\n");
+            html.append("                        <select class=\"form-select form-select-sm me-2\" id=\"ai-provider-select\" style=\"width: 120px;\">\n");
+            html.append("                            <option value=\"chatgpt\">ChatGPT</option>\n");
+            html.append("                            <option value=\"claude\">Claude</option>\n");
+            html.append("                            <option value=\"ollama\">Ollama</option>\n");
+            html.append("                        </select>\n");
+            html.append("                        <div class=\"form-check form-switch text-white\">\n");
+            html.append("                            <input class=\"form-check-input\" type=\"checkbox\" id=\"multi-ai-mode\">\n");
+            html.append("                            <label class=\"form-check-label\" for=\"multi-ai-mode\">Multi-AI</label>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body p-0\">\n");
+            html.append("                    <div class=\"chat-container\" id=\"ai-chat-container\">\n");
+            html.append("                        <div class=\"chat-message ai\">\n");
+            html.append("                            <div class=\"d-flex align-items-center mb-2\">\n");
+            html.append("                                <i class=\"fas fa-robot me-2\" style=\"color: var(--accent-primary);\"></i>\n");
+            html.append("                                <span class=\"ai-provider chatgpt\">ChatGPT</span>\n");
+            html.append("                            </div>\n");
+            html.append("                            Hello! I'm your AI assistant for ThriftAI. I can help you with product searches, price analysis, market trends, and general thrift shopping advice. What would you like to discuss?\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"p-3 border-top\">\n");
+            html.append("                        <div class=\"input-group\">\n");
+            html.append("                            <input type=\"text\" class=\"form-control chat-input\" id=\"ai-chat-input\" placeholder=\"Ask me about thrift shopping, pricing, or market trends...\">\n");
+            html.append("                            <button class=\"btn btn-primary\" type=\"button\" onclick=\"sendAIMessage()\">\n");
+            html.append("                                <i class=\"fas fa-paper-plane\"></i>\n");
+            html.append("                            </button>\n");
+            html.append("                        </div>\n");
+            html.append("                        <small class=\"text-muted mt-2 d-block\">Press Enter to send • Use @ to switch AI providers (@chatgpt, @claude, @ollama)</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            
+            html.append("        <div class=\"col-lg-4\">\n");
+            html.append("            <!-- AI Provider Status -->\n");
+            html.append("            <div class=\"card mb-3\">\n");
+            html.append("                <div class=\"card-header\">\n");
+            html.append("                    <h6 class=\"mb-0\"><i class=\"fas fa-network-wired me-2\"></i>AI Providers Status</h6>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"d-flex align-items-center mb-2\">\n");
+            html.append("                        <span class=\"ai-provider chatgpt me-2\">ChatGPT</span>\n");
+            html.append("                        <i class=\"fas fa-circle text-success\" style=\"font-size: 0.6em;\"></i>\n");
+            html.append("                        <small class=\"text-muted ms-2\">Ready</small>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"d-flex align-items-center mb-2\">\n");
+            html.append("                        <span class=\"ai-provider claude me-2\">Claude</span>\n");
+            html.append("                        <i class=\"fas fa-circle text-success\" style=\"font-size: 0.6em;\"></i>\n");
+            html.append("                        <small class=\"text-muted ms-2\">Ready</small>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"d-flex align-items-center\">\n");
+            html.append("                        <span class=\"ai-provider ollama me-2\">Ollama</span>\n");
+            html.append("                        <i class=\"fas fa-circle text-warning\" style=\"font-size: 0.6em;\"></i>\n");
+            html.append("                        <small class=\"text-muted ms-2\">Local</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            
+            // Quick AI Actions
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header\">\n");
+            html.append("                    <h6 class=\"mb-0\"><i class=\"fas fa-zap me-2\"></i>Quick AI Actions</h6>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"d-grid gap-2\">\n");
+            html.append("                        <button class=\"btn btn-outline-primary btn-sm\" onclick=\"quickAIQuery('market trends')\">\n");
+            html.append("                            📈 Market Trends\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-outline-success btn-sm\" onclick=\"quickAIQuery('price this item')\">\n");
+            html.append("                            💰 Price Analysis\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-outline-info btn-sm\" onclick=\"quickAIQuery('best deals today')\">\n");
+            html.append("                            🎯 Best Deals\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-outline-warning btn-sm\" onclick=\"quickAIQuery('thrift store tips')\">\n");
+            html.append("                            💡 Thrift Tips\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-outline-danger btn-sm\" onclick=\"clearChat()\">\n");
+            html.append("                            🗑️ Clear Chat\n");
+            html.append("                        </button>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            html.append("    </div>\n");
+            html.append("</div>\n");
+        }
+        
+        private void appendAIAssistant(StringBuilder html) {
+            html.append("<div id=\"ai-assistant-content\" class=\"content-area\">\n");
+            html.append("    <div class=\"card\">\n");
+            html.append("        <div class=\"card-header gradient-bg text-white\">\n");
+            html.append("            <h5 class=\"mb-0\"><i class=\"fas fa-robot me-2\"></i>AI Shopping Assistant</h5>\n");
+            html.append("        </div>\n");
+            html.append("        <div class=\"card-body\">\n");
+            html.append("            <div class=\"text-center py-4\">\n");
+            html.append("                <i class=\"fas fa-brain fa-5x text-primary mb-3\"></i>\n");
+            html.append("                <h4>Your Personal AI Shopping Advisor</h4>\n");
+            html.append("                <p class=\"text-muted\">Get personalized recommendations, market insights, and smart shopping advice.</p>\n");
+            html.append("                <div class=\"row mt-4\">\n");
+            html.append("                    <div class=\"col-md-4\">\n");
+            html.append("                        <div class=\"card border-primary\">\n");
+            html.append("                            <div class=\"card-body text-center\">\n");
+            html.append("                                <i class=\"fas fa-chart-trending-up fa-2x text-primary mb-2\"></i>\n");
+            html.append("                                <h6>Market Analysis</h6>\n");
+            html.append("                                <small class=\"text-muted\">Real-time pricing trends</small>\n");
+            html.append("                            </div>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"col-md-4\">\n");
+            html.append("                        <div class=\"card border-success\">\n");
+            html.append("                            <div class=\"card-body text-center\">\n");
+            html.append("                                <i class=\"fas fa-star fa-2x text-success mb-2\"></i>\n");
+            html.append("                                <h6>Quality Scoring</h6>\n");
+            html.append("                                <small class=\"text-muted\">AI-powered item evaluation</small>\n");
+            html.append("                            </div>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"col-md-4\">\n");
+            html.append("                        <div class=\"card border-info\">\n");
+            html.append("                            <div class=\"card-body text-center\">\n");
+            html.append("                                <i class=\"fas fa-lightbulb fa-2x text-info mb-2\"></i>\n");
+            html.append("                                <h6>Smart Recommendations</h6>\n");
+            html.append("                                <small class=\"text-muted\">Personalized suggestions</small>\n");
+            html.append("                            </div>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            html.append("    </div>\n");
+            html.append("</div>\n");
+        }
+        
+        private void appendVisualSearch(StringBuilder html) {
+            html.append("<div id=\"visual-search-content\" class=\"content-area\">\n");
+            html.append("    <div class=\"row\">\n");
+            html.append("        <div class=\"col-lg-6\">\n");
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header gradient-bg text-white\">\n");
+            html.append("                    <h5 class=\"mb-0\"><i class=\"fas fa-camera me-2\"></i>Visual Search</h5>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"upload-zone text-center p-4 rounded\" id=\"visual-upload-zone\">\n");
+            html.append("                        <i class=\"fas fa-cloud-upload-alt fa-3x text-primary mb-3\"></i>\n");
+            html.append("                        <h5>Upload an Image</h5>\n");
+            html.append("                        <p class=\"text-muted\">Drag & drop an image or click to browse</p>\n");
+            html.append("                        <input type=\"file\" class=\"form-control d-none\" id=\"image-upload\" accept=\"image/*\">\n");
+            html.append("                        <button class=\"btn btn-primary\" onclick=\"document.getElementById('image-upload').click()\">\n");
+            html.append("                            <i class=\"fas fa-upload me-1\"></i>Choose Image\n");
+            html.append("                        </button>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"mt-3\" id=\"image-preview\" style=\"display: none;\">\n");
+            html.append("                        <img id=\"preview-img\" class=\"img-fluid rounded\" alt=\"Preview\">\n");
+            html.append("                        <div class=\"d-grid mt-2\">\n");
+            html.append("                            <button class=\"btn btn-success\" onclick=\"performVisualSearch()\">\n");
+            html.append("                                <i class=\"fas fa-search me-1\"></i>Find Similar Items\n");
+            html.append("                            </button>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            
+            html.append("        <div class=\"col-lg-6\">\n");
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header gradient-bg text-white\">\n");
+            html.append("                    <h5 class=\"mb-0\"><i class=\"fab fa-instagram me-2\"></i>Instagram Search</h5>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"mb-3\">\n");
+            html.append("                        <label class=\"form-label\">Instagram Post URL</label>\n");
+            html.append("                        <div class=\"input-group\">\n");
+            html.append("                            <input type=\"url\" class=\"form-control\" id=\"instagram-url\" placeholder=\"https://www.instagram.com/p/...\">\n");
+            html.append("                            <button class=\"btn btn-primary\" onclick=\"performInstagramSearch()\">\n");
+            html.append("                                <i class=\"fab fa-instagram me-1\"></i>Search\n");
+            html.append("                            </button>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"text-center text-muted\">\n");
+            html.append("                        <i class=\"fab fa-instagram fa-3x mb-3\"></i>\n");
+            html.append("                        <p>Find similar items from Instagram posts</p>\n");
+            html.append("                        <small>Paste any Instagram post URL to find similar thrift items</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            html.append("    </div>\n");
+            html.append("</div>\n");
+        }
+        
+        private void appendNeuralNetwork(StringBuilder html) {
+            html.append("<div id=\"neural-network-content\" class=\"content-area\">\n");
+            html.append("    <div class=\"row\">\n");
+            html.append("        <div class=\"col-lg-8\">\n");
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header bg-dark text-white\" style=\"border-bottom: 1px solid var(--border-color);\">\n");
+            html.append("                    <h5 class=\"mb-0\"><i class=\"fas fa-brain me-2\"></i>Neural Network Database</h5>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"row\">\n");
+            html.append("                        <div class=\"col-md-6\">\n");
+            html.append("                            <h6 class=\"text-primary mb-3\"><i class=\"fas fa-eye me-2\"></i>Visual Search Algorithm</h6>\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Algorithm Type</label>\n");
+            html.append("                                <select class=\"form-select\" id=\"visual-algorithm\">\n");
+            html.append("                                    <option>CNN - Convolutional Neural Network</option>\n");
+            html.append("                                    <option>YOLO - Real-time Object Detection</option>\n");
+            html.append("                                    <option>ResNet - Residual Networks</option>\n");
+            html.append("                                    <option>VGG - Visual Geometry Group</option>\n");
+            html.append("                                    <option>Custom Thrift-AI Model</option>\n");
+            html.append("                                </select>\n");
+            html.append("                            </div>\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Training Dataset</label>\n");
+            html.append("                                <div class=\"progress mb-2\">\n");
+            html.append("                                    <div class=\"progress-bar bg-primary\" style=\"width: 87%\">87%</div>\n");
+            html.append("                                </div>\n");
+            html.append("                                <small class=\"text-muted\">2.3M images • Clothing, Accessories, Electronics</small>\n");
+            html.append("                            </div>\n");
+            html.append("                            <div class=\"mb-3\">\n");
+            html.append("                                <label class=\"form-label\">Accuracy Metrics</label>\n");
+            html.append("                                <div class=\"d-flex justify-content-between\">\n");
+            html.append("                                    <span class=\"text-success\">Precision: 94.2%</span>\n");
+            html.append("                                    <span class=\"text-info\">Recall: 91.8%</span>\n");
+            html.append("                                    <span class=\"text-warning\">F1-Score: 93.0%</span>\n");
+            html.append("                                </div>\n");
+            html.append("                            </div>\n");
+            html.append("                            <button class=\"btn btn-primary\" onclick=\"runNeuralAnalysis()\">\n");
+            html.append("                                <i class=\"fas fa-play me-2\"></i>Run Neural Analysis\n");
+            html.append("                            </button>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"col-md-6\">\n");
+            html.append("                            <h6 class=\"text-success mb-3\"><i class=\"fas fa-database me-2\"></i>AI Database Management</h6>\n");
+            html.append("                            <div class=\"card bg-dark border-primary mb-3\">\n");
+            html.append("                                <div class=\"card-body\">\n");
+            html.append("                                    <div class=\"d-flex justify-content-between align-items-center\">\n");
+            html.append("                                        <div>\n");
+            html.append("                                            <h6 class=\"text-primary mb-0\">Vector Database</h6>\n");
+            html.append("                                            <small class=\"text-muted\">Embeddings Storage</small>\n");
+            html.append("                                        </div>\n");
+            html.append("                                        <i class=\"fas fa-cube fa-2x text-primary\"></i>\n");
+            html.append("                                    </div>\n");
+            html.append("                                    <div class=\"mt-2\">\n");
+            html.append("                                        <small class=\"text-success\">Status: Active</small>\n");
+            html.append("                                        <div class=\"progress progress-sm mt-1\">\n");
+            html.append("                                            <div class=\"progress-bar bg-success\" style=\"width: 76%\">76% Capacity</div>\n");
+            html.append("                                        </div>\n");
+            html.append("                                    </div>\n");
+            html.append("                                </div>\n");
+            html.append("                            </div>\n");
+            html.append("                            <div class=\"card bg-dark border-info mb-3\">\n");
+            html.append("                                <div class=\"card-body\">\n");
+            html.append("                                    <div class=\"d-flex justify-content-between align-items-center\">\n");
+            html.append("                                        <div>\n");
+            html.append("                                            <h6 class=\"text-info mb-0\">Graph Database</h6>\n");
+            html.append("                                            <small class=\"text-muted\">Product Relations</small>\n");
+            html.append("                                        </div>\n");
+            html.append("                                        <i class=\"fas fa-project-diagram fa-2x text-info\"></i>\n");
+            html.append("                                    </div>\n");
+            html.append("                                    <div class=\"mt-2\">\n");
+            html.append("                                        <small class=\"text-info\">Status: Indexing</small>\n");
+            html.append("                                        <div class=\"progress progress-sm mt-1\">\n");
+            html.append("                                            <div class=\"progress-bar bg-info\" style=\"width: 43%\">43% Complete</div>\n");
+            html.append("                                        </div>\n");
+            html.append("                                    </div>\n");
+            html.append("                                </div>\n");
+            html.append("                            </div>\n");
+            html.append("                            <button class=\"btn btn-success\" onclick=\"optimizeDatabase()\">\n");
+            html.append("                                <i class=\"fas fa-cog me-2\"></i>Optimize Database\n");
+            html.append("                            </button>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            
+            html.append("        <div class=\"col-lg-4\">\n");
+            // Processing stats
+            html.append("            <div class=\"card mb-3\">\n");
+            html.append("                <div class=\"card-header\">\n");
+            html.append("                    <h6 class=\"mb-0\"><i class=\"fas fa-tachometer-alt me-2\"></i>Neural Processing</h6>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"mb-3\">\n");
+            html.append("                        <div class=\"d-flex justify-content-between\">\n");
+            html.append("                            <span>Images Processed</span>\n");
+            html.append("                            <span class=\"text-primary fw-bold\">2,847,392</span>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"d-flex justify-content-between\">\n");
+            html.append("                            <span>Matches Found</span>\n");
+            html.append("                            <span class=\"text-success fw-bold\">1,923,441</span>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"d-flex justify-content-between\">\n");
+            html.append("                            <span>Avg Processing Time</span>\n");
+            html.append("                            <span class=\"text-info fw-bold\">847ms</span>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"alert alert-success border-0 py-2\">\n");
+            html.append("                        <i class=\"fas fa-bolt me-1\"></i>\n");
+            html.append("                        <small>GPU Acceleration: Active</small>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            
+            // Algorithm controls
+            html.append("            <div class=\"card\">\n");
+            html.append("                <div class=\"card-header\">\n");
+            html.append("                    <h6 class=\"mb-0\"><i class=\"fas fa-sliders-h me-2\"></i>Algorithm Controls</h6>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"mb-3\">\n");
+            html.append("                        <label class=\"form-label\">Similarity Threshold</label>\n");
+            html.append("                        <input type=\"range\" class=\"form-range\" min=\"0\" max=\"100\" value=\"75\" id=\"similarity-threshold\">\n");
+            html.append("                        <div class=\"d-flex justify-content-between\">\n");
+            html.append("                            <small>0%</small>\n");
+            html.append("                            <small id=\"threshold-value\">75%</small>\n");
+            html.append("                            <small>100%</small>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                    <div class=\"d-grid gap-2\">\n");
+            html.append("                        <button class=\"btn btn-primary btn-sm\" onclick=\"trainModel()\">\n");
+            html.append("                            <i class=\"fas fa-graduation-cap me-1\"></i>Train Model\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-info btn-sm\" onclick=\"testAlgorithm()\">\n");
+            html.append("                            <i class=\"fas fa-flask me-1\"></i>Test Algorithm\n");
+            html.append("                        </button>\n");
+            html.append("                        <button class=\"btn btn-success btn-sm\" onclick=\"deployModel()\">\n");
+            html.append("                            <i class=\"fas fa-rocket me-1\"></i>Deploy Model\n");
+            html.append("                        </button>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        </div>\n");
+            html.append("    </div>\n");
+            html.append("</div>\n");
+        }
+        
+        private void appendModals(StringBuilder html) {
+            // Simple modals for future expansion
+            html.append("<!-- Additional modals would go here -->\n");
+        }
+        
+        private void appendAdvancedScripts(StringBuilder html) {
+            html.append("<script>\n");
+            html.append("let currentMode = null;\n");
+            html.append("\n");
+            
+            // Mode switching function
+            html.append("function showMode(mode) {\n");
+            html.append("    // Hide all content areas\n");
+            html.append("    document.querySelectorAll('.content-area').forEach(area => {\n");
+            html.append("        area.classList.remove('active');\n");
+            html.append("    });\n");
+            html.append("    \n");
+            html.append("    // Remove active state from all cards\n");
+            html.append("    document.querySelectorAll('.mode-card').forEach(card => {\n");
+            html.append("        card.classList.remove('active');\n");
+            html.append("    });\n");
+            html.append("    \n");
+            html.append("    // Show selected content and activate card\n");
+            html.append("    document.getElementById(mode + '-content').classList.add('active');\n");
+            html.append("    document.getElementById(mode + '-mode-card').classList.add('active');\n");
+            html.append("    \n");
+            html.append("    currentMode = mode;\n");
+            html.append("    console.log('Switched to mode:', mode);\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // ChatGPT Search
+            html.append("function performChatGPTSearch() {\n");
+            html.append("    const query = document.getElementById('chatgpt-search').value;\n");
+            html.append("    const minBudget = document.getElementById('min-budget').value;\n");
+            html.append("    const maxBudget = document.getElementById('max-budget').value;\n");
+            html.append("    const radius = document.getElementById('search-radius').value;\n");
+            html.append("    \n");
+            html.append("    if (!query.trim()) {\n");
+            html.append("        alert('Please enter a search query');\n");
+            html.append("        return;\n");
+            html.append("    }\n");
+            html.append("    \n");
+            html.append("    showSearchResults('🤖 Searching with AI...');\n");
+            html.append("    \n");
+            html.append("    // Simulate API call\n");
+            html.append("    setTimeout(() => {\n");
+            html.append("        const mockResults = [\n");
+            html.append("            { name: 'Vintage Leather Jacket', price: 45, store: 'Downtown Thrift', distance: '2.1 miles', quality: 'Excellent' },\n");
+            html.append("            { name: 'Classic Denim Jacket', price: 25, store: 'Goodwill', distance: '5.3 miles', quality: 'Very Good' },\n");
+            html.append("            { name: 'Designer Leather Jacket', price: 85, store: 'Upscale Consignment', distance: '8.7 miles', quality: 'Like New' }\n");
+            html.append("        ];\n");
+            html.append("        displaySearchResults(mockResults);\n");
+            html.append("    }, 2000);\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // Quick Search
+            html.append("function quickSearch(query) {\n");
+            html.append("    document.getElementById('chatgpt-search').value = query;\n");
+            html.append("    performChatGPTSearch();\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // Show Search Results
+            html.append("function showSearchResults(message) {\n");
+            html.append("    const resultsCard = document.getElementById('search-results-card');\n");
+            html.append("    const resultsDiv = document.getElementById('search-results');\n");
+            html.append("    resultsCard.style.display = 'block';\n");
+            html.append("    resultsDiv.innerHTML = '<div class=\"text-center py-3\"><i class=\"fas fa-spinner fa-spin fa-2x text-primary\"></i><p class=\"mt-2\">' + message + '</p></div>';\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // Display Search Results
+            html.append("function displaySearchResults(results) {\n");
+            html.append("    const resultsDiv = document.getElementById('search-results');\n");
+            html.append("    let html = '';\n");
+            html.append("    \n");
+            html.append("    results.forEach((item, index) => {\n");
+            html.append("        html += `\n");
+            html.append("            <div class=\"search-result-item card mb-2\">\n");
+            html.append("                <div class=\"card-body\">\n");
+            html.append("                    <div class=\"row align-items-center\">\n");
+            html.append("                        <div class=\"col-md-6\">\n");
+            html.append("                            <h6 class=\"mb-1\">${item.name}</h6>\n");
+            html.append("                            <small class=\"text-muted\"><i class=\"fas fa-store me-1\"></i>${item.store} • <i class=\"fas fa-map-marker-alt me-1\"></i>${item.distance}</small>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"col-md-3\">\n");
+            html.append("                            <h5 class=\"text-success mb-0\">$${item.price}</h5>\n");
+            html.append("                            <small class=\"badge bg-secondary\">${item.quality}</small>\n");
+            html.append("                        </div>\n");
+            html.append("                        <div class=\"col-md-3 text-end\">\n");
+            html.append("                            <button class=\"btn btn-primary btn-sm\"><i class=\"fas fa-eye me-1\"></i>View</button>\n");
+            html.append("                        </div>\n");
+            html.append("                    </div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("        `;\n");
+            html.append("    });\n");
+            html.append("    \n");
+            html.append("    resultsDiv.innerHTML = html;\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // AI Pricing
+            html.append("function performAIPricing() {\n");
+            html.append("    const itemName = document.getElementById('item-name').value;\n");
+            html.append("    const brand = document.getElementById('item-brand').value;\n");
+            html.append("    const condition = document.getElementById('item-condition').value;\n");
+            html.append("    \n");
+            html.append("    if (!itemName.trim()) {\n");
+            html.append("        alert('Please enter an item name first');\n");
+            html.append("        return;\n");
+            html.append("    }\n");
+            html.append("    \n");
+            html.append("    const pricingCard = document.getElementById('pricing-results');\n");
+            html.append("    const pricingContent = document.getElementById('pricing-content');\n");
+            html.append("    pricingCard.style.display = 'block';\n");
+            html.append("    pricingContent.innerHTML = '<div class=\"text-center py-3\"><i class=\"fas fa-spinner fa-spin fa-2x text-white\"></i><p class=\"mt-2 text-white\">Analyzing market data...</p></div>';\n");
+            html.append("    \n");
+            html.append("    // Simulate AI pricing analysis\n");
+            html.append("    setTimeout(() => {\n");
+            html.append("        const mockPricing = {\n");
+            html.append("            suggested: 35,\n");
+            html.append("            market_low: 20,\n");
+            html.append("            market_high: 55,\n");
+            html.append("            amazon_price: 89,\n");
+            html.append("            demand: 'High'\n");
+            html.append("        };\n");
+            html.append("        \n");
+            html.append("        pricingContent.innerHTML = `\n");
+            html.append("            <div class=\"text-center mb-3\">\n");
+            html.append("                <h4 class=\"text-primary\">$${mockPricing.suggested}</h4>\n");
+            html.append("                <small class=\"text-muted\">AI Suggested Price</small>\n");
+            html.append("            </div>\n");
+            html.append("            <div class=\"row text-center\">\n");
+            html.append("                <div class=\"col-6\">\n");
+            html.append("                    <small class=\"text-muted\">Market Range</small>\n");
+            html.append("                    <div>$${mockPricing.market_low} - $${mockPricing.market_high}</div>\n");
+            html.append("                </div>\n");
+            html.append("                <div class=\"col-6\">\n");
+            html.append("                    <small class=\"text-muted\">Amazon Price</small>\n");
+            html.append("                    <div>$${mockPricing.amazon_price}</div>\n");
+            html.append("                </div>\n");
+            html.append("            </div>\n");
+            html.append("            <div class=\"mt-3 text-center\">\n");
+            html.append("                <span class=\"badge bg-success\">Demand: ${mockPricing.demand}</span>\n");
+            html.append("            </div>\n");
+            html.append("        `;\n");
+            html.append("        \n");
+            html.append("        document.getElementById('asking-price').value = mockPricing.suggested;\n");
+            html.append("    }, 3000);\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // List Item
+            html.append("function listItem() {\n");
+            html.append("    const itemName = document.getElementById('item-name').value;\n");
+            html.append("    const price = document.getElementById('asking-price').value;\n");
+            html.append("    \n");
+            html.append("    if (!itemName.trim() || !price) {\n");
+            html.append("        alert('Please fill in item name and price');\n");
+            html.append("        return;\n");
+            html.append("    }\n");
+            html.append("    \n");
+            html.append("    alert(`✅ ${itemName} listed for $${price}!\\n\\nYour item will appear in:\\n• Local thrift store network\\n• ThriftAI marketplace\\n• Partner consignment shops`);\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // Visual Search
+            html.append("function performVisualSearch() {\n");
+            html.append("    alert('🔍 Visual search initiated!\\n\\nWe\\'re analyzing your image and finding similar items in thrift stores near you...');\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // Instagram Search
+            html.append("function performInstagramSearch() {\n");
+            html.append("    const url = document.getElementById('instagram-url').value;\n");
+            html.append("    \n");
+            html.append("    if (!url.trim() || !url.includes('instagram.com')) {\n");
+            html.append("        alert('Please enter a valid Instagram URL');\n");
+            html.append("        return;\n");
+            html.append("    }\n");
+            html.append("    \n");
+            html.append("    alert('📸 Instagram search started!\\n\\nExtracting style elements from the post and finding matching thrift items...');\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // Image upload handling
+            html.append("document.getElementById('image-upload').addEventListener('change', function(e) {\n");
+            html.append("    const file = e.target.files[0];\n");
+            html.append("    if (file) {\n");
+            html.append("        const reader = new FileReader();\n");
+            html.append("        reader.onload = function(e) {\n");
+            html.append("            document.getElementById('preview-img').src = e.target.result;\n");
+            html.append("            document.getElementById('image-preview').style.display = 'block';\n");
+            html.append("        };\n");
+            html.append("        reader.readAsDataURL(file);\n");
+            html.append("    }\n");
+            html.append("});\n");
+            html.append("\n");
+            
+            // AI Discussion Functions
+            html.append("function sendAIMessage() {\n");
+            html.append("    const input = document.getElementById('ai-chat-input');\n");
+            html.append("    const message = input.value.trim();\n");
+            html.append("    \n");
+            html.append("    if (!message) return;\n");
+            html.append("    \n");
+            html.append("    // Add user message to chat\n");
+            html.append("    addChatMessage(message, 'user');\n");
+            html.append("    input.value = '';\n");
+            html.append("    \n");
+            html.append("    // Show AI thinking indicator\n");
+            html.append("    showAIThinking();\n");
+            html.append("    \n");
+            html.append("    // Simulate AI response\n");
+            html.append("    setTimeout(() => {\n");
+            html.append("        const aiProvider = document.getElementById('ai-provider-select').value;\n");
+            html.append("        const response = generateAIResponse(message, aiProvider);\n");
+            html.append("        addChatMessage(response, 'ai', aiProvider);\n");
+            html.append("        hideAIThinking();\n");
+            html.append("    }, 2000);\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function addChatMessage(message, type, provider = 'chatgpt') {\n");
+            html.append("    const container = document.getElementById('ai-chat-container');\n");
+            html.append("    const messageDiv = document.createElement('div');\n");
+            html.append("    messageDiv.className = `chat-message ${type}`;\n");
+            html.append("    \n");
+            html.append("    if (type === 'ai') {\n");
+            html.append("        messageDiv.innerHTML = `\n");
+            html.append("            <div class='d-flex align-items-center mb-2'>\n");
+            html.append("                <i class='fas fa-robot me-2' style='color: var(--accent-primary);'></i>\n");
+            html.append("                <span class='ai-provider ${provider}'>${provider.charAt(0).toUpperCase() + provider.slice(1)}</span>\n");
+            html.append("            </div>\n");
+            html.append("            ${message}\n");
+            html.append("        `;\n");
+            html.append("    } else {\n");
+            html.append("        messageDiv.innerHTML = message;\n");
+            html.append("    }\n");
+            html.append("    \n");
+            html.append("    container.appendChild(messageDiv);\n");
+            html.append("    container.scrollTop = container.scrollHeight;\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function generateAIResponse(message, provider) {\n");
+            html.append("    const responses = {\n");
+            html.append("        'market trends': 'Based on current thrift market data, vintage items are trending up 23% this month. Denim jackets and retro electronics are particularly popular.',\n");
+            html.append("        'price this item': 'To provide accurate pricing, I\\'d need to analyze the item\\'s condition, brand, rarity, and current market demand. Can you provide more details?',\n");
+            html.append("        'best deals today': 'Here are today\\'s top deals: Vintage Levi\\'s jacket ($45, was $89), iPhone 12 ($299, was $399), Designer handbag ($125, was $280).',\n");
+            html.append("        'thrift store tips': '1. Visit on weekdays for better selection 2. Check for quality over brand 3. Inspect for damages 4. Know your measurements 5. Be patient and persistent!'\n");
+            html.append("    };\n");
+            html.append("    \n");
+            html.append("    const key = Object.keys(responses).find(k => message.toLowerCase().includes(k));\n");
+            html.append("    return key ? responses[key] : `I understand you\\'re asking about \"${message}\". As your ${provider.toUpperCase()} assistant, I\\'m here to help with thrift shopping, pricing analysis, and market insights. What specific aspect would you like to explore?`;\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function quickAIQuery(query) {\n");
+            html.append("    document.getElementById('ai-chat-input').value = query;\n");
+            html.append("    sendAIMessage();\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function clearChat() {\n");
+            html.append("    const container = document.getElementById('ai-chat-container');\n");
+            html.append("    container.innerHTML = `\n");
+            html.append("        <div class='chat-message ai'>\n");
+            html.append("            <div class='d-flex align-items-center mb-2'>\n");
+            html.append("                <i class='fas fa-robot me-2' style='color: var(--accent-primary);'></i>\n");
+            html.append("                <span class='ai-provider chatgpt'>ChatGPT</span>\n");
+            html.append("            </div>\n");
+            html.append("            Chat cleared! I'm ready to help with your thrift shopping questions.\n");
+            html.append("        </div>\n");
+            html.append("    `;\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function showAIThinking() {\n");
+            html.append("    const container = document.getElementById('ai-chat-container');\n");
+            html.append("    const thinkingDiv = document.createElement('div');\n");
+            html.append("    thinkingDiv.className = 'chat-message ai ai-thinking';\n");
+            html.append("    thinkingDiv.id = 'thinking-indicator';\n");
+            html.append("    thinkingDiv.innerHTML = `\n");
+            html.append("        <div class='d-flex align-items-center'>\n");
+            html.append("            <span class='typing-indicator'></span>\n");
+            html.append("            <span class='typing-indicator'></span>\n");
+            html.append("            <span class='typing-indicator'></span>\n");
+            html.append("            <span class='ms-2'>Thinking...</span>\n");
+            html.append("        </div>\n");
+            html.append("    `;\n");
+            html.append("    container.appendChild(thinkingDiv);\n");
+            html.append("    container.scrollTop = container.scrollHeight;\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function hideAIThinking() {\n");
+            html.append("    const thinking = document.getElementById('thinking-indicator');\n");
+            html.append("    if (thinking) thinking.remove();\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // Neural Network Functions
+            html.append("function runNeuralAnalysis() {\n");
+            html.append("    alert('🧠 Neural analysis initiated!\\n\\nRunning deep learning algorithms on product database...\\n\\nAlgorithm: CNN\\nDataset: 2.3M images\\nAccuracy: 94.2%\\n\\nThis will analyze visual patterns and generate embeddings for enhanced search.');\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function optimizeDatabase() {\n");
+            html.append("    alert('🔧 Database optimization started!\\n\\n• Rebuilding vector indices\\n• Cleaning unused embeddings\\n• Optimizing query performance\\n• Updating similarity matrices\\n\\nEstimated completion: 15 minutes');\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function trainModel() {\n");
+            html.append("    alert('🎓 Model training initiated!\\n\\n• Loading new training data\\n• Adjusting neural network weights\\n• Validation testing\\n• Performance optimization\\n\\nTraining will continue in background...');\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function testAlgorithm() {\n");
+            html.append("    alert('🧪 Algorithm testing started!\\n\\n• Running test queries\\n• Measuring accuracy\\n• Performance benchmarking\\n• Generating test report\\n\\nResults will be available shortly.');\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            html.append("function deployModel() {\n");
+            html.append("    alert('🚀 Model deployment initiated!\\n\\n• Packaging trained model\\n• Updating production endpoints\\n• Rolling out to search engine\\n• Monitoring performance\\n\\nDeployment successful!');\n");
+            html.append("}\n");
+            html.append("\n");
+            
+            // Enhanced chat input handling
+            html.append("document.addEventListener('keydown', function(e) {\n");
+            html.append("    if (e.target.id === 'ai-chat-input' && e.key === 'Enter') {\n");
+            html.append("        e.preventDefault();\n");
+            html.append("        sendAIMessage();\n");
+            html.append("    }\n");
+            html.append("});\n");
+            html.append("\n");
+            
+            // Threshold slider update
+            html.append("document.addEventListener('input', function(e) {\n");
+            html.append("    if (e.target.id === 'similarity-threshold') {\n");
+            html.append("        document.getElementById('threshold-value').textContent = e.target.value + '%';\n");
+            html.append("    }\n");
+            html.append("});\n");
+            html.append("\n");
+            
+            // Initialize with buyer mode
+            html.append("// Initialize with buyer mode on load\n");
+            html.append("document.addEventListener('DOMContentLoaded', function() {\n");
+            html.append("    showMode('buyer');\n");
+            html.append("});\n");
+            
+            html.append("</script>\n");
         }
     }
     
-    // AI Deals API Handler
+    // ChatGPT Search API Handler
+    static class ChatGPTSearchHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "ChatGPT search functionality - Ready for AI integration");
+            response.put("results", Arrays.asList(
+                Map.of("item", "Vintage Leather Jacket", "price", 45, "store", "Downtown Thrift"),
+                Map.of("item", "Classic Denim Jacket", "price", 25, "store", "Goodwill")
+            ));
+            
+            String jsonResponse = convertToJson(response);
+            sendResponse(exchange, jsonResponse, "application/json");
+        }
+    }
+    
+    // AI Pricing Handler
+    static class AIPricingHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("suggested_price", 35.00);
+            response.put("market_range", Map.of("low", 20, "high", 55));
+            response.put("amazon_price", 89.00);
+            response.put("demand_level", "High");
+            response.put("confidence", 0.85);
+            
+            String jsonResponse = convertToJson(response);
+            sendResponse(exchange, jsonResponse, "application/json");
+        }
+    }
+    
+    // Visual Search Handler
+    static class VisualSearchHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Visual search - Ready for image processing AI");
+            response.put("similar_items", Arrays.asList(
+                Map.of("item", "Similar Jacket", "match_confidence", 0.92),
+                Map.of("item", "Style Match", "match_confidence", 0.87)
+            ));
+            
+            String jsonResponse = convertToJson(response);
+            sendResponse(exchange, jsonResponse, "application/json");
+        }
+    }
+    
+    // Instagram Search Handler
+    static class InstagramSearchHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Instagram integration - Ready for style extraction");
+            response.put("extracted_items", Arrays.asList("jacket", "jeans", "sneakers"));
+            
+            String jsonResponse = convertToJson(response);
+            sendResponse(exchange, jsonResponse, "application/json");
+        }
+    }
+    
+    // Existing API handlers (simplified versions)
     static class DealsAPIHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String jsonResponse = generateDealsJson();
-            sendResponse(exchange, jsonResponse, "application/json");
+            Map<String, Object> response = new HashMap<>();
+            response.put("deals", Arrays.asList(
+                Map.of("item", "Vintage T-Shirt", "price", 15, "quality", "Excellent"),
+                Map.of("item", "Designer Jeans", "price", 35, "quality", "Very Good")
+            ));
+            sendResponse(exchange, convertToJson(response), "application/json");
         }
     }
     
-    // Generate 100 products dynamically
-    private static String generateDealsJson() {
-        StringBuilder json = new StringBuilder();
-        json.append("{\n");
-        json.append("    \"success\": true,\n");
-        json.append("    \"message\": \"100 AI deals retrieved successfully\",\n");
-        json.append("    \"timestamp\": \"").append(new Date().toString()).append("\",\n");
-        json.append("    \"totalProducts\": 100,\n");
-        json.append("    \"data\": [\n");
-        
-        String[] categories = {"CLOTHING", "SHOES", "ELECTRONICS", "ACCESSORIES", "HOME", "BOOKS", "SPORTS", "BEAUTY", "JEWELRY", "AUTOMOTIVE"};
-        String[] brands = {"NIKE", "ADIDAS", "LEVI'S", "APPLE", "SAMSUNG", "SONY", "ZARA", "H&M", "GUCCI", "PRADA", "ROLEX", "OMEGA", "CANON", "NIKON", "IKEA", "POTTERY_BARN", "CUISINART", "KITCHENAID", "SEPHORA", "MAC", "BMW", "AUDI", "MERCEDES"};
-        String[] conditions = {"EXCELLENT", "VERY_GOOD", "GOOD", "FAIR"};
-        String[] qualities = {"EXCEPTIONAL", "EXCELLENT", "VERY_GOOD", "GOOD", "FAIR"};
-        
-        String[][] products = {
-            // CLOTHING
-            {"Vintage Denim Jacket", "CLOTHING", "Designer Wool Coat", "CLOTHING", "Silk Evening Dress", "CLOTHING", "Cashmere Sweater", "CLOTHING", "Leather Jacket", "CLOTHING"},
-            {"Cotton T-Shirt", "CLOTHING", "Formal Blazer", "CLOTHING", "Summer Dress", "CLOTHING", "Jeans", "CLOTHING", "Hoodie", "CLOTHING"},
-            {"Polo Shirt", "CLOTHING", "Cardigan", "CLOTHING", "Maxi Dress", "CLOTHING", "Chinos", "CLOTHING", "Track Pants", "CLOTHING"},
-            
-            // SHOES
-            {"Running Sneakers", "SHOES", "Leather Boots", "SHOES", "High Heels", "SHOES", "Canvas Shoes", "SHOES", "Dress Shoes", "SHOES"},
-            {"Athletic Shoes", "SHOES", "Ankle Boots", "SHOES", "Sandals", "SHOES", "Loafers", "SHOES", "Combat Boots", "SHOES"},
-            
-            // ELECTRONICS
-            {"Smartphone", "ELECTRONICS", "Laptop", "ELECTRONICS", "Headphones", "ELECTRONICS", "Tablet", "ELECTRONICS", "Smartwatch", "ELECTRONICS"},
-            {"Camera", "ELECTRONICS", "Gaming Console", "ELECTRONICS", "Bluetooth Speaker", "ELECTRONICS", "Monitor", "ELECTRONICS", "Keyboard", "ELECTRONICS"},
-            
-            // ACCESSORIES
-            {"Leather Handbag", "ACCESSORIES", "Sunglasses", "ACCESSORIES", "Belt", "ACCESSORIES", "Wallet", "ACCESSORIES", "Scarf", "ACCESSORIES"},
-            {"Watch", "ACCESSORIES", "Backpack", "ACCESSORIES", "Hat", "ACCESSORIES", "Gloves", "ACCESSORIES", "Tie", "ACCESSORIES"},
-            
-            // HOME
-            {"Coffee Table", "HOME", "Dining Chair", "HOME", "Floor Lamp", "HOME", "Throw Pillow", "HOME", "Area Rug", "HOME"},
-            {"Bookshelf", "HOME", "Picture Frame", "HOME", "Vase", "HOME", "Candle", "HOME", "Mirror", "HOME"}
-        };
-        
-        Random random = new Random();
-        
-        for (int i = 0; i < 100; i++) {
-            // Select random product details
-            String[] productGroup = products[random.nextInt(products.length)];
-            String productName = productGroup[random.nextInt(productGroup.length)];
-            String category = productGroup[1];
-            String brand = brands[random.nextInt(brands.length)];
-            String condition = conditions[random.nextInt(conditions.length)];
-            String quality = qualities[random.nextInt(qualities.length)];
-            
-            double originalPrice = 50 + random.nextDouble() * 950; // $50 - $1000
-            int discountPercent = 15 + random.nextInt(70); // 15% - 85%
-            double price = originalPrice * (100 - discountPercent) / 100.0;
-            double savings = originalPrice - price;
-            double dealScore = 20 + random.nextDouble() * 80; // 20 - 100
-            
-            String dealReason = generateDealReason(discountPercent, quality, brand);
-            
-            json.append("        {\n");
-            json.append("            \"id\": \"deal_").append(i + 1).append("\",\n");
-            json.append("            \"product\": {\n");
-            json.append("                \"id\": \"p").append(i + 1).append("\",\n");
-            json.append("                \"name\": \"").append(productName).append("\",\n");
-            json.append("                \"category\": \"").append(category).append("\",\n");
-            json.append("                \"brand\": \"").append(brand).append("\",\n");
-            json.append("                \"price\": ").append(String.format("%.2f", price)).append(",\n");
-            json.append("                \"originalPrice\": ").append(String.format("%.2f", originalPrice)).append(",\n");
-            json.append("                \"condition\": \"").append(condition).append("\",\n");
-            json.append("                \"discountPercentage\": ").append(discountPercent).append(",\n");
-            json.append("                \"description\": \"Premium quality ").append(productName.toLowerCase()).append(" from ").append(brand).append(" in ").append(condition.toLowerCase().replace("_", " ")).append(" condition.\"\n");
-            json.append("            },\n");
-            json.append("            \"dealScore\": ").append(String.format("%.1f", dealScore)).append(",\n");
-            json.append("            \"dealQuality\": \"").append(quality).append("\",\n");
-            json.append("            \"dealReason\": \"").append(dealReason).append("\",\n");
-            json.append("            \"savingsAmount\": ").append(String.format("%.2f", savings)).append("\n");
-            json.append("        }");
-            
-            if (i < 99) json.append(",");
-            json.append("\n");
-        }
-        
-        json.append("    ]\n");
-        json.append("}");
-        
-        return json.toString();
-    }
-    
-    private static String generateDealReason(int discount, String quality, String brand) {
-        String[] reasons = {
-            quality + " deal! Amazing " + discount + "% discount! From premium brand " + brand + ".",
-            "Great value! " + discount + "% off from " + brand + " - " + quality.toLowerCase() + " quality guaranteed.",
-            "Don't miss out! " + discount + "% savings on this " + quality.toLowerCase() + " " + brand + " item.",
-            "Hot deal! " + quality + " quality " + brand + " product with " + discount + "% discount.",
-            "Limited time! " + discount + "% off " + brand + " - " + quality.toLowerCase() + " condition, great value!"
-        };
-        Random random = new Random();
-        return reasons[random.nextInt(reasons.length)];
-    }
-    
-    // Statistics API Handler
     static class StatsAPIHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String jsonResponse = """
-                {
-                    "success": true,
-                    "message": "Statistics retrieved successfully",
-                    "timestamp": "%s",
-                    "data": {
-                        "totalProducts": 100,
-                        "totalCategories": 10,
-                        "totalBrands": 23,
-                        "totalStores": 15,
-                        "averageDiscount": 47.8,
-                        "categoryStats": {
-                            "CLOTHING": 30,
-                            "SHOES": 15,
-                            "ELECTRONICS": 20,
-                            "ACCESSORIES": 15,
-                            "HOME": 10,
-                            "BOOKS": 2,
-                            "SPORTS": 3,
-                            "BEAUTY": 2,
-                            "JEWELRY": 2,
-                            "AUTOMOTIVE": 1
-                        },
-                        "aiAccuracy": 94.2,
-                        "serverStatus": "running"
-                    }
-                }
-                """.formatted(new Date().toString());
-            sendResponse(exchange, jsonResponse, "application/json");
+            Map<String, Object> response = new HashMap<>();
+            response.put("total_items", 1234);
+            response.put("active_sellers", 156);
+            response.put("total_savings", 45678.90);
+            sendResponse(exchange, convertToJson(response), "application/json");
         }
     }
     
-    // Health Check API Handler
     static class HealthAPIHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String jsonResponse = """
-                {
-                    "success": true,
-                    "message": "ThriftAI server is healthy",
-                    "timestamp": "%s",
-                    "data": {
-                        "status": "UP",
-                        "server": "ThriftAI Simple Web Server",
-                        "version": "1.0.0",
-                        "uptime": "%d seconds",
-                        "features": [
-                            "AI Deal Scoring",
-                            "Real-time Recommendations", 
-                            "RESTful API",
-                            "Web Interface"
-                        ]
-                    }
-                }
-                """.formatted(new Date().toString(), System.currentTimeMillis() / 1000);
-            sendResponse(exchange, jsonResponse, "application/json");
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "healthy");
+            response.put("timestamp", new Date().toString());
+            response.put("features", Arrays.asList("chatgpt_search", "visual_search", "ai_pricing", "instagram_integration"));
+            sendResponse(exchange, convertToJson(response), "application/json");
         }
     }
     
-    // Static Resource Handler (for future CSS/JS files)
     static class StaticResourceHandler implements HttpHandler {
         private final String contentType;
         
@@ -2215,19 +1422,41 @@ public class SimpleWebServer {
         
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String path = exchange.getRequestURI().getPath();
-            // For demo, return empty response
-            sendResponse(exchange, "", contentType);
+            String response = "/* Static resource placeholder */";
+            sendResponse(exchange, response, contentType);
         }
     }
     
-    // Helper method to send HTTP response
+    // Utility methods
     private static void sendResponse(HttpExchange exchange, String response, String contentType) throws IOException {
-        exchange.getResponseHeaders().set("Content-Type", contentType + "; charset=UTF-8");
+        exchange.getResponseHeaders().set("Content-Type", contentType);
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         exchange.sendResponseHeaders(200, response.getBytes().length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(response.getBytes());
         }
+    }
+    
+    private static String convertToJson(Map<String, Object> map) {
+        // Simple JSON conversion for demo purposes
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (!first) json.append(",");
+            json.append("\"").append(entry.getKey()).append("\":");
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                json.append("\"").append(value).append("\"");
+            } else if (value instanceof Number) {
+                json.append(value);
+            } else if (value instanceof List || value instanceof Map) {
+                json.append("\"").append(value.toString()).append("\"");
+            } else {
+                json.append("\"").append(value).append("\"");
+            }
+            first = false;
+        }
+        json.append("}");
+        return json.toString();
     }
 }

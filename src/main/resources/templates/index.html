@@ -32,37 +32,37 @@
                 <p class="text-muted">Real-time statistics from our AI-powered platform</p>
             </div>
             <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card border-0 shadow-sm h-100">
+                <div class="card border-0 shadow-soft h-100 stat-card">
                     <div class="card-body text-center">
                         <i class="fas fa-box-open fa-3x text-primary mb-3"></i>
-                        <h3 class="fw-bold text-primary" th:text="${overview.totalProducts}">0</h3>
+                        <h3 class="fw-bold text-primary stat-number" th:text="${overview.totalProducts}">0</h3>
                         <p class="text-muted mb-0">Total Products</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card border-0 shadow-sm h-100">
+                <div class="card border-0 shadow-soft h-100 stat-card">
                     <div class="card-body text-center">
                         <i class="fas fa-tags fa-3x text-success mb-3"></i>
-                        <h3 class="fw-bold text-success" th:text="${overview.totalCategories}">0</h3>
+                        <h3 class="fw-bold text-success stat-number" th:text="${overview.totalCategories}">0</h3>
                         <p class="text-muted mb-0">Categories</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card border-0 shadow-sm h-100">
+                <div class="card border-0 shadow-soft h-100 stat-card">
                     <div class="card-body text-center">
                         <i class="fas fa-store fa-3x text-warning mb-3"></i>
-                        <h3 class="fw-bold text-warning" th:text="${overview.totalBrands}">0</h3>
+                        <h3 class="fw-bold text-warning stat-number" th:text="${overview.totalBrands}">0</h3>
                         <p class="text-muted mb-0">Brands</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-3">
-                <div class="card border-0 shadow-sm h-100">
+                <div class="card border-0 shadow-soft h-100 stat-card">
                     <div class="card-body text-center">
                         <i class="fas fa-percentage fa-3x text-danger mb-3"></i>
-                        <h3 class="fw-bold text-danger">
+                        <h3 class="fw-bold text-danger stat-number">
                             <span th:text="${overview.averageDiscount}">0</span>%
                         </h3>
                         <p class="text-muted mb-0">Avg Discount</p>
@@ -74,12 +74,12 @@
         <!-- Featured Deals -->
         <div class="row mb-5" th:if="${featuredDeals and !featuredDeals.isEmpty()}">
             <div class="col-12 text-center mb-4">
-                <h2 class="fw-bold text-primary">🔥 AI-Recommended Featured Deals</h2>
+                <h2 class="fw-bold text-gradient-primary">🔥 AI-Recommended Featured Deals</h2>
                 <p class="text-muted">Handpicked by our AI for the best value</p>
             </div>
             <div class="col-lg-4 col-md-6 mb-4" th:each="deal : ${featuredDeals}">
-                <div class="card border-0 shadow-sm h-100 deal-card">
-                    <div class="card-header bg-primary text-white text-center">
+                <div class="card border-0 shadow-soft h-100 deal-card product-card">
+                    <div class="card-header bg-gradient-primary text-white text-center">
                         <h5 class="mb-0">
                             <i class="fas fa-trophy me-2"></i>
                             <span th:text="${deal.dealQuality}">Quality</span>
@@ -125,7 +125,7 @@
         <!-- Features Section -->
         <div class="row mb-5">
             <div class="col-12 text-center mb-4">
-                <h2 class="fw-bold text-primary">Why Choose ThriftAI?</h2>
+                <h2 class="fw-bold text-gradient-primary">Why Choose ThriftAI?</h2>
             </div>
             <div class="col-md-4 text-center mb-4">
                 <i class="fas fa-robot fa-3x text-primary mb-3"></i>

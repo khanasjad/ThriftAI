@@ -5,7 +5,9 @@ import com.projectai.models.Product;
 import com.projectai.models.UserPreferences;
 import java.util.Map;
 import java.util.HashMap;
+import org.springframework.stereotype.Component;
 
+@Component
 public class DealScorer {
     
     private static final double DISCOUNT_WEIGHT = 0.3;

@@ -48,10 +48,10 @@ spring:
 # Custom ThriftAI Configuration
 thriftai:
   ai:
-    enabled: false
+    enabled: true
     api:
-      url: ""
-      key: ""
+      url: "http://localhost:8080/api/v1"
+      key: "demo-api-key"
   
   app:
     name: "ThriftAI - Smart Thrift Shopping"

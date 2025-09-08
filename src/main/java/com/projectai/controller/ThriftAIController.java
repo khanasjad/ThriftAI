@@ -3,6 +3,7 @@ package com.projectai.controller;
 import com.projectai.models.Product;
 import com.projectai.models.Deal;
 import com.projectai.models.UserPreferences;
+
 import com.projectai.service.ThriftAIService;
 import com.projectai.dto.ApiResponse;
 import com.projectai.dto.DealRequest;
