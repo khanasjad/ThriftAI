@@ -1,8 +1,12 @@
 package com.projectai.controller;
 
+import com.projectai.models.Product;
 import com.projectai.models.Seller;
+import com.projectai.repository.ProductRepository;
 import com.projectai.repository.SellerRepository;
+import com.projectai.service.ExternalMarketplaceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -10,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Controller
@@ -19,6 +25,12 @@ public class SellerController {
 
     @Autowired
     private SellerRepository sellerRepository;
+    
+    @Autowired
+    private ProductRepository productRepository;
+    
+    @Autowired
+    private ExternalMarketplaceService externalMarketplaceService;
 
     @GetMapping
     public String sellersHome(Model model) {
@@ -220,5 +232,143 @@ public class SellerController {
         }
         
         return "error";
+    }
+
+    // ============= PRODUCT LISTING ENDPOINTS =============
+    
+    @GetMapping("/products")
+    public String sellerProducts(@RequestParam(required = false) String search,
+                                @RequestParam(required = false) String category,
+                                @RequestParam(required = false) String condition,
+                                @RequestParam(required = false) Double minPrice,
+                                @RequestParam(required = false) Double maxPrice,
+                                Model model) {
+        
+        List<Product> products;
+        
+        // Filter products based on parameters
+        if (search != null && !search.trim().isEmpty()) {
+            products = productRepository.searchProducts(search.trim());
+        } else if (category != null && !category.trim().isEmpty()) {
+            products = productRepository.findByCategoryIgnoreCase(category.trim());
+        } else {
+            products = productRepository.findByIsAvailableTrue();
+        }
+        
+        // Apply additional filters
+        if (condition != null && !condition.trim().isEmpty()) {
+            products = products.stream()
+                    .filter(p -> p.getCondition() != null && 
+                            p.getCondition().toLowerCase().contains(condition.toLowerCase()))
+                    .toList();
+        }
+        
+        if (minPrice != null || maxPrice != null) {
+            products = products.stream()
+                    .filter(p -> {
+                        double price = p.getPrice();
+                        boolean matchesMin = minPrice == null || price >= minPrice;
+                        boolean matchesMax = maxPrice == null || price <= maxPrice;
+                        return matchesMin && matchesMax;
+                    })
+                    .toList();
+        }
+        
+        // Sort by newest first
+        products = products.stream()
+                .sorted((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()))
+                .toList();
+        
+        model.addAttribute("products", products);
+        model.addAttribute("search", search);
+        model.addAttribute("category", category);
+        model.addAttribute("condition", condition);
+        model.addAttribute("minPrice", minPrice);
+        model.addAttribute("maxPrice", maxPrice);
+        model.addAttribute("totalProducts", products.size());
+        
+        // Get unique categories and conditions for filters
+        List<String> categories = productRepository.findDistinctCategories();
+        List<String> conditions = productRepository.findDistinctConditions();
+        
+        model.addAttribute("categories", categories);
+        model.addAttribute("conditions", conditions);
+        
+        return "sellers/products";
+    }
+    
+    @GetMapping("/api/search-external")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> searchExternalMarketplaces(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "10") int limit) {
+        
+        try {
+            Map<String, Object> response = new HashMap<>();
+            
+            // Search Amazon
+            List<Map<String, Object>> amazonResults = externalMarketplaceService.searchAmazon(query, limit / 2);
+            response.put("amazon", amazonResults);
+            
+            // Search eBay
+            List<Map<String, Object>> ebayResults = externalMarketplaceService.searchEbay(query, limit / 2);
+            response.put("ebay", ebayResults);
+            
+            response.put("success", true);
+            response.put("total", amazonResults.size() + ebayResults.size());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Failed to search external marketplaces: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
+    }
+    
+    @GetMapping("/api/product-alternatives/{productId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getProductAlternatives(@PathVariable String productId) {
+        
+        try {
+            Optional<Product> productOpt = productRepository.findById(productId);
+            
+            if (productOpt.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("error", "Product not found");
+                return ResponseEntity.status(404).body(error);
+            }
+            
+            Product product = productOpt.get();
+            String searchQuery = product.getName() + " " + product.getBrand();
+            
+            Map<String, Object> response = new HashMap<>();
+            
+            // Find similar local products
+            List<Product> similarProducts = productRepository.searchProducts(searchQuery).stream()
+                    .filter(p -> !p.getId().equals(productId))
+                    .limit(5)
+                    .toList();
+            
+            response.put("localSimilar", similarProducts);
+            
+            // Search external marketplaces for alternatives
+            List<Map<String, Object>> amazonAlternatives = externalMarketplaceService.searchAmazon(searchQuery, 5);
+            List<Map<String, Object>> ebayAlternatives = externalMarketplaceService.searchEbay(searchQuery, 5);
+            
+            response.put("amazon", amazonAlternatives);
+            response.put("ebay", ebayAlternatives);
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Failed to get product alternatives: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
     }
 }

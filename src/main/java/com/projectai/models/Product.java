@@ -40,6 +40,10 @@ public class Product {
     @Column(name = "store_id")
     private String storeId;
     
+    @ManyToOne
+    @JoinColumn(name = "seller_id")
+    private Seller seller;
+    
     private String size;
     
     @Column(name = "is_available", nullable = false)
@@ -88,6 +92,7 @@ public class Product {
     public String getStoreId() { return storeId; }
     public String getSize() { return size; }
     public boolean isAvailable() { return isAvailable; }
+    public Seller getSeller() { return seller; }
     
     // Setters
     public void setId(String id) { this.id = id; }
@@ -102,6 +107,7 @@ public class Product {
     public void setStoreId(String storeId) { this.storeId = storeId; }
     public void setSize(String size) { this.size = size; }
     public void setAvailable(boolean available) { this.isAvailable = available; }
+    public void setSeller(Seller seller) { this.seller = seller; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     

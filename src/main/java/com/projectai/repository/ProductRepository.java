@@ -50,4 +50,12 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     
     @Query("SELECT COUNT(p) FROM Product p WHERE p.category = :category AND p.isAvailable = true")
     long countByCategoryAndAvailable(@Param("category") String category);
+    
+    List<Product> findByCategoryIgnoreCase(String category);
+    
+    @Query("SELECT DISTINCT p.category FROM Product p WHERE p.category IS NOT NULL ORDER BY p.category")
+    List<String> findDistinctCategories();
+    
+    @Query("SELECT DISTINCT p.condition FROM Product p WHERE p.condition IS NOT NULL ORDER BY p.condition")
+    List<String> findDistinctConditions();
 }
