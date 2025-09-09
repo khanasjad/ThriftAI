@@ -236,6 +236,110 @@ public class SellerController {
 
     // ============= PRODUCT LISTING ENDPOINTS =============
     
+    @GetMapping("/add-product")
+    public String showAddProductForm(Model model) {
+        model.addAttribute("product", new Product());
+        
+        // Get all sellers for dropdown
+        List<Seller> activeSellers = sellerRepository.findActiveAndVerifiedSellers();
+        model.addAttribute("sellers", activeSellers);
+        
+        // Add predefined options
+        model.addAttribute("categories", List.of(
+            "Clothing", "Shoes", "Accessories", "Bags", "Jewelry", 
+            "Outerwear", "Dresses", "Tops", "Bottoms", "Activewear", 
+            "Vintage", "Designer", "Electronics", "Home & Decor", "Books"
+        ));
+        
+        model.addAttribute("conditions", List.of(
+            "Like New", "Excellent", "Very Good", "Good", "Fair", "Poor"
+        ));
+        
+        model.addAttribute("sizes", List.of(
+            "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL",
+            "Size 4", "Size 6", "Size 8", "Size 10", "Size 12", "Size 14", "Size 16",
+            "Size 5", "Size 6", "Size 7", "Size 8", "Size 9", "Size 10", "Size 11", "Size 12",
+            "One Size", "Free Size"
+        ));
+        
+        return "sellers/add-product";
+    }
+    
+    @PostMapping("/add-product")
+    public String addProduct(@Valid @ModelAttribute("product") Product product,
+                            BindingResult result,
+                            @RequestParam("sellerId") String sellerId,
+                            RedirectAttributes redirectAttributes,
+                            Model model) {
+        
+        if (result.hasErrors()) {
+            // Re-populate dropdowns on error
+            List<Seller> activeSellers = sellerRepository.findActiveAndVerifiedSellers();
+            model.addAttribute("sellers", activeSellers);
+            model.addAttribute("categories", List.of(
+                "Clothing", "Shoes", "Accessories", "Bags", "Jewelry", 
+                "Outerwear", "Dresses", "Tops", "Bottoms", "Activewear", 
+                "Vintage", "Designer", "Electronics", "Home & Decor", "Books"
+            ));
+            model.addAttribute("conditions", List.of(
+                "Like New", "Excellent", "Very Good", "Good", "Fair", "Poor"
+            ));
+            model.addAttribute("sizes", List.of(
+                "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL",
+                "Size 4", "Size 6", "Size 8", "Size 10", "Size 12", "Size 14", "Size 16",
+                "Size 5", "Size 6", "Size 7", "Size 8", "Size 9", "Size 10", "Size 11", "Size 12",
+                "One Size", "Free Size"
+            ));
+            return "sellers/add-product";
+        }
+        
+        // Find seller
+        Optional<Seller> sellerOpt = sellerRepository.findById(sellerId);
+        if (sellerOpt.isEmpty()) {
+            result.rejectValue("seller", "error.product", "Invalid seller selected");
+            return "sellers/add-product";
+        }
+        
+        try {
+            product.setSeller(sellerOpt.get());
+            product.setAvailable(true);
+            
+            // If no image URL provided, use placeholder
+            if (product.getImageUrl() == null || product.getImageUrl().trim().isEmpty()) {
+                String placeholderText = product.getName().replaceAll("\\s+", "+");
+                product.setImageUrl("https://via.placeholder.com/300x300?text=" + placeholderText);
+            }
+            
+            productRepository.save(product);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Product '" + product.getName() + "' added successfully!");
+            return "redirect:/sellers/products";
+            
+        } catch (Exception e) {
+            result.rejectValue("name", "error.product", "Failed to save product. Please try again.");
+            
+            // Re-populate dropdowns on error
+            List<Seller> activeSellers = sellerRepository.findActiveAndVerifiedSellers();
+            model.addAttribute("sellers", activeSellers);
+            model.addAttribute("categories", List.of(
+                "Clothing", "Shoes", "Accessories", "Bags", "Jewelry", 
+                "Outerwear", "Dresses", "Tops", "Bottoms", "Activewear", 
+                "Vintage", "Designer", "Electronics", "Home & Decor", "Books"
+            ));
+            model.addAttribute("conditions", List.of(
+                "Like New", "Excellent", "Very Good", "Good", "Fair", "Poor"
+            ));
+            model.addAttribute("sizes", List.of(
+                "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL",
+                "Size 4", "Size 6", "Size 8", "Size 10", "Size 12", "Size 14", "Size 16",
+                "Size 5", "Size 6", "Size 7", "Size 8", "Size 9", "Size 10", "Size 11", "Size 12",
+                "One Size", "Free Size"
+            ));
+            
+            return "sellers/add-product";
+        }
+    }
+    
     @GetMapping("/products")
     public String sellerProducts(@RequestParam(required = false) String search,
                                 @RequestParam(required = false) String category,

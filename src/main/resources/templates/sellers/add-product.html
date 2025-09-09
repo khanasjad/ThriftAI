@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html}">
+<head th:fragment="pageHead">
+    <title>List Your Thrift Item - ThriftAI</title>
+    <th:block>
+        <style>
+            .form-step {
+                display: none;
+            }
+            .form-step.active {
+                display: block;
+            }
+            .progress-bar {
+                background: var(--bg-secondary);
+                height: 4px;
+                border-radius: 2px;
+                overflow: hidden;
+                margin-bottom: var(--space-8);
+            }
+            .progress-fill {
+                background: var(--accent);
+                height: 100%;
+                transition: width 0.3s ease;
+            }
+            .step-indicator {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: var(--space-6);
+            }
+            .step-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                flex: 1;
+            }
+            .step-number {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: var(--bg-secondary);
+                border: 2px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 590;
+                font-size: var(--font-size-body);
+                margin-bottom: var(--space-2);
+                transition: all 0.3s ease;
+            }
+            .step-item.active .step-number {
+                background: var(--accent);
+                border-color: var(--accent);
+                color: white;
+            }
+            .step-item.completed .step-number {
+                background: var(--accent);
+                border-color: var(--accent);
+                color: white;
+            }
+            .step-label {
+                font-size: var(--font-size-caption);
+                color: var(--text-secondary);
+                text-align: center;
+                font-weight: 510;
+            }
+            .step-item.active .step-label {
+                color: var(--text-primary);
+            }
+            .image-preview {
+                width: 200px;
+                height: 200px;
+                border: 2px dashed var(--border);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: var(--bg-secondary);
+                margin-top: var(--space-3);
+                overflow: hidden;
+            }
+            .image-preview img {
+                max-width: 100%;
+                max-height: 100%;
+                border-radius: 6px;
+            }
+            .image-placeholder {
+                color: var(--text-secondary);
+                text-align: center;
+                padding: var(--space-4);
+            }
+            .nav-buttons {
+                display: flex;
+                justify-content: space-between;
+                margin-top: var(--space-8);
+                padding-top: var(--space-6);
+                border-top: 1px solid var(--border);
+            }
+            .form-row {
+                display: flex;
+                gap: var(--space-4);
+                margin-bottom: var(--space-5);
+            }
+            .form-row .form-group {
+                flex: 1;
+                margin-bottom: 0;
+            }
+            .form-group {
+                margin-bottom: var(--space-5);
+            }
+            .price-input-group {
+                position: relative;
+            }
+            .price-input-group::before {
+                content: '$';
+                position: absolute;
+                left: var(--space-4);
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--text-secondary);
+                font-weight: 510;
+                z-index: 1;
+            }
+            .price-input {
+                padding-left: var(--space-6);
+            }
+        </style>
+    </th:block>
+</head>
+
+<div th:fragment="content">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="mb-0">List Your Thrift Item</h2>
+                        <p class="text-muted mb-0">Fill out the details to list your item for sale</p>
+                    </div>
+                    <div class="card-body">
+                        <!-- Progress Indicator -->
+                        <div class="step-indicator">
+                            <div class="step-item active" id="step1-indicator">
+                                <div class="step-number">1</div>
+                                <div class="step-label">Basic Info</div>
+                            </div>
+                            <div class="step-item" id="step2-indicator">
+                                <div class="step-number">2</div>
+                                <div class="step-label">Details</div>
+                            </div>
+                            <div class="step-item" id="step3-indicator">
+                                <div class="step-number">3</div>
+                                <div class="step-label">Pricing</div>
+                            </div>
+                            <div class="step-item" id="step4-indicator">
+                                <div class="step-number">4</div>
+                                <div class="step-label">Review</div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressBar" style="width: 25%"></div>
+                        </div>
+
+                        <!-- Success/Error Messages -->
+                        <div th:if="${successMessage}" class="alert alert-success" role="alert">
+                            <strong>Success!</strong> <span th:text="${successMessage}"></span>
+                        </div>
+
+                        <form th:action="@{/sellers/add-product}" method="post" th:object="${product}" id="productForm">
+                            <!-- Step 1: Basic Information -->
+                            <div class="form-step active" id="step1">
+                                <h4 class="mb-4">Basic Information</h4>
+                                
+                                <div class="form-group">
+                                    <label class="form-label" for="sellerId">Select Your Store *</label>
+                                    <select class="form-control" id="sellerId" name="sellerId" required>
+                                        <option value="">Choose your store...</option>
+                                        <option th:each="seller : ${sellers}" 
+                                                th:value="${seller.id}" 
+                                                th:text="${seller.businessName} + ' - ' + ${seller.city}">
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label" for="name">Item Name *</label>
+                                    <input type="text" class="form-control" id="name" th:field="*{name}" 
+                                           placeholder="e.g., Vintage Levi's 501 Jeans" required maxlength="100">
+                                    <div th:if="${#fields.hasErrors('name')}" class="text-danger mt-2">
+                                        <small th:errors="*{name}"></small>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="category">Category *</label>
+                                        <select class="form-control" id="category" th:field="*{category}" required>
+                                            <option value="">Select category...</option>
+                                            <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}"></option>
+                                        </select>
+                                        <div th:if="${#fields.hasErrors('category')}" class="text-danger mt-2">
+                                            <small th:errors="*{category}"></small>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="brand">Brand</label>
+                                        <input type="text" class="form-control" id="brand" th:field="*{brand}" 
+                                               placeholder="e.g., Nike, Zara, H&M">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Item Details -->
+                            <div class="form-step" id="step2">
+                                <h4 class="mb-4">Item Details</h4>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="condition">Condition *</label>
+                                        <select class="form-control" id="condition" th:field="*{condition}" required>
+                                            <option value="">Select condition...</option>
+                                            <option th:each="cond : ${conditions}" th:value="${cond}" th:text="${cond}"></option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="size">Size</label>
+                                        <select class="form-control" id="size" th:field="*{size}">
+                                            <option value="">Select size...</option>
+                                            <option th:each="s : ${sizes}" th:value="${s}" th:text="${s}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label" for="description">Description</label>
+                                    <textarea class="form-control" id="description" th:field="*{description}" 
+                                              rows="4" maxlength="500"
+                                              placeholder="Describe the item's condition, style, fit, or any unique features..."></textarea>
+                                    <small class="text-muted">Max 500 characters</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label" for="imageUrl">Image URL (optional)</label>
+                                    <input type="url" class="form-control" id="imageUrl" th:field="*{imageUrl}" 
+                                           placeholder="https://example.com/image.jpg" onchange="previewImage()">
+                                    <small class="text-muted">Add a photo URL to showcase your item</small>
+                                    
+                                    <div class="image-preview" id="imagePreview">
+                                        <div class="image-placeholder">
+                                            <i class="fas fa-image" style="font-size: 48px; color: var(--text-secondary); margin-bottom: var(--space-3);"></i>
+                                            <div>Image preview will appear here</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: Pricing -->
+                            <div class="form-step" id="step3">
+                                <h4 class="mb-4">Pricing Information</h4>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="price">Selling Price *</label>
+                                        <div class="price-input-group">
+                                            <input type="number" class="form-control price-input" id="price" 
+                                                   th:field="*{price}" step="0.01" min="0" required
+                                                   placeholder="25.00">
+                                        </div>
+                                        <div th:if="${#fields.hasErrors('price')}" class="text-danger mt-2">
+                                            <small th:errors="*{price}"></small>
+                                        </div>
+                                        <small class="text-muted">The price buyers will pay</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="originalPrice">Original Price (optional)</label>
+                                        <div class="price-input-group">
+                                            <input type="number" class="form-control price-input" id="originalPrice" 
+                                                   th:field="*{originalPrice}" step="0.01" min="0"
+                                                   placeholder="50.00">
+                                        </div>
+                                        <small class="text-muted">What you originally paid (shows savings to buyers)</small>
+                                    </div>
+                                </div>
+
+                                <div class="card mt-4" style="background: var(--bg-secondary);">
+                                    <div class="card-body">
+                                        <h6 class="mb-3">Pricing Tips</h6>
+                                        <ul class="mb-0" style="color: var(--text-secondary);">
+                                            <li>Research similar items to price competitively</li>
+                                            <li>Consider the item's condition when setting price</li>
+                                            <li>Include original price to highlight savings</li>
+                                            <li>Factor in any unique features or designer labels</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: Review -->
+                            <div class="form-step" id="step4">
+                                <h4 class="mb-4">Review Your Listing</h4>
+                                
+                                <div class="card" style="background: var(--bg-secondary);">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div id="finalImagePreview" class="image-preview" style="width: 100%; height: 200px;">
+                                                    <div class="image-placeholder">
+                                                        <i class="fas fa-image" style="font-size: 48px;"></i>
+                                                        <div>No image</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <h5 id="reviewName" class="mb-2">Item Name</h5>
+                                                <p class="text-muted mb-2">
+                                                    <span id="reviewCategory">Category</span> • 
+                                                    <span id="reviewBrand">Brand</span> • 
+                                                    <span id="reviewSize">Size</span>
+                                                </p>
+                                                <p class="mb-2">
+                                                    <strong>Condition:</strong> <span id="reviewCondition">-</span>
+                                                </p>
+                                                <p id="reviewDescription" class="mb-3 text-muted">Item description</p>
+                                                <div class="pricing mb-3">
+                                                    <h4 class="text-primary mb-0">$<span id="reviewPrice">0.00</span></h4>
+                                                    <small class="text-muted" id="originalPriceSection" style="display: none;">
+                                                        Originally $<span id="reviewOriginalPrice">0.00</span> 
+                                                        (<span id="discountPercent">0</span>% off)
+                                                    </small>
+                                                </div>
+                                                <p class="text-muted mb-0">
+                                                    <strong>Store:</strong> <span id="reviewStore">-</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Navigation Buttons -->
+                            <div class="nav-buttons">
+                                <button type="button" class="btn btn-outline-primary" id="prevBtn" onclick="changeStep(-1)" style="display: none;">
+                                    Previous
+                                </button>
+                                <div></div>
+                                <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
+                                    Next
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+                                    List Item
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 4;
+
+        function changeStep(direction) {
+            if (direction === 1 && !validateCurrentStep()) {
+                return;
+            }
+
+            const currentStepElement = document.getElementById(`step${currentStep}`);
+            const currentIndicator = document.getElementById(`step${currentStep}-indicator`);
+            
+            currentStepElement.classList.remove('active');
+            currentIndicator.classList.remove('active');
+            
+            if (direction === 1 && currentStep < totalSteps) {
+                currentIndicator.classList.add('completed');
+            }
+
+            currentStep += direction;
+
+            if (currentStep < 1) currentStep = 1;
+            if (currentStep > totalSteps) currentStep = totalSteps;
+
+            const newStepElement = document.getElementById(`step${currentStep}`);
+            const newIndicator = document.getElementById(`step${currentStep}-indicator`);
+            
+            newStepElement.classList.add('active');
+            newIndicator.classList.add('active');
+
+            updateProgressBar();
+            updateButtons();
+            
+            if (currentStep === 4) {
+                updateReviewSection();
+            }
+        }
+
+        function updateProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            const percentage = (currentStep / totalSteps) * 100;
+            progressBar.style.width = percentage + '%';
+        }
+
+        function updateButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+
+            prevBtn.style.display = currentStep === 1 ? 'none' : 'block';
+            nextBtn.style.display = currentStep === totalSteps ? 'none' : 'block';
+            submitBtn.style.display = currentStep === totalSteps ? 'block' : 'none';
+        }
+
+        function validateCurrentStep() {
+            const requiredFields = document.querySelectorAll(`#step${currentStep} [required]`);
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.style.borderColor = '#da3633';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '';
+                }
+            });
+
+            if (!isValid) {
+                alert('Please fill in all required fields before continuing.');
+            }
+
+            return isValid;
+        }
+
+        function previewImage() {
+            const imageUrl = document.getElementById('imageUrl').value;
+            const preview = document.getElementById('imagePreview');
+            
+            if (imageUrl) {
+                preview.innerHTML = `<img src="${imageUrl}" alt="Preview" onerror="this.src='https://via.placeholder.com/300x300?text=Invalid+Image'">`;
+            } else {
+                preview.innerHTML = `
+                    <div class="image-placeholder">
+                        <i class="fas fa-image" style="font-size: 48px; color: var(--text-secondary); margin-bottom: var(--space-3);"></i>
+                        <div>Image preview will appear here</div>
+                    </div>
+                `;
+            }
+        }
+
+        function updateReviewSection() {
+            // Basic info
+            document.getElementById('reviewName').textContent = document.getElementById('name').value || 'Item Name';
+            document.getElementById('reviewCategory').textContent = document.getElementById('category').value || 'Category';
+            document.getElementById('reviewBrand').textContent = document.getElementById('brand').value || 'No Brand';
+            document.getElementById('reviewSize').textContent = document.getElementById('size').value || 'No Size';
+            document.getElementById('reviewCondition').textContent = document.getElementById('condition').value || '-';
+            document.getElementById('reviewDescription').textContent = document.getElementById('description').value || 'No description provided';
+            
+            // Store
+            const sellerSelect = document.getElementById('sellerId');
+            const selectedOption = sellerSelect.options[sellerSelect.selectedIndex];
+            document.getElementById('reviewStore').textContent = selectedOption.text || '-';
+            
+            // Pricing
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            const originalPrice = parseFloat(document.getElementById('originalPrice').value) || 0;
+            
+            document.getElementById('reviewPrice').textContent = price.toFixed(2);
+            
+            if (originalPrice > 0 && originalPrice > price) {
+                const discount = Math.round(((originalPrice - price) / originalPrice) * 100);
+                document.getElementById('reviewOriginalPrice').textContent = originalPrice.toFixed(2);
+                document.getElementById('discountPercent').textContent = discount;
+                document.getElementById('originalPriceSection').style.display = 'block';
+            } else {
+                document.getElementById('originalPriceSection').style.display = 'none';
+            }
+            
+            // Image
+            const imageUrl = document.getElementById('imageUrl').value;
+            const finalPreview = document.getElementById('finalImagePreview');
+            
+            if (imageUrl) {
+                finalPreview.innerHTML = `<img src="${imageUrl}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/300x300?text=Invalid+Image'">`;
+            } else {
+                finalPreview.innerHTML = `
+                    <div class="image-placeholder">
+                        <i class="fas fa-image" style="font-size: 48px;"></i>
+                        <div>No image</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize
+        updateButtons();
+        
+        // Form validation
+        document.getElementById('productForm').addEventListener('submit', function(e) {
+            if (!validateCurrentStep()) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</div>
