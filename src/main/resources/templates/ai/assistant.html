@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Shopping Assistant - ThriftAI</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="/webjars/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+    
+    <!-- Custom CSS -->
+    <link href="/css/style.css" rel="stylesheet"/>
+    
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    
+    <style>
+        .ai-chat-container {
+            height: 80vh;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: var(--glass-shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .ai-header {
+            background: var(--gradient-primary);
+            color: var(--black);
+            padding: 1.5rem 2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .ai-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--gradient-hero);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            animation: glow 3s ease-in-out infinite;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .message {
+            display: flex;
+            gap: 1rem;
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        .message.user {
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .message-avatar.ai {
+            background: var(--gradient-primary);
+            color: var(--black);
+        }
+        
+        .message-avatar.user {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--primary);
+        }
+        
+        .message-content {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            max-width: 70%;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .message.user .message-content {
+            background: var(--gradient-primary);
+            color: var(--black);
+            border-color: var(--primary);
+        }
+        
+        .chat-input-area {
+            padding: 2rem;
+            border-top: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .chat-input {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 1rem 1.5rem;
+            color: var(--gray-100);
+            font-size: 1rem;
+        }
+        
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.1);
+        }
+        
+        .send-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            border: none;
+            color: var(--black);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .send-button:hover {
+            transform: scale(1.1);
+            box-shadow: var(--glow-primary);
+        }
+        
+        .suggestions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        
+        .suggestion-chip {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            color: var(--gray-200);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .suggestion-chip:hover {
+            background: var(--primary);
+            color: var(--black);
+            transform: translateY(-1px);
+        }
+        
+        .visual-search-area {
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.01);
+        }
+        
+        .upload-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: var(--glass-bg);
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 0.3rem;
+            padding: 1rem;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-10px); opacity: 1; }
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .quick-action {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--gray-100);
+        }
+        
+        .quick-action:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+            box-shadow: var(--glow-primary);
+        }
+        
+        .quick-action i {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" th:href="@{/}">
+                <i class="fas fa-robot me-2" style="color: #00f5ff;"></i>
+                <span style="background: linear-gradient(135deg, #00f5ff 0%, #0066ff 25%, #6366f1 50%, #8b5cf6 75%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 800;">ThriftAI</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/products}">
+                            <i class="fas fa-box-open me-1"></i>Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/deals}">
+                            <i class="fas fa-tags me-1"></i>AI Deals
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/ai/assistant}">
+                            <i class="fas fa-robot me-1"></i>AI Assistant
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/sellers}">
+                            <i class="fas fa-store me-1"></i>Sellers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/buyers}">
+                            <i class="fas fa-shopping-cart me-1"></i>Buyers
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>Account
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Preferences</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-heart me-2"></i>Favorites</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" th:href="@{/about}"><i class="fas fa-info me-2"></i>About</a></li>
+                            <li><a class="dropdown-item" th:href="@{/contact}"><i class="fas fa-envelope me-2"></i>Contact</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-4">
+        <div class="container-fluid">
+            <div class="row justify-content-center">
+                <div class="col-12 col-xl-10">
+                    
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <h1 class="text-gradient-primary mb-2">AI Shopping Assistant</h1>
+                        <p class="text-muted">Ask me anything about products, prices, locations, or upload an image to find similar items!</p>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="quick-actions mb-4">
+                        <div class="quick-action" onclick="sendQuickMessage('Find me the best deals today')">
+                            <i class="fas fa-fire"></i>
+                            <div class="fw-semibold">Best Deals</div>
+                            <small class="text-muted">Today's hottest offers</small>
+                        </div>
+                        <div class="quick-action" onclick="sendQuickMessage('Show me thrift stores near me')">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div class="fw-semibold">Find Stores</div>
+                            <small class="text-muted">Locate nearby shops</small>
+                        </div>
+                        <div class="quick-action" onclick="sendQuickMessage('Compare thrift prices to retail')">
+                            <i class="fas fa-chart-line"></i>
+                            <div class="fw-semibold">Price Compare</div>
+                            <small class="text-muted">Thrift vs retail</small>
+                        </div>
+                        <div class="quick-action" onclick="openImageUpload()">
+                            <i class="fas fa-camera"></i>
+                            <div class="fw-semibold">Visual Search</div>
+                            <small class="text-muted">Upload image</small>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Chat Container -->
+                    <div class="ai-chat-container">
+                        <!-- Header -->
+                        <div class="ai-header">
+                            <div class="ai-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">ThriftAI Assistant</h5>
+                                <small class="opacity-75">Powered by Advanced AI • Always Learning</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Messages -->
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Welcome Message -->
+                            <div class="message ai">
+                                <div class="message-avatar ai">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="message-content">
+                                    <div class="mb-2">👋 <strong>Welcome to ThriftAI!</strong></div>
+                                    <div class="mb-3">I'm your AI shopping assistant. I can help you:</div>
+                                    <ul class="mb-0">
+                                        <li>Find specific items at the best prices</li>
+                                        <li>Compare thrift stores with retail pricing</li>
+                                        <li>Locate stores near you</li>
+                                        <li>Identify items from photos (visual search)</li>
+                                        <li>Provide quality assessments and recommendations</li>
+                                    </ul>
+                                    <div class="mt-3"><strong>What are you looking for today?</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Visual Search Area -->
+                        <div class="visual-search-area" id="visualSearchArea" style="display: none;">
+                            <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i>
+                                <div class="fw-semibold">Upload an Image</div>
+                                <small class="text-muted">Drop an image here or click to browse</small>
+                            </div>
+                            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+                        </div>
+                        
+                        <!-- Chat Input -->
+                        <div class="chat-input-area">
+                            <div class="chat-input">
+                                <input type="text" id="messageInput" placeholder="Ask me anything about thrift shopping..." onkeypress="handleKeyPress(event)">
+                                <button class="send-button" onclick="sendMessage()">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="suggestions" id="suggestions">
+                                <div class="suggestion-chip" onclick="sendQuickMessage('Find vintage jackets under $30')">
+                                    Find vintage jackets under $30
+                                </div>
+                                <div class="suggestion-chip" onclick="sendQuickMessage('Show me designer shoes in my area')">
+                                    Show me designer shoes in my area
+                                </div>
+                                <div class="suggestion-chip" onclick="sendQuickMessage('Compare Nike prices: thrift vs retail')">
+                                    Compare Nike prices: thrift vs retail
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="/webjars/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let isTyping = false;
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message && !isTyping) {
+                addUserMessage(message);
+                input.value = '';
+                showTypingIndicator();
+                
+                // Send to AI backend
+                fetch('/ai/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        type: 'shopping'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideTypingIndicator();
+                    if (data.success) {
+                        addAIMessage(data.message);
+                        if (data.suggestions) {
+                            updateSuggestions(data.suggestions);
+                        }
+                    } else {
+                        addAIMessage(data.error || 'Sorry, something went wrong. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    hideTypingIndicator();
+                    addAIMessage('Sorry, I\'m having trouble connecting. Please try again.');
+                });
+            }
+        }
+        
+        function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+        
+        function addUserMessage(message) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-avatar user">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="message-content">
+                    ${message}
+                </div>
+            `;
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        function addAIMessage(message) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai';
+            messageDiv.innerHTML = `
+                <div class="message-avatar ai">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    ${message.replace(/\n/g, '<br>')}
+                </div>
+            `;
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        function showTypingIndicator() {
+            isTyping = true;
+            const messagesDiv = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="message-avatar ai">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(typingDiv);
+            scrollToBottom();
+        }
+        
+        function hideTypingIndicator() {
+            isTyping = false;
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+        
+        function updateSuggestions(suggestions) {
+            const suggestionsDiv = document.getElementById('suggestions');
+            suggestionsDiv.innerHTML = '';
+            suggestions.forEach(suggestion => {
+                const chip = document.createElement('div');
+                chip.className = 'suggestion-chip';
+                chip.textContent = suggestion;
+                chip.onclick = () => sendQuickMessage(suggestion);
+                suggestionsDiv.appendChild(chip);
+            });
+        }
+        
+        function scrollToBottom() {
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function openImageUpload() {
+            const visualSearchArea = document.getElementById('visualSearchArea');
+            visualSearchArea.style.display = visualSearchArea.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function handleImageUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showTypingIndicator();
+                    addUserMessage('🖼️ Image uploaded for visual search');
+                    
+                    // Send image for analysis
+                    fetch('/ai/visual-search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            image: e.target.result
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        hideTypingIndicator();
+                        if (data.success) {
+                            addAIMessage(data.message);
+                            // Could display products in a special format here
+                        } else {
+                            addAIMessage(data.error || 'Unable to process image. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        hideTypingIndicator();
+                        addAIMessage('Sorry, I had trouble processing your image. Please try again.');
+                    });
+                };
+                reader.readAsDataURL(input.files[0]);
+                openImageUpload(); // Close the upload area
+            }
+        }
+        
+        // Focus on input when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('messageInput').focus();
+        });
+    </script>
+</body>
+</html>
