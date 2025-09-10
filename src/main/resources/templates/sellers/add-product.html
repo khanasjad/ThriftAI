@@ -161,6 +161,60 @@
                             <div class="progress-fill" id="progressBar" style="width: 25%"></div>
                         </div>
 
+                        <!-- Trending Search Tab -->
+                        <div class="card mb-4" style="border: 2px solid var(--accent); background: var(--bg-secondary);">
+                            <div class="card-header" style="background: var(--accent); color: white;">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-fire me-2"></i>
+                                    Trending in Market - What's Hot to Sell
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" id="trendingSearch" 
+                                               placeholder="Search trending items (e.g., vintage denim, sneakers...)">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="button" class="btn btn-primary w-100" onclick="searchTrending()">
+                                            <i class="fas fa-search me-2"></i>Search Trends
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div id="trendingResults">
+                                    <div class="row" th:each="item : ${trendingItems}">
+                                        <div class="col-12 mb-3">
+                                            <div class="card" style="background: var(--bg-card); border: 1px solid var(--border);">
+                                                <div class="card-body">
+                                                    <div class="row align-items-center">
+                                                        <div class="col-md-6">
+                                                            <h6 class="mb-1" th:text="${item.name}">Trending Item</h6>
+                                                            <small class="text-muted" th:text="${item.description}">Description</small>
+                                                        </div>
+                                                        <div class="col-md-2 text-center">
+                                                            <span class="badge" th:style="'background-color: ' + ${item.demandColor}" 
+                                                                  th:text="${item.demand}">High</span>
+                                                        </div>
+                                                        <div class="col-md-2 text-center">
+                                                            <strong>$<span th:text="${item.avgLowPrice}">0</span> - $<span th:text="${item.avgHighPrice}">0</span></strong>
+                                                            <br><small class="text-muted">Price Range</small>
+                                                        </div>
+                                                        <div class="col-md-2 text-center">
+                                                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                                    th:onclick="'fillFromTrending(\'' + ${item.name} + '\', \'' + ${item.category} + '\', \'' + ${item.avgLowPrice} + '\')'">
+                                                                Use This
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Success/Error Messages -->
                         <div th:if="${successMessage}" class="alert alert-success" role="alert">
                             <strong>Success!</strong> <span th:text="${successMessage}"></span>
@@ -502,6 +556,116 @@
         document.getElementById('productForm').addEventListener('submit', function(e) {
             if (!validateCurrentStep()) {
                 e.preventDefault();
+            }
+        });
+        
+        // Trending search functionality
+        function searchTrending() {
+            const query = document.getElementById('trendingSearch').value.trim();
+            
+            if (!query) {
+                loadAllTrending();
+                return;
+            }
+            
+            fetch(`/sellers/api/trending/search?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayTrendingResults(data);
+                })
+                .catch(error => {
+                    console.error('Error searching trending:', error);
+                    alert('Failed to search trending items');
+                });
+        }
+        
+        function loadAllTrending() {
+            fetch('/sellers/api/trending')
+                .then(response => response.json())
+                .then(data => {
+                    displayTrendingResults(data);
+                })
+                .catch(error => {
+                    console.error('Error loading trending:', error);
+                });
+        }
+        
+        function displayTrendingResults(items) {
+            const resultsDiv = document.getElementById('trendingResults');
+            
+            if (items.length === 0) {
+                resultsDiv.innerHTML = '<div class="text-center text-muted py-4">No trending items found</div>';
+                return;
+            }
+            
+            let html = '';
+            items.forEach(item => {
+                html += `
+                    <div class="col-12 mb-3">
+                        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border);">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <h6 class="mb-1">${item.name}</h6>
+                                        <small class="text-muted">${item.description}</small>
+                                        <br><small class="text-primary">Popular brands: ${item.brands.join(', ')}</small>
+                                    </div>
+                                    <div class="col-md-2 text-center">
+                                        <span class="badge" style="background-color: ${item.demandColor}">${item.demand}</span>
+                                        <br><i class="${item.demandIcon} mt-1"></i>
+                                    </div>
+                                    <div class="col-md-2 text-center">
+                                        <strong>$${item.avgLowPrice} - $${item.avgHighPrice}</strong>
+                                        <br><small class="text-muted">Price Range</small>
+                                    </div>
+                                    <div class="col-md-2 text-center">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                onclick="fillFromTrending('${item.name}', '${item.category}', '${item.avgLowPrice}', '${item.brands[0] || ''}')">
+                                            Use This
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function fillFromTrending(name, category, price, brand) {
+            // Fill the form with trending item data
+            document.getElementById('name').value = name;
+            document.getElementById('category').value = category;
+            document.getElementById('price').value = price;
+            if (brand) {
+                document.getElementById('brand').value = brand;
+            }
+            
+            // Show success message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <strong>Success!</strong> Form filled with trending item: ${name}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const form = document.querySelector('.card-body');
+            form.insertBefore(alertDiv, form.firstChild);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+        
+        // Search on Enter key
+        document.getElementById('trendingSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchTrending();
             }
         });
     </script>

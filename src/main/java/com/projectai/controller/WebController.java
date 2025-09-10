@@ -19,7 +19,12 @@ public class WebController {
     private ThriftAIService thriftAIService;
 
     @GetMapping("/")
-    public String home(Model model) {
+    public String home(@RequestParam(required = false) String category,
+                      @RequestParam(required = false) String search,
+                      @RequestParam(required = false) String brand,
+                      @RequestParam(defaultValue = "12") int limit,
+                      Model model) {
+        
         // Get platform overview for homepage
         Map<String, Object> overview = thriftAIService.getPlatformOverview();
         model.addAttribute("overview", overview);
@@ -29,15 +34,8 @@ public class WebController {
         List<Deal> featuredDeals = thriftAIService.findBestDeals(defaultPrefs, 6);
         model.addAttribute("featuredDeals", featuredDeals);
         
-        return "index";
-    }
-
-    @GetMapping("/products")
-    public String products(@RequestParam(required = false) String category,
-                          @RequestParam(required = false) String search,
-                          Model model) {
+        // Get all products with filtering capabilities
         List<Product> products;
-        
         if (search != null && !search.trim().isEmpty()) {
             products = thriftAIService.searchProducts(search, category);
             model.addAttribute("searchQuery", search);
@@ -48,21 +46,74 @@ public class WebController {
             products = thriftAIService.getAllAvailableProducts();
         }
         
+        // Filter by brand if specified
+        if (brand != null && !brand.trim().isEmpty()) {
+            products = products.stream()
+                    .filter(p -> brand.equals(p.getBrand()))
+                    .toList();
+            model.addAttribute("selectedBrand", brand);
+        }
+        
+        // Limit products if specified
+        if (products.size() > limit) {
+            products = products.stream().limit(limit).toList();
+        }
+        
         model.addAttribute("products", products);
         model.addAttribute("categories", thriftAIService.getAllCategories());
         model.addAttribute("brands", thriftAIService.getAllBrands());
         
-        return "products";
+        // Get AI deals as well
+        List<Deal> aiDeals = thriftAIService.findBestDealsWithAI(defaultPrefs, 8);
+        model.addAttribute("aiDeals", aiDeals);
+        
+        return "index";
+    }
+
+    // Redirect old products endpoint to home page
+    @GetMapping("/products")
+    public String products(@RequestParam(required = false) String category,
+                          @RequestParam(required = false) String search) {
+        String redirectUrl = "/?";
+        if (search != null && !search.trim().isEmpty()) {
+            redirectUrl += "search=" + search;
+            if (category != null && !category.trim().isEmpty()) {
+                redirectUrl += "&category=" + category;
+            }
+        } else if (category != null && !category.trim().isEmpty()) {
+            redirectUrl += "category=" + category;
+        }
+        return "redirect:" + redirectUrl.replaceAll("\\?$", "");
     }
 
     @GetMapping("/products/{id}")
     public String productDetail(@PathVariable String id, Model model) {
         Product product = thriftAIService.getProductById(id);
         if (product == null) {
-            return "redirect:/products?error=notfound";
+            return "redirect:/?error=notfound";
         }
         
-        model.addAttribute("product", product);
+        // Get platform overview for homepage
+        Map<String, Object> overview = thriftAIService.getPlatformOverview();
+        model.addAttribute("overview", overview);
+        
+        // Get some featured deals
+        UserPreferences defaultPrefs = thriftAIService.getDefaultUserPreferences(null);
+        List<Deal> featuredDeals = thriftAIService.findBestDeals(defaultPrefs, 6);
+        model.addAttribute("featuredDeals", featuredDeals);
+        
+        // Get all products
+        List<Product> products = thriftAIService.getAllAvailableProducts();
+        model.addAttribute("products", products);
+        model.addAttribute("categories", thriftAIService.getAllCategories());
+        model.addAttribute("brands", thriftAIService.getAllBrands());
+        
+        // Get AI deals as well
+        List<Deal> aiDeals = thriftAIService.findBestDealsWithAI(defaultPrefs, 8);
+        model.addAttribute("aiDeals", aiDeals);
+        
+        // Add the selected product and similar products
+        model.addAttribute("selectedProduct", product);
         
         // Get similar products
         List<Product> similar = thriftAIService.getProductsByCategory(product.getCategory())
@@ -72,52 +123,33 @@ public class WebController {
                 .toList();
         model.addAttribute("similarProducts", similar);
         
-        return "product-detail";
+        return "index";
     }
 
+    // Redirect old deals endpoints to home page
     @GetMapping("/deals")
-    public String deals(@RequestParam(defaultValue = "12") int limit, Model model) {
-        UserPreferences defaultPrefs = thriftAIService.getDefaultUserPreferences(null);
-        List<Deal> deals = thriftAIService.findBestDeals(defaultPrefs, limit);
-        
-        model.addAttribute("deals", deals);
-        model.addAttribute("userPreferences", defaultPrefs);
-        
-        return "deals";
+    public String deals() {
+        return "redirect:/";
     }
 
     @GetMapping("/ai-deals")
-    public String aiDeals(@RequestParam(defaultValue = "10") int limit, Model model) {
-        UserPreferences defaultPrefs = thriftAIService.getDefaultUserPreferences(null);
-        List<Deal> deals = thriftAIService.findBestDealsWithAI(defaultPrefs, limit);
-        
-        model.addAttribute("deals", deals);
-        model.addAttribute("userPreferences", defaultPrefs);
-        model.addAttribute("isAIEnhanced", true);
-        
-        return "deals";
+    public String aiDeals() {
+        return "redirect:/";
     }
 
     @GetMapping("/analytics")
-    public String analytics(Model model) {
-        Map<String, Object> overview = thriftAIService.getPlatformOverview();
-        Map<String, Long> categoryStats = thriftAIService.getCategoryStatistics();
-        
-        model.addAttribute("overview", overview);
-        model.addAttribute("categoryStats", categoryStats);
-        model.addAttribute("categories", thriftAIService.getAllCategories());
-        
-        return "analytics";
+    public String analytics() {
+        return "redirect:/";
     }
 
     @GetMapping("/about")
-    public String about(Model model) {
-        return "about";
+    public String about() {
+        return "redirect:/";
     }
 
     @GetMapping("/contact")
-    public String contact(Model model) {
-        return "contact";
+    public String contact() {
+        return "redirect:/";
     }
 
     // AJAX endpoints for dynamic content

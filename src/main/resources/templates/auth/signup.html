@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html}">
+<head th:fragment="page-head">
+    <title>Sign Up - ThriftAI</title>
+    <style>
+        .auth-container {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .auth-header {
+            background: linear-gradient(135deg, var(--accent) 0%, #007acc 100%);
+            color: white;
+            text-align: center;
+            padding: var(--space-8) var(--space-6);
+        }
+        .auth-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        .auth-tab {
+            flex: 1;
+            padding: var(--space-4) var(--space-6);
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 510;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: block;
+        }
+        .auth-tab:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .auth-tab.active {
+            background: var(--bg-card);
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+        .auth-body {
+            padding: var(--space-8);
+        }
+        .form-group {
+            margin-bottom: var(--space-6);
+        }
+        .form-label {
+            display: block;
+            margin-bottom: var(--space-2);
+            font-weight: 590;
+            color: var(--text-primary);
+        }
+        .form-control {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+            outline: none;
+        }
+        .btn-auth {
+            width: 100%;
+            padding: var(--space-4) var(--space-6);
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 590;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: var(--space-4);
+        }
+        .btn-auth:hover {
+            background: #007acc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+        }
+        .form-row {
+            display: flex;
+            gap: var(--space-4);
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        .auth-footer {
+            text-align: center;
+            padding: var(--space-6);
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: var(--font-size-caption);
+            margin-top: var(--space-1);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .user-type-icon {
+            font-size: 2rem;
+            margin-bottom: var(--space-2);
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+<main th:fragment="content" class="container">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2 class="mb-2">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Join ThriftAI
+                </h2>
+                <p class="mb-0 opacity-75">Choose your account type to get started</p>
+            </div>
+            
+            <!-- Account Type Tabs -->
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab active" id="buyer-tab" onclick="switchTab('buyer')">
+                    <i class="fas fa-shopping-bag user-type-icon"></i><br>
+                    I want to Buy
+                </button>
+                <button type="button" class="auth-tab" id="seller-tab" onclick="switchTab('seller')">
+                    <i class="fas fa-store user-type-icon"></i><br>
+                    I want to Sell
+                </button>
+            </div>
+            
+            <div class="auth-body">
+                <!-- Buyer Registration Form -->
+                <div id="buyer-form" class="tab-content active">
+                    <form th:action="@{/auth/signup/buyer}" method="post" th:object="${buyer}">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="buyerFirstName">First Name</label>
+                                <input type="text" class="form-control" id="buyerFirstName" 
+                                       th:field="*{firstName}" required>
+                                <div th:if="${#fields.hasErrors('firstName')}" class="error-message" 
+                                     th:errors="*{firstName}"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="buyerLastName">Last Name</label>
+                                <input type="text" class="form-control" id="buyerLastName" 
+                                       th:field="*{lastName}" required>
+                                <div th:if="${#fields.hasErrors('lastName')}" class="error-message" 
+                                     th:errors="*{lastName}"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="buyerEmail">Email Address</label>
+                            <input type="email" class="form-control" id="buyerEmail" 
+                                   th:field="*{email}" required>
+                            <div th:if="${#fields.hasErrors('email')}" class="error-message" 
+                                 th:errors="*{email}"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="buyerPhone">Phone Number</label>
+                            <input type="tel" class="form-control" id="buyerPhone" th:field="*{phone}">
+                            <div th:if="${#fields.hasErrors('phone')}" class="error-message" 
+                                 th:errors="*{phone}"></div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="buyerCity">City</label>
+                                <input type="text" class="form-control" id="buyerCity" th:field="*{city}">
+                                <div th:if="${#fields.hasErrors('city')}" class="error-message" 
+                                     th:errors="*{city}"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="buyerState">State</label>
+                                <input type="text" class="form-control" id="buyerState" th:field="*{state}">
+                                <div th:if="${#fields.hasErrors('state')}" class="error-message" 
+                                     th:errors="*{state}"></div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn-auth">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Create Buyer Account
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Seller Registration Form -->
+                <div id="seller-form" class="tab-content">
+                    <form th:action="@{/auth/signup/seller}" method="post" th:object="${seller}">
+                        <div class="form-group">
+                            <label class="form-label" for="businessName">Business Name</label>
+                            <input type="text" class="form-control" id="businessName" 
+                                   th:field="*{businessName}" required>
+                            <div th:if="${#fields.hasErrors('businessName')}" class="error-message" 
+                                 th:errors="*{businessName}"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="ownerName">Owner/Contact Name</label>
+                            <input type="text" class="form-control" id="ownerName" 
+                                   th:field="*{ownerName}" required>
+                            <div th:if="${#fields.hasErrors('ownerName')}" class="error-message" 
+                                 th:errors="*{ownerName}"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="sellerEmail">Email Address</label>
+                            <input type="email" class="form-control" id="sellerEmail" 
+                                   th:field="*{email}" required>
+                            <div th:if="${#fields.hasErrors('email')}" class="error-message" 
+                                 th:errors="*{email}"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="sellerPhone">Phone Number</label>
+                            <input type="tel" class="form-control" id="sellerPhone" 
+                                   th:field="*{phone}" required>
+                            <div th:if="${#fields.hasErrors('phone')}" class="error-message" 
+                                 th:errors="*{phone}"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="sellerType">Business Type</label>
+                            <select class="form-control" id="sellerType" th:field="*{sellerType}" required>
+                                <option value="">Select Business Type</option>
+                                <option value="INDIVIDUAL">Individual Seller</option>
+                                <option value="BUSINESS">Business</option>
+                                <option value="THRIFT_STORE">Thrift Store</option>
+                                <option value="CONSIGNMENT_SHOP">Consignment Shop</option>
+                            </select>
+                            <div th:if="${#fields.hasErrors('sellerType')}" class="error-message" 
+                                 th:errors="*{sellerType}"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="address">Business Address</label>
+                            <input type="text" class="form-control" id="address" 
+                                   th:field="*{address}" required>
+                            <div th:if="${#fields.hasErrors('address')}" class="error-message" 
+                                 th:errors="*{address}"></div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="sellerCity">City</label>
+                                <input type="text" class="form-control" id="sellerCity" 
+                                       th:field="*{city}" required>
+                                <div th:if="${#fields.hasErrors('city')}" class="error-message" 
+                                     th:errors="*{city}"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="sellerState">State</label>
+                                <input type="text" class="form-control" id="sellerState" 
+                                       th:field="*{state}" required>
+                                <div th:if="${#fields.hasErrors('state')}" class="error-message" 
+                                     th:errors="*{state}"></div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn-auth">
+                            <i class="fas fa-store me-2"></i>
+                            Create Seller Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="auth-footer">
+                <p class="mb-0 text-muted">
+                    Already have an account? 
+                    <a th:href="@{/auth/login}" style="color: var(--accent); text-decoration: none;">
+                        <strong>Sign In</strong>
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function switchTab(type) {
+            // Update tab buttons
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(type + '-tab').classList.add('active');
+            
+            // Update form content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(type + '-form').classList.add('active');
+        }
+        
+        // Auto-switch to seller tab if there are seller validation errors
+        document.addEventListener('DOMContentLoaded', function() {
+            const signupType = '[[${signupType}]]';
+            if (signupType === 'seller') {
+                switchTab('seller');
+            }
+        });
+    </script>
+</main>
+</body>
+</html>

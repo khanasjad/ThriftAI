@@ -1,21 +1,324 @@
 /**
- * ThriftAI Main JavaScript
+ * ThriftAI Enhanced JavaScript with AI Features
  */
 
 $(document).ready(function() {
-    console.log('🚀 ThriftAI JavaScript loaded!');
+    console.log('🧠 ThriftAI AI-Enhanced JavaScript loaded!');
     
     // Initialize components
+    initGPTSearch();
     initSearchSuggestions();
+    initAIRatingCards();
     initDealCards();
+    initInteractiveAnimations();
     initTooltips();
     initSmoothScroll();
+    initAIInsights();
     
     // Auto-refresh deals every 30 seconds
     if (window.location.pathname.includes('/deals')) {
         setInterval(refreshDeals, 30000);
     }
+    
+    // Initialize AI-powered features
+    startAIAnimations();
 });
+
+/**
+ * Initialize GPT Search with enhanced features
+ */
+function initGPTSearch() {
+    const gptSearchBox = $('.gpt-search-box');
+    const gptSearchBtn = $('.gpt-search-btn');
+    
+    if (gptSearchBox.length === 0) return;
+    
+    // Add typing effect and suggestions
+    gptSearchBox.on('focus', function() {
+        $(this).addClass('search-focused');
+        showGPTSuggestions();
+    });
+    
+    gptSearchBox.on('blur', function() {
+        $(this).removeClass('search-focused');
+        setTimeout(() => hideGPTSuggestions(), 200);
+    });
+    
+    // Real-time GPT-style search processing
+    let gptSearchTimeout;
+    gptSearchBox.on('input', function() {
+        const query = $(this).val();
+        clearTimeout(gptSearchTimeout);
+        
+        if (query.length > 0) {
+            gptSearchBtn.addClass('search-ready');
+            
+            // Simulate AI processing
+            gptSearchTimeout = setTimeout(() => {
+                processGPTQuery(query);
+            }, 500);
+        } else {
+            gptSearchBtn.removeClass('search-ready');
+        }
+    });
+    
+    // Enhanced search button interaction
+    gptSearchBtn.on('mouseenter', function() {
+        $(this).addClass('btn-glow');
+    }).on('mouseleave', function() {
+        $(this).removeClass('btn-glow');
+    });
+}
+
+/**
+ * Process GPT-style query (simulated AI processing)
+ */
+function processGPTQuery(query) {
+    const aiKeywords = ['find', 'show', 'search', 'get', 'looking for', 'need', 'want'];
+    const hasAIKeyword = aiKeywords.some(keyword => query.toLowerCase().includes(keyword));
+    
+    if (hasAIKeyword) {
+        $('.gpt-search-container').addClass('ai-processing');
+        setTimeout(() => {
+            $('.gpt-search-container').removeClass('ai-processing');
+        }, 1000);
+    }
+}
+
+/**
+ * Show/Hide GPT Suggestions
+ */
+function showGPTSuggestions() {
+    const suggestions = [
+        'Find me vintage leather jackets under $50',
+        'Show electronics with best deals',
+        'Looking for designer clothes on sale',
+        'Get home decor items with high ratings',
+        'Search for books and media deals'
+    ];
+    
+    // You could implement a suggestion dropdown here
+}
+
+function hideGPTSuggestions() {
+    // Hide suggestion dropdown
+}
+
+/**
+ * Initialize AI Rating Cards with enhanced interactions
+ */
+function initAIRatingCards() {
+    $('.ai-rating-card').each(function() {
+        const card = $(this);
+        
+        // Add hover effects
+        card.on('mouseenter', function() {
+            $(this).addClass('card-elevated');
+            animateAIBadge($(this).find('.ai-rating-badge'));
+        });
+        
+        card.on('mouseleave', function() {
+            $(this).removeClass('card-elevated');
+        });
+        
+        // Animate AI score on load
+        setTimeout(() => {
+            animateAIScore(card.find('.ai-score-display'));
+        }, Math.random() * 2000);
+    });
+    
+    // Enhanced product cards
+    $('.product-card-enhanced').each(function() {
+        const card = $(this);
+        
+        card.on('mouseenter', function() {
+            $(this).addClass('product-highlight');
+            
+            // Animate value stars
+            const stars = $(this).find('.fa-star');
+            stars.each(function(index) {
+                setTimeout(() => {
+                    $(this).addClass('star-glow');
+                }, index * 100);
+            });
+        });
+        
+        card.on('mouseleave', function() {
+            $(this).removeClass('product-highlight');
+            $(this).find('.fa-star').removeClass('star-glow');
+        });
+    });
+}
+
+/**
+ * Animate AI Badge
+ */
+function animateAIBadge(badge) {
+    badge.addClass('badge-pulse');
+    setTimeout(() => {
+        badge.removeClass('badge-pulse');
+    }, 1000);
+}
+
+/**
+ * Animate AI Score with counting effect
+ */
+function animateAIScore(scoreElement) {
+    if (scoreElement.length === 0) return;
+    
+    const finalScore = scoreElement.text();
+    const numericScore = parseInt(finalScore);
+    
+    if (isNaN(numericScore)) return;
+    
+    let currentScore = 0;
+    const increment = numericScore / 30;
+    const timer = setInterval(() => {
+        currentScore += increment;
+        if (currentScore >= numericScore) {
+            currentScore = numericScore;
+            clearInterval(timer);
+            scoreElement.addClass('score-complete');
+        }
+        scoreElement.text(Math.floor(currentScore) + '/100');
+    }, 50);
+}
+
+/**
+ * Initialize Interactive Animations
+ */
+function initInteractiveAnimations() {
+    // Stats cards animation on scroll
+    $(window).on('scroll', function() {
+        $('.stats-card-enhanced').each(function() {
+            if (isInViewport(this)) {
+                $(this).addClass('stats-visible');
+                animateStatNumber($(this));
+            }
+        });
+    });
+    
+    // Floating elements animation
+    setInterval(() => {
+        $('.floating-elements').toggleClass('float-alternate');
+    }, 4000);
+    
+    // Search container glow effect
+    $('.gpt-search-container').on('mouseenter', function() {
+        $(this).addClass('container-glow');
+    }).on('mouseleave', function() {
+        $(this).removeClass('container-glow');
+    });
+}
+
+/**
+ * Animate stat numbers
+ */
+function animateStatNumber(statCard) {
+    if (statCard.hasClass('animated')) return;
+    
+    const numberElement = statCard.find('h3');
+    const finalNumber = parseInt(numberElement.text());
+    
+    if (isNaN(finalNumber)) return;
+    
+    statCard.addClass('animated');
+    let currentNumber = 0;
+    const increment = finalNumber / 20;
+    
+    const timer = setInterval(() => {
+        currentNumber += increment;
+        if (currentNumber >= finalNumber) {
+            currentNumber = finalNumber;
+            clearInterval(timer);
+        }
+        numberElement.text(Math.floor(currentNumber));
+    }, 100);
+}
+
+/**
+ * Check if element is in viewport
+ */
+function isInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+}
+
+/**
+ * Start AI-themed animations
+ */
+function startAIAnimations() {
+    // Pulse animation for AI elements
+    setInterval(() => {
+        $('.ai-rating-badge').addClass('ai-pulse');
+        setTimeout(() => {
+            $('.ai-rating-badge').removeClass('ai-pulse');
+        }, 1000);
+    }, 8000);
+    
+    // Gradient shift for hero section
+    $('.hero-section-enhanced').addClass('gradient-active');
+}
+
+/**
+ * Initialize AI Insights
+ */
+function initAIInsights() {
+    // Add click handlers for AI insights
+    $('.ai-insight').on('click', function() {
+        $(this).toggleClass('insight-expanded');
+        showAIInsightModal($(this).data('insight'));
+    });
+    
+    // Rotating AI tips
+    const aiTips = [
+        '💡 AI Tip: Compare prices across multiple sources for best deals',
+        '🎯 Smart Shopping: Check AI ratings for value assessment',
+        '⚡ Quick Find: Use natural language in search for better results',
+        '📊 Data Driven: Our AI analyzes thousands of deals daily'
+    ];
+    
+    let tipIndex = 0;
+    setInterval(() => {
+        showAITip(aiTips[tipIndex % aiTips.length]);
+        tipIndex++;
+    }, 15000);
+}
+
+/**
+ * Show AI Insight Modal (placeholder)
+ */
+function showAIInsightModal(insight) {
+    // Could implement a modal with detailed AI insights
+    console.log('AI Insight:', insight);
+    showNotification('AI analysis complete!', 'info');
+}
+
+/**
+ * Show AI Tips
+ */
+function showAITip(tip) {
+    const tipElement = $(`
+        <div class="ai-tip position-fixed" style="bottom: 20px; left: 20px; z-index: 1000;">
+            <div class="alert alert-info alert-dismissible fade show" style="background: linear-gradient(45deg, #667eea, #764ba2); border: none; color: white; border-radius: 15px;">
+                <i class="fas fa-robot me-2"></i>${tip}
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    `);
+    
+    $('body').append(tipElement);
+    
+    // Auto-hide after 8 seconds
+    setTimeout(() => {
+        tipElement.find('.alert').alert('close');
+    }, 8000);
+}
 
 /**
  * Initialize search suggestions

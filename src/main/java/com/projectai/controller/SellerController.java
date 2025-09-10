@@ -5,6 +5,7 @@ import com.projectai.models.Seller;
 import com.projectai.repository.ProductRepository;
 import com.projectai.repository.SellerRepository;
 import com.projectai.service.ExternalMarketplaceService;
+import com.projectai.service.TrendingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -31,6 +32,9 @@ public class SellerController {
     
     @Autowired
     private ExternalMarketplaceService externalMarketplaceService;
+    
+    @Autowired
+    private TrendingService trendingService;
 
     @GetMapping
     public String sellersHome(Model model) {
@@ -244,6 +248,11 @@ public class SellerController {
         List<Seller> activeSellers = sellerRepository.findActiveAndVerifiedSellers();
         model.addAttribute("sellers", activeSellers);
         
+        // Add trending data
+        model.addAttribute("trendingItems", trendingService.getTrendingItems());
+        model.addAttribute("trendingCategories", trendingService.getTrendingCategories());
+        model.addAttribute("popularBrands", trendingService.getPopularBrands());
+        
         // Add predefined options
         model.addAttribute("categories", List.of(
             "Clothing", "Shoes", "Accessories", "Bags", "Jewelry", 
@@ -313,7 +322,7 @@ public class SellerController {
             productRepository.save(product);
             redirectAttributes.addFlashAttribute("successMessage", 
                 "Product '" + product.getName() + "' added successfully!");
-            return "redirect:/sellers/products";
+            return "redirect:/";
             
         } catch (Exception e) {
             result.rejectValue("name", "error.product", "Failed to save product. Please try again.");
@@ -345,60 +354,20 @@ public class SellerController {
                                 @RequestParam(required = false) String category,
                                 @RequestParam(required = false) String condition,
                                 @RequestParam(required = false) Double minPrice,
-                                @RequestParam(required = false) Double maxPrice,
-                                Model model) {
+                                @RequestParam(required = false) Double maxPrice) {
         
-        List<Product> products;
-        
-        // Filter products based on parameters
+        // Redirect to home page with search parameters
+        String redirectUrl = "/?";
         if (search != null && !search.trim().isEmpty()) {
-            products = productRepository.searchProducts(search.trim());
+            redirectUrl += "search=" + search;
+            if (category != null && !category.trim().isEmpty()) {
+                redirectUrl += "&category=" + category;
+            }
         } else if (category != null && !category.trim().isEmpty()) {
-            products = productRepository.findByCategoryIgnoreCase(category.trim());
-        } else {
-            products = productRepository.findByIsAvailableTrue();
+            redirectUrl += "category=" + category;
         }
         
-        // Apply additional filters
-        if (condition != null && !condition.trim().isEmpty()) {
-            products = products.stream()
-                    .filter(p -> p.getCondition() != null && 
-                            p.getCondition().toLowerCase().contains(condition.toLowerCase()))
-                    .toList();
-        }
-        
-        if (minPrice != null || maxPrice != null) {
-            products = products.stream()
-                    .filter(p -> {
-                        double price = p.getPrice();
-                        boolean matchesMin = minPrice == null || price >= minPrice;
-                        boolean matchesMax = maxPrice == null || price <= maxPrice;
-                        return matchesMin && matchesMax;
-                    })
-                    .toList();
-        }
-        
-        // Sort by newest first
-        products = products.stream()
-                .sorted((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()))
-                .toList();
-        
-        model.addAttribute("products", products);
-        model.addAttribute("search", search);
-        model.addAttribute("category", category);
-        model.addAttribute("condition", condition);
-        model.addAttribute("minPrice", minPrice);
-        model.addAttribute("maxPrice", maxPrice);
-        model.addAttribute("totalProducts", products.size());
-        
-        // Get unique categories and conditions for filters
-        List<String> categories = productRepository.findDistinctCategories();
-        List<String> conditions = productRepository.findDistinctConditions();
-        
-        model.addAttribute("categories", categories);
-        model.addAttribute("conditions", conditions);
-        
-        return "sellers/products";
+        return "redirect:" + redirectUrl.replaceAll("\\?$", "");
     }
     
     @GetMapping("/api/search-external")
@@ -473,6 +442,52 @@ public class SellerController {
             error.put("success", false);
             error.put("error", "Failed to get product alternatives: " + e.getMessage());
             return ResponseEntity.status(500).body(error);
+        }
+    }
+    
+    // ============= TRENDING API ENDPOINTS =============
+    
+    @GetMapping("/api/trending")
+    @ResponseBody
+    public ResponseEntity<List<TrendingService.TrendingItem>> getTrendingItems() {
+        try {
+            List<TrendingService.TrendingItem> trending = trendingService.getTrendingItems();
+            return ResponseEntity.ok(trending);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+    
+    @GetMapping("/api/trending/search")
+    @ResponseBody
+    public ResponseEntity<List<TrendingService.TrendingItem>> searchTrending(@RequestParam String query) {
+        try {
+            List<TrendingService.TrendingItem> results = trendingService.searchTrending(query);
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+    
+    @GetMapping("/api/trending/category/{category}")
+    @ResponseBody
+    public ResponseEntity<List<TrendingService.TrendingItem>> getTrendingByCategory(@PathVariable String category) {
+        try {
+            List<TrendingService.TrendingItem> results = trendingService.getTrendingByCategory(category);
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+    
+    @GetMapping("/api/trending/brands")
+    @ResponseBody
+    public ResponseEntity<List<String>> getPopularBrands() {
+        try {
+            List<String> brands = trendingService.getPopularBrands();
+            return ResponseEntity.ok(brands);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
         }
     }
 }
