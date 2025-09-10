@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: html(pageHead=~{::head}, content=~{::#content}, pageScripts=~{::script})}">
+<head>
+    <style>
+        /* 2025 Modern Buyer Form Styles */
+        .buyer-form-container {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            backdrop-filter: blur(15px);
+            border-radius: 28px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .smart-input-group {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        
+        .smart-input {
+            width: 100%;
+            padding: 1.2rem 1.2rem 1.2rem 3rem;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+        }
+        
+        .smart-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 25px rgba(0,212,255,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.1);
+            transform: scale(1.02);
+        }
+        
+        .smart-label {
+            position: absolute;
+            left: 3rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.6);
+            font-size: 1rem;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+        }
+        
+        .smart-input:focus + .smart-label,
+        .smart-input:not(:placeholder-shown) + .smart-label {
+            top: -0.5rem;
+            left: 1rem;
+            font-size: 0.75rem;
+            color: #00d4ff;
+            background: var(--bg-dark);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(0,212,255,0.7);
+            font-size: 1.2rem;
+            z-index: 2;
+        }
+        
+        .smart-input:focus ~ .input-icon {
+            color: #00d4ff;
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .ai-personality-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .personality-card {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .personality-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.6s;
+        }
+        
+        .personality-card:hover::before {
+            left: 100%;
+        }
+        
+        .personality-card:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.3);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .personality-card.selected {
+            background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1));
+            border-color: #00d4ff;
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0,212,255,0.3);
+        }
+        
+        .personality-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            display: block;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .personality-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+        
+        .personality-description {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        
+        .personality-traits {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .trait-tag {
+            background: rgba(0,212,255,0.2);
+            color: #00d4ff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        
+        .preference-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .preference-item {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+        }
+        
+        .preference-item:hover {
+            background: rgba(0,212,255,0.1);
+            border-color: rgba(0,212,255,0.3);
+            transform: translateY(-3px);
+        }
+        
+        .preference-item.selected {
+            background: linear-gradient(135deg, rgba(0,212,255,0.3), rgba(0,212,255,0.1));
+            border-color: #00d4ff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,212,255,0.25);
+        }
+        
+        .preference-icon {
+            font-size: 2rem;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .preference-label {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .smart-range-group {
+            margin: 2rem 0;
+        }
+        
+        .range-container {
+            position: relative;
+            margin: 1rem 0;
+        }
+        
+        .smart-range {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .smart-range::-webkit-slider-thumb {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,212,255,0.4);
+            transition: transform 0.2s ease;
+        }
+        
+        .smart-range::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+        }
+        
+        .notification-toggles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .toggle-item {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+        
+        .toggle-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 32px;
+            float: right;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s;
+            border-radius: 32px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 4px;
+            bottom: 4px;
+            background: white;
+            transition: all 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+        }
+        
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(28px);
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+        }
+        
+        .progress-step {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-step.active {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            transform: scale(1.3);
+            box-shadow: 0 4px 12px rgba(0,212,255,0.4);
+        }
+        
+        .progress-step.completed {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+        
+        .form-section {
+            padding: 2rem;
+            display: none;
+            animation: fadeInSlide 0.6s ease forwards;
+        }
+        
+        .form-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .ai-insights {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,212,255,0.05));
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .insights-title {
+            color: #00d4ff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .insights-title i {
+            margin-right: 0.75rem;
+            font-size: 1.3rem;
+        }
+        
+        .modern-btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 3rem;
+        }
+        
+        .modern-btn {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            padding: 1.2rem 2.5rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 12px 35px rgba(0,212,255,0.3);
+            min-width: 160px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .modern-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s;
+        }
+        
+        .modern-btn:hover::before {
+            left: 100%;
+        }
+        
+        .modern-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 18px 45px rgba(0,212,255,0.4);
+        }
+        
+        .modern-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+        
+        .modern-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.1);
+        }
+        
+        .modern-btn.secondary:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.3);
+            box-shadow: 0 18px 45px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    <div id="content" class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="buyer-form-container">
+                    <!-- Progress Steps -->
+                    <div class="progress-steps">
+                        <div class="progress-step active" data-step="1"></div>
+                        <div class="progress-step" data-step="2"></div>
+                        <div class="progress-step" data-step="3"></div>
+                        <div class="progress-step" data-step="4"></div>
+                    </div>
+                    
+                    <form id="buyerRegistrationForm" method="POST" action="/buyers/register">
+                        <!-- Step 1: Personal Information -->
+                        <div class="form-section active" id="step1">
+                            <h2 class="text-center mb-4" style="color: var(--text-primary); font-weight: 700;">
+                                <i class="fas fa-user-astronaut me-3" style="color: #00d4ff;"></i>
+                                Welcome to ThriftAI
+                            </h2>
+                            <p class="text-center mb-5" style="color: rgba(255,255,255,0.8); font-size: 1.1rem;">
+                                Let's create your personalized shopping profile for the best deals
+                            </p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="smart-input-group">
+                                        <input type="text" class="smart-input" placeholder=" " required>
+                                        <label class="smart-label">First Name</label>
+                                        <i class="fas fa-user input-icon"></i>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="smart-input-group">
+                                        <input type="text" class="smart-input" placeholder=" " required>
+                                        <label class="smart-label">Last Name</label>
+                                        <i class="fas fa-user input-icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="smart-input-group">
+                                <input type="email" class="smart-input" placeholder=" " required>
+                                <label class="smart-label">Email Address</label>
+                                <i class="fas fa-envelope input-icon"></i>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="smart-input-group">
+                                        <input type="tel" class="smart-input" placeholder=" ">
+                                        <label class="smart-label">Phone Number</label>
+                                        <i class="fas fa-phone input-icon"></i>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="smart-input-group">
+                                        <input type="date" class="smart-input" placeholder=" ">
+                                        <label class="smart-label">Date of Birth</label>
+                                        <i class="fas fa-calendar input-icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-insights">
+                                <div class="insights-title">
+                                    <i class="fas fa-brain"></i>
+                                    AI Smart Tip
+                                </div>
+                                <p style="color: rgba(255,255,255,0.9); margin: 0;">
+                                    Your information helps our AI understand your preferences and find the perfect deals tailored just for you.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2: AI Personality Selection -->
+                        <div class="form-section" id="step2">
+                            <h2 class="text-center mb-4" style="color: var(--text-primary); font-weight: 700;">
+                                <i class="fas fa-robot me-3" style="color: #00d4ff;"></i>
+                                Choose Your AI Shopping Assistant
+                            </h2>
+                            <p class="text-center mb-5" style="color: rgba(255,255,255,0.8); font-size: 1.1rem;">
+                                Select the AI personality that matches your shopping style
+                            </p>
+                            
+                            <div class="ai-personality-cards">
+                                <div class="personality-card" data-personality="bargain-hunter">
+                                    <i class="fas fa-search-dollar personality-icon"></i>
+                                    <h3 class="personality-title">The Bargain Hunter</h3>
+                                    <p class="personality-description">
+                                        Loves finding the absolute best deals and steals. Always on the lookout for maximum value and deep discounts.
+                                    </p>
+                                    <div class="personality-traits">
+                                        <span class="trait-tag">Deal Seeker</span>
+                                        <span class="trait-tag">Price Conscious</span>
+                                        <span class="trait-tag">Value Oriented</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="personality-card" data-personality="trendsetter">
+                                    <i class="fas fa-star personality-icon"></i>
+                                    <h3 class="personality-title">The Trendsetter</h3>
+                                    <p class="personality-description">
+                                        Fashion-forward and style-conscious. Seeks unique, trendy items that make a statement and stand out from the crowd.
+                                    </p>
+                                    <div class="personality-traits">
+                                        <span class="trait-tag">Style Focused</span>
+                                        <span class="trait-tag">Trend Aware</span>
+                                        <span class="trait-tag">Unique Finds</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="personality-card" data-personality="eco-warrior">
+                                    <i class="fas fa-leaf personality-icon"></i>
+                                    <h3 class="personality-title">The Eco Warrior</h3>
+                                    <p class="personality-description">
+                                        Environmentally conscious shopper who prioritizes sustainability, recycling, and reducing environmental impact.
+                                    </p>
+                                    <div class="personality-traits">
+                                        <span class="trait-tag">Sustainable</span>
+                                        <span class="trait-tag">Eco-Friendly</span>
+                                        <span class="trait-tag">Conscious</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="personality-card" data-personality="quality-seeker">
+                                    <i class="fas fa-gem personality-icon"></i>
+                                    <h3 class="personality-title">The Quality Seeker</h3>
+                                    <p class="personality-description">
+                                        Values quality over quantity. Prefers well-made, durable items that offer long-term value and satisfaction.
+                                    </p>
+                                    <div class="personality-traits">
+                                        <span class="trait-tag">Quality First</span>
+                                        <span class="trait-tag">Durable</span>
+                                        <span class="trait-tag">Investment</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-insights">
+                                <div class="insights-title">
+                                    <i class="fas fa-lightbulb"></i>
+                                    AI Personalization
+                                </div>
+                                <p style="color: rgba(255,255,255,0.9); margin: 0;">
+                                    Your chosen AI assistant will learn your preferences and automatically curate deals that match your shopping personality.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3: Shopping Preferences -->
+                        <div class="form-section" id="step3">
+                            <h2 class="text-center mb-4" style="color: var(--text-primary); font-weight: 700;">
+                                <i class="fas fa-heart me-3" style="color: #00d4ff;"></i>
+                                Your Shopping Preferences
+                            </h2>
+                            <p class="text-center mb-5" style="color: rgba(255,255,255,0.8); font-size: 1.1rem;">
+                                Tell us what you love to shop for
+                            </p>
+                            
+                            <div class="mb-4">
+                                <h4 style="color: var(--text-primary); margin-bottom: 1.5rem;">Favorite Categories</h4>
+                                <div class="preference-grid">
+                                    <div class="preference-item" data-category="clothing">
+                                        <i class="fas fa-tshirt preference-icon"></i>
+                                        <div class="preference-label">Clothing</div>
+                                    </div>
+                                    <div class="preference-item" data-category="electronics">
+                                        <i class="fas fa-laptop preference-icon"></i>
+                                        <div class="preference-label">Electronics</div>
+                                    </div>
+                                    <div class="preference-item" data-category="home">
+                                        <i class="fas fa-home preference-icon"></i>
+                                        <div class="preference-label">Home & Garden</div>
+                                    </div>
+                                    <div class="preference-item" data-category="books">
+                                        <i class="fas fa-book preference-icon"></i>
+                                        <div class="preference-label">Books</div>
+                                    </div>
+                                    <div class="preference-item" data-category="sports">
+                                        <i class="fas fa-football-ball preference-icon"></i>
+                                        <div class="preference-label">Sports</div>
+                                    </div>
+                                    <div class="preference-item" data-category="toys">
+                                        <i class="fas fa-gamepad preference-icon"></i>
+                                        <div class="preference-label">Toys</div>
+                                    </div>
+                                    <div class="preference-item" data-category="jewelry">
+                                        <i class="fas fa-gem preference-icon"></i>
+                                        <div class="preference-label">Jewelry</div>
+                                    </div>
+                                    <div class="preference-item" data-category="furniture">
+                                        <i class="fas fa-chair preference-icon"></i>
+                                        <div class="preference-label">Furniture</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="smart-range-group">
+                                <h4 style="color: var(--text-primary); margin-bottom: 1.5rem;">Budget Range</h4>
+                                <div class="range-container">
+                                    <input type="range" class="smart-range" min="0" max="1000" value="250" id="budgetRange">
+                                    <div class="range-labels">
+                                        <span>$0</span>
+                                        <span id="budgetValue">$250</span>
+                                        <span>$1000+</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="smart-range-group">
+                                <h4 style="color: var(--text-primary); margin-bottom: 1.5rem;">Minimum Discount</h4>
+                                <div class="range-container">
+                                    <input type="range" class="smart-range" min="0" max="80" value="20" id="discountRange">
+                                    <div class="range-labels">
+                                        <span>0%</span>
+                                        <span id="discountValue">20%</span>
+                                        <span>80%+</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-insights">
+                                <div class="insights-title">
+                                    <i class="fas fa-chart-line"></i>
+                                    Smart Budgeting
+                                </div>
+                                <p style="color: rgba(255,255,255,0.9); margin: 0;">
+                                    Our AI will track your spending and alert you to deals within your budget range, helping you save more money.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4: Notifications & Final Setup -->
+                        <div class="form-section" id="step4">
+                            <h2 class="text-center mb-4" style="color: var(--text-primary); font-weight: 700;">
+                                <i class="fas fa-bell me-3" style="color: #00d4ff;"></i>
+                                Stay Updated
+                            </h2>
+                            <p class="text-center mb-5" style="color: rgba(255,255,255,0.8); font-size: 1.1rem;">
+                                Choose how you'd like to receive deal alerts and updates
+                            </p>
+                            
+                            <div class="notification-toggles">
+                                <div class="toggle-item">
+                                    <h5 style="color: var(--text-primary); margin-bottom: 0.5rem;">Email Deals</h5>
+                                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 0;">
+                                        Get personalized deal alerts via email
+                                    </p>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <div class="toggle-item">
+                                    <h5 style="color: var(--text-primary); margin-bottom: 0.5rem;">SMS Alerts</h5>
+                                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 0;">
+                                        Instant notifications for flash deals
+                                    </p>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <div class="toggle-item">
+                                    <h5 style="color: var(--text-primary); margin-bottom: 0.5rem;">Weekly Newsletter</h5>
+                                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 0;">
+                                        Curated weekly deals and tips
+                                    </p>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                
+                                <div class="toggle-item">
+                                    <h5 style="color: var(--text-primary); margin-bottom: 0.5rem;">Price Drop Alerts</h5>
+                                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 0;">
+                                        Notify when saved items drop in price
+                                    </p>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <div class="smart-input-group">
+                                        <input type="text" class="smart-input" placeholder=" ">
+                                        <label class="smart-label">City</label>
+                                        <i class="fas fa-map-marker-alt input-icon"></i>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="smart-input-group">
+                                        <input type="text" class="smart-input" placeholder=" ">
+                                        <label class="smart-label">ZIP Code</label>
+                                        <i class="fas fa-mail-bulk input-icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-insights">
+                                <div class="insights-title">
+                                    <i class="fas fa-rocket"></i>
+                                    Ready to Launch
+                                </div>
+                                <p style="color: rgba(255,255,255,0.9); margin: 0;">
+                                    Your AI shopping assistant is configured and ready to find you amazing deals. Start exploring now!
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Navigation -->
+                        <div class="modern-btn-group">
+                            <button type="button" class="modern-btn secondary" id="prevBtn" style="display: none;">
+                                <i class="fas fa-arrow-left me-2"></i>Previous
+                            </button>
+                            <button type="button" class="modern-btn" id="nextBtn">
+                                Next<i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <button type="submit" class="modern-btn" id="submitBtn" style="display: none;">
+                                <i class="fas fa-sparkles me-2"></i>Start Shopping!
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 4;
+        let selectedPersonality = null;
+        
+        // Update progress steps
+        function updateProgressSteps() {
+            document.querySelectorAll('.progress-step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < currentStep) {
+                    step.classList.add('completed');
+                } else if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+        }
+        
+        // Show specific step
+        function showStep(step) {
+            // Hide all sections
+            document.querySelectorAll('.form-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show current section
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Update navigation buttons
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            prevBtn.style.display = step > 1 ? 'inline-flex' : 'none';
+            nextBtn.style.display = step < totalSteps ? 'inline-flex' : 'none';
+            submitBtn.style.display = step === totalSteps ? 'inline-flex' : 'none';
+            
+            updateProgressSteps();
+        }
+        
+        // Navigation event listeners
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+        
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (validateCurrentStep()) {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    showStep(currentStep);
+                }
+            }
+        });
+        
+        // AI Personality selection
+        document.querySelectorAll('.personality-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.personality-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedPersonality = card.dataset.personality;
+            });
+        });
+        
+        // Preference selection
+        document.querySelectorAll('.preference-item').forEach(item => {
+            item.addEventListener('click', () => {
+                item.classList.toggle('selected');
+            });
+        });
+        
+        // Range sliders
+        document.getElementById('budgetRange').addEventListener('input', (e) => {
+            const value = e.target.value;
+            document.getElementById('budgetValue').textContent = value >= 1000 ? '$1000+' : `$${value}`;
+        });
+        
+        document.getElementById('discountRange').addEventListener('input', (e) => {
+            const value = e.target.value;
+            document.getElementById('discountValue').textContent = value >= 80 ? '80%+' : `${value}%`;
+        });
+        
+        // Form validation
+        function validateCurrentStep() {
+            const currentSection = document.getElementById(`step${currentStep}`);
+            
+            if (currentStep === 1) {
+                const requiredInputs = currentSection.querySelectorAll('input[required]');
+                for (let input of requiredInputs) {
+                    if (!input.value.trim()) {
+                        input.focus();
+                        showValidationError('Please fill in all required fields');
+                        return false;
+                    }
+                }
+            }
+            
+            if (currentStep === 2) {
+                if (!selectedPersonality) {
+                    showValidationError('Please select an AI shopping assistant');
+                    return false;
+                }
+            }
+            
+            if (currentStep === 3) {
+                const selectedCategories = document.querySelectorAll('.preference-item.selected');
+                if (selectedCategories.length === 0) {
+                    showValidationError('Please select at least one category');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        function showValidationError(message) {
+            // Create temporary error message
+            const errorMsg = document.createElement('div');
+            errorMsg.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #ff4757, #ff3742);
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                z-index: 10000;
+                font-weight: 600;
+                box-shadow: 0 10px 30px rgba(255,71,87,0.3);
+            `;
+            errorMsg.textContent = message;
+            document.body.appendChild(errorMsg);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                errorMsg.remove();
+            }, 3000);
+        }
+        
+        // Smart input animations
+        document.querySelectorAll('.smart-input').forEach(input => {
+            input.addEventListener('blur', () => {
+                if (input.value) {
+                    input.classList.add('filled');
+                } else {
+                    input.classList.remove('filled');
+                }
+            });
+        });
+        
+        // Form submission
+        document.getElementById('buyerRegistrationForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (validateCurrentStep()) {
+                // Show success animation
+                const successMsg = document.createElement('div');
+                successMsg.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: linear-gradient(135deg, rgba(0,212,255,0.95), rgba(0,153,204,0.95));
+                    color: white;
+                    padding: 3rem;
+                    border-radius: 20px;
+                    z-index: 10000;
+                    text-align: center;
+                    box-shadow: 0 25px 60px rgba(0,212,255,0.4);
+                    backdrop-filter: blur(10px);
+                `;
+                successMsg.innerHTML = `
+                    <i class="fas fa-check-circle" style="font-size: 4rem; margin-bottom: 1rem; color: #fff;"></i>
+                    <h3 style="margin-bottom: 1rem;">Welcome to ThriftAI!</h3>
+                    <p style="margin: 0; opacity: 0.9;">Your AI shopping assistant is ready to find amazing deals for you.</p>
+                `;
+                document.body.appendChild(successMsg);
+                
+                // Remove success message and redirect after 3 seconds
+                setTimeout(() => {
+                    successMsg.remove();
+                    // Here you would typically redirect to the dashboard
+                    console.log('Registration completed successfully');
+                }, 3000);
+            }
+        });
+        
+        // Initialize
+        showStep(currentStep);
+        
+        // Add some interactive animations
+        document.querySelectorAll('.personality-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-8px) scale(1.02) rotateY(5deg)';
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                if (!card.classList.contains('selected')) {
+                    card.style.transform = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -38,6 +38,13 @@ public class SellerController {
 
     @GetMapping
     public String sellersHome(Model model) {
+        model.addAttribute("pageTitle", "Seller Registration");
+        model.addAttribute("seller", new Seller());
+        return "seller-registration";
+    }
+
+    @GetMapping("/dashboard")
+    public String sellersDashboard(Model model) {
         List<Seller> recentSellers = sellerRepository.findAll().stream()
                 .sorted((s1, s2) -> s2.getCreatedAt().compareTo(s1.getCreatedAt()))
                 .limit(6)
@@ -56,6 +63,39 @@ public class SellerController {
     public String showRegistrationForm(Model model) {
         model.addAttribute("seller", new Seller());
         return "sellers/register";
+    }
+
+    @GetMapping("/manage-products")
+    public String showProductManagement(Model model) {
+        model.addAttribute("pageTitle", "Manage Products");
+        model.addAttribute("product", new Product());
+        
+        // Get all products for the seller
+        List<Product> products = productRepository.findAll();
+        model.addAttribute("products", products);
+        
+        return "seller-products";
+    }
+
+    @PostMapping("/manage-products")
+    public String addProduct(@Valid @ModelAttribute("product") Product product, 
+                           BindingResult result, 
+                           RedirectAttributes redirectAttributes) {
+        
+        if (result.hasErrors()) {
+            return "seller-products";
+        }
+        
+        try {
+            productRepository.save(product);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Product added successfully!");
+            return "redirect:/sellers/manage-products";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Error adding product. Please try again.");
+            return "redirect:/sellers/manage-products";
+        }
     }
 
     @PostMapping("/register")

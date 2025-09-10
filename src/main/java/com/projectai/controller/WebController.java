@@ -151,6 +151,8 @@ public class WebController {
     public String contact() {
         return "redirect:/";
     }
+    
+    
 
     // AJAX endpoints for dynamic content
     @GetMapping("/api/web/search-suggestions")

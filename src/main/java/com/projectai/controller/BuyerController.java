@@ -1,8 +1,15 @@
 package com.projectai.controller;
 
 import com.projectai.models.Buyer;
+import com.projectai.models.Product;
 import com.projectai.repository.BuyerRepository;
+import com.projectai.repository.ProductRepository;
+import com.projectai.service.ChatGPTService;
+import com.projectai.service.VisualSearchService;
+import com.projectai.service.PriceComparisonService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -20,6 +27,18 @@ public class BuyerController {
 
     @Autowired
     private BuyerRepository buyerRepository;
+    
+    @Autowired
+    private ProductRepository productRepository;
+    
+    @Autowired
+    private ChatGPTService chatGPTService;
+    
+    @Autowired
+    private VisualSearchService visualSearchService;
+    
+    @Autowired
+    private PriceComparisonService priceComparisonService;
 
     @GetMapping
     public String buyersHome(Model model) {
@@ -283,5 +302,105 @@ public class BuyerController {
         // TODO: Add order history when Order model is implemented
         
         return "buyers/orders";
+    }
+
+    @GetMapping("/search")
+    public String searchPage(Model model) {
+        model.addAttribute("pageTitle", "Smart Product Search");
+        
+        // Get some featured products for buyers
+        List<Product> featuredProducts = productRepository.findAll().stream()
+                .filter(Product::isAvailable)
+                .limit(8)
+                .toList();
+        model.addAttribute("featuredProducts", featuredProducts);
+        
+        return "buyer-search";
+    }
+
+    @PostMapping("/api/chat-search")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> chatSearch(@RequestBody java.util.Map<String, String> request) {
+        String query = request.get("query");
+        
+        try {
+            // Use ChatGPT to understand the query and find relevant products
+            String enhancedQuery = chatGPTService.enhanceSearchQuery(query);
+            List<Product> products = chatGPTService.searchProducts(enhancedQuery);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("products", products);
+            response.put("enhancedQuery", enhancedQuery);
+            response.put("chatResponse", chatGPTService.generateSearchResponse(query, products));
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Search failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @PostMapping("/api/visual-search")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> visualSearch(@RequestParam("image") MultipartFile image) {
+        try {
+            // Process image and find similar products
+            List<Product> products = visualSearchService.searchByImage(image);
+            String description = visualSearchService.describeImage(image);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("products", products);
+            response.put("description", description);
+            response.put("imageAnalysis", visualSearchService.analyzeImage(image));
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Visual search failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @GetMapping("/api/price-comparison/{productId}")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> getPriceComparison(@PathVariable String productId) {
+        try {
+            Product product = productRepository.findById(productId).orElse(null);
+            if (product == null) {
+                java.util.Map<String, Object> error = new java.util.HashMap<>();
+                error.put("error", "Product not found");
+                return ResponseEntity.notFound().build();
+            }
+            
+            java.util.Map<String, Object> comparison = priceComparisonService.comparePrice(product);
+            return ResponseEntity.ok(comparison);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Price comparison failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @GetMapping("/api/recommendations")
+    @ResponseBody
+    public ResponseEntity<List<Product>> getRecommendations(
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(defaultValue = "10") int limit) {
+        
+        try {
+            List<Product> recommendations = productRepository.findAll().stream()
+                    .filter(Product::isAvailable)
+                    .filter(p -> category == null || category.equals(p.getCategory()))
+                    .filter(p -> maxPrice == null || p.getPrice() <= maxPrice)
+                    .limit(limit)
+                    .toList();
+                    
+            return ResponseEntity.ok(recommendations);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Search - ThriftAI</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="/webjars/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+    
+    <!-- Custom CSS -->
+    <link href="/css/style.css" rel="stylesheet"/>
+    
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    
+    <style>
+        .search-container {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,100,200,0.05));
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0,212,255,0.2);
+        }
+        
+        .chat-search-box {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(0,212,255,0.3);
+            border-radius: 25px;
+            padding: 1rem 1.5rem;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            resize: none;
+        }
+        
+        .chat-search-box:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 25px rgba(0,212,255,0.4);
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .ai-response {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,100,200,0.05));
+            border-left: 4px solid #00d4ff;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-style: italic;
+        }
+        
+        .visual-search-area {
+            border: 3px dashed rgba(0,212,255,0.3);
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(255,255,255,0.02);
+        }
+        
+        .visual-search-area:hover {
+            border-color: #00d4ff;
+            background: rgba(0,212,255,0.1);
+        }
+        
+        .visual-search-area.dragover {
+            border-color: #00d4ff;
+            background: rgba(0,212,255,0.2);
+            transform: scale(1.02);
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0,212,255,0.5);
+            box-shadow: 0 15px 35px rgba(0,212,255,0.2);
+        }
+        
+        .search-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .suggestion-chip {
+            background: rgba(0,212,255,0.2);
+            color: #00d4ff;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        
+        .suggestion-chip:hover {
+            background: rgba(0,212,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .product-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0,212,255,0.5);
+            box-shadow: 0 15px 35px rgba(0,212,255,0.2);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .price-comparison-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(40,167,69,0.9);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid rgba(0,212,255,0.3);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" th:href="@{/}">
+                <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/sellers}">
+                            <i class="fas fa-store me-1"></i>Sellers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/buyers/search}">
+                            <i class="fas fa-search me-1"></i>AI Search
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Login/Signup Buttons -->
+                <div class="navbar-nav ms-auto">
+                    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                        <i class="fas fa-sign-in-alt me-1"></i>Login
+                    </button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#signupModal">
+                        <i class="fas fa-user-plus me-1"></i>Sign Up
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-4">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="row mb-4">
+                <div class="col-12 text-center">
+                    <h1 class="display-4 fw-bold text-gradient-primary mb-3">
+                        <i class="fas fa-brain me-3"></i>AI-Powered Smart Search
+                    </h1>
+                    <p class="lead text-muted">Tell me what you're looking for, upload an image, or browse by category</p>
+                </div>
+            </div>
+
+            <!-- AI Chat Search -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="search-container">
+                        <h3 class="mb-3">
+                            <i class="fas fa-comments me-2"></i>Chat with AI Assistant
+                        </h3>
+                        <div class="row">
+                            <div class="col-md-10">
+                                <textarea class="form-control chat-search-box" 
+                                         id="chatSearchInput" 
+                                         rows="2" 
+                                         placeholder="What are you looking for? Try: 'I need a vintage band t-shirt under $30' or 'Show me comfortable running shoes'"></textarea>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" id="chatSearchBtn">
+                                    <i class="fas fa-paper-plane me-2"></i>Search
+                                    <div class="loading-spinner ms-2" id="chatLoadingSpinner"></div>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Search Suggestions -->
+                        <div class="search-suggestions">
+                            <span class="suggestion-chip" onclick="searchSuggestion('vintage Nike sneakers under $50')">vintage Nike sneakers under $50</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('designer handbags')">designer handbags</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('cozy winter sweaters')">cozy winter sweaters</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('retro gaming console')">retro gaming console</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('leather jacket')">leather jacket</span>
+                        </div>
+                        
+                        <!-- AI Response Area -->
+                        <div id="aiResponseArea" style="display: none;">
+                            <div class="ai-response" id="aiResponse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Search -->
+            <div class="row mb-5">
+                <div class="col-md-6">
+                    <div class="feature-card">
+                        <h4 class="mb-3">
+                            <i class="fas fa-camera me-2"></i>Visual Search
+                        </h4>
+                        <div class="visual-search-area" id="visualSearchArea">
+                            <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color: #00d4ff;"></i>
+                            <h5>Upload an Image</h5>
+                            <p class="text-muted">Drag & drop or click to upload a photo of the item you're looking for</p>
+                            <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                            <div class="loading-spinner mx-auto mt-3" id="visualLoadingSpinner"></div>
+                        </div>
+                        <div id="imagePreview" style="display: none;" class="mt-3">
+                            <img id="previewImg" class="img-fluid rounded" style="max-height: 200px;">
+                            <div class="mt-2">
+                                <button class="btn btn-primary" id="searchByImageBtn">
+                                    <i class="fas fa-search me-2"></i>Search Similar Items
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="feature-card">
+                        <h4 class="mb-3">
+                            <i class="fas fa-chart-line me-2"></i>Price Comparison
+                        </h4>
+                        <p class="text-muted mb-3">Get real-time price comparisons with Amazon, eBay, and brand stores</p>
+                        <div class="d-grid">
+                            <button class="btn btn-outline-primary" onclick="showPriceComparison()">
+                                <i class="fas fa-dollar-sign me-2"></i>Compare Prices
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Categories -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <h3 class="mb-4 text-center">Browse by Category</h3>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="feature-card" onclick="searchCategory('Clothing')">
+                                <i class="fas fa-tshirt fa-2x mb-3" style="color: #00d4ff;"></i>
+                                <h5>Clothing</h5>
+                                <p class="text-muted small">Shirts, dresses, jeans, jackets</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="feature-card" onclick="searchCategory('Shoes')">
+                                <i class="fas fa-shoe-prints fa-2x mb-3" style="color: #00d4ff;"></i>
+                                <h5>Shoes</h5>
+                                <p class="text-muted small">Sneakers, boots, heels, sandals</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="feature-card" onclick="searchCategory('Accessories')">
+                                <i class="fas fa-gem fa-2x mb-3" style="color: #00d4ff;"></i>
+                                <h5>Accessories</h5>
+                                <p class="text-muted small">Bags, jewelry, watches, belts</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="feature-card" onclick="searchCategory('Electronics')">
+                                <i class="fas fa-laptop fa-2x mb-3" style="color: #00d4ff;"></i>
+                                <h5>Electronics</h5>
+                                <p class="text-muted small">Phones, laptops, gaming, audio</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div id="searchResults" style="display: none;">
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <h3 id="resultsTitle">Search Results</h3>
+                        <div class="product-grid" id="productGrid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Featured Products -->
+            <div class="row" th:if="${featuredProducts != null and !featuredProducts.isEmpty()}">
+                <div class="col-12">
+                    <h3 class="mb-4 text-center">Featured Products</h3>
+                    <div class="product-grid">
+                        <div class="product-card" th:each="product : ${featuredProducts}">
+                            <div class="position-relative">
+                                <img th:src="${product.imageUrl ?: '/images/no-image.png'}" 
+                                     alt="Product Image" class="product-image">
+                                <div class="price-comparison-badge" 
+                                     th:if="${product.originalPrice != null and product.originalPrice > product.price}">
+                                    Save <span th:text="${#numbers.formatDecimal((product.originalPrice - product.price) / product.originalPrice * 100, 0, 0)}">0</span>%
+                                </div>
+                            </div>
+                            <div class="p-3">
+                                <h6 class="mb-2" th:text="${product.name}">Product Name</h6>
+                                <p class="text-muted small mb-2" th:text="${product.brand + ' • ' + product.category}">Brand • Category</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong class="text-primary">$<span th:text="${product.price}">0.00</span></strong>
+                                        <span th:if="${product.originalPrice != null and product.originalPrice > 0}" 
+                                              class="text-muted text-decoration-line-through ms-2 small">
+                                            $<span th:text="${product.originalPrice}">0.00</span>
+                                        </span>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            th:data-product-id="${product.id}"
+                                            onclick="showPriceComparison(this.dataset.productId)">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>
+                        <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                        <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
+                    </h5>
+                    <p class="mb-0">AI-powered thrift shopping for the smartest deals.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-light"><i class="fab fa-github"></i></a>
+                    </div>
+                    <p class="mb-0 mt-2"><small>&copy; 2024 ThriftAI. All rights reserved.</small></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Price Comparison Modal -->
+    <div class="modal fade" id="priceComparisonModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title">Price Comparison</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="priceComparisonContent">
+                    <!-- Dynamic content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-0 shadow-lg">
+                <div class="modal-header border-0 pb-1">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-sign-in-alt me-2 text-primary"></i>Welcome Back
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    <form class="login-form">
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control bg-transparent border-secondary text-white" id="loginEmail" placeholder="name@example.com" required>
+                            <label for="loginEmail" class="text-muted">
+                                <i class="fas fa-envelope me-2"></i>Email address
+                            </label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control bg-transparent border-secondary text-white" id="loginPassword" placeholder="Password" required>
+                            <label for="loginPassword" class="text-muted">
+                                <i class="fas fa-lock me-2"></i>Password
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-3 btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div class="modal fade" id="signupModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-0 shadow-lg">
+                <div class="modal-header border-0 pb-1">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-user-plus me-2 text-primary"></i>Join ThriftAI
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    <form class="signup-form">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control bg-transparent border-secondary text-white" id="firstName" placeholder="First Name" required>
+                            <label for="firstName" class="text-muted">
+                                <i class="fas fa-user me-2"></i>First Name
+                            </label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control bg-transparent border-secondary text-white" id="signupEmail" placeholder="name@example.com" required>
+                            <label for="signupEmail" class="text-muted">
+                                <i class="fas fa-envelope me-2"></i>Email address
+                            </label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control bg-transparent border-secondary text-white" id="signupPassword" placeholder="Password" required>
+                            <label for="signupPassword" class="text-muted">
+                                <i class="fas fa-lock me-2"></i>Password
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-3 btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Create Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="/webjars/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Chat search functionality
+        document.getElementById('chatSearchBtn').addEventListener('click', function() {
+            const query = document.getElementById('chatSearchInput').value.trim();
+            if (query) {
+                performChatSearch(query);
+            }
+        });
+
+        document.getElementById('chatSearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const query = this.value.trim();
+                if (query) {
+                    performChatSearch(query);
+                }
+            }
+        });
+
+        function searchSuggestion(suggestion) {
+            document.getElementById('chatSearchInput').value = suggestion;
+            performChatSearch(suggestion);
+        }
+
+        function performChatSearch(query) {
+            showLoading('chatLoadingSpinner');
+            
+            fetch('/buyers/api/chat-search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: query })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading('chatLoadingSpinner');
+                displayChatResponse(data);
+                displaySearchResults(data.products, 'AI Search Results for: ' + query);
+            })
+            .catch(error => {
+                hideLoading('chatLoadingSpinner');
+                console.error('Search error:', error);
+                displayErrorMessage('Search failed. Please try again.');
+            });
+        }
+
+        function displayChatResponse(data) {
+            const responseArea = document.getElementById('aiResponseArea');
+            const responseElement = document.getElementById('aiResponse');
+            
+            responseElement.innerHTML = '<i class="fas fa-robot me-2"></i>' + data.chatResponse;
+            responseArea.style.display = 'block';
+        }
+
+        // Visual search functionality
+        document.getElementById('visualSearchArea').addEventListener('click', function() {
+            document.getElementById('imageUpload').click();
+        });
+
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                displayImagePreview(file);
+            }
+        });
+
+        function displayImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('searchByImageBtn').addEventListener('click', function() {
+            const fileInput = document.getElementById('imageUpload');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                performVisualSearch(file);
+            }
+        });
+
+        function performVisualSearch(file) {
+            showLoading('visualLoadingSpinner');
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            fetch('/buyers/api/visual-search', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading('visualLoadingSpinner');
+                displaySearchResults(data.products, 'Visual Search Results');
+                if (data.description) {
+                    displayChatResponse({ chatResponse: data.description });
+                }
+            })
+            .catch(error => {
+                hideLoading('visualLoadingSpinner');
+                console.error('Visual search error:', error);
+                displayErrorMessage('Visual search failed. Please try again.');
+            });
+        }
+
+        // Category search
+        function searchCategory(category) {
+            fetch('/buyers/api/recommendations?category=' + encodeURIComponent(category))
+            .then(response => response.json())
+            .then(products => {
+                displaySearchResults(products, category + ' Products');
+            })
+            .catch(error => {
+                console.error('Category search error:', error);
+            });
+        }
+
+        // Price comparison
+        function showPriceComparison(productId = null) {
+            if (!productId) {
+                alert('Please select a product first');
+                return;
+            }
+            
+            fetch('/buyers/api/price-comparison/' + productId)
+            .then(response => response.json())
+            .then(data => {
+                displayPriceComparison(data);
+            })
+            .catch(error => {
+                console.error('Price comparison error:', error);
+            });
+        }
+
+        function displayPriceComparison(data) {
+            const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Current Product</h6>
+                        <div class="card bg-secondary">
+                            <div class="card-body">
+                                <h6>${data.product.name}</h6>
+                                <p>Brand: ${data.product.brand}</p>
+                                <h5 class="text-primary">$${data.product.price}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Savings Analysis</h6>
+                        <div class="card ${data.savings.isGoodDeal ? 'bg-success' : 'bg-warning'}">
+                            <div class="card-body">
+                                <h6>${data.savings.isGoodDeal ? 'Great Deal!' : 'Consider Alternatives'}</h6>
+                                <p>You save: $${data.savings.amount.toFixed(2)} (${data.savings.percentage.toFixed(1)}%)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <h6>Price Comparison</h6>
+                <div class="table-responsive">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Price</th>
+                                <th>Condition</th>
+                                <th>Shipping</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.externalPrices.map(price => `
+                                <tr>
+                                    <td>${price.source}</td>
+                                    <td>$${price.price}</td>
+                                    <td>${price.condition}</td>
+                                    <td>${price.shipping}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <h6>Recommendations</h6>
+                    <ul>
+                        ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            document.getElementById('priceComparisonContent').innerHTML = content;
+            new bootstrap.Modal(document.getElementById('priceComparisonModal')).show();
+        }
+
+        // Display search results
+        function displaySearchResults(products, title) {
+            const resultsSection = document.getElementById('searchResults');
+            const resultsTitle = document.getElementById('resultsTitle');
+            const productGrid = document.getElementById('productGrid');
+            
+            resultsTitle.textContent = title;
+            
+            if (products.length === 0) {
+                productGrid.innerHTML = '<p class="text-center text-muted">No products found matching your search.</p>';
+            } else {
+                productGrid.innerHTML = products.map(product => `
+                    <div class="product-card">
+                        <div class="position-relative">
+                            <img src="${product.imageUrl || '/images/no-image.png'}" 
+                                 alt="Product Image" class="product-image">
+                            ${product.originalPrice && product.originalPrice > product.price ? 
+                                `<div class="price-comparison-badge">
+                                    Save ${Math.round((product.originalPrice - product.price) / product.originalPrice * 100)}%
+                                </div>` : ''}
+                        </div>
+                        <div class="p-3">
+                            <h6 class="mb-2">${product.name}</h6>
+                            <p class="text-muted small mb-2">${product.brand} • ${product.category}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong class="text-primary">$${product.price}</strong>
+                                    ${product.originalPrice && product.originalPrice > 0 ? 
+                                        `<span class="text-muted text-decoration-line-through ms-2 small">$${product.originalPrice}</span>` : ''}
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary" onclick="showPriceComparison('${product.id}')">
+                                    <i class="fas fa-chart-bar"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Utility functions
+        function showLoading(spinnerId) {
+            document.getElementById(spinnerId).style.display = 'inline-block';
+        }
+
+        function hideLoading(spinnerId) {
+            document.getElementById(spinnerId).style.display = 'none';
+        }
+
+        function displayErrorMessage(message) {
+            const responseArea = document.getElementById('aiResponseArea');
+            const responseElement = document.getElementById('aiResponse');
+            
+            responseElement.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + message;
+            responseArea.style.display = 'block';
+        }
+
+        // Drag and drop functionality
+        const visualSearchArea = document.getElementById('visualSearchArea');
+        
+        visualSearchArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        
+        visualSearchArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+        
+        visualSearchArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    document.getElementById('imageUpload').files = files;
+                    displayImagePreview(file);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

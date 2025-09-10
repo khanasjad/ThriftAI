@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Products - ThriftAI</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="/webjars/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+    
+    <!-- Custom CSS -->
+    <link href="/css/style.css" rel="stylesheet"/>
+    
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    
+    <style>
+        .product-form-container {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 25px 45px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .product-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,212,255,0.2);
+            border-color: rgba(0,212,255,0.3);
+        }
+        
+        .floating-label-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        
+        .floating-label-input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .floating-label-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0,212,255,0.3);
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .floating-label {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.6);
+            font-size: 1rem;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .floating-label-input:focus + .floating-label,
+        .floating-label-input.filled + .floating-label {
+            top: -8px;
+            left: 8px;
+            font-size: 0.75rem;
+            color: #00d4ff;
+            background: rgba(0,0,0,0.8);
+            padding: 0 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .btn-glow {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.8rem 2rem;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0,212,255,0.3);
+        }
+        
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0,212,255,0.4);
+        }
+        
+        .trending-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .trending-chip {
+            background: rgba(0,212,255,0.2);
+            color: #00d4ff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        
+        .trending-chip:hover {
+            background: rgba(0,212,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" th:href="@{/}">
+                <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/analytics}">Analytics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/sellers}">Sellers</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/buyers}">Buyers</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/sellers}">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Registration
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-4">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="row mb-4">
+                <div class="col-12 text-center">
+                    <h1 class="display-5 fw-bold text-gradient-primary mb-3">
+                        <i class="fas fa-box me-3"></i>Product Management
+                    </h1>
+                    <p class="lead text-muted">Add and manage your products for the ThriftAI marketplace</p>
+                </div>
+            </div>
+
+            <!-- Success/Error Messages -->
+            <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <span th:text="${successMessage}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            
+            <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span th:text="${errorMessage}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <div class="row">
+                <!-- Add Product Form -->
+                <div class="col-lg-6">
+                    <div class="product-form-container">
+                        <h3 class="mb-4 text-center">
+                            <i class="fas fa-plus-circle me-2"></i>Add New Product
+                        </h3>
+                        
+                        <!-- Trending Items Section -->
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-3">🔥 Trending in the Market</h6>
+                            <div class="trending-chips">
+                                <span class="trending-chip" onclick="fillProduct('Vintage Nike Air Jordan', 'Nike', 'Sneakers', '120')">Vintage Nike Air Jordan</span>
+                                <span class="trending-chip" onclick="fillProduct('Levi\'s 501 Jeans', 'Levi\'s', 'Clothing', '45')">Levi's 501 Jeans</span>
+                                <span class="trending-chip" onclick="fillProduct('Designer Handbag', 'Coach', 'Accessories', '85')">Designer Handbag</span>
+                                <span class="trending-chip" onclick="fillProduct('Vintage Band T-Shirt', 'Band Merch', 'Clothing', '25')">Vintage Band T-Shirt</span>
+                                <span class="trending-chip" onclick="fillProduct('Retro Gaming Console', 'Nintendo', 'Electronics', '150')">Retro Gaming Console</span>
+                            </div>
+                        </div>
+
+                        <form th:action="@{/sellers/manage-products}" method="post" th:object="${product}" enctype="multipart/form-data">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="floating-label-group">
+                                        <input type="text" class="floating-label-input" id="name" th:field="*{name}" required>
+                                        <label class="floating-label">Product Name *</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="floating-label-group">
+                                        <input type="text" class="floating-label-input" id="brand" th:field="*{brand}" required>
+                                        <label class="floating-label">Brand *</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="floating-label-group">
+                                        <select class="floating-label-input" id="category" th:field="*{category}" required>
+                                            <option value="">Select Category</option>
+                                            <option value="Clothing">Clothing</option>
+                                            <option value="Shoes">Shoes</option>
+                                            <option value="Accessories">Accessories</option>
+                                            <option value="Electronics">Electronics</option>
+                                            <option value="Home & Garden">Home & Garden</option>
+                                            <option value="Books">Books</option>
+                                            <option value="Sports">Sports</option>
+                                            <option value="Toys">Toys</option>
+                                            <option value="Jewelry">Jewelry</option>
+                                            <option value="Art">Art</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="floating-label-group">
+                                        <input type="number" class="floating-label-input" id="price" th:field="*{price}" step="0.01" min="0" required>
+                                        <label class="floating-label">Price ($) *</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="floating-label-group">
+                                        <input type="number" class="floating-label-input" id="originalPrice" th:field="*{originalPrice}" step="0.01" min="0">
+                                        <label class="floating-label">Original Price ($)</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="floating-label-group">
+                                        <select class="floating-label-input" id="condition" th:field="*{condition}">
+                                            <option value="">Select Condition</option>
+                                            <option value="NEW">New</option>
+                                            <option value="LIKE_NEW">Like New</option>
+                                            <option value="VERY_GOOD">Very Good</option>
+                                            <option value="GOOD">Good</option>
+                                            <option value="FAIR">Fair</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="floating-label-group">
+                                <input type="text" class="floating-label-input" id="size" th:field="*{size}">
+                                <label class="floating-label">Size (if applicable)</label>
+                            </div>
+                            
+                            <div class="floating-label-group">
+                                <textarea class="floating-label-input" id="description" th:field="*{description}" rows="4" required></textarea>
+                                <label class="floating-label">Description *</label>
+                            </div>
+                            
+                            <div class="floating-label-group">
+                                <input type="url" class="floating-label-input" id="imageUrl" th:field="*{imageUrl}">
+                                <label class="floating-label">Image URL</label>
+                            </div>
+                            
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-glow">
+                                    <i class="fas fa-plus me-2"></i>Add Product
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Current Products -->
+                <div class="col-lg-6">
+                    <div class="product-form-container">
+                        <h3 class="mb-4 text-center">
+                            <i class="fas fa-list me-2"></i>Your Products
+                        </h3>
+                        
+                        <div class="row" th:if="${products and !products.isEmpty()}">
+                            <div class="col-12" th:each="product : ${products}">
+                                <div class="product-card p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-3">
+                                            <img th:src="${product.imageUrl ?: '/images/no-image.png'}" 
+                                                 alt="Product Image" class="image-preview">
+                                        </div>
+                                        <div class="col-9">
+                                            <h6 class="mb-1" th:text="${product.name}">Product Name</h6>
+                                            <p class="text-muted mb-1">
+                                                <span th:text="${product.brand}">Brand</span> • 
+                                                <span th:text="${product.category}">Category</span>
+                                            </p>
+                                            <p class="mb-1">
+                                                <strong class="text-primary">$<span th:text="${product.price}">0.00</span></strong>
+                                                <span th:if="${product.originalPrice and product.originalPrice > 0}" 
+                                                      class="text-muted text-decoration-line-through ms-2">
+                                                    $<span th:text="${product.originalPrice}">0.00</span>
+                                                </span>
+                                            </p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="badge bg-success" th:if="${product.isAvailable}">Available</span>
+                                                <span class="badge bg-secondary" th:unless="${product.isAvailable}">Sold</span>
+                                                <div>
+                                                    <button class="btn btn-sm btn-outline-primary me-1">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div th:if="${products == null or products.isEmpty()}" class="text-center text-muted">
+                            <i class="fas fa-box-open fa-3x mb-3"></i>
+                            <h5>No products yet</h5>
+                            <p>Add your first product to get started!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>
+                        <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                        <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
+                    </h5>
+                    <p class="mb-0">AI-powered thrift shopping for the smartest deals.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-light"><i class="fab fa-github"></i></a>
+                    </div>
+                    <p class="mb-0 mt-2"><small>&copy; 2024 ThriftAI. All rights reserved.</small></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="/webjars/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Fill product form with trending item data
+        function fillProduct(name, brand, category, price) {
+            document.getElementById('name').value = name;
+            document.getElementById('brand').value = brand;
+            document.getElementById('category').value = category;
+            document.getElementById('price').value = price;
+            
+            // Trigger floating label animations
+            [document.getElementById('name'), 
+             document.getElementById('brand'), 
+             document.getElementById('price')].forEach(input => {
+                input.classList.add('filled');
+                input.nextElementSibling.style.top = '-8px';
+                input.nextElementSibling.style.fontSize = '0.75rem';
+                input.nextElementSibling.style.color = '#00d4ff';
+            });
+        }
+
+        // Floating label animations
+        document.querySelectorAll('.floating-label-input').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.nextElementSibling.style.top = '-8px';
+                input.nextElementSibling.style.fontSize = '0.75rem';
+                input.nextElementSibling.style.color = '#00d4ff';
+            });
+            
+            input.addEventListener('blur', () => {
+                if (input.value) {
+                    input.classList.add('filled');
+                } else {
+                    input.classList.remove('filled');
+                    input.nextElementSibling.style.top = '50%';
+                    input.nextElementSibling.style.fontSize = '1rem';
+                    input.nextElementSibling.style.color = 'rgba(255,255,255,0.6)';
+                }
+            });
+            
+            // Check if field has value on page load
+            if (input.value) {
+                input.classList.add('filled');
+                input.nextElementSibling.style.top = '-8px';
+                input.nextElementSibling.style.fontSize = '0.75rem';
+                input.nextElementSibling.style.color = '#00d4ff';
+            }
+        });
+    </script>
+</body>
+</html>
