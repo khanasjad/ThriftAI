@@ -58,6 +58,32 @@ thriftai:
     version: "1.0.0"
     description: "AI-Powered Thrift Shopping Assistant"
 
+# OpenAI Configuration
+openai:
+  api:
+    key: ${OPENAI_API_KEY:}  # Set via environment variable or leave empty for fallback mode
+    url: "https://api.openai.com/v1/chat/completions"
+    model: "gpt-3.5-turbo"
+    max-tokens: 500
+    temperature: 0.7
+  vision:
+    enabled: true
+    model: "gpt-4-vision-preview"
+    max-tokens: 300
+
+# Claude API Configuration
+claude:
+  api:
+    key: ${CLAUDE_API_KEY:}  # Set via environment variable
+    url: "https://api.anthropic.com/v1/messages"
+    model: "claude-3-sonnet-20240229"
+    max-tokens: 1000
+    temperature: 0.7
+    version: "2023-06-01"
+  streaming:
+    enabled: true
+    chunk-size: 256
+
 # Logging Configuration
 logging:
   level:

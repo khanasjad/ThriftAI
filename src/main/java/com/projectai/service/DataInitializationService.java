@@ -241,7 +241,74 @@ public class DataInitializationService implements CommandLineRunner {
         product10.setSeller(sellers.get(0));
         product10.setImageUrl("https://via.placeholder.com/300x300?text=Air+Jordans");
 
+        // Additional products for better search diversity
+        Product product11 = new Product();
+        product11.setName("Adidas Track Jacket");
+        product11.setCategory("Clothing");
+        product11.setBrand("Adidas");
+        product11.setPrice(28.00);
+        product11.setOriginalPrice(65.00);
+        product11.setCondition("Very Good");
+        product11.setDescription("Classic three-stripe track jacket in navy blue");
+        product11.setSize("Large");
+        product11.setAvailable(true);
+        product11.setSeller(sellers.get(1));
+        product11.setImageUrl("https://via.placeholder.com/300x300?text=Adidas+Jacket");
+
+        Product product12 = new Product();
+        product12.setName("Nintendo Game Console");
+        product12.setCategory("Electronics");
+        product12.setBrand("Nintendo");
+        product12.setPrice(85.00);
+        product12.setOriginalPrice(200.00);
+        product12.setCondition("Good");
+        product12.setDescription("Retro Nintendo gaming console with controllers");
+        product12.setSize("Standard");
+        product12.setAvailable(true);
+        product12.setSeller(sellers.get(2));
+        product12.setImageUrl("https://via.placeholder.com/300x300?text=Nintendo+Console");
+
+        Product product13 = new Product();
+        product13.setName("Ray-Ban Sunglasses");
+        product13.setCategory("Accessories");
+        product13.setBrand("Ray-Ban");
+        product13.setPrice(45.00);
+        product13.setOriginalPrice(150.00);
+        product13.setCondition("Excellent");
+        product13.setDescription("Classic aviator sunglasses with original case");
+        product13.setSize("One Size");
+        product13.setAvailable(true);
+        product13.setSeller(sellers.get(0));
+        product13.setImageUrl("https://via.placeholder.com/300x300?text=Ray-Ban");
+
+        Product product14 = new Product();
+        product14.setName("Vintage Cookbook Collection");
+        product14.setCategory("Books");
+        product14.setBrand("Various");
+        product14.setPrice(15.00);
+        product14.setOriginalPrice(45.00);
+        product14.setCondition("Good");
+        product14.setDescription("Set of 5 vintage cookbooks from the 1970s");
+        product14.setSize("Standard");
+        product14.setAvailable(true);
+        product14.setSeller(sellers.get(1));
+        product14.setImageUrl("https://via.placeholder.com/300x300?text=Cookbooks");
+
+        Product product15 = new Product();
+        product15.setName("Levi's Denim Jacket");
+        product15.setCategory("Outerwear");
+        product15.setBrand("Levi's");
+        product15.setPrice(42.00);
+        product15.setOriginalPrice(89.00);
+        product15.setCondition("Very Good");
+        product15.setDescription("Classic blue denim jacket with vintage wash");
+        product15.setSize("Medium");
+        product15.setAvailable(true);
+        product15.setSeller(sellers.get(2));
+        product15.setImageUrl("https://via.placeholder.com/300x300?text=Levi+Denim");
+
         return Arrays.asList(product1, product2, product3, product4, product5, 
-                           product6, product7, product8, product9, product10);
+                           product6, product7, product8, product9, product10,
+                           product11, product12, product13, product14, product15);
     }
 }

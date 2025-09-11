@@ -3,17 +3,36 @@ package com.projectai.service;
 import com.projectai.models.Product;
 import com.projectai.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class ChatGPTService {
 
     @Autowired
     private ProductRepository productRepository;
+    
+    @Value("${openai.api.key:}")
+    private String openAiApiKey;
+    
+    @Value("${openai.api.url:https://api.openai.com/v1/chat/completions}")
+    private String openAiApiUrl;
+    
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public String enhanceSearchQuery(String query) {
         // For now, implement basic query enhancement
@@ -39,61 +58,180 @@ public class ChatGPTService {
     }
 
     public List<Product> searchProducts(String enhancedQuery) {
-        // Basic search implementation
-        // In a real implementation, this would use vector embeddings or advanced NLP
-        
+        // Enhanced search implementation with better relevance scoring
         String[] keywords = enhancedQuery.toLowerCase().split("\\s+");
         
         return productRepository.findAll().stream()
-                .filter(product -> {
+                .filter(Product::isAvailable)
+                .map(product -> {
                     String searchText = (product.getName() + " " + 
                                       product.getDescription() + " " + 
                                       product.getBrand() + " " + 
                                       product.getCategory()).toLowerCase();
                     
-                    return Arrays.stream(keywords)
-                            .anyMatch(keyword -> searchText.contains(keyword));
+                    // Calculate relevance score
+                    int score = 0;
+                    for (String keyword : keywords) {
+                        // Skip common words that don't add value
+                        if (keyword.length() < 3 || Arrays.asList("the", "and", "for", "with", "are", "has", "can", "you", "all", "any", "had", "her", "was", "one", "our", "out", "day", "get", "use", "man", "new", "now", "old", "see", "him", "two", "way", "who", "its", "did", "yes", "his", "has", "had").contains(keyword)) {
+                            continue;
+                        }
+                        
+                        // Exact match in name gets highest score
+                        if (product.getName().toLowerCase().contains(keyword)) {
+                            score += 10;
+                        }
+                        // Brand match gets high score
+                        if (product.getBrand() != null && product.getBrand().toLowerCase().contains(keyword)) {
+                            score += 8;
+                        }
+                        // Category match gets medium score
+                        if (product.getCategory().toLowerCase().contains(keyword)) {
+                            score += 6;
+                        }
+                        // Description match gets lower score
+                        if (product.getDescription() != null && product.getDescription().toLowerCase().contains(keyword)) {
+                            score += 3;
+                        }
+                        
+                        // Handle synonyms and related terms
+                        if (handleSynonyms(keyword, searchText)) {
+                            score += 5;
+                        }
+                    }
+                    
+                    return new ProductScore(product, score);
                 })
-                .filter(Product::isAvailable)
-                .limit(20)
+                .filter(productScore -> productScore.score > 0) // Only return products with some relevance
+                .sorted((p1, p2) -> Integer.compare(p2.score, p1.score)) // Sort by relevance descending
+                .limit(10) // Reduce to top 10 most relevant
+                .map(productScore -> productScore.product)
                 .collect(Collectors.toList());
+    }
+    
+    private boolean handleSynonyms(String keyword, String searchText) {
+        // Handle clothing synonyms
+        if (keyword.equals("shirt") && (searchText.contains("tee") || searchText.contains("top") || searchText.contains("blouse"))) {
+            return true;
+        }
+        if (keyword.equals("shoes") && (searchText.contains("sneakers") || searchText.contains("boots") || searchText.contains("heels") || searchText.contains("footwear"))) {
+            return true;
+        }
+        if (keyword.equals("jacket") && (searchText.contains("coat") || searchText.contains("blazer") || searchText.contains("outerwear"))) {
+            return true;
+        }
+        if (keyword.equals("bag") && (searchText.contains("handbag") || searchText.contains("purse") || searchText.contains("tote") || searchText.contains("satchel"))) {
+            return true;
+        }
+        if (keyword.equals("vintage") && (searchText.contains("retro") || searchText.contains("classic") || searchText.contains("antique"))) {
+            return true;
+        }
+        if (keyword.equals("cheap") && (searchText.contains("affordable") || searchText.contains("budget") || searchText.contains("low price"))) {
+            return true;
+        }
+        if (keyword.equals("gaming") && (searchText.contains("console") || searchText.contains("nintendo") || searchText.contains("game"))) {
+            return true;
+        }
+        if (keyword.equals("electronics") && (searchText.contains("console") || searchText.contains("nintendo") || searchText.contains("electronic"))) {
+            return true;
+        }
+        return false;
+    }
+    
+    // Helper class for scoring products
+    private static class ProductScore {
+        final Product product;
+        final int score;
+        
+        ProductScore(Product product, int score) {
+            this.product = product;
+            this.score = score;
+        }
     }
 
     public String generateSearchResponse(String originalQuery, List<Product> products) {
-        // Generate a conversational response
-        // In a real implementation, this would use ChatGPT API
+        // Use OpenAI API for natural, contextual responses
+        if (openAiApiKey == null || openAiApiKey.trim().isEmpty()) {
+            return generateFallbackResponse(originalQuery, products);
+        }
         
+        try {
+            String prompt = buildSearchResponsePrompt(originalQuery, products);
+            return callOpenAI(prompt);
+        } catch (Exception e) {
+            System.err.println("OpenAI API error: " + e.getMessage());
+            return generateFallbackResponse(originalQuery, products);
+        }
+    }
+    
+    private String callOpenAI(String prompt) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + openAiApiKey);
+        headers.set("Content-Type", "application/json");
+        
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", "gpt-3.5-turbo");
+        requestBody.put("messages", Arrays.asList(
+            Map.of("role", "system", "content", "You are a helpful AI assistant for a thrift shopping platform. Be enthusiastic, friendly, and focus on value and sustainability."),
+            Map.of("role", "user", "content", prompt)
+        ));
+        requestBody.put("max_tokens", 300);
+        requestBody.put("temperature", 0.7);
+        
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<String> response = restTemplate.exchange(openAiApiUrl, HttpMethod.POST, entity, String.class);
+        
+        JsonNode jsonResponse = objectMapper.readTree(response.getBody());
+        return jsonResponse.path("choices").get(0).path("message").path("content").asText().trim();
+    }
+    
+    private String buildSearchResponsePrompt(String originalQuery, List<Product> products) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("User searched for: '").append(originalQuery).append("'\n\n");
+        
+        if (products.isEmpty()) {
+            prompt.append("No products found. Generate a helpful response suggesting alternatives or browsing categories.");
+            return prompt.toString();
+        }
+        
+        prompt.append("Found ").append(products.size()).append(" products:\n");
+        for (int i = 0; i < Math.min(products.size(), 3); i++) {
+            Product p = products.get(i);
+            prompt.append("- ").append(p.getName()).append(" by ").append(p.getBrand())
+                  .append(" ($").append(p.getPrice()).append(", originally $").append(p.getOriginalPrice())
+                  .append(", condition: ").append(p.getCondition()).append(")\n");
+        }
+        
+        prompt.append("\nGenerate an enthusiastic, helpful response (2-3 sentences) highlighting the best deals and savings. Use emojis and focus on thrift shopping benefits like sustainability and affordability.");
+        return prompt.toString();
+    }
+    
+    private String generateFallbackResponse(String originalQuery, List<Product> products) {
         if (products.isEmpty()) {
             return "I couldn't find any products matching '" + originalQuery + 
                    "'. Try searching for something else or browse our categories!";
         }
         
-        String response = "I found " + products.size() + " great options for '" + originalQuery + "'! ";
+        String response = "🛍️ Found " + products.size() + " great thrift finds for '" + originalQuery + "'! ";
         
         if (products.size() == 1) {
             Product product = products.get(0);
+            double savings = product.getOriginalPrice() - product.getPrice();
+            int savingsPercent = (int)((savings / product.getOriginalPrice()) * 100);
             response += "Check out this " + product.getName() + " by " + product.getBrand() + 
-                       " for just $" + product.getPrice() + ". " + product.getDescription();
+                       " for just $" + product.getPrice() + " (save " + savingsPercent + "%)! 💰";
         } else {
-            // Highlight price range
             double minPrice = products.stream().mapToDouble(Product::getPrice).min().orElse(0);
             double maxPrice = products.stream().mapToDouble(Product::getPrice).max().orElse(0);
             
             response += "Prices range from $" + String.format("%.2f", minPrice) + 
                        " to $" + String.format("%.2f", maxPrice) + ". ";
             
-            // Mention popular brands
-            List<String> brands = products.stream()
-                    .map(Product::getBrand)
-                    .distinct()
-                    .limit(3)
-                    .collect(Collectors.toList());
+            double avgSavings = products.stream()
+                .mapToDouble(p -> ((p.getOriginalPrice() - p.getPrice()) / p.getOriginalPrice()) * 100)
+                .average().orElse(0);
             
-            if (!brands.isEmpty()) {
-                response += "Popular brands include " + String.join(", ", brands) + ". ";
-            }
-            
-            response += "Browse through the results to find your perfect match!";
+            response += "Average savings: " + Math.round(avgSavings) + "% off retail! ♻️";
         }
         
         return response;
