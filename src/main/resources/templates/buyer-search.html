@@ -1,19 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{layout :: html(content=~{::content}, pageHead=~{::page-head})}">
+<head th:fragment="page-head">
     <title>Smart Search - ThriftAI</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="/webjars/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
-    
-    <!-- Custom CSS -->
-    <link href="/css/style.css" rel="stylesheet"/>
-    
-    <!-- Font Awesome for icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-    
     <style>
         .search-container {
             background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,100,200,0.05));
@@ -166,53 +155,8 @@
         }
     </style>
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold" th:href="@{/}">
-                <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
-                <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/}">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/sellers}">
-                            <i class="fas fa-store me-1"></i>Sellers
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" th:href="@{/buyers/search}">
-                            <i class="fas fa-search me-1"></i>AI Search
-                        </a>
-                    </li>
-                </ul>
-                
-                <!-- Login/Signup Buttons -->
-                <div class="navbar-nav ms-auto">
-                    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">
-                        <i class="fas fa-sign-in-alt me-1"></i>Login
-                    </button>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#signupModal">
-                        <i class="fas fa-user-plus me-1"></i>Sign Up
-                    </button>
-                </div>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Main Content -->
-    <main class="py-4">
+<div id="content">
         <div class="container">
             <!-- Page Header -->
             <div class="row mb-4">
@@ -789,5 +733,4 @@
             }
         });
     </script>
-</body>
-</html>
+</div>

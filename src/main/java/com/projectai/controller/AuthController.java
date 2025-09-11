@@ -4,6 +4,7 @@ import com.projectai.models.Buyer;
 import com.projectai.models.Seller;
 import com.projectai.repository.BuyerRepository;
 import com.projectai.repository.SellerRepository;
+import com.projectai.service.PasswordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,6 +26,9 @@ public class AuthController {
     
     @Autowired
     private SellerRepository sellerRepository;
+    
+    @Autowired
+    private PasswordService passwordService;
 
     // ============= REGISTRATION ENDPOINTS =============
     
@@ -55,6 +59,18 @@ public class AuthController {
             model.addAttribute("signupType", "buyer");
             return "auth/signup";
         }
+        
+        // Validate password strength
+        if (!passwordService.isValidPassword(buyer.getPassword())) {
+            result.rejectValue("password", "error.buyer", 
+                "Password must be at least 8 characters with uppercase, lowercase, number and special character");
+            model.addAttribute("seller", new Seller());
+            model.addAttribute("signupType", "buyer");
+            return "auth/signup";
+        }
+        
+        // Hash password before saving
+        buyer.setPassword(passwordService.hashPassword(buyer.getPassword()));
         
         // Set default values
         buyer.setId(UUID.randomUUID().toString());
@@ -103,6 +119,18 @@ public class AuthController {
             return "auth/signup";
         }
         
+        // Validate password strength
+        if (!passwordService.isValidPassword(seller.getPassword())) {
+            result.rejectValue("password", "error.seller", 
+                "Password must be at least 8 characters with uppercase, lowercase, number and special character");
+            model.addAttribute("buyer", new Buyer());
+            model.addAttribute("signupType", "seller");
+            return "auth/signup";
+        }
+        
+        // Hash password before saving
+        seller.setPassword(passwordService.hashPassword(seller.getPassword()));
+        
         // Set default values
         seller.setId(UUID.randomUUID().toString());
         seller.setCreatedAt(LocalDateTime.now());
@@ -145,8 +173,7 @@ public class AuthController {
         
         if ("buyer".equals(userType)) {
             var buyer = buyerRepository.findByEmail(email);
-            if (buyer.isPresent()) {
-                // In production, verify hashed password
+            if (buyer.isPresent() && passwordService.verifyPassword(password, buyer.get().getPassword())) {
                 session.setAttribute("user", buyer.get());
                 session.setAttribute("userType", "buyer");
                 
@@ -161,8 +188,7 @@ public class AuthController {
             }
         } else if ("seller".equals(userType)) {
             var seller = sellerRepository.findByEmail(email);
-            if (seller.isPresent()) {
-                // In production, verify hashed password
+            if (seller.isPresent() && passwordService.verifyPassword(password, seller.get().getPassword())) {
                 session.setAttribute("user", seller.get());
                 session.setAttribute("userType", "seller");
                 

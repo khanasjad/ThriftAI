@@ -19,53 +19,74 @@ public class WebController {
     private ThriftAIService thriftAIService;
 
     @GetMapping("/")
-    public String home(@RequestParam(required = false) String category,
+    public String home(Model model) {
+        // Simple home page without service calls
+        return "index";
+    }
+    
+    @GetMapping("/old-home")
+    public String oldHome(@RequestParam(required = false) String category,
                       @RequestParam(required = false) String search,
                       @RequestParam(required = false) String brand,
                       @RequestParam(defaultValue = "12") int limit,
                       Model model) {
         
-        // Get platform overview for homepage
-        Map<String, Object> overview = thriftAIService.getPlatformOverview();
-        model.addAttribute("overview", overview);
-        
-        // Get some featured deals
-        UserPreferences defaultPrefs = thriftAIService.getDefaultUserPreferences(null);
-        List<Deal> featuredDeals = thriftAIService.findBestDeals(defaultPrefs, 6);
-        model.addAttribute("featuredDeals", featuredDeals);
-        
-        // Get all products with filtering capabilities
-        List<Product> products;
-        if (search != null && !search.trim().isEmpty()) {
-            products = thriftAIService.searchProducts(search, category);
-            model.addAttribute("searchQuery", search);
-        } else if (category != null && !category.trim().isEmpty()) {
-            products = thriftAIService.getProductsByCategory(category);
-            model.addAttribute("selectedCategory", category);
-        } else {
-            products = thriftAIService.getAllAvailableProducts();
+        try {
+            // Get platform overview for homepage
+            Map<String, Object> overview = thriftAIService.getPlatformOverview();
+            model.addAttribute("overview", overview);
+        } catch (Exception e) {
+            // Log error but continue with basic homepage
+            System.err.println("Error getting platform overview: " + e.getMessage());
         }
         
-        // Filter by brand if specified
-        if (brand != null && !brand.trim().isEmpty()) {
-            products = products.stream()
-                    .filter(p -> brand.equals(p.getBrand()))
-                    .toList();
-            model.addAttribute("selectedBrand", brand);
+        try {
+            // Get some featured deals
+            UserPreferences defaultPrefs = thriftAIService.getDefaultUserPreferences(null);
+            List<Deal> featuredDeals = thriftAIService.findBestDeals(defaultPrefs, 6);
+            model.addAttribute("featuredDeals", featuredDeals);
+        } catch (Exception e) {
+            System.err.println("Error getting featured deals: " + e.getMessage());
         }
         
-        // Limit products if specified
-        if (products.size() > limit) {
-            products = products.stream().limit(limit).toList();
+        try {
+            // Get all products with filtering capabilities
+            List<Product> products;
+            if (search != null && !search.trim().isEmpty()) {
+                products = thriftAIService.searchProducts(search, category);
+                model.addAttribute("searchQuery", search);
+            } else if (category != null && !category.trim().isEmpty()) {
+                products = thriftAIService.getProductsByCategory(category);
+                model.addAttribute("selectedCategory", category);
+            } else {
+                products = thriftAIService.getAllAvailableProducts();
+            }
+            
+            // Filter by brand if specified
+            if (brand != null && !brand.trim().isEmpty()) {
+                products = products.stream()
+                        .filter(p -> brand.equals(p.getBrand()))
+                        .toList();
+                model.addAttribute("selectedBrand", brand);
+            }
+            
+            // Limit products if specified
+            if (products.size() > limit) {
+                products = products.stream().limit(limit).toList();
+            }
+            
+            model.addAttribute("products", products);
+            model.addAttribute("categories", thriftAIService.getAllCategories());
+            model.addAttribute("brands", thriftAIService.getAllBrands());
+            
+            // Get AI deals as well
+            UserPreferences defaultPrefs = thriftAIService.getDefaultUserPreferences(null);
+            List<Deal> aiDeals = thriftAIService.findBestDealsWithAI(defaultPrefs, 8);
+            model.addAttribute("aiDeals", aiDeals);
+            
+        } catch (Exception e) {
+            System.err.println("Error getting products: " + e.getMessage());
         }
-        
-        model.addAttribute("products", products);
-        model.addAttribute("categories", thriftAIService.getAllCategories());
-        model.addAttribute("brands", thriftAIService.getAllBrands());
-        
-        // Get AI deals as well
-        List<Deal> aiDeals = thriftAIService.findBestDealsWithAI(defaultPrefs, 8);
-        model.addAttribute("aiDeals", aiDeals);
         
         return "index";
     }

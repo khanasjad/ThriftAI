@@ -13,6 +13,103 @@
     
     <!-- Font Awesome for icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    
+    <!-- Custom Styles for Claude-like Interface -->
+    <style>
+        .claude-hero {
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: radial-gradient(ellipse at center, rgba(0,212,255,0.1) 0%, transparent 70%);
+        }
+        
+        .claude-search-container {
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .claude-input-area {
+            position: relative;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(0,212,255,0.3);
+            border-radius: 25px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .claude-input-area:focus-within {
+            border-color: #00d4ff;
+            box-shadow: 0 0 30px rgba(0,212,255,0.4);
+        }
+        
+        .claude-textarea {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            padding: 1.5rem;
+            resize: none;
+            min-height: 120px;
+        }
+        
+        .claude-textarea:focus {
+            outline: none;
+        }
+        
+        .claude-textarea::placeholder {
+            color: rgba(255,255,255,0.6);
+            font-style: italic;
+        }
+        
+        .claude-send-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .claude-send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0,212,255,0.4);
+        }
+        
+        .claude-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+        
+        .claude-suggestion {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(0,212,255,0.3);
+            color: #00d4ff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .claude-suggestion:hover {
+            background: rgba(0,212,255,0.2);
+            transform: translateY(-2px);
+            border-color: #00d4ff;
+        }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -31,23 +128,28 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link active" th:href="@{/}">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/sellers}">
-                            <i class="fas fa-store me-1"></i>Sellers
+                            <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>AI Search
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/buyers/search}">
-                            <i class="fas fa-search me-1"></i>AI Search
+                            <i class="fas fa-search-plus me-2"></i>Advanced Search
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/sellers}">
+                            <i class="fas fa-store me-2"></i>Sellers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/buyers}">
+                            <i class="fas fa-users me-2"></i>Buyers
                         </a>
                     </li>
                 </ul>
                 
                 <!-- Login/Signup Buttons -->
-                <div class="navbar-nav ms-auto">
+                <div th:if="${session.user == null}" class="navbar-nav ms-auto">
                     <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">
                         <i class="fas fa-sign-in-alt me-1"></i>Login
                     </button>
@@ -55,296 +157,54 @@
                         <i class="fas fa-user-plus me-1"></i>Sign Up
                     </button>
                 </div>
+                
+                <ul th:if="${session.user != null}" class="navbar-nav">
+                    <li th:if="${session.user != null}" class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-2"></i>
+                            <span th:if="${session.userType == 'buyer'}">User</span>
+                            <span th:if="${session.userType == 'seller'}">User</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Preferences</a></li>
+                            <li><a class="dropdown-item" th:href="@{/auth/logout}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
     <main class="py-4">
-        <div class="container">
-            <!-- GPT Search Section - New Addition -->
-            <div class="hero-section mb-5">
-                <h1 class="text-center mb-4">
-                    <i class="fas fa-robot me-2 text-primary"></i>
-                    Smart ThriftAI Search
+        <!-- Claude-like AI Search Hero Section -->
+        <div class="claude-hero">
+            <div class="claude-search-container">
+                <h1 class="display-3 fw-light mb-4">
+                    How can <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">ThriftAI</span> help you today?
                 </h1>
-                <p class="text-center text-muted mb-4 lead">Ask me anything about products using natural language</p>
                 
-                <!-- GPT Search Form -->
-                <div class="row justify-content-center mb-4">
-                    <div class="col-lg-8">
-                        <div class="card border-0" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;">
-                            <div class="card-body p-4">
-                                <form method="get" action="/" class="d-flex gap-3 align-items-end">
-                                    <div class="flex-grow-1">
-                                        <label for="gpt-search" class="form-label">
-                                            <i class="fas fa-magic me-2"></i>GPT Search
-                                        </label>
-                                        <input type="text" 
-                                               id="gpt-search"
-                                               name="search" 
-                                               class="form-control form-control-lg" 
-                                               th:value="${searchQuery}"
-                                               placeholder="Try: 'Find me affordable vintage leather jackets' or 'Show electronics under $100'"
-                                               autocomplete="off">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="fas fa-search me-2"></i>Search
-                                    </button>
-                                </form>
-                                
-                                <div class="mt-3 d-flex justify-content-center gap-2 flex-wrap">
-                                    <span class="badge bg-secondary">
-                                        <i class="fas fa-lightbulb me-1"></i>Smart Suggestions
-                                    </span>
-                                    <span class="badge bg-info">
-                                        <i class="fas fa-filter me-1"></i>Instant Filtering
-                                    </span>
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-chart-line me-1"></i>AI Recommendations
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Platform Overview -->
-            <div class="row mb-5" th:if="${overview}">
-                <div class="col-12 text-center mb-4">
-                    <h2 class="mb-3">Platform Overview</h2>
-                    <p class="text-muted">Real-time marketplace insights</p>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <div class="stat-card">
-                        <h3 th:text="${overview.totalProducts}">0</h3>
-                        <p class="mb-0">Total Products</p>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <div class="stat-card">
-                        <h3 th:text="${overview.totalCategories}">0</h3>
-                        <p class="mb-0">Categories</p>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <div class="stat-card">
-                        <h3 th:text="${overview.totalBrands}">0</h3>
-                        <p class="mb-0">Brands</p>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <div class="stat-card">
-                        <h3><span th:text="${overview.averageDiscount}">0</span>%</h3>
-                        <p class="mb-0">Avg Discount</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Featured Deals -->
-            <div class="row mb-5" th:if="${featuredDeals != null and !featuredDeals.isEmpty()}">
-                <div class="col-12 text-center mb-4">
-                    <h2 class="mb-3">Featured Deals</h2>
-                    <p class="text-muted">Hand-picked best value deals</p>
-                </div>
-                <div class="col-lg-4 col-md-6 mb-4" th:each="deal : ${featuredDeals}">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <span th:text="${deal.dealQuality}">Quality</span>
-                                <span class="badge bg-info float-end">
-                                    AI: <span th:text="${#numbers.formatDecimal(deal.dealScore, 1, 0)}">0</span>
-                                </span>
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title" th:text="${deal.product.name}">Product Name</h5>
-                            <p class="text-muted" th:text="${deal.product.description}">Description</p>
-                            
-                            <div class="mb-3">
-                                <span class="badge bg-secondary me-1" th:text="${deal.product.category}">Category</span>
-                                <span class="badge bg-info me-1" th:text="${deal.product.brand}" th:if="${deal.product.brand}">Brand</span>
-                                <span class="badge bg-success" th:text="${deal.product.condition}">Condition</span>
-                            </div>
-
-                            <div class="pricing mb-3">
-                                <h4 class="text-primary mb-1">$<span th:text="${#numbers.formatDecimal(deal.product.price, 1, 2)}">0</span></h4>
-                                <div th:if="${deal.product.originalPrice > 0}">
-                                    <span class="text-muted text-decoration-line-through">
-                                        $<span th:text="${#numbers.formatDecimal(deal.product.originalPrice, 1, 2)}">0</span>
-                                    </span>
-                                    <span class="badge bg-danger ms-2">
-                                        <span th:text="${#numbers.formatDecimal((deal.product.originalPrice - deal.product.price) / deal.product.originalPrice * 100, 1, 0)}">0</span>% OFF
-                                    </span>
-                                </div>
-                            </div>
-
-                            <p class="card-text text-success">
-                                <i class="fas fa-lightbulb me-1"></i>
-                                <span th:text="${deal.dealReason}">Deal reason</span>
-                            </p>
-                        </div>
-                        <div class="card-footer">
-                            <a th:href="@{'/products/' + ${deal.product.id}}" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-eye me-1"></i>View Deal
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Product Search and Filter Section -->
-            <div class="row mb-5">
-                <div class="col-12">
-                    <h2 class="text-center mb-4">Browse Products</h2>
+                <p class="lead text-muted mb-5">Ask me anything about thrift shopping, products, or deals</p>
+                
+                <!-- Claude-style Input Area -->
+                <div class="claude-input-area">
+                    <textarea id="claudeInput" 
+                              class="form-control claude-textarea" 
+                              placeholder="What are you looking for? Try asking: 'Find me a vintage leather jacket under $50' or 'Show me the best tech deals this week'..."
+                              rows="3"></textarea>
                     
-                    <!-- Search and Filter Controls -->
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <form method="get" action="/" class="row g-3">
-                                <div class="col-md-4">
-                                    <label for="search" class="form-label">Search Products</label>
-                                    <input type="text" class="form-control" id="search" name="search" 
-                                           th:value="${searchQuery}" placeholder="Search for products...">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="category" class="form-label">Category</label>
-                                    <select class="form-select" id="category" name="category">
-                                        <option value="">All Categories</option>
-                                        <option th:each="cat : ${categories}" 
-                                                th:value="${cat}" 
-                                                th:text="${cat}"
-                                                th:selected="${selectedCategory == cat}">Category</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="brand" class="form-label">Brand</label>
-                                    <select class="form-select" id="brand" name="brand">
-                                        <option value="">All Brands</option>
-                                        <option th:each="brandItem : ${brands}" 
-                                                th:value="${brandItem}" 
-                                                th:text="${brandItem}"
-                                                th:selected="${selectedBrand == brandItem}">Brand</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="limit" class="form-label">Show</label>
-                                    <select class="form-select" id="limit" name="limit">
-                                        <option value="12" th:selected="${param.limit == null or param.limit[0] == '12'}">12 items</option>
-                                        <option value="24" th:selected="${param.limit != null and param.limit[0] == '24'}">24 items</option>
-                                        <option value="48" th:selected="${param.limit != null and param.limit[0] == '48'}">48 items</option>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-primary me-2">
-                                        <i class="fas fa-search me-2"></i>Search
-                                    </button>
-                                    <a href="/" class="btn btn-outline-secondary">
-                                        <i class="fas fa-times me-2"></i>Clear Filters
-                                    </a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Products Grid -->
-                    <div class="row" th:if="${products != null and !products.isEmpty()}">
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-4" th:each="product : ${products}">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title" th:text="${product.name}">Product Name</h5>
-                                    <p class="text-muted small" th:text="${product.description}">Description</p>
-                                    
-                                    <div class="mb-3">
-                                        <span class="badge bg-secondary me-1" th:text="${product.category}">Category</span>
-                                        <span class="badge bg-info me-1" th:text="${product.brand}" th:if="${product.brand}">Brand</span>
-                                        <span class="badge bg-success" th:text="${product.condition}">Condition</span>
-                                    </div>
-
-                                    <div class="pricing mb-3">
-                                        <h4 class="text-primary mb-1">$<span th:text="${#numbers.formatDecimal(product.price, 1, 2)}">0</span></h4>
-                                        <div th:if="${product.originalPrice > 0 and product.originalPrice > product.price}">
-                                            <span class="text-muted text-decoration-line-through">
-                                                $<span th:text="${#numbers.formatDecimal(product.originalPrice, 1, 2)}">0</span>
-                                            </span>
-                                            <span class="badge bg-danger ms-2">
-                                                <span th:text="${#numbers.formatDecimal((product.originalPrice - product.price) / product.originalPrice * 100, 1, 0)}">0</span>% OFF
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-footer">
-                                    <a th:href="@{'/products/' + ${product.id}}" class="btn btn-outline-primary w-100">
-                                        <i class="fas fa-eye me-1"></i>View Details
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- No Products Message -->
-                    <div th:if="${products == null or products.isEmpty()}" class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h4 class="text-muted">No products found</h4>
-                        <p class="text-muted">Try adjusting your search criteria or browse all products.</p>
-                        <a href="/" class="btn btn-primary">
-                            <i class="fas fa-arrow-left me-2"></i>Browse All Products
-                        </a>
-                    </div>
+                    <button id="claudeSendBtn" class="claude-send-btn" type="button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                 </div>
-            </div>
-
-            <!-- AI Deals Section -->
-            <div class="row mb-5" th:if="${aiDeals != null and !aiDeals.isEmpty()}">
-                <div class="col-12 text-center mb-4">
-                    <h2 class="mb-3">AI-Enhanced Deals</h2>
-                    <p class="text-muted">Advanced AI recommendations for the best value</p>
-                </div>
-                <div class="col-lg-4 col-md-6 mb-4" th:each="deal : ${aiDeals}">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-robot me-2"></i>
-                                <span th:text="${deal.dealQuality}">Quality</span>
-                                <span class="badge bg-success float-end">
-                                    AI: <span th:text="${#numbers.formatDecimal(deal.dealScore, 1, 1)}">0</span>/100
-                                </span>
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title" th:text="${deal.product.name}">Product Name</h5>
-                            <p class="text-muted small" th:text="${deal.product.description}">Description</p>
-                            
-                            <div class="mb-3">
-                                <span class="badge bg-secondary me-1" th:text="${deal.product.category}">Category</span>
-                                <span class="badge bg-info me-1" th:text="${deal.product.brand}" th:if="${deal.product.brand}">Brand</span>
-                                <span class="badge bg-success" th:text="${deal.product.condition}">Condition</span>
-                            </div>
-
-                            <div class="pricing mb-3">
-                                <h4 class="text-primary mb-1">$<span th:text="${#numbers.formatDecimal(deal.product.price, 1, 2)}">0</span></h4>
-                                <div th:if="${deal.product.originalPrice > 0}">
-                                    <span class="text-muted text-decoration-line-through">
-                                        $<span th:text="${#numbers.formatDecimal(deal.product.originalPrice, 1, 2)}">0</span>
-                                    </span>
-                                    <span class="badge bg-danger ms-2">
-                                        <span th:text="${#numbers.formatDecimal((deal.product.originalPrice - deal.product.price) / deal.product.originalPrice * 100, 1, 0)}">0</span>% OFF
-                                    </span>
-                                </div>
-                            </div>
-
-                            <p class="card-text text-success small">
-                                <i class="fas fa-lightbulb me-1"></i>
-                                <span th:text="${deal.dealReason}">Deal reason</span>
-                            </p>
-                        </div>
-                        <div class="card-footer">
-                            <a th:href="@{'/products/' + ${deal.product.id}}" class="btn btn-outline-success w-100">
-                                <i class="fas fa-eye me-1"></i>View Details
-                            </a>
-                        </div>
-                    </div>
+                
+                <!-- Quick Suggestions -->
+                <div class="claude-suggestions">
+                    <span class="claude-suggestion" onclick="askClaude('Find me vintage designer items')">Vintage designer items</span>
+                    <span class="claude-suggestion" onclick="askClaude('Best deals under $25')">Best deals under $25</span>
+                    <span class="claude-suggestion" onclick="askClaude('Sustainable fashion options')">Sustainable fashion</span>
+                    <span class="claude-suggestion" onclick="askClaude('Electronics and gadgets')">Electronics & gadgets</span>
+                    <span class="claude-suggestion" onclick="askClaude('Help me find a gift')">Help me find a gift</span>
                 </div>
             </div>
         </div>
@@ -368,248 +228,18 @@
         </div>
     </footer>
 
-    <!-- Login Modal -->
-    <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark border-0 shadow-lg">
-                <div class="modal-header border-0 pb-1">
-                    <h5 class="modal-title text-white">
-                        <i class="fas fa-sign-in-alt me-2 text-primary"></i>Welcome Back
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body px-4 pb-4">
-                    <form class="login-form">
-                        <div class="form-floating mb-3">
-                            <input type="email" class="form-control bg-transparent border-secondary text-white" id="loginEmail" placeholder="name@example.com" required>
-                            <label for="loginEmail" class="text-muted">
-                                <i class="fas fa-envelope me-2"></i>Email address
-                            </label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control bg-transparent border-secondary text-white" id="loginPassword" placeholder="Password" required>
-                            <label for="loginPassword" class="text-muted">
-                                <i class="fas fa-lock me-2"></i>Password
-                            </label>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="rememberMe">
-                                <label class="form-check-label text-muted small" for="rememberMe">
-                                    Remember me
-                                </label>
-                            </div>
-                            <a href="#" class="text-primary text-decoration-none small">
-                                Forgot password?
-                            </a>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100 mb-3 btn-lg">
-                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                        </button>
-                        <div class="text-center">
-                            <span class="text-muted small">Don't have an account? </span>
-                            <a href="#" class="text-primary text-decoration-none" data-bs-toggle="modal" data-bs-target="#signupModal" data-bs-dismiss="modal">
-                                Create one
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Signup Modal -->
-    <div class="modal fade" id="signupModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content bg-dark border-0 shadow-lg">
-                <div class="modal-header border-0 pb-1">
-                    <h5 class="modal-title text-white">
-                        <i class="fas fa-user-plus me-2 text-primary"></i>Join ThriftAI
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body px-4 pb-4">
-                    <!-- Account Type Selection -->
-                    <div class="account-type-selector mb-4">
-                        <div class="row g-3">
-                            <div class="col-6">
-                                <input type="radio" class="btn-check" name="accountType" id="buyerAccount" autocomplete="off" checked>
-                                <label class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3" for="buyerAccount">
-                                    <i class="fas fa-shopping-bag fa-2x mb-2"></i>
-                                    <span class="fw-bold">I'm a Buyer</span>
-                                    <small class="text-muted">Find amazing deals</small>
-                                </label>
-                            </div>
-                            <div class="col-6">
-                                <input type="radio" class="btn-check" name="accountType" id="sellerAccount" autocomplete="off">
-                                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3" for="sellerAccount">
-                                    <i class="fas fa-store fa-2x mb-2"></i>
-                                    <span class="fw-bold">I'm a Seller</span>
-                                    <small class="text-muted">List and sell items</small>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Signup Form -->
-                    <form class="signup-form">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <input type="text" class="form-control bg-transparent border-secondary text-white" id="firstName" placeholder="First Name" required>
-                                    <label for="firstName" class="text-muted">
-                                        <i class="fas fa-user me-2"></i>First Name
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <input type="text" class="form-control bg-transparent border-secondary text-white" id="lastName" placeholder="Last Name" required>
-                                    <label for="lastName" class="text-muted">
-                                        <i class="fas fa-user me-2"></i>Last Name
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="email" class="form-control bg-transparent border-secondary text-white" id="signupEmail" placeholder="name@example.com" required>
-                            <label for="signupEmail" class="text-muted">
-                                <i class="fas fa-envelope me-2"></i>Email address
-                            </label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control bg-transparent border-secondary text-white" id="signupPassword" placeholder="Password" required>
-                            <label for="signupPassword" class="text-muted">
-                                <i class="fas fa-lock me-2"></i>Password
-                            </label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control bg-transparent border-secondary text-white" id="confirmPassword" placeholder="Confirm Password" required>
-                            <label for="confirmPassword" class="text-muted">
-                                <i class="fas fa-lock me-2"></i>Confirm Password
-                            </label>
-                        </div>
-                        
-                        <!-- Buyer specific fields -->
-                        <div id="buyerFields" class="buyer-fields">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="buyerCity" placeholder="City">
-                                        <label for="buyerCity" class="text-muted">
-                                            <i class="fas fa-map-marker-alt me-2"></i>City
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="tel" class="form-control bg-transparent border-secondary text-white" id="buyerPhone" placeholder="Phone">
-                                        <label for="buyerPhone" class="text-muted">
-                                            <i class="fas fa-phone me-2"></i>Phone (Optional)
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Seller specific fields -->
-                        <div id="sellerFields" class="seller-fields d-none">
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control bg-transparent border-secondary text-white" id="businessName" placeholder="Business Name">
-                                <label for="businessName" class="text-muted">
-                                    <i class="fas fa-building me-2"></i>Business Name
-                                </label>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="tel" class="form-control bg-transparent border-secondary text-white" id="sellerPhone" placeholder="Phone">
-                                        <label for="sellerPhone" class="text-muted">
-                                            <i class="fas fa-phone me-2"></i>Phone Number
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <select class="form-select bg-transparent border-secondary text-white" id="sellerType">
-                                            <option value="INDIVIDUAL">Individual</option>
-                                            <option value="BUSINESS">Business</option>
-                                            <option value="THRIFT_STORE">Thrift Store</option>
-                                            <option value="CONSIGNMENT_SHOP">Consignment Shop</option>
-                                        </select>
-                                        <label for="sellerType" class="text-muted">
-                                            <i class="fas fa-tag me-2"></i>Seller Type
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-check mb-4">
-                            <input class="form-check-input" type="checkbox" id="agreeTerms" required>
-                            <label class="form-check-label text-muted small" for="agreeTerms">
-                                I agree to the <a href="#" class="text-primary text-decoration-none">Terms of Service</a> 
-                                and <a href="#" class="text-primary text-decoration-none">Privacy Policy</a>
-                            </label>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary w-100 mb-3 btn-lg">
-                            <i class="fas fa-user-plus me-2"></i>Create Account
-                        </button>
-                        
-                        <div class="text-center">
-                            <span class="text-muted small">Already have an account? </span>
-                            <a href="#" class="text-primary text-decoration-none" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
-                                Sign in
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Bootstrap JS -->
     <script src="/webjars/jquery/3.7.1/jquery.min.js"></script>
     <script src="/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom JS -->
-    <script src="/js/main.js"></script>
-    
-    <!-- Account Type Toggle Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const buyerRadio = document.getElementById('buyerAccount');
-            const sellerRadio = document.getElementById('sellerAccount');
-            const buyerFields = document.getElementById('buyerFields');
-            const sellerFields = document.getElementById('sellerFields');
-            
-            function toggleAccountFields() {
-                if (buyerRadio.checked) {
-                    buyerFields.classList.remove('d-none');
-                    sellerFields.classList.add('d-none');
-                    // Update button colors
-                    buyerRadio.nextElementSibling.classList.remove('btn-outline-primary');
-                    buyerRadio.nextElementSibling.classList.add('btn-primary');
-                    sellerRadio.nextElementSibling.classList.remove('btn-secondary');
-                    sellerRadio.nextElementSibling.classList.add('btn-outline-secondary');
-                } else {
-                    buyerFields.classList.add('d-none');
-                    sellerFields.classList.remove('d-none');
-                    // Update button colors
-                    sellerRadio.nextElementSibling.classList.remove('btn-outline-secondary');
-                    sellerRadio.nextElementSibling.classList.add('btn-secondary');
-                    buyerRadio.nextElementSibling.classList.remove('btn-primary');
-                    buyerRadio.nextElementSibling.classList.add('btn-outline-primary');
-                }
+        function askClaude(query) {
+            const claudeInput = document.getElementById('claudeInput');
+            if (claudeInput) {
+                claudeInput.value = query;
+                claudeInput.focus();
             }
-            
-            buyerRadio.addEventListener('change', toggleAccountFields);
-            sellerRadio.addEventListener('change', toggleAccountFields);
-            
-            // Initialize
-            toggleAccountFields();
-        });
+        }
     </script>
 </body>
 </html>
