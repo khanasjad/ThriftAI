@@ -42,19 +42,27 @@ public class BuyerController {
 
     @GetMapping
     public String buyersHome(Model model) {
-        List<Buyer> recentBuyers = buyerRepository.findAll().stream()
-                .sorted((b1, b2) -> b2.getCreatedAt().compareTo(b1.getCreatedAt()))
-                .limit(8)
-                .toList();
+        // Add empty buyer for registration form
+        model.addAttribute("buyer", new Buyer());
         
-        model.addAttribute("recentBuyers", recentBuyers);
-        model.addAttribute("totalBuyers", buyerRepository.count());
-        model.addAttribute("activeBuyers", buyerRepository.countActiveBuyers());
-        model.addAttribute("verifiedBuyers", buyerRepository.countVerifiedBuyers());
-        
-        // Get top buyers
-        List<Buyer> topBuyers = buyerRepository.findByTotalSpentGreaterThanEqual(0.0).stream().limit(5).toList();
-        model.addAttribute("topBuyers", topBuyers);
+        try {
+            List<Buyer> recentBuyers = buyerRepository.findAll().stream()
+                    .sorted((b1, b2) -> b2.getCreatedAt().compareTo(b1.getCreatedAt()))
+                    .limit(8)
+                    .toList();
+            
+            model.addAttribute("recentBuyers", recentBuyers);
+            model.addAttribute("totalBuyers", buyerRepository.count());
+            model.addAttribute("activeBuyers", buyerRepository.countActiveBuyers());
+            model.addAttribute("verifiedBuyers", buyerRepository.countVerifiedBuyers());
+            
+            // Get top buyers
+            List<Buyer> topBuyers = buyerRepository.findByTotalSpentGreaterThanEqual(0.0).stream().limit(5).toList();
+            model.addAttribute("topBuyers", topBuyers);
+        } catch (Exception e) {
+            // If database operations fail, just show the registration form
+            System.err.println("Error fetching buyer data: " + e.getMessage());
+        }
         
         return "buyers/index";
     }
@@ -315,7 +323,7 @@ public class BuyerController {
                 .toList();
         model.addAttribute("featuredProducts", featuredProducts);
         
-        return "buyer-search";
+        return "standalone-search";
     }
 
     @PostMapping("/api/chat-search")
