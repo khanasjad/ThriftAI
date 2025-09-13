@@ -194,7 +194,7 @@ public class OrderService {
         order.put("productName", product.getName());
         order.put("productPrice", product.getPrice());
         order.put("buyerId", buyer.getId());
-        order.put("buyerName", buyer.getName());
+        order.put("buyerName", buyer.getFirstName() + " " + buyer.getLastName());
         order.put("buyerEmail", buyer.getEmail());
         order.put("orderDate", LocalDateTime.now());
         order.put("status", "PROCESSING");

@@ -282,8 +282,8 @@ public class ThriftAIService {
         double score = 0.0;
         
         // Category preference
-        if (prefs.getPreferredCategories().containsKey(product.getCategory())) {
-            score += prefs.getPreferredCategories().get(product.getCategory()) * 10;
+        if (prefs.getPreferredCategories() != null && prefs.getPreferredCategories().contains(product.getCategory())) {
+            score += 10;
         }
         
         // Brand preference
@@ -359,6 +359,26 @@ public class ThriftAIService {
         score += product.getDiscountPercentage() * 0.1;
         
         return score;
+    }
+
+    // Amazon-style "Similar Products" functionality
+    public List<Product> findSimilarProducts(Product baseProduct) {
+        return findSimilarProducts(baseProduct, 8); // Default limit of 8 similar products
+    }
+
+    public List<Product> findSimilarProducts(Product baseProduct, int limit) {
+        List<Product> allProducts = getAllAvailableProducts();
+        
+        return allProducts.stream()
+                .filter(p -> !p.getId().equals(baseProduct.getId()))
+                .filter(Product::isAvailable)
+                .sorted((p1, p2) -> {
+                    double similarity1 = calculateProductSimilarity(baseProduct, p1);
+                    double similarity2 = calculateProductSimilarity(baseProduct, p2);
+                    return Double.compare(similarity2, similarity1);
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     // Data initialization for demo

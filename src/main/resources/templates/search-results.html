@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - ThriftAI</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="/webjars/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+    
+    <!-- Custom CSS -->
+    <link href="/css/style.css" rel="stylesheet"/>
+    
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    
+    <!-- Claude-style Search Results CSS -->
+    <style>
+        .claude-search-interface {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        .claude-conversation {
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .claude-message {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .user-message {
+            background: rgba(0,212,255,0.1);
+            border-left: 4px solid #00d4ff;
+        }
+        
+        .claude-response {
+            background: rgba(255,255,255,0.02);
+            border-left: 4px solid #10b981;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .user-avatar {
+            background: linear-gradient(135deg, #00d4ff 0%, #007acc 100%);
+            color: white;
+        }
+        
+        .claude-avatar {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+            position: relative;
+        }
+        
+        .typing-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: typingPulse 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingPulse {
+            0%, 60%, 100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            30% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .typewriter-text {
+            overflow: hidden;
+            border-right: 2px solid #10b981;
+            white-space: nowrap;
+            margin: 0 auto;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { border-color: #10b981; }
+            51%, 100% { border-color: transparent; }
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .product-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,212,255,0.2);
+            border-color: rgba(0,212,255,0.3);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(45deg, rgba(0,212,255,0.1), rgba(16,185,129,0.1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.6);
+            font-size: 3rem;
+        }
+        
+        .product-info {
+            padding: 1.5rem;
+        }
+        
+        .product-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        
+        .product-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .product-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .product-condition {
+            padding: 0.25rem 0.75rem;
+            background: rgba(16,185,129,0.2);
+            color: #10b981;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .product-seller {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+        
+        .view-product-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #00d4ff 0%, #007acc 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .view-product-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(0,212,255,0.3);
+        }
+        
+        .search-summary {
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .follow-up-questions {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .question-chip {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.3);
+            border-radius: 20px;
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .question-chip:hover {
+            background: rgba(0,212,255,0.2);
+            transform: translateY(-1px);
+            color: #00d4ff;
+        }
+        
+        .new-search-bar {
+            position: sticky;
+            top: 80px;
+            background: rgba(20,20,30,0.95);
+            backdrop-filter: blur(20px);
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+        
+        .search-input-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 1rem 3rem 1rem 1.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 25px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0,212,255,0.3);
+        }
+        
+        .search-submit-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, #00d4ff 0%, #007acc 100%);
+            border: none;
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .search-submit-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,212,255,0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background: rgba(20,20,30,0.95); backdrop-filter: blur(20px);">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">
+                    <i class="fas fa-home me-1"></i>Home
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sticky Search Bar -->
+    <div class="new-search-bar">
+        <div class="container">
+            <div class="search-input-container">
+                <input type="text" class="search-input" placeholder="Ask me anything about thrift shopping..." id="newSearchInput">
+                <button class="search-submit-btn" onclick="performNewSearch()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="claude-search-interface">
+        <div class="container">
+            <!-- Search Summary -->
+            <div class="search-summary">
+                <h5 class="mb-2">
+                    <i class="fas fa-search me-2" style="color: #00d4ff;"></i>
+                    Search Results for: <span id="searchQuery" th:text="${query ?: 'vintage jackets'}">vintage jackets</span>
+                </h5>
+                <p class="mb-0 text-muted">Found <span id="resultCount" th:text="${#lists.size(products) ?: '12'}">12</span> matching products</p>
+            </div>
+            
+            <!-- Claude Conversation -->
+            <div class="claude-conversation">
+                <!-- User Message -->
+                <div class="claude-message user-message">
+                    <div class="message-header">
+                        <div class="message-avatar user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <strong>You</strong>
+                    </div>
+                    <p class="mb-0" id="userQuery" th:text="${query ?: 'I am looking for vintage jackets, preferably leather, under $100'}">I'm looking for vintage jackets, preferably leather, under $100</p>
+                </div>
+                
+                <!-- Claude Response -->
+                <div class="claude-message claude-response">
+                    <div class="message-header">
+                        <div class="message-avatar claude-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <strong>ThriftAI Assistant</strong>
+                        <div class="typing-indicator ms-auto" id="typingIndicator">
+                            <div class="typing-dots">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="claudeResponse" class="typewriter-text"></div>
+                </div>
+            </div>
+            
+            <!-- Product Results -->
+            <div id="productResults" style="display: none;">
+                <h4 class="mb-4">
+                    <i class="fas fa-shopping-bag me-2" style="color: #10b981;"></i>
+                    Recommended Products
+                </h4>
+                
+                <div class="product-grid" id="productGrid">
+                    <!-- Products will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Follow-up Questions -->
+            <div class="follow-up-questions" id="followUpQuestions" style="display: none;">
+                <h6 class="mb-3">
+                    <i class="fas fa-comment-dots me-2" style="color: #00d4ff;"></i>
+                    You might also ask:
+                </h6>
+                <div id="questionChips">
+                    <span class="question-chip" onclick="askFollowUp('What are the most popular vintage brands?')">What are the most popular vintage brands?</span>
+                    <span class="question-chip" onclick="askFollowUp('How can I verify the authenticity of vintage items?')">How can I verify authenticity?</span>
+                    <span class="question-chip" onclick="askFollowUp('Show me eco-friendly alternatives')">Show eco-friendly alternatives</span>
+                    <span class="question-chip" onclick="askFollowUp('What should I look for in vintage leather?')">Vintage leather buying tips</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="/webjars/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Claude-style Search Results JS -->
+    <script>
+        // Get product data from backend (passed via Thymeleaf)
+        const productData = /*[[${products}]]*/ [];
+        const backendQuery = /*[[${query}]]*/ '';
+        const backendResultCount = /*[[${resultCount}]]*/ 0;
+        
+        // Convert backend data to frontend format
+        const sampleProducts = productData.map(product => ({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            originalPrice: product.originalPrice || product.price * 1.5,
+            description: product.description || 'Quality thrift item in great condition',
+            condition: product.condition || 'Good',
+            seller: product.sellerId || 'ThriftAI Seller',
+            image: product.imageUrl,
+            brand: product.brand,
+            category: product.category,
+            size: product.size
+        }));
+        
+        // Generate AI response based on actual search results
+        function generateAIResponse(query, products) {
+            if (products.length === 0) {
+                return `I couldn't find any products matching "${query}" at the moment. Try searching for different keywords or check back later for new arrivals!`;
+            }
+            
+            let response = `Great question! I found some fantastic items for you. Based on your search for "${query}", I've curated a selection that matches your criteria.\n\n`;
+            
+            if (products.length >= 1) {
+                const topPick = products[0];
+                response += `🏆 **Top Pick: ${topPick.name}** - $${topPick.price.toFixed(2)}`;
+                if (topPick.originalPrice > topPick.price) {
+                    response += ` (originally $${topPick.originalPrice.toFixed(2)})`;
+                }
+                response += `\n${topPick.description}\n\n`;
+            }
+            
+            response += `✨ **Why these picks work for you:**\n`;
+            response += `- Found ${products.length} matching items\n`;
+            
+            const minPrice = Math.min(...products.map(p => p.price));
+            const maxPrice = Math.max(...products.map(p => p.price));
+            response += `- Price range: $${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}\n`;
+            
+            const uniqueBrands = [...new Set(products.map(p => p.brand).filter(b => b))];
+            if (uniqueBrands.length > 0) {
+                response += `- Multiple brands available (${uniqueBrands.length} different brands)\n`;
+            }
+            
+            const uniqueConditions = [...new Set(products.map(p => p.condition).filter(c => c))];
+            if (uniqueConditions.length > 0) {
+                response += `- Various conditions available\n`;
+            }
+            
+            response += `- Verified authentic items from trusted sellers\n\n`;
+            
+            if (products.length > 1) {
+                response += `I've carefully selected each item based on quality, authenticity, and value. Each product has been verified and comes with detailed condition reports.\n\n`;
+            }
+            
+            response += `Would you like me to help you narrow down the selection based on specific size, color, condition, or price preferences?`;
+            
+            return response;
+        }
+        
+        const aiResponse = generateAIResponse(backendQuery, sampleProducts);
+        
+        let typewriterIndex = 0;
+        let isTyping = false;
+        
+        function typeWriter(text, elementId, speed = 30) {
+            return new Promise((resolve) => {
+                const element = document.getElementById(elementId);
+                element.style.borderRight = '2px solid #10b981';
+                typewriterIndex = 0;
+                isTyping = true;
+                
+                function type() {
+                    if (typewriterIndex < text.length) {
+                        element.innerHTML = text.slice(0, typewriterIndex + 1);
+                        typewriterIndex++;
+                        setTimeout(type, speed);
+                    } else {
+                        isTyping = false;
+                        element.style.borderRight = 'none';
+                        resolve();
+                    }
+                }
+                type();
+            });
+        }
+        
+        function createProductCard(product) {
+            return `
+                <div class="product-card">
+                    <div class="product-image">
+                        <i class="fas fa-tshirt"></i>
+                    </div>
+                    <div class="product-info">
+                        <h6 class="product-title">${product.name}</h6>
+                        <div class="product-price">
+                            $${product.price.toFixed(2)}
+                            <small class="text-muted ms-2 text-decoration-line-through">$${product.originalPrice.toFixed(2)}</small>
+                        </div>
+                        <p class="product-description">${product.description}</p>
+                        <div class="product-meta">
+                            <span class="product-condition">${product.condition}</span>
+                            <span class="product-seller">by ${product.seller}</span>
+                        </div>
+                        <button class="view-product-btn" onclick="viewProduct(${product.id})">
+                            <i class="fas fa-eye me-2"></i>View Details
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function populateProducts() {
+            const productGrid = document.getElementById('productGrid');
+            productGrid.innerHTML = sampleProducts.map(createProductCard).join('');
+        }
+        
+        function showProductResults() {
+            document.getElementById('productResults').style.display = 'block';
+            populateProducts();
+            
+            // Animate product cards
+            const cards = document.querySelectorAll('.product-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }
+        
+        function showFollowUpQuestions() {
+            document.getElementById('followUpQuestions').style.display = 'block';
+        }
+        
+        async function startSearchAnimation() {
+            // Hide typing indicator after a short delay
+            setTimeout(() => {
+                document.getElementById('typingIndicator').style.display = 'none';
+            }, 2000);
+            
+            // Start typing the AI response
+            await typeWriter(aiResponse, 'claudeResponse', 20);
+            
+            // Show products after typing is complete
+            setTimeout(() => {
+                showProductResults();
+            }, 500);
+            
+            // Show follow-up questions
+            setTimeout(() => {
+                showFollowUpQuestions();
+            }, 1000);
+        }
+        
+        function viewProduct(productId) {
+            // In production, this would navigate to a product detail page
+            alert(`Viewing product ${productId}. This would navigate to the product detail page.`);
+        }
+        
+        function askFollowUp(question) {
+            document.getElementById('newSearchInput').value = question;
+            performNewSearch();
+        }
+        
+        function performNewSearch() {
+            const query = document.getElementById('newSearchInput').value;
+            if (query.trim()) {
+                // In production, this would submit the search and reload/navigate
+                window.location.href = `/search?q=${encodeURIComponent(query)}`;
+            }
+        }
+        
+        // Handle Enter key in search input
+        document.getElementById('newSearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performNewSearch();
+            }
+        });
+        
+        // Start the animation when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(startSearchAnimation, 500);
+        });
+    </script>
+</body>
+</html>

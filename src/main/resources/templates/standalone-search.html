@@ -752,6 +752,44 @@
             const countElement = document.getElementById('filterResultCount');
             countElement.textContent = `Found ${count} product${count !== 1 ? 's' : ''}`;
         }
+
+        // Handle search from homepage URL parameters
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            
+            if (query) {
+                // Set the search input value
+                const chatInput = document.getElementById('chatSearchInput');
+                if (chatInput) {
+                    chatInput.value = query;
+                }
+                
+                // Check if we have stored search results from homepage
+                const storedResults = sessionStorage.getItem('searchResults');
+                const storedQuery = sessionStorage.getItem('searchQuery');
+                
+                if (storedResults && storedQuery === query) {
+                    // Use the stored results from homepage search
+                    try {
+                        const data = JSON.parse(storedResults);
+                        displayChatResponse(data);
+                        displaySearchResults(data.products, 'AI Search Results for: ' + query);
+                        
+                        // Clear stored results
+                        sessionStorage.removeItem('searchResults');
+                        sessionStorage.removeItem('searchQuery');
+                    } catch (e) {
+                        console.error('Error parsing stored results:', e);
+                        // Fallback to new search
+                        performChatSearch(query);
+                    }
+                } else {
+                    // Perform new search
+                    performChatSearch(query);
+                }
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Modal Forms Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Testing Modal Forms Functionality</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        function logResult(test, success, message) {
+            const results = document.getElementById('results');
+            const color = success ? 'green' : 'red';
+            const status = success ? 'PASS' : 'FAIL';
+            results.innerHTML += `<p style="color: ${color};"><strong>${test}:</strong> ${status} - ${message}</p>`;
+        }
+        
+        async function testModalLoginEndpoint() {
+            try {
+                const response = await fetch('http://localhost:8080/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'email=test@example.com&password=TestPassword123!&userType=buyer'
+                });
+                
+                if (response.status === 200 || response.status === 302) {
+                    logResult('Modal Login Endpoint', true, 'Login endpoint accepts POST requests correctly');
+                } else {
+                    logResult('Modal Login Endpoint', false, `Unexpected response status: ${response.status}`);
+                }
+            } catch (error) {
+                logResult('Modal Login Endpoint', false, `Network error: ${error.message}`);
+            }
+        }
+        
+        async function testModalSignupEndpoint() {
+            try {
+                const response = await fetch('http://localhost:8080/auth/signup/buyer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'firstName=Test&lastName=User&email=newuser@example.com&password=TestPassword123!&phone=1234567890'
+                });
+                
+                if (response.status === 200 || response.status === 302) {
+                    logResult('Modal Signup Endpoint', true, 'Signup endpoint accepts POST requests correctly');
+                } else {
+                    logResult('Modal Signup Endpoint', false, `Unexpected response status: ${response.status}`);
+                }
+            } catch (error) {
+                logResult('Modal Signup Endpoint', false, `Network error: ${error.message}`);
+            }
+        }
+        
+        async function testPasswordValidation() {
+            try {
+                const response = await fetch('http://localhost:8080/auth/signup/buyer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'firstName=Test&lastName=User&email=weakuser@example.com&password=weak&phone=1234567890'
+                });
+                
+                const responseText = await response.text();
+                if (responseText.includes('Password must be at least 8 characters') || 
+                    responseText.includes('uppercase, lowercase, number and special character')) {
+                    logResult('Password Validation', true, 'Password validation is working correctly');
+                } else {
+                    logResult('Password Validation', false, 'Password validation may not be working');
+                }
+            } catch (error) {
+                logResult('Password Validation', false, `Network error: ${error.message}`);
+            }
+        }
+        
+        async function runTests() {
+            logResult('Test Started', true, 'Beginning modal forms functionality tests...');
+            
+            await testModalLoginEndpoint();
+            await testModalSignupEndpoint();
+            await testPasswordValidation();
+            
+            logResult('Tests Complete', true, 'All modal form tests completed');
+        }
+        
+        // Wait for page load then run tests
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runTests, 1000); // Wait 1 second for server to be ready
+        });
+    </script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import com.projectai.service.VisualSearchService;
 import com.projectai.service.PriceComparisonService;
 import com.projectai.service.ThriftAIService;
 import com.projectai.service.OrderService;
+import com.projectai.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,6 +48,48 @@ public class BuyerController {
     
     @Autowired
     private OrderService orderService;
+    
+    @Autowired
+    private ReviewService reviewService;
+    
+    // Add API endpoint for filter options
+    @GetMapping("/api/filter-options")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> getFilterOptions(
+            @RequestParam(required = false) String category) {
+        try {
+            java.util.Map<String, Object> options = new java.util.HashMap<>();
+            
+            // Get all available filter options
+            options.put("categories", productRepository.findDistinctCategories());
+            options.put("brands", category != null ? 
+                productRepository.findDistinctBrandsByCategory(category) : 
+                productRepository.findAllAvailableBrands());
+            options.put("conditions", productRepository.findDistinctConditions());
+            options.put("sizes", category != null ? 
+                productRepository.findDistinctSizesByCategory(category) : 
+                productRepository.findDistinctSizes());
+                
+            // Get price range
+            Double minPrice = category != null ? 
+                productRepository.findMinPriceByCategory(category) : 
+                productRepository.findMinPrice();
+            Double maxPrice = category != null ? 
+                productRepository.findMaxPriceByCategory(category) : 
+                productRepository.findMaxPrice();
+                
+            options.put("priceRange", java.util.Map.of(
+                "min", minPrice != null ? minPrice : 0.0,
+                "max", maxPrice != null ? maxPrice : 1000.0
+            ));
+            
+            return ResponseEntity.ok(options);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Failed to load filter options: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 
     @GetMapping
     public String buyersHome(Model model) {
@@ -307,7 +350,7 @@ public class BuyerController {
         return "buyers/orders";
     }
 
-    @GetMapping("/search")
+    @GetMapping("/search-page")
     public String searchPage(Model model) {
         model.addAttribute("pageTitle", "Smart Product Search");
         
@@ -529,6 +572,226 @@ public class BuyerController {
             return ResponseEntity.ok(recommendations);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/api/similar-products/{productId}")
+    @ResponseBody
+    public ResponseEntity<List<Product>> getSimilarProducts(@PathVariable String productId) {
+        try {
+            Product product = productRepository.findById(productId).orElse(null);
+            if (product == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            List<Product> similarProducts = thriftAIService.findSimilarProducts(product);
+            return ResponseEntity.ok(similarProducts);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/products/{productId}")
+    public String productDetail(@PathVariable String productId, Model model) {
+        Optional<Product> productOpt = productRepository.findById(productId);
+        
+        if (productOpt.isEmpty()) {
+            return "redirect:/buyers/search?error=product-not-found";
+        }
+        
+        model.addAttribute("product", productOpt.get());
+        return "product-detail";
+    }
+
+    // Review System API Endpoints
+    @GetMapping("/api/products/{productId}/reviews")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> getProductReviews(
+            @PathVariable String productId,
+            @RequestParam(defaultValue = "recent") String sortBy) {
+        try {
+            List<com.projectai.models.Review> reviews;
+            
+            switch (sortBy.toLowerCase()) {
+                case "helpful" -> reviews = reviewService.getProductReviewsSortedByHelpfulness(productId);
+                case "verified" -> reviews = reviewService.getVerifiedPurchaseReviews(productId);
+                case "photos" -> reviews = reviewService.getReviewsWithPhotos(productId);
+                default -> reviews = reviewService.getProductReviews(productId);
+            }
+            
+            java.util.Map<String, Object> reviewStats = reviewService.getProductReviewStats(productId);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("reviews", reviews);
+            response.put("stats", reviewStats);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Failed to load reviews: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping("/api/products/{productId}/reviews")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> createReview(
+            @PathVariable String productId,
+            @RequestParam String buyerId,
+            @RequestParam Integer rating,
+            @RequestParam String title,
+            @RequestParam String content,
+            @RequestParam(required = false) Integer conditionRating,
+            @RequestParam(required = false) Integer valueRating,
+            @RequestParam(required = false) Integer sellerRating) {
+        try {
+            com.projectai.models.Review review;
+            
+            if (conditionRating != null && valueRating != null && sellerRating != null) {
+                review = reviewService.createDetailedReview(productId, buyerId, rating, title, content,
+                        conditionRating, valueRating, sellerRating);
+            } else {
+                review = reviewService.createReview(productId, buyerId, rating, title, content);
+            }
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("review", review);
+            response.put("message", "Review submitted successfully and is pending approval");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Failed to create review: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping("/api/reviews/{reviewId}/helpful")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> markReviewHelpful(@PathVariable String reviewId) {
+        try {
+            com.projectai.models.Review review = reviewService.markReviewHelpful(reviewId);
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("helpfulVotes", review.getHelpfulVotes());
+            response.put("message", "Review marked as helpful");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Failed to mark review as helpful: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping("/api/reviews/{reviewId}/unhelpful")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> markReviewUnhelpful(@PathVariable String reviewId) {
+        try {
+            com.projectai.models.Review review = reviewService.markReviewUnhelpful(reviewId);
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("unhelpfulVotes", review.getUnhelpfulVotes());
+            response.put("message", "Review marked as unhelpful");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Failed to mark review as unhelpful: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping("/api/buyers/{buyerId}/reviews")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> getBuyerReviews(@PathVariable String buyerId) {
+        try {
+            List<com.projectai.models.Review> reviews = reviewService.getBuyerReviews(buyerId);
+            java.util.Map<String, Object> stats = reviewService.getBuyerReviewStats(buyerId);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("reviews", reviews);
+            response.put("stats", stats);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Failed to load buyer reviews: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping("/api/reviews/search")
+    @ResponseBody
+    public ResponseEntity<List<com.projectai.models.Review>> searchReviews(
+            @RequestParam String productId,
+            @RequestParam String query) {
+        try {
+            List<com.projectai.models.Review> reviews = reviewService.searchProductReviews(productId, query);
+            return ResponseEntity.ok(reviews);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    @GetMapping("/api/reviews/filter")
+    @ResponseBody
+    public ResponseEntity<List<com.projectai.models.Review>> filterReviewsByRating(
+            @RequestParam String productId,
+            @RequestParam(defaultValue = "1") Integer minRating,
+            @RequestParam(defaultValue = "5") Integer maxRating) {
+        try {
+            List<com.projectai.models.Review> reviews = reviewService.filterProductReviewsByRating(
+                    productId, minRating, maxRating);
+            return ResponseEntity.ok(reviews);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    @GetMapping("/search")
+    public String searchResults(@RequestParam(value = "q", required = false) String query, Model model) {
+        try {
+            List<Product> searchResults;
+            if (query == null || query.trim().isEmpty()) {
+                // Show all available products when no query is provided
+                searchResults = thriftAIService.getAllAvailableProducts();
+                query = ""; // Set empty string for template
+            } else {
+                searchResults = thriftAIService.searchProducts(query, null);
+            }
+            
+            model.addAttribute("query", query);
+            model.addAttribute("products", searchResults);
+            model.addAttribute("resultCount", searchResults.size());
+            
+            return "search-results";
+        } catch (Exception e) {
+            model.addAttribute("query", query);
+            model.addAttribute("products", java.util.Collections.emptyList());
+            model.addAttribute("resultCount", 0);
+            model.addAttribute("error", "Search failed. Please try again.");
+            return "search-results";
+        }
+    }
+    
+    @PostMapping("/api/claude-search")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> claudeSearch(@RequestBody java.util.Map<String, String> request) {
+        try {
+            String query = request.get("query");
+            if (query == null || query.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            List<Product> products = thriftAIService.searchProducts(query, null);
+            String aiResponse = chatGPTService.generateSearchResponse(query, products);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("query", query);
+            response.put("aiResponse", aiResponse);
+            response.put("products", products);
+            response.put("resultCount", products.size());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
         }
     }
 }

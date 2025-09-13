@@ -258,7 +258,7 @@ public class WebController {
         }
         
         // Discount impact
-        if (product.getOriginalPrice() != null && product.getOriginalPrice() > product.getPrice()) {
+        if (product.getOriginalPrice() > 0 && product.getOriginalPrice() > product.getPrice()) {
             double discount = (product.getOriginalPrice() - product.getPrice()) / product.getOriginalPrice();
             score += Math.min(discount * 25, 25); // Max 25 points for discount
         }
@@ -295,7 +295,7 @@ public class WebController {
             factors.add("Condition: " + product.getCondition());
         }
         
-        if (product.getOriginalPrice() != null && product.getOriginalPrice() > product.getPrice()) {
+        if (product.getOriginalPrice() > 0 && product.getOriginalPrice() > product.getPrice()) {
             double discount = (product.getOriginalPrice() - product.getPrice()) / product.getOriginalPrice() * 100;
             factors.add(String.format("Discount: %.1f%% off", discount));
         }
