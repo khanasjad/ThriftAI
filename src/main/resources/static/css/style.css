@@ -590,7 +590,7 @@ body {
     background: var(--glass-bg);
     border: 2px solid var(--border);
     border-radius: 12px;
-    color: var(--text-primary);
+    color: #ffffff !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: var(--backdrop-blur);
 }
@@ -600,6 +600,7 @@ body {
     border-color: var(--accent-blue);
     box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
     transform: translateY(-1px);
+    color: #ffffff !important;
 }
 
 .form-floating > label {
@@ -783,4 +784,37 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-purple);
+}
+
+/* Global Input Text Color Fix */
+input, 
+input[type="text"],
+input[type="email"], 
+input[type="password"], 
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+    color: #ffffff !important;
+}
+
+input:focus, 
+input[type="text"]:focus,
+input[type="email"]:focus, 
+input[type="password"]:focus, 
+input[type="tel"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+    color: #ffffff !important;
+}
+
+/* Floating label input styles */
+.glass-input,
+.floating-label-group input {
+    color: #ffffff !important;
+}
+
+.floating-label-group input:focus {
+    color: #ffffff !important;
 }

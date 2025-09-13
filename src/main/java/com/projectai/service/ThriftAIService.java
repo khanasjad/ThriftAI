@@ -44,6 +44,16 @@ public class ThriftAIService {
         }
     }
 
+    public List<Product> searchProductsWithFilters(String query, String category, String brand, 
+                                                 String condition, String size, Double minPrice, Double maxPrice) {
+        return productRepository.findWithFilters(query, category, brand, condition, size, minPrice, maxPrice);
+    }
+
+    public long countProductsWithFilters(String query, String category, String brand, 
+                                       String condition, String size, Double minPrice, Double maxPrice) {
+        return productRepository.countWithFilters(query, category, brand, condition, size, minPrice, maxPrice);
+    }
+
     public List<Product> getProductsByCategory(String category) {
         return productRepository.findByCategory(category);
     }
@@ -125,6 +135,44 @@ public class ThriftAIService {
         return productRepository.findAllAvailableBrands();
     }
 
+    public List<String> getAllSizes() {
+        return productRepository.findDistinctSizes();
+    }
+
+    public List<String> getSizesByCategory(String category) {
+        return productRepository.findDistinctSizesByCategory(category);
+    }
+
+    public List<String> getBrandsByCategory(String category) {
+        return productRepository.findDistinctBrandsByCategory(category);
+    }
+
+    public List<String> getAllConditions() {
+        return productRepository.findDistinctConditions();
+    }
+
+    public Map<String, Double> getPriceRange() {
+        Map<String, Double> priceRange = new HashMap<>();
+        priceRange.put("min", productRepository.findMinPrice());
+        priceRange.put("max", productRepository.findMaxPrice());
+        return priceRange;
+    }
+
+    public Map<String, Double> getPriceRangeByCategory(String category) {
+        Map<String, Double> priceRange = new HashMap<>();
+        priceRange.put("min", productRepository.findMinPriceByCategory(category));
+        priceRange.put("max", productRepository.findMaxPriceByCategory(category));
+        return priceRange;
+    }
+
+    public List<Product> getNewArrivals(int limit) {
+        return productRepository.findNewArrivals().stream().limit(limit).collect(Collectors.toList());
+    }
+
+    public List<Product> getBestDealsProducts(int limit) {
+        return productRepository.findBestDeals().stream().limit(limit).collect(Collectors.toList());
+    }
+
     public UserPreferences getDefaultUserPreferences(String userId) {
         // In a real app, this would fetch from user database
         UserPreferences prefs = new UserPreferences(userId != null ? userId : "default_user");
@@ -137,6 +185,180 @@ public class ThriftAIService {
         prefs.setMaxBudget(500.0);
         prefs.setMinDiscountThreshold(15.0);
         return prefs;
+    }
+
+    // Amazon-style recommendation algorithms
+    public List<Product> getPersonalizedRecommendations(String userId, int limit) {
+        UserPreferences prefs = getDefaultUserPreferences(userId);
+        List<Product> allProducts = getAllAvailableProducts();
+        
+        return allProducts.stream()
+                .filter(p -> prefs.matchesPreferences(p))
+                .sorted((p1, p2) -> {
+                    double score1 = calculateRecommendationScore(p1, prefs);
+                    double score2 = calculateRecommendationScore(p2, prefs);
+                    return Double.compare(score2, score1);
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    public List<Product> getFrequentlyBoughtTogether(Product baseProduct, int limit) {
+        // Simulate "Frequently bought together" algorithm
+        // In real implementation, this would analyze purchase history
+        String category = baseProduct.getCategory();
+        String brand = baseProduct.getBrand();
+        
+        return getAllAvailableProducts().stream()
+                .filter(p -> !p.getId().equals(baseProduct.getId()))
+                .filter(p -> p.getCategory().equals(category) || p.getBrand().equals(brand))
+                .filter(p -> Math.abs(p.getPrice() - baseProduct.getPrice()) <= baseProduct.getPrice() * 0.5) // Similar price range
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    public List<Product> getCustomersAlsoViewed(Product baseProduct, int limit) {
+        // Simulate "Customers who viewed this item also viewed" algorithm
+        return getProductsByCategory(baseProduct.getCategory()).stream()
+                .filter(p -> !p.getId().equals(baseProduct.getId()))
+                .filter(Product::isAvailable)
+                .sorted((p1, p2) -> {
+                    // Sort by similarity to base product
+                    double sim1 = calculateProductSimilarity(baseProduct, p1);
+                    double sim2 = calculateProductSimilarity(baseProduct, p2);
+                    return Double.compare(sim2, sim1);
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    public List<Product> getBestSellersInCategory(String category, int limit) {
+        // Simulate best sellers algorithm
+        return getProductsByCategory(category).stream()
+                .filter(Product::isAvailable)
+                .sorted((p1, p2) -> {
+                    // Sort by "popularity" - using discount percentage as proxy
+                    double pop1 = p1.getDiscountPercentage();
+                    double pop2 = p2.getDiscountPercentage();
+                    return Double.compare(pop2, pop1);
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    public List<Product> getRecentlyViewedRecommendations(List<String> recentlyViewedIds, int limit) {
+        // Simulate recommendations based on recently viewed items
+        if (recentlyViewedIds.isEmpty()) {
+            return getNewArrivals(limit);
+        }
+        
+        Set<String> categories = new HashSet<>();
+        Set<String> brands = new HashSet<>();
+        
+        // Analyze recently viewed items
+        for (String id : recentlyViewedIds) {
+            Product product = getProductById(id);
+            if (product != null) {
+                categories.add(product.getCategory());
+                if (product.getBrand() != null) {
+                    brands.add(product.getBrand());
+                }
+            }
+        }
+        
+        return getAllAvailableProducts().stream()
+                .filter(p -> !recentlyViewedIds.contains(p.getId()))
+                .filter(p -> categories.contains(p.getCategory()) || brands.contains(p.getBrand()))
+                .sorted((p1, p2) -> {
+                    double score1 = calculateRecentViewScore(p1, categories, brands);
+                    double score2 = calculateRecentViewScore(p2, categories, brands);
+                    return Double.compare(score2, score1);
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    private double calculateRecommendationScore(Product product, UserPreferences prefs) {
+        double score = 0.0;
+        
+        // Category preference
+        if (prefs.getPreferredCategories().containsKey(product.getCategory())) {
+            score += prefs.getPreferredCategories().get(product.getCategory()) * 10;
+        }
+        
+        // Brand preference
+        if (product.getBrand() != null && prefs.getPreferredBrands().contains(product.getBrand())) {
+            score += 8;
+        }
+        
+        // Size preference
+        if (product.getSize() != null && prefs.getPreferredSizes().contains(product.getSize())) {
+            score += 5;
+        }
+        
+        // Price preference
+        if (product.getPrice() <= prefs.getMaxBudget()) {
+            score += 7;
+        }
+        
+        // Discount preference
+        if (product.getDiscountPercentage() >= prefs.getMinDiscountThreshold()) {
+            score += product.getDiscountPercentage() * 0.2;
+        }
+        
+        // Condition bonus
+        if (product.getCondition() != null) {
+            switch (product.getCondition().toUpperCase()) {
+                case "EXCELLENT" -> score += 5;
+                case "VERY_GOOD" -> score += 4;
+                case "GOOD" -> score += 3;
+            }
+        }
+        
+        return score;
+    }
+
+    private double calculateProductSimilarity(Product base, Product target) {
+        double similarity = 0.0;
+        
+        // Category match
+        if (base.getCategory().equals(target.getCategory())) {
+            similarity += 0.4;
+        }
+        
+        // Brand match
+        if (base.getBrand() != null && base.getBrand().equals(target.getBrand())) {
+            similarity += 0.3;
+        }
+        
+        // Price similarity
+        double priceDiff = Math.abs(base.getPrice() - target.getPrice());
+        double priceAvg = (base.getPrice() + target.getPrice()) / 2;
+        similarity += Math.max(0, 0.2 - (priceDiff / priceAvg) * 0.2);
+        
+        // Condition similarity
+        if (base.getCondition() != null && base.getCondition().equals(target.getCondition())) {
+            similarity += 0.1;
+        }
+        
+        return similarity;
+    }
+
+    private double calculateRecentViewScore(Product product, Set<String> categories, Set<String> brands) {
+        double score = 0.0;
+        
+        if (categories.contains(product.getCategory())) {
+            score += 10;
+        }
+        
+        if (product.getBrand() != null && brands.contains(product.getBrand())) {
+            score += 8;
+        }
+        
+        // Add discount bonus
+        score += product.getDiscountPercentage() * 0.1;
+        
+        return score;
     }
 
     // Data initialization for demo

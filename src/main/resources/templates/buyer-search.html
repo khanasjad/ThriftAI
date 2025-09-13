@@ -27,7 +27,7 @@
             border: 2px solid rgba(0,212,255,0.3);
             border-radius: 25px;
             padding: 1rem 1.5rem;
-            color: var(--text-primary);
+            color: #ffffff !important;
             font-size: 1.1rem;
             transition: all 0.3s ease;
             resize: none;
@@ -38,6 +38,7 @@
             border-color: #00d4ff;
             box-shadow: 0 0 25px rgba(0,212,255,0.4);
             background: rgba(255,255,255,0.1);
+            color: #ffffff !important;
         }
         
         .ai-response {
@@ -190,11 +191,6 @@
                             <i class="fas fa-store me-2"></i>Sellers
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/buyers}">
-                            <i class="fas fa-users me-2"></i>Buyers
-                        </a>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -207,7 +203,7 @@
             <div class="row mb-4">
                 <div class="col-12 text-center">
                     <h1 class="display-4 fw-bold text-gradient-primary mb-3">
-                        <i class="fas fa-brain me-3"></i>AI-Powered Smart Search
+                        <i class="fas fa-search me-3"></i>Product Search
                     </h1>
                     <p class="lead text-muted">Tell me what you're looking for, upload an image, or browse by category</p>
                 </div>
@@ -218,7 +214,7 @@
                 <div class="col-12">
                     <div class="search-container">
                         <h3 class="mb-3">
-                            <i class="fas fa-comments me-2"></i>Chat with AI Assistant
+                            <i class="fas fa-search me-2"></i>Search Products
                         </h3>
                         <div class="row">
                             <div class="col-md-10">

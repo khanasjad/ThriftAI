@@ -58,4 +58,76 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     
     @Query("SELECT DISTINCT p.condition FROM Product p WHERE p.condition IS NOT NULL ORDER BY p.condition")
     List<String> findDistinctConditions();
+    
+    // Advanced filtering methods for Amazon-like search experience
+    @Query("SELECT p FROM Product p WHERE p.isAvailable = true AND " +
+           "(:query IS NULL OR :query = '' OR " +
+           "LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.brand) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.category) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
+           "(:category IS NULL OR :category = '' OR p.category = :category) AND " +
+           "(:brand IS NULL OR :brand = '' OR p.brand = :brand) AND " +
+           "(:condition IS NULL OR :condition = '' OR p.condition = :condition) AND " +
+           "(:size IS NULL OR :size = '' OR p.size = :size) AND " +
+           "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR p.price <= :maxPrice)")
+    List<Product> findWithFilters(@Param("query") String query,
+                                  @Param("category") String category,
+                                  @Param("brand") String brand,
+                                  @Param("condition") String condition,
+                                  @Param("size") String size,
+                                  @Param("minPrice") Double minPrice,
+                                  @Param("maxPrice") Double maxPrice);
+                                  
+    @Query("SELECT DISTINCT p.size FROM Product p WHERE p.isAvailable = true AND p.size IS NOT NULL AND p.size != '' ORDER BY p.size")
+    List<String> findDistinctSizes();
+    
+    @Query("SELECT DISTINCT p.size FROM Product p WHERE p.isAvailable = true AND p.category = :category AND p.size IS NOT NULL AND p.size != '' ORDER BY p.size")
+    List<String> findDistinctSizesByCategory(@Param("category") String category);
+    
+    @Query("SELECT DISTINCT p.brand FROM Product p WHERE p.isAvailable = true AND p.category = :category AND p.brand IS NOT NULL ORDER BY p.brand")
+    List<String> findDistinctBrandsByCategory(@Param("category") String category);
+    
+    // Price range analysis for dynamic filter ranges
+    @Query("SELECT MIN(p.price) FROM Product p WHERE p.isAvailable = true")
+    Double findMinPrice();
+    
+    @Query("SELECT MAX(p.price) FROM Product p WHERE p.isAvailable = true")
+    Double findMaxPrice();
+    
+    @Query("SELECT MIN(p.price) FROM Product p WHERE p.isAvailable = true AND p.category = :category")
+    Double findMinPriceByCategory(@Param("category") String category);
+    
+    @Query("SELECT MAX(p.price) FROM Product p WHERE p.isAvailable = true AND p.category = :category")
+    Double findMaxPriceByCategory(@Param("category") String category);
+    
+    // Popular/trending items
+    @Query("SELECT p FROM Product p WHERE p.isAvailable = true ORDER BY p.createdAt DESC")
+    List<Product> findNewArrivals();
+    
+    @Query("SELECT p FROM Product p WHERE p.isAvailable = true AND p.originalPrice > 0 " +
+           "ORDER BY ((p.originalPrice - p.price) / p.originalPrice) DESC")
+    List<Product> findBestDeals();
+    
+    // Count products with filters for result pagination
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.isAvailable = true AND " +
+           "(:query IS NULL OR :query = '' OR " +
+           "LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.brand) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.category) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
+           "(:category IS NULL OR :category = '' OR p.category = :category) AND " +
+           "(:brand IS NULL OR :brand = '' OR p.brand = :brand) AND " +
+           "(:condition IS NULL OR :condition = '' OR p.condition = :condition) AND " +
+           "(:size IS NULL OR :size = '' OR p.size = :size) AND " +
+           "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR p.price <= :maxPrice)")
+    long countWithFilters(@Param("query") String query,
+                         @Param("category") String category,
+                         @Param("brand") String brand,
+                         @Param("condition") String condition,
+                         @Param("size") String size,
+                         @Param("minPrice") Double minPrice,
+                         @Param("maxPrice") Double maxPrice);
 }

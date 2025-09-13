@@ -7,6 +7,8 @@ import com.projectai.repository.ProductRepository;
 import com.projectai.service.ChatGPTService;
 import com.projectai.service.VisualSearchService;
 import com.projectai.service.PriceComparisonService;
+import com.projectai.service.ThriftAIService;
+import com.projectai.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,32 +41,17 @@ public class BuyerController {
     
     @Autowired
     private PriceComparisonService priceComparisonService;
+    
+    @Autowired
+    private ThriftAIService thriftAIService;
+    
+    @Autowired
+    private OrderService orderService;
 
     @GetMapping
     public String buyersHome(Model model) {
-        // Add empty buyer for registration form
-        model.addAttribute("buyer", new Buyer());
-        
-        try {
-            List<Buyer> recentBuyers = buyerRepository.findAll().stream()
-                    .sorted((b1, b2) -> b2.getCreatedAt().compareTo(b1.getCreatedAt()))
-                    .limit(8)
-                    .toList();
-            
-            model.addAttribute("recentBuyers", recentBuyers);
-            model.addAttribute("totalBuyers", buyerRepository.count());
-            model.addAttribute("activeBuyers", buyerRepository.countActiveBuyers());
-            model.addAttribute("verifiedBuyers", buyerRepository.countVerifiedBuyers());
-            
-            // Get top buyers
-            List<Buyer> topBuyers = buyerRepository.findByTotalSpentGreaterThanEqual(0.0).stream().limit(5).toList();
-            model.addAttribute("topBuyers", topBuyers);
-        } catch (Exception e) {
-            // If database operations fail, just show the registration form
-            System.err.println("Error fetching buyer data: " + e.getMessage());
-        }
-        
-        return "buyers/index";
+        // Redirect to search page since buyers page is removed
+        return "redirect:/buyers/search";
     }
 
     @GetMapping("/register")
@@ -111,12 +98,20 @@ public class BuyerController {
         
         Buyer buyer = buyerOpt.get();
         model.addAttribute("buyer", buyer);
+        model.addAttribute("user", buyer); // For the dashboard template
         
         // Update last login
         buyer.setLastLoginAt(LocalDateTime.now());
         buyerRepository.save(buyer);
         
-        return "buyers/dashboard";
+        return "dashboard";
+    }
+
+    @GetMapping("/dashboard")
+    public String generalDashboard(Model model) {
+        // General dashboard without specific user (demo mode)
+        model.addAttribute("user", null);
+        return "dashboard";
     }
 
     @GetMapping("/profile/{buyerId}")
@@ -323,6 +318,13 @@ public class BuyerController {
                 .toList();
         model.addAttribute("featuredProducts", featuredProducts);
         
+        // Add filter options for Amazon-like experience
+        model.addAttribute("categories", thriftAIService.getAllCategories());
+        model.addAttribute("brands", thriftAIService.getAllBrands());
+        model.addAttribute("sizes", thriftAIService.getAllSizes());
+        model.addAttribute("conditions", thriftAIService.getAllConditions());
+        model.addAttribute("priceRange", thriftAIService.getPriceRange());
+        
         return "standalone-search";
     }
 
@@ -370,6 +372,45 @@ public class BuyerController {
         }
     }
 
+    @GetMapping("/api/advanced-search")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> advancedSearch(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String condition,
+            @RequestParam(required = false) String size,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice) {
+        
+        try {
+            List<Product> products = thriftAIService.searchProductsWithFilters(
+                query, category, brand, condition, size, minPrice, maxPrice);
+            
+            long totalCount = thriftAIService.countProductsWithFilters(
+                query, category, brand, condition, size, minPrice, maxPrice);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("products", products);
+            response.put("totalCount", totalCount);
+            response.put("filters", java.util.Map.of(
+                "query", query != null ? query : "",
+                "category", category != null ? category : "",
+                "brand", brand != null ? brand : "",
+                "condition", condition != null ? condition : "",
+                "size", size != null ? size : "",
+                "minPrice", minPrice != null ? minPrice : 0,
+                "maxPrice", maxPrice != null ? maxPrice : 0
+            ));
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Advanced search failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
     @GetMapping("/api/price-comparison/{productId}")
     @ResponseBody
     public ResponseEntity<java.util.Map<String, Object>> getPriceComparison(@PathVariable String productId) {
@@ -386,6 +427,85 @@ public class BuyerController {
         } catch (Exception e) {
             java.util.Map<String, Object> error = new java.util.HashMap<>();
             error.put("error", "Price comparison failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @GetMapping("/api/price-comparison/{productId}/real-time")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> getRealTimePriceUpdate(@PathVariable String productId) {
+        try {
+            Product product = productRepository.findById(productId).orElse(null);
+            if (product == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            java.util.Map<String, Object> update = priceComparisonService.getRealTimePriceUpdate(product);
+            return ResponseEntity.ok(update);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Real-time price update failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @GetMapping("/api/price-comparison/{productId}/competitor-analysis")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> getCompetitorAnalysis(@PathVariable String productId) {
+        try {
+            Product product = productRepository.findById(productId).orElse(null);
+            if (product == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            java.util.Map<String, Object> analysis = priceComparisonService.getCompetitorAnalysis(product);
+            return ResponseEntity.ok(analysis);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Competitor analysis failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @GetMapping("/api/price-comparison/{productId}/history")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> getPriceHistory(@PathVariable String productId) {
+        try {
+            Product product = productRepository.findById(productId).orElse(null);
+            if (product == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            java.util.Map<String, Object> history = priceComparisonService.getPriceHistory(product);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Price history failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @GetMapping("/api/price-alerts")
+    @ResponseBody
+    public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getPriceAlerts(
+            @RequestParam(required = false) String userId) {
+        try {
+            java.util.List<java.util.Map<String, Object>> alerts = priceComparisonService.getPriceAlerts(userId);
+            return ResponseEntity.ok(alerts);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/api/market-trends/{category}")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> getMarketTrends(@PathVariable String category) {
+        try {
+            java.util.Map<String, Object> trends = priceComparisonService.getMarketTrends(category);
+            return ResponseEntity.ok(trends);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Market trends failed: " + e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
     }

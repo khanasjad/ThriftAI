@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Arrays;
 
 @Service
 public class PriceComparisonService {
@@ -203,5 +204,215 @@ public class PriceComparisonService {
         trends.put("seasonalTrend", "Increasing demand");
         
         return trends;
+    }
+
+    public Map<String, Object> getRealTimePriceUpdate(Product product) {
+        // Simulate real-time price monitoring
+        Map<String, Object> update = new HashMap<>();
+        
+        List<Map<String, Object>> currentPrices = generateMockExternalPrices(product);
+        Map<String, Object> baseComparison = comparePrice(product);
+        
+        // Add real-time specific data
+        update.put("timestamp", System.currentTimeMillis());
+        update.put("product", Map.of(
+                "id", product.getId(),
+                "name", product.getName(),
+                "currentPrice", product.getPrice()
+        ));
+        
+        // Simulate price alerts
+        List<Map<String, String>> alerts = new ArrayList<>();
+        double minExternalPrice = currentPrices.stream()
+                .mapToDouble(p -> (Double) p.get("price"))
+                .min()
+                .orElse(product.getPrice());
+        
+        if (product.getPrice() < minExternalPrice * 0.8) {
+            alerts.add(Map.of(
+                    "type", "EXCELLENT_DEAL",
+                    "message", "🎉 Incredible deal! This is 20%+ below market price!",
+                    "urgency", "HIGH"
+            ));
+        } else if (product.getPrice() < minExternalPrice * 0.9) {
+            alerts.add(Map.of(
+                    "type", "GOOD_DEAL",
+                    "message", "👍 Great price! Below market average.",
+                    "urgency", "MEDIUM"
+            ));
+        }
+        
+        // Add price drop simulation
+        if (random.nextDouble() < 0.3) { // 30% chance of price drop alert
+            alerts.add(Map.of(
+                    "type", "PRICE_DROP",
+                    "message", "📉 Price dropped recently! Good time to buy.",
+                    "urgency", "MEDIUM"
+            ));
+        }
+        
+        update.put("alerts", alerts);
+        update.put("externalPrices", currentPrices);
+        update.put("analysis", baseComparison.get("priceAnalysis"));
+        update.put("savings", baseComparison.get("savings"));
+        
+        return update;
+    }
+
+    public Map<String, Object> getCompetitorAnalysis(Product product) {
+        // Detailed competitor analysis
+        Map<String, Object> analysis = new HashMap<>();
+        
+        List<Map<String, Object>> competitors = generateMockExternalPrices(product);
+        
+        // Calculate market position
+        double[] prices = competitors.stream()
+                .mapToDouble(c -> (Double) c.get("price"))
+                .toArray();
+        
+        double avgPrice = Arrays.stream(prices).average().orElse(product.getPrice());
+        double minPrice = Arrays.stream(prices).min().orElse(product.getPrice());
+        double maxPrice = Arrays.stream(prices).max().orElse(product.getPrice());
+        
+        analysis.put("marketPosition", Map.of(
+                "rank", calculatePriceRank(product.getPrice(), prices),
+                "percentile", calculatePercentile(product.getPrice(), prices),
+                "competitiveAdvantage", product.getPrice() < avgPrice ? "PRICE_LEADER" : "PREMIUM"
+        ));
+        
+        analysis.put("priceSpread", Map.of(
+                "minimum", minPrice,
+                "maximum", maxPrice,
+                "average", Math.round(avgPrice * 100.0) / 100.0,
+                "range", Math.round((maxPrice - minPrice) * 100.0) / 100.0
+        ));
+        
+        // Competitor insights
+        List<Map<String, Object>> insights = new ArrayList<>();
+        for (Map<String, Object> competitor : competitors) {
+            String source = (String) competitor.get("source");
+            double price = (Double) competitor.get("price");
+            double priceDiff = price - product.getPrice();
+            
+            if (Math.abs(priceDiff) > 5) {
+                insights.add(Map.of(
+                        "competitor", source,
+                        "priceDifference", Math.round(priceDiff * 100.0) / 100.0,
+                        "insight", priceDiff > 0 ? 
+                                "We're $" + String.format("%.2f", priceDiff) + " cheaper" :
+                                "They're $" + String.format("%.2f", -priceDiff) + " cheaper"
+                ));
+            }
+        }
+        
+        analysis.put("competitorInsights", insights);
+        analysis.put("lastUpdated", System.currentTimeMillis());
+        
+        return analysis;
+    }
+
+    public Map<String, Object> getPriceHistory(Product product) {
+        // Simulate price history data
+        Map<String, Object> history = new HashMap<>();
+        
+        List<Map<String, Object>> pricePoints = new ArrayList<>();
+        double basePrice = product.getPrice();
+        
+        // Generate 30 days of mock price history
+        for (int i = 30; i >= 0; i--) {
+            double variation = 0.9 + (random.nextDouble() * 0.2); // ±10% variation
+            double historicalPrice = basePrice * variation;
+            
+            pricePoints.add(Map.of(
+                    "date", System.currentTimeMillis() - (i * 24 * 60 * 60 * 1000L),
+                    "price", Math.round(historicalPrice * 100.0) / 100.0,
+                    "source", "ThriftAI"
+            ));
+        }
+        
+        history.put("priceHistory", pricePoints);
+        
+        // Calculate price trends
+        double firstPrice = (Double) pricePoints.get(0).get("price");
+        double lastPrice = (Double) pricePoints.get(pricePoints.size() - 1).get("price");
+        double trend = ((lastPrice - firstPrice) / firstPrice) * 100;
+        
+        history.put("trends", Map.of(
+                "thirtyDayChange", Math.round(trend * 100.0) / 100.0,
+                "direction", trend > 2 ? "INCREASING" : trend < -2 ? "DECREASING" : "STABLE",
+                "volatility", calculateVolatility(pricePoints)
+        ));
+        
+        // Price predictions
+        history.put("predictions", Map.of(
+                "nextWeek", Math.round((lastPrice * (1 + (trend / 100) * 0.25)) * 100.0) / 100.0,
+                "confidence", 0.7 + random.nextDouble() * 0.25,
+                "recommendation", trend < -5 ? "BUY_NOW" : trend > 5 ? "WAIT" : "NEUTRAL"
+        ));
+        
+        return history;
+    }
+
+    public List<Map<String, Object>> getPriceAlerts(String userId) {
+        // Simulate personalized price alerts
+        List<Map<String, Object>> alerts = new ArrayList<>();
+        
+        // Mock alerts for demo
+        alerts.add(Map.of(
+                "id", "alert_001",
+                "type", "PRICE_DROP",
+                "productName", "Nike Air Max Sneakers",
+                "previousPrice", 85.00,
+                "currentPrice", 65.00,
+                "savings", 20.00,
+                "timestamp", System.currentTimeMillis() - 3600000, // 1 hour ago
+                "urgency", "HIGH"
+        ));
+        
+        alerts.add(Map.of(
+                "id", "alert_002",
+                "type", "BACK_IN_STOCK",
+                "productName", "Vintage Levi's 501 Jeans",
+                "price", 45.99,
+                "timestamp", System.currentTimeMillis() - 1800000, // 30 min ago
+                "urgency", "MEDIUM"
+        ));
+        
+        return alerts;
+    }
+
+    private int calculatePriceRank(double price, double[] allPrices) {
+        long lowerCount = Arrays.stream(allPrices)
+                .filter(p -> p < price)
+                .count();
+        return (int) lowerCount + 1;
+    }
+
+    private double calculatePercentile(double price, double[] allPrices) {
+        long lowerCount = Arrays.stream(allPrices)
+                .filter(p -> p < price)
+                .count();
+        return (double) lowerCount / allPrices.length * 100;
+    }
+
+    private String calculateVolatility(List<Map<String, Object>> pricePoints) {
+        if (pricePoints.size() < 2) return "LOW";
+        
+        double[] prices = pricePoints.stream()
+                .mapToDouble(p -> (Double) p.get("price"))
+                .toArray();
+        
+        double mean = Arrays.stream(prices).average().orElse(0);
+        double variance = Arrays.stream(prices)
+                .map(p -> Math.pow(p - mean, 2))
+                .average()
+                .orElse(0);
+        
+        double stdDev = Math.sqrt(variance);
+        double coefficientOfVariation = stdDev / mean;
+        
+        if (coefficientOfVariation > 0.15) return "HIGH";
+        if (coefficientOfVariation > 0.08) return "MEDIUM";
+        return "LOW";
     }
 }

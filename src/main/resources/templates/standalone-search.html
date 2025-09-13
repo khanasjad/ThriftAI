@@ -190,11 +190,6 @@
                             <i class="fas fa-store me-2"></i>Sellers
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/buyers}">
-                            <i class="fas fa-users me-2"></i>Buyers
-                        </a>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -207,7 +202,7 @@
             <div class="row mb-4">
                 <div class="col-12 text-center">
                     <h1 class="display-4 fw-bold text-gradient-primary mb-3">
-                        <i class="fas fa-brain me-3"></i>AI-Powered Smart Search
+                        <i class="fas fa-search me-3"></i>Product Search
                     </h1>
                     <p class="lead text-muted">Tell me what you're looking for, upload an image, or browse by category</p>
                 </div>
@@ -218,7 +213,7 @@
                 <div class="col-12">
                     <div class="search-container">
                         <h3 class="mb-3">
-                            <i class="fas fa-comments me-2"></i>Chat with AI Assistant
+                            <i class="fas fa-search me-2"></i>Search Products
                         </h3>
                         <div class="row">
                             <div class="col-md-10">
@@ -247,6 +242,80 @@
                         <!-- AI Response Area -->
                         <div id="aiResponseArea" style="display: none;">
                             <div class="ai-response" id="aiResponse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Filters -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="search-container">
+                        <h3 class="mb-3">
+                            <i class="fas fa-filter me-2"></i>Advanced Filters
+                        </h3>
+                        <div class="row">
+                            <!-- Category Filter -->
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" id="categoryFilter">
+                                    <option value="">All Categories</option>
+                                    <option th:each="category : ${categories}" th:value="${category}" th:text="${category}"></option>
+                                </select>
+                            </div>
+                            
+                            <!-- Brand Filter -->
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Brand</label>
+                                <select class="form-select" id="brandFilter">
+                                    <option value="">All Brands</option>
+                                    <option th:each="brand : ${brands}" th:value="${brand}" th:text="${brand}"></option>
+                                </select>
+                            </div>
+                            
+                            <!-- Condition Filter -->
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Condition</label>
+                                <select class="form-select" id="conditionFilter">
+                                    <option value="">All Conditions</option>
+                                    <option th:each="condition : ${conditions}" th:value="${condition}" th:text="${condition}"></option>
+                                </select>
+                            </div>
+                            
+                            <!-- Size Filter -->
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Size</label>
+                                <select class="form-select" id="sizeFilter">
+                                    <option value="">All Sizes</option>
+                                    <option th:each="size : ${sizes}" th:value="${size}" th:text="${size}"></option>
+                                </select>
+                            </div>
+                            
+                            <!-- Price Range -->
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Min Price</label>
+                                <input type="number" class="form-control" id="minPriceFilter" placeholder="$0" 
+                                       th:min="0" th:max="${priceRange?.max}" step="1">
+                            </div>
+                            
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Max Price</label>
+                                <input type="number" class="form-control" id="maxPriceFilter" placeholder="Any" 
+                                       th:min="0" th:max="${priceRange?.max}" step="1">
+                            </div>
+                        </div>
+                        
+                        <!-- Filter Actions -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button class="btn btn-primary me-2" onclick="applyFilters()">
+                                    <i class="fas fa-search me-2"></i>Apply Filters
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                                    <i class="fas fa-times me-2"></i>Clear All
+                                </button>
+                                <span class="ms-3 text-muted" id="filterResultCount"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -632,6 +701,57 @@
                 }
             }
         });
+
+        // Advanced Filter Functions
+        function applyFilters() {
+            const filters = {
+                query: document.getElementById('chatSearchInput').value.trim(),
+                category: document.getElementById('categoryFilter').value,
+                brand: document.getElementById('brandFilter').value,
+                condition: document.getElementById('conditionFilter').value,
+                size: document.getElementById('sizeFilter').value,
+                minPrice: document.getElementById('minPriceFilter').value || null,
+                maxPrice: document.getElementById('maxPriceFilter').value || null
+            };
+
+            const params = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+                if (filters[key] && filters[key] !== '') {
+                    params.append(key, filters[key]);
+                }
+            });
+
+            fetch('/buyers/api/advanced-search?' + params.toString())
+            .then(response => response.json())
+            .then(data => {
+                displaySearchResults(data.products, 'Filtered Results');
+                updateFilterResultCount(data.totalCount);
+            })
+            .catch(error => {
+                console.error('Filter search error:', error);
+                displayErrorMessage('Filter search failed. Please try again.');
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('brandFilter').value = '';
+            document.getElementById('conditionFilter').value = '';
+            document.getElementById('sizeFilter').value = '';
+            document.getElementById('minPriceFilter').value = '';
+            document.getElementById('maxPriceFilter').value = '';
+            document.getElementById('chatSearchInput').value = '';
+            
+            document.getElementById('filterResultCount').textContent = '';
+            
+            // Hide search results
+            document.getElementById('searchResults').style.display = 'none';
+        }
+
+        function updateFilterResultCount(count) {
+            const countElement = document.getElementById('filterResultCount');
+            countElement.textContent = `Found ${count} product${count !== 1 ? 's' : ''}`;
+        }
     </script>
 </body>
 </html>

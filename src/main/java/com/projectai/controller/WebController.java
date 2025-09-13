@@ -1,4 +1,5 @@
 package com.projectai.controller;
+// Updated for template changes
 
 import com.projectai.models.Deal;
 import com.projectai.models.Product;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 @Controller
 public class WebController {
@@ -114,37 +117,29 @@ public class WebController {
             return "redirect:/?error=notfound";
         }
         
-        // Get platform overview for homepage
-        Map<String, Object> overview = thriftAIService.getPlatformOverview();
-        model.addAttribute("overview", overview);
+        // Add the selected product
+        model.addAttribute("product", product);
         
-        // Get some featured deals
-        UserPreferences defaultPrefs = thriftAIService.getDefaultUserPreferences(null);
-        List<Deal> featuredDeals = thriftAIService.findBestDeals(defaultPrefs, 6);
-        model.addAttribute("featuredDeals", featuredDeals);
-        
-        // Get all products
-        List<Product> products = thriftAIService.getAllAvailableProducts();
-        model.addAttribute("products", products);
-        model.addAttribute("categories", thriftAIService.getAllCategories());
-        model.addAttribute("brands", thriftAIService.getAllBrands());
-        
-        // Get AI deals as well
-        List<Deal> aiDeals = thriftAIService.findBestDealsWithAI(defaultPrefs, 8);
-        model.addAttribute("aiDeals", aiDeals);
-        
-        // Add the selected product and similar products
-        model.addAttribute("selectedProduct", product);
-        
-        // Get similar products
-        List<Product> similar = thriftAIService.getProductsByCategory(product.getCategory())
+        // Get similar products from same category
+        List<Product> similarProducts = thriftAIService.getProductsByCategory(product.getCategory())
                 .stream()
-                .filter(p -> !p.getId().equals(id))
+                .filter(p -> !p.getId().equals(id) && p.isAvailable())
+                .limit(6)
+                .toList();
+        model.addAttribute("similarProducts", similarProducts);
+        
+        // Get related products from other categories
+        List<Product> relatedProducts = thriftAIService.getAllAvailableProducts()
+                .stream()
+                .filter(p -> !p.getId().equals(id) && !p.getCategory().equals(product.getCategory()))
                 .limit(4)
                 .toList();
-        model.addAttribute("similarProducts", similar);
+        model.addAttribute("relatedProducts", relatedProducts);
         
-        return "index";
+        // Add breadcrumb data
+        model.addAttribute("categoryName", product.getCategory());
+        
+        return "product-detail";
     }
 
     // Redirect old deals endpoints to home page
@@ -192,5 +187,229 @@ public class WebController {
     public List<Deal> getQuickDeals(@RequestParam(defaultValue = "3") int limit) {
         UserPreferences defaultPrefs = thriftAIService.getDefaultUserPreferences(null);
         return thriftAIService.findBestDeals(defaultPrefs, limit);
+    }
+
+    @GetMapping("/api/products/{id}/similar")
+    @ResponseBody
+    public List<Product> getSimilarProducts(@PathVariable String id, @RequestParam(defaultValue = "6") int limit) {
+        Product product = thriftAIService.getProductById(id);
+        if (product == null) {
+            return List.of();
+        }
+        
+        return thriftAIService.getProductsByCategory(product.getCategory())
+                .stream()
+                .filter(p -> !p.getId().equals(id) && p.isAvailable())
+                .limit(limit)
+                .toList();
+    }
+
+    @PostMapping("/api/products/{id}/wishlist")
+    @ResponseBody
+    public Map<String, Object> addToWishlist(@PathVariable String id) {
+        Map<String, Object> response = new HashMap<>();
+        
+        Product product = thriftAIService.getProductById(id);
+        if (product == null) {
+            response.put("success", false);
+            response.put("message", "Product not found");
+            return response;
+        }
+        
+        // TODO: Implement actual wishlist functionality when user authentication is added
+        response.put("success", true);
+        response.put("message", "Added to wishlist! (Demo mode)");
+        return response;
+    }
+
+    @GetMapping("/api/products/{id}/quality-score")
+    @ResponseBody
+    public Map<String, Object> getQualityScore(@PathVariable String id) {
+        Product product = thriftAIService.getProductById(id);
+        if (product == null) {
+            return Map.of("error", "Product not found");
+        }
+        
+        // Calculate AI quality score based on product attributes
+        int score = calculateQualityScore(product);
+        String category = getQualityCategory(score);
+        List<String> factors = getQualityFactors(product, score);
+        
+        return Map.of(
+            "score", score,
+            "category", category,
+            "factors", factors,
+            "recommendation", getQualityRecommendation(score)
+        );
+    }
+
+    private int calculateQualityScore(Product product) {
+        int score = 50; // Base score
+        
+        // Condition impact
+        if (product.getCondition() != null) {
+            switch (product.getCondition().toUpperCase()) {
+                case "EXCELLENT" -> score += 25;
+                case "VERY_GOOD" -> score += 20;
+                case "GOOD" -> score += 15;
+                case "FAIR" -> score += 5;
+                case "POOR" -> score -= 10;
+            }
+        }
+        
+        // Discount impact
+        if (product.getOriginalPrice() != null && product.getOriginalPrice() > product.getPrice()) {
+            double discount = (product.getOriginalPrice() - product.getPrice()) / product.getOriginalPrice();
+            score += Math.min(discount * 25, 25); // Max 25 points for discount
+        }
+        
+        // Brand reputation (simplified)
+        if (product.getBrand() != null) {
+            String brand = product.getBrand().toUpperCase();
+            if (brand.contains("NIKE") || brand.contains("APPLE") || brand.contains("LEVI")) {
+                score += 10;
+            }
+        }
+        
+        // Age simulation (newer = better)
+        if (product.getCreatedAt() != null) {
+            long daysSinceCreated = java.time.Duration.between(product.getCreatedAt(), java.time.LocalDateTime.now()).toDays();
+            if (daysSinceCreated < 7) score += 5; // Recent listing
+        }
+        
+        return Math.max(0, Math.min(100, score));
+    }
+
+    private String getQualityCategory(int score) {
+        if (score >= 85) return "Excellent";
+        if (score >= 75) return "Very Good";
+        if (score >= 65) return "Good";
+        if (score >= 50) return "Fair";
+        return "Poor";
+    }
+
+    private List<String> getQualityFactors(Product product, int score) {
+        List<String> factors = new ArrayList<>();
+        
+        if (product.getCondition() != null) {
+            factors.add("Condition: " + product.getCondition());
+        }
+        
+        if (product.getOriginalPrice() != null && product.getOriginalPrice() > product.getPrice()) {
+            double discount = (product.getOriginalPrice() - product.getPrice()) / product.getOriginalPrice() * 100;
+            factors.add(String.format("Discount: %.1f%% off", discount));
+        }
+        
+        if (product.getBrand() != null) {
+            factors.add("Brand: " + product.getBrand());
+        }
+        
+        if (score >= 75) {
+            factors.add("High quality item");
+        } else if (score >= 50) {
+            factors.add("Good value for money");
+        }
+        
+        return factors;
+    }
+
+    private String getQualityRecommendation(int score) {
+        if (score >= 85) return "Highly recommended! Excellent quality and value.";
+        if (score >= 75) return "Great choice! Good quality item worth buying.";
+        if (score >= 65) return "Solid option. Consider if it matches your needs.";
+        if (score >= 50) return "Fair deal. Check condition carefully before buying.";
+        return "Consider alternatives. This item may have quality concerns.";
+    }
+
+    // Amazon-style recommendation endpoints
+    @GetMapping("/api/recommendations/personalized")
+    @ResponseBody
+    public List<Product> getPersonalizedRecommendations(
+            @RequestParam(required = false) String userId,
+            @RequestParam(defaultValue = "10") int limit) {
+        return thriftAIService.getPersonalizedRecommendations(userId, limit);
+    }
+
+    @GetMapping("/api/recommendations/frequently-bought-together/{productId}")
+    @ResponseBody
+    public List<Product> getFrequentlyBoughtTogether(
+            @PathVariable String productId,
+            @RequestParam(defaultValue = "4") int limit) {
+        Product product = thriftAIService.getProductById(productId);
+        if (product == null) {
+            return List.of();
+        }
+        return thriftAIService.getFrequentlyBoughtTogether(product, limit);
+    }
+
+    @GetMapping("/api/recommendations/customers-also-viewed/{productId}")
+    @ResponseBody
+    public List<Product> getCustomersAlsoViewed(
+            @PathVariable String productId,
+            @RequestParam(defaultValue = "6") int limit) {
+        Product product = thriftAIService.getProductById(productId);
+        if (product == null) {
+            return List.of();
+        }
+        return thriftAIService.getCustomersAlsoViewed(product, limit);
+    }
+
+    @GetMapping("/api/recommendations/best-sellers/{category}")
+    @ResponseBody
+    public List<Product> getBestSellersInCategory(
+            @PathVariable String category,
+            @RequestParam(defaultValue = "8") int limit) {
+        return thriftAIService.getBestSellersInCategory(category, limit);
+    }
+
+    @PostMapping("/api/recommendations/based-on-recent")
+    @ResponseBody
+    public List<Product> getRecentlyViewedRecommendations(
+            @RequestBody Map<String, Object> request) {
+        @SuppressWarnings("unchecked")
+        List<String> recentlyViewedIds = (List<String>) request.getOrDefault("recentlyViewed", List.of());
+        int limit = (Integer) request.getOrDefault("limit", 8);
+        
+        return thriftAIService.getRecentlyViewedRecommendations(recentlyViewedIds, limit);
+    }
+
+    @GetMapping("/api/recommendations/trending")
+    @ResponseBody
+    public List<Product> getTrendingProducts(@RequestParam(defaultValue = "10") int limit) {
+        // Get products with high discount percentages as "trending"
+        return thriftAIService.getAllAvailableProducts().stream()
+                .sorted((p1, p2) -> Double.compare(p2.getDiscountPercentage(), p1.getDiscountPercentage()))
+                .limit(limit)
+                .toList();
+    }
+
+    @GetMapping("/api/recommendations/for-you")
+    @ResponseBody
+    public Map<String, Object> getForYouRecommendations(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String category) {
+        
+        Map<String, Object> recommendations = new HashMap<>();
+        
+        // Personalized recommendations
+        recommendations.put("personalizedForYou", 
+            thriftAIService.getPersonalizedRecommendations(userId, 6));
+        
+        // Trending products
+        recommendations.put("trending", getTrendingProducts(4));
+        
+        // New arrivals
+        recommendations.put("newArrivals", thriftAIService.getNewArrivals(4));
+        
+        // Best deals
+        recommendations.put("bestDeals", thriftAIService.getBestDealsProducts(4));
+        
+        // Category-specific recommendations if category provided
+        if (category != null && !category.trim().isEmpty()) {
+            recommendations.put("bestInCategory", 
+                thriftAIService.getBestSellersInCategory(category, 4));
+        }
+        
+        return recommendations;
     }
 }

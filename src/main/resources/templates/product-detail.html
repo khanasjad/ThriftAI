@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${product.name + ' - ThriftAI'}">Product Detail - ThriftAI</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="/webjars/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+    
+    <!-- Custom CSS -->
+    <link href="/css/style.css" rel="stylesheet"/>
+    
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    
+    <style>
+        .product-gallery {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .main-product-image {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .product-info {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .price-section {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,100,200,0.05));
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid rgba(0,212,255,0.2);
+        }
+        
+        .condition-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+        
+        .condition-excellent { background: rgba(40,167,69,0.2); color: #28a745; border: 1px solid #28a745; }
+        .condition-very-good { background: rgba(23,162,184,0.2); color: #17a2b8; border: 1px solid #17a2b8; }
+        .condition-good { background: rgba(255,193,7,0.2); color: #ffc107; border: 1px solid #ffc107; }
+        .condition-fair { background: rgba(255,109,0,0.2); color: #fd6d00; border: 1px solid #fd6d00; }
+        
+        .feature-list {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        
+        .similar-products {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 2rem;
+        }
+        
+        .product-card-small {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .product-card-small:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0,212,255,0.5);
+            box-shadow: 0 15px 35px rgba(0,212,255,0.2);
+        }
+        
+        .quality-score {
+            background: linear-gradient(135deg, #00d4ff, #0066cc);
+            color: white;
+            padding: 1rem;
+            border-radius: 15px;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 0.5rem;
+        }
+        
+        .breadcrumb {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/buyers/search">
+                            <i class="fas fa-search-plus me-2"></i>Search
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/sellers">
+                            <i class="fas fa-store me-2"></i>Sellers
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-4">
+        <div class="container">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/buyers/search" class="text-primary">Search</a></li>
+                    <li class="breadcrumb-item" th:text="${product.category}">Category</li>
+                    <li class="breadcrumb-item active" aria-current="page" th:text="${product.name}">Product Name</li>
+                </ol>
+            </nav>
+
+            <div class="row">
+                <!-- Product Gallery -->
+                <div class="col-md-6 mb-4">
+                    <div class="product-gallery">
+                        <img th:src="${product.imageUrl ?: '/images/no-image.png'}" 
+                             th:alt="${product.name}" 
+                             class="main-product-image mb-3">
+                        
+                        <!-- Image Actions -->
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary me-2" onclick="enlargeImage()">
+                                <i class="fas fa-expand-alt me-2"></i>View Full Size
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="searchSimilarByImage()">
+                                <i class="fas fa-camera me-2"></i>Find Similar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Information -->
+                <div class="col-md-6">
+                    <div class="product-info">
+                        <h1 class="display-6 fw-bold mb-3" th:text="${product.name}">Product Name</h1>
+                        
+                        <!-- Brand and Category -->
+                        <div class="mb-3">
+                            <span class="badge bg-primary me-2" th:text="${product.brand}">Brand</span>
+                            <span class="badge bg-secondary me-2" th:text="${product.category}">Category</span>
+                            <span th:if="${product.size}" class="badge bg-info" th:text="'Size: ' + ${product.size}">Size</span>
+                        </div>
+                        
+                        <!-- Condition Badge -->
+                        <div class="mb-3">
+                            <span class="condition-badge" 
+                                  th:classappend="'condition-' + ${product.condition?.toLowerCase()?.replace('_', '-')}"
+                                  th:text="${product.condition}">Condition</span>
+                        </div>
+                        
+                        <!-- Price Section -->
+                        <div class="price-section">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h2 class="text-primary mb-0">
+                                        $<span th:text="${#numbers.formatDecimal(product.price, 0, 2)}">99.99</span>
+                                    </h2>
+                                    <div th:if="${product.originalPrice and product.originalPrice > product.price}">
+                                        <small class="text-muted text-decoration-line-through">
+                                            Originally $<span th:text="${#numbers.formatDecimal(product.originalPrice, 0, 2)}">199.99</span>
+                                        </small>
+                                        <div class="text-success fw-bold">
+                                            Save $<span th:text="${#numbers.formatDecimal(product.originalPrice - product.price, 0, 2)}">100.00</span>
+                                            (<span th:text="${#numbers.formatInteger((product.originalPrice - product.price) / product.originalPrice * 100, 0)}">50</span>% off)
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <button class="btn btn-primary btn-lg mb-2" onclick="contactSeller()">
+                                        <i class="fas fa-envelope me-2"></i>Contact Seller
+                                    </button>
+                                    <br>
+                                    <button class="btn btn-outline-primary" onclick="addToWishlist()" id="wishlistBtn">
+                                        <i class="far fa-heart me-2"></i>Add to Wishlist
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Quality Score -->
+                        <div class="quality-score">
+                            <div class="score-circle" style="background: rgba(255,255,255,0.2);">
+                                <span id="qualityScore">85</span>
+                            </div>
+                            <h5 class="mb-1">AI Quality Score</h5>
+                            <p class="mb-0 small">Based on condition, price, and market analysis</p>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="mt-4">
+                            <h5>Description</h5>
+                            <p th:text="${product.description ?: 'No description available.'}" class="text-muted">
+                                Product description goes here...
+                            </p>
+                        </div>
+                        
+                        <!-- Key Features -->
+                        <div class="feature-list mt-4">
+                            <h6 class="mb-3"><i class="fas fa-check-circle me-2 text-success"></i>Key Features</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-tag me-2 text-primary"></i>Authenticated product</li>
+                                <li><i class="fas fa-shield-alt me-2 text-primary"></i>Quality guaranteed</li>
+                                <li><i class="fas fa-clock me-2 text-primary"></i>Recently listed</li>
+                                <li><i class="fas fa-heart me-2 text-primary"></i>Sustainable shopping</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Comparison -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="product-info">
+                        <h4 class="mb-3">
+                            <i class="fas fa-chart-bar me-2"></i>Price Comparison
+                            <button class="btn btn-outline-primary btn-sm ms-2" onclick="loadPriceComparison()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh Prices
+                            </button>
+                        </h4>
+                        <div id="priceComparisonContent">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading price comparison...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Comparing prices across multiple platforms...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Similar Products -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="similar-products">
+                        <h4 class="mb-4">
+                            <i class="fas fa-heart me-2"></i>You Might Also Like
+                        </h4>
+                        <div class="row" id="similarProducts">
+                            <!-- Similar products will be loaded here -->
+                            <div class="col-12 text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading similar products...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>
+                        <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
+                        <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
+                    </h5>
+                    <p class="mb-0">AI-powered thrift shopping for the smartest deals.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-light"><i class="fab fa-github"></i></a>
+                    </div>
+                    <p class="mb-0 mt-2"><small>&copy; 2024 ThriftAI. All rights reserved.</small></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="/webjars/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Load price comparison on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPriceComparison();
+            loadSimilarProducts();
+            calculateQualityScore();
+        });
+        
+        function loadPriceComparison() {
+            const productId = /*[[${product.id}]]*/ 'product-id';
+            
+            fetch(`/buyers/api/price-comparison/${productId}`)
+            .then(response => response.json())
+            .then(data => {
+                displayPriceComparison(data);
+            })
+            .catch(error => {
+                console.error('Price comparison error:', error);
+                document.getElementById('priceComparisonContent').innerHTML = 
+                    '<p class="text-muted">Price comparison temporarily unavailable.</p>';
+            });
+        }
+        
+        function displayPriceComparison(data) {
+            const content = document.getElementById('priceComparisonContent');
+            
+            if (!data.externalPrices || data.externalPrices.length === 0) {
+                content.innerHTML = '<p class="text-muted">No external prices found for comparison.</p>';
+                return;
+            }
+            
+            let html = '<div class="row">';
+            data.externalPrices.forEach(price => {
+                html += `
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">${price.source}</h6>
+                                <p class="card-text">
+                                    <strong class="text-primary">$${price.price.toFixed(2)}</strong><br>
+                                    <small class="text-muted">Condition: ${price.condition}</small><br>
+                                    <small class="text-muted">Shipping: ${price.shipping}</small>
+                                </p>
+                                <a href="${price.url}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-external-link-alt me-1"></i>View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            if (data.savings && data.savings.isGoodDeal) {
+                html += `
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-thumbs-up me-2"></i>
+                        Great deal! You save $${data.savings.amount.toFixed(2)} (${data.savings.percentage.toFixed(0)}%) compared to other sources.
+                    </div>
+                `;
+            }
+            
+            content.innerHTML = html;
+        }
+        
+        function loadSimilarProducts() {
+            const productId = /*[[${product.id}]]*/ 'product-id';
+            
+            fetch(`/buyers/api/similar-products/${productId}`)
+            .then(response => response.json())
+            .then(products => {
+                displaySimilarProducts(products);
+            })
+            .catch(error => {
+                console.error('Similar products error:', error);
+                document.getElementById('similarProducts').innerHTML = 
+                    '<div class="col-12"><p class="text-muted text-center">Similar products temporarily unavailable.</p></div>';
+            });
+        }
+        
+        function displaySimilarProducts(products) {
+            const container = document.getElementById('similarProducts');
+            
+            if (products.length === 0) {
+                container.innerHTML = '<div class="col-12"><p class="text-muted text-center">No similar products found.</p></div>';
+                return;
+            }
+            
+            let html = '';
+            products.slice(0, 4).forEach(product => {
+                const savings = product.originalPrice && product.originalPrice > product.price ? 
+                    Math.round((product.originalPrice - product.price) / product.originalPrice * 100) : 0;
+                
+                html += `
+                    <div class="col-md-3 mb-3">
+                        <div class="product-card-small">
+                            <div class="position-relative">
+                                <img src="${product.imageUrl || '/images/no-image.png'}" 
+                                     alt="${product.name}" 
+                                     class="card-img-top" style="height: 200px; object-fit: cover;">
+                                ${savings > 0 ? `<div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-success">Save ${savings}%</span>
+                                </div>` : ''}
+                            </div>
+                            <div class="card-body p-3">
+                                <h6 class="card-title text-truncate">${product.name}</h6>
+                                <p class="card-text text-muted small">${product.brand} • ${product.category}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong class="text-primary">$${product.price.toFixed(2)}</strong>
+                                    <a href="/products/${product.id}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function calculateQualityScore() {
+            // Simulate AI quality calculation
+            const product = {
+                condition: /*[[${product.condition}]]*/ 'EXCELLENT',
+                price: /*[[${product.price}]]*/ 99.99,
+                originalPrice: /*[[${product.originalPrice}]]*/ 199.99
+            };
+            
+            let score = 50; // Base score
+            
+            // Condition scoring
+            switch(product.condition) {
+                case 'EXCELLENT': score += 25; break;
+                case 'VERY_GOOD': score += 20; break;
+                case 'GOOD': score += 15; break;
+                case 'FAIR': score += 10; break;
+                default: score += 5;
+            }
+            
+            // Price value scoring
+            if (product.originalPrice && product.originalPrice > product.price) {
+                const discount = (product.originalPrice - product.price) / product.originalPrice;
+                score += Math.min(discount * 25, 25); // Up to 25 points for good deals
+            }
+            
+            score = Math.round(Math.max(0, Math.min(100, score))); // Clamp between 0-100
+            document.getElementById('qualityScore').textContent = score;
+            
+            // Update score circle color
+            const circle = document.querySelector('.score-circle');
+            if (score >= 80) circle.style.background = 'rgba(40,167,69,0.8)';
+            else if (score >= 60) circle.style.background = 'rgba(255,193,7,0.8)';
+            else circle.style.background = 'rgba(220,53,69,0.8)';
+        }
+        
+        function contactSeller() {
+            alert('Seller contact feature coming soon!');
+        }
+        
+        function addToWishlist() {
+            const btn = document.getElementById('wishlistBtn');
+            const icon = btn.querySelector('i');
+            
+            if (icon.classList.contains('far')) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+                btn.innerHTML = '<i class="fas fa-heart me-2"></i>Added to Wishlist';
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-success');
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+                btn.innerHTML = '<i class="far fa-heart me-2"></i>Add to Wishlist';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-primary');
+            }
+        }
+        
+        function enlargeImage() {
+            alert('Image enlargement feature coming soon!');
+        }
+        
+        function searchSimilarByImage() {
+            alert('Visual search feature coming soon!');
+        }
+    </script>
+</body>
+</html>

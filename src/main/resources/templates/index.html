@@ -46,13 +46,22 @@
         }
         
         .claude-textarea {
-            background: transparent;
-            border: none;
-            color: var(--text-primary);
+            background: transparent !important;
+            border: none !important;
+            color: #ffffff !important;
             font-size: 1.1rem;
             padding: 1.5rem;
             resize: none;
             min-height: 120px;
+        }
+        
+        .claude-textarea:focus,
+        .claude-textarea:not(:placeholder-shown) {
+            color: #ffffff !important;
+        }
+        
+        textarea.form-control.claude-textarea {
+            color: #ffffff !important;
         }
         
         .claude-textarea:focus {
@@ -134,11 +143,6 @@
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/sellers}">
                             <i class="fas fa-store me-2"></i>Sellers
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/buyers}">
-                            <i class="fas fa-users me-2"></i>Buyers
                         </a>
                     </li>
                 </ul>
@@ -318,6 +322,30 @@
                             <div class="floating-label-group">
                                 <input type="email" class="form-control glass-input" id="signupEmail" placeholder=" " required>
                                 <label for="signupEmail" class="floating-label">Email address</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="floating-label-group">
+                                <input type="tel" class="form-control glass-input" id="signupPhone" placeholder=" " required>
+                                <label for="signupPhone" class="floating-label">Phone number</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="floating-label-group">
+                                        <input type="text" class="form-control glass-input" id="signupCity" placeholder=" " required>
+                                        <label for="signupCity" class="floating-label">City</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="floating-label-group">
+                                        <input type="text" class="form-control glass-input" id="signupState" placeholder=" " required>
+                                        <label for="signupState" class="floating-label">State</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="mb-3">
