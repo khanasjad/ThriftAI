@@ -509,7 +509,7 @@
         
         function createProductCard(product) {
             return `
-                <div class="product-card">
+                <div class="product-card" onclick="viewProduct('${product.id}')" style="cursor: pointer;">
                     <div class="product-image">
                         <i class="fas fa-tshirt"></i>
                     </div>
@@ -524,7 +524,7 @@
                             <span class="product-condition">${product.condition}</span>
                             <span class="product-seller">by ${product.seller}</span>
                         </div>
-                        <button class="view-product-btn" onclick="viewProduct(${product.id})">
+                        <button class="view-product-btn" onclick="event.stopPropagation(); viewProduct('${product.id}')">
                             <i class="fas fa-eye me-2"></i>View Details
                         </button>
                     </div>
@@ -579,8 +579,8 @@
         }
         
         function viewProduct(productId) {
-            // In production, this would navigate to a product detail page
-            alert(`Viewing product ${productId}. This would navigate to the product detail page.`);
+            // Navigate to product detail page
+            window.location.href = `/buyers/products/${productId}`;
         }
         
         function askFollowUp(question) {

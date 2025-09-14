@@ -1,19 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${product.name + ' - ThriftAI'}">Product Detail - ThriftAI</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="/webjars/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
-    
-    <!-- Custom CSS -->
-    <link href="/css/style.css" rel="stylesheet"/>
-    
-    <!-- Font Awesome for icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-    
+<html lang="en" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{layout :: html(
+        pageTitle=${product.name + ' - ThriftAI'},
+        pageHead=~{:: head-content},
+        content=~{:: main-content},
+        pageScripts=~{:: page-scripts}
+      )}">
+<head th:fragment="head-content">
     <style>
         .product-gallery {
             background: rgba(255,255,255,0.05);
@@ -57,11 +50,33 @@
         .condition-very-good { background: rgba(23,162,184,0.2); color: #17a2b8; border: 1px solid #17a2b8; }
         .condition-good { background: rgba(255,193,7,0.2); color: #ffc107; border: 1px solid #ffc107; }
         .condition-fair { background: rgba(255,109,0,0.2); color: #fd6d00; border: 1px solid #fd6d00; }
+        .condition-like-new { background: rgba(40,167,69,0.3); color: #28a745; border: 1px solid #28a745; }
         
-        .feature-list {
-            background: rgba(255,255,255,0.03);
-            border-radius: 10px;
+        .quality-score {
+            background: linear-gradient(135deg, #00d4ff, #0066cc);
+            color: white;
             padding: 1rem;
+            border-radius: 15px;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 0.5rem;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .breadcrumb {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
         }
         
         .similar-products {
@@ -83,66 +98,11 @@
             border-color: rgba(0,212,255,0.5);
             box-shadow: 0 15px 35px rgba(0,212,255,0.2);
         }
-        
-        .quality-score {
-            background: linear-gradient(135deg, #00d4ff, #0066cc);
-            color: white;
-            padding: 1rem;
-            border-radius: 15px;
-            text-align: center;
-            margin: 1rem 0;
-        }
-        
-        .score-circle {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin: 0 auto 0.5rem;
-        }
-        
-        .breadcrumb {
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        }
     </style>
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="/">
-                <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
-                <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/buyers/search">
-                            <i class="fas fa-search-plus me-2"></i>Search
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/sellers">
-                            <i class="fas fa-store me-2"></i>Sellers
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Main Content -->
-    <main class="py-4">
+<body>
+    <main th:fragment="main-content" class="py-4">
         <div class="container">
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
@@ -199,7 +159,7 @@
                                     <h2 class="text-primary mb-0">
                                         $<span th:text="${#numbers.formatDecimal(product.price, 0, 2)}">99.99</span>
                                     </h2>
-                                    <div th:if="${product.originalPrice and product.originalPrice > product.price}">
+                                    <div th:if="${product.originalPrice != null and product.originalPrice > product.price}">
                                         <small class="text-muted text-decoration-line-through">
                                             Originally $<span th:text="${#numbers.formatDecimal(product.originalPrice, 0, 2)}">199.99</span>
                                         </small>
@@ -210,6 +170,9 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6 text-end">
+                                    <button class="btn btn-success btn-lg mb-2 me-2" onclick="addToCart()" th:attr="data-product-id=${product.id}">
+                                        <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                                    </button>
                                     <button class="btn btn-primary btn-lg mb-2" onclick="contactSeller()">
                                         <i class="fas fa-envelope me-2"></i>Contact Seller
                                     </button>
@@ -223,7 +186,7 @@
                         
                         <!-- AI Quality Score -->
                         <div class="quality-score">
-                            <div class="score-circle" style="background: rgba(255,255,255,0.2);">
+                            <div class="score-circle" id="scoreCircle">
                                 <span id="qualityScore">85</span>
                             </div>
                             <h5 class="mb-1">AI Quality Score</h5>
@@ -239,7 +202,7 @@
                         </div>
                         
                         <!-- Key Features -->
-                        <div class="feature-list mt-4">
+                        <div class="mt-4">
                             <h6 class="mb-3"><i class="fas fa-check-circle me-2 text-success"></i>Key Features</h6>
                             <ul class="list-unstyled">
                                 <li><i class="fas fa-tag me-2 text-primary"></i>Authenticated product</li>
@@ -294,37 +257,9 @@
             </div>
         </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="text-light mt-5 py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>
-                        <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
-                        <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
-                    </h5>
-                    <p class="mb-0">AI-powered thrift shopping for the smartest deals.</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <div class="social-links">
-                        <a href="#" class="text-light me-3"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="text-light me-3"><i class="fab fa-facebook"></i></a>
-                        <a href="#" class="text-light me-3"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="text-light"><i class="fab fa-github"></i></a>
-                    </div>
-                    <p class="mb-0 mt-2"><small>&copy; 2024 ThriftAI. All rights reserved.</small></p>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Bootstrap JS -->
-    <script src="/webjars/jquery/3.7.1/jquery.min.js"></script>
-    <script src="/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
     
-    <script>
-        // Load price comparison on page load
+    <script th:fragment="page-scripts">
+        // Load price comparison and similar products on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadPriceComparison();
             loadSimilarProducts();
@@ -432,7 +367,7 @@
                                 <p class="card-text text-muted small">${product.brand} • ${product.category}</p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <strong class="text-primary">$${product.price.toFixed(2)}</strong>
-                                    <a href="/products/${product.id}" class="btn btn-outline-primary btn-sm">
+                                    <a href="/buyers/products/${product.id}" class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                 </div>
@@ -446,7 +381,7 @@
         }
         
         function calculateQualityScore() {
-            // Simulate AI quality calculation
+            // Calculate AI quality score based on product data
             const product = {
                 condition: /*[[${product.condition}]]*/ 'EXCELLENT',
                 price: /*[[${product.price}]]*/ 99.99,
@@ -461,6 +396,7 @@
                 case 'VERY_GOOD': score += 20; break;
                 case 'GOOD': score += 15; break;
                 case 'FAIR': score += 10; break;
+                case 'LIKE_NEW': score += 30; break;
                 default: score += 5;
             }
             
@@ -474,7 +410,7 @@
             document.getElementById('qualityScore').textContent = score;
             
             // Update score circle color
-            const circle = document.querySelector('.score-circle');
+            const circle = document.getElementById('scoreCircle');
             if (score >= 80) circle.style.background = 'rgba(40,167,69,0.8)';
             else if (score >= 60) circle.style.background = 'rgba(255,193,7,0.8)';
             else circle.style.background = 'rgba(220,53,69,0.8)';
@@ -505,6 +441,58 @@
         
         function enlargeImage() {
             alert('Image enlargement feature coming soon!');
+        }
+        
+        function addToCart() {
+            const productId = /*[[${product.id}]]*/ 'product-id';
+            
+            fetch('/buyers/api/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `productId=${productId}&quantity=1`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const btn = event.target.closest('button');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Added to Cart!';
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-secondary');
+                    btn.disabled = true;
+                    
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('btn-secondary');
+                        btn.classList.add('btn-success');
+                        btn.disabled = false;
+                    }, 2000);
+                    
+                    // Update cart counter if it exists
+                    updateCartCounter(data.cartSummary);
+                } else {
+                    alert('Failed to add to cart: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add to cart');
+            });
+        }
+        
+        function updateCartCounter(cartSummary) {
+            // Update cart counter in navigation if it exists
+            const cartCounter = document.querySelector('.cart-counter');
+            if (cartCounter && cartSummary) {
+                cartCounter.textContent = cartSummary.itemCount;
+                if (cartSummary.itemCount > 0) {
+                    cartCounter.style.display = 'inline-block';
+                }
+            }
         }
         
         function searchSimilarByImage() {

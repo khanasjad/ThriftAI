@@ -10,6 +10,7 @@ import com.projectai.service.PriceComparisonService;
 import com.projectai.service.ThriftAIService;
 import com.projectai.service.OrderService;
 import com.projectai.service.ReviewService;
+import com.projectai.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,10 +20,13 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 @Controller
 @RequestMapping("/buyers")
@@ -51,6 +55,9 @@ public class BuyerController {
     
     @Autowired
     private ReviewService reviewService;
+    
+    @Autowired
+    private CartService cartService;
     
     // Add API endpoint for filter options
     @GetMapping("/api/filter-options")
@@ -769,6 +776,104 @@ public class BuyerController {
             model.addAttribute("error", "Search failed. Please try again.");
             return "search-results";
         }
+    }
+    
+    // Shopping Cart API Endpoints
+    @PostMapping("/api/cart/add")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> addToCart(
+            @RequestParam String productId,
+            @RequestParam(defaultValue = "1") Integer quantity,
+            HttpSession session) {
+        try {
+            String sessionId = session.getId();
+            String buyerId = (String) session.getAttribute("buyerId");
+            
+            Map<String, Object> response = cartService.quickAddToCart(sessionId, buyerId, productId, quantity);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping("/api/cart")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getCart(HttpSession session) {
+        try {
+            String sessionId = session.getId();
+            String buyerId = (String) session.getAttribute("buyerId");
+            
+            Map<String, Object> cartSummary = cartService.getCartSummary(sessionId, buyerId);
+            return ResponseEntity.ok(cartSummary);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    @PutMapping("/api/cart/item/{itemId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateCartItem(
+            @PathVariable String itemId,
+            @RequestParam Integer quantity,
+            HttpSession session) {
+        try {
+            String sessionId = session.getId();
+            String buyerId = (String) session.getAttribute("buyerId");
+            
+            cartService.updateCartItemQuantity(sessionId, buyerId, itemId, quantity);
+            Map<String, Object> cartSummary = cartService.getCartSummary(sessionId, buyerId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("cartSummary", cartSummary);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @DeleteMapping("/api/cart/item/{itemId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> removeFromCart(
+            @PathVariable String itemId,
+            HttpSession session) {
+        try {
+            String sessionId = session.getId();
+            String buyerId = (String) session.getAttribute("buyerId");
+            
+            cartService.removeFromCart(sessionId, buyerId, itemId);
+            Map<String, Object> cartSummary = cartService.getCartSummary(sessionId, buyerId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("cartSummary", cartSummary);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping("/cart")
+    public String viewCart(HttpSession session, Model model) {
+        String sessionId = session.getId();
+        String buyerId = (String) session.getAttribute("buyerId");
+        
+        Map<String, Object> cartSummary = cartService.getCartSummary(sessionId, buyerId);
+        List<Product> recommendations = cartService.getCartBasedRecommendations(sessionId, buyerId, 8);
+        
+        model.addAttribute("cartSummary", cartSummary);
+        model.addAttribute("recommendations", recommendations);
+        
+        return "cart";
     }
     
     @PostMapping("/api/claude-search")
