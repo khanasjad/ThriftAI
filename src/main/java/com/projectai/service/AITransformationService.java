@@ -192,6 +192,22 @@ public class AITransformationService {
         // Use existing ChatGPT service as base
         List<Product> products = chatGPTService.searchProducts(enhancedQuery);
         
+        // If no products found, get featured products (best deals) as fallback
+        if (products.isEmpty()) {
+            products = productRepository.findByIsAvailableTrue()
+                .stream()
+                .sorted((p1, p2) -> {
+                    // Sort by discount percentage (best deals first), then by name
+                    double discount1 = p1.getDiscountPercentage();
+                    double discount2 = p2.getDiscountPercentage();
+                    int discountCompare = Double.compare(discount2, discount1);
+                    if (discountCompare != 0) return discountCompare;
+                    return p1.getName().compareToIgnoreCase(p2.getName());
+                })
+                .limit(8)
+                .collect(Collectors.toList());
+        }
+        
         // Apply AI-powered ranking
         return products.stream()
                 .sorted((p1, p2) -> calculateAIScore(p2, enhancedQuery) - calculateAIScore(p1, enhancedQuery))
@@ -220,13 +236,22 @@ public class AITransformationService {
     }
 
     private String generateThriftAwareResponse(String userQuery, List<Product> products, String preferences) {
+        // This method should never receive empty products now due to fallback logic
         if (products.isEmpty()) {
-            return "I couldn't find any thrift items matching '" + userQuery + 
-                   "'. Try browsing our categories or searching for similar items!";
+            return "🛍️ Check out these featured thrift finds!\n\n" +
+                   "♻️ Shopping thrift helps the environment and saves money!";
         }
         
+        // Check if we're showing search results or featured products
+        boolean isEmptyQuery = userQuery == null || userQuery.trim().isEmpty();
+        boolean isShowingFeaturedProducts = isEmptyQuery || userQuery.equals("Best deals under $25") || userQuery.toLowerCase().contains("featured");
+        
         StringBuilder response = new StringBuilder();
-        response.append("🛍️ Found ").append(products.size()).append(" amazing thrift finds for '").append(userQuery).append("'!\n\n");
+        if (isShowingFeaturedProducts) {
+            response.append("🛍️ Check out these ").append(products.size()).append(" featured thrift deals!\n\n");
+        } else {
+            response.append("🛍️ Found ").append(products.size()).append(" amazing thrift finds for '").append(userQuery).append("'!\n\n");
+        }
         
         // Calculate savings
         double totalSavings = products.stream()

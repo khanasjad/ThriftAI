@@ -1,6 +1,7 @@
 package com.projectai.controller;
 
 import com.projectai.models.Buyer;
+import com.projectai.models.Order;
 import com.projectai.models.Product;
 import com.projectai.repository.BuyerRepository;
 import com.projectai.repository.ProductRepository;
@@ -11,6 +12,7 @@ import com.projectai.service.ThriftAIService;
 import com.projectai.service.OrderService;
 import com.projectai.service.ReviewService;
 import com.projectai.service.CartService;
+import com.projectai.service.SmartSearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -58,6 +61,9 @@ public class BuyerController {
     
     @Autowired
     private CartService cartService;
+    
+    @Autowired
+    private SmartSearchService smartSearchService;
     
     // Add API endpoint for filter options
     @GetMapping("/api/filter-options")
@@ -756,17 +762,28 @@ public class BuyerController {
     public String searchResults(@RequestParam(value = "q", required = false) String query, Model model) {
         try {
             List<Product> searchResults;
+            SmartSearchService.SearchResult smartResult = null;
+            
             if (query == null || query.trim().isEmpty()) {
                 // Show all available products when no query is provided
                 searchResults = thriftAIService.getAllAvailableProducts();
                 query = ""; // Set empty string for template
             } else {
-                searchResults = thriftAIService.searchProducts(query, null);
+                // Use smart search for natural language queries
+                smartResult = smartSearchService.parseAndSearch(query);
+                searchResults = smartResult.getProducts();
             }
             
             model.addAttribute("query", query);
             model.addAttribute("products", searchResults);
             model.addAttribute("resultCount", searchResults.size());
+            
+            // Add smart search interpretation if available
+            if (smartResult != null) {
+                model.addAttribute("interpretedQuery", smartResult.getInterpretedQuery());
+                model.addAttribute("originalQuery", smartResult.getOriginalQuery());
+                model.addAttribute("searchCriteria", smartResult.getCriteria());
+            }
             
             return "search-results";
         } catch (Exception e) {
@@ -876,6 +893,86 @@ public class BuyerController {
         return "cart";
     }
     
+    // Checkout endpoints
+    @GetMapping("/checkout")
+    public String checkout(HttpSession session, Model model) {
+        String sessionId = session.getId();
+        String buyerId = (String) session.getAttribute("buyerId");
+        
+        Map<String, Object> cartSummary = cartService.getCartSummary(sessionId, buyerId);
+        
+        if ((Boolean) cartSummary.get("isEmpty")) {
+            return "redirect:/buyers/cart?error=empty-cart";
+        }
+        
+        model.addAttribute("cartSummary", cartSummary);
+        return "checkout";
+    }
+    
+    @PostMapping("/api/checkout/create-order")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> createOrder(
+            @RequestBody Map<String, Object> orderData,
+            HttpSession session) {
+        try {
+            String sessionId = session.getId();
+            String buyerId = (String) session.getAttribute("buyerId");
+            
+            Order order = orderService.createOrderFromCart(sessionId, buyerId, orderData);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("orderId", order.getId());
+            response.put("message", "Order created successfully");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping("/api/checkout/process-payment")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> processPayment(
+            @RequestBody Map<String, Object> paymentData) {
+        try {
+            String orderId = (String) paymentData.get("orderId");
+            Order order = orderService.processPayment(orderId, paymentData);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", order.getPaymentStatus() == Order.PaymentStatus.COMPLETED);
+            response.put("orderId", order.getId());
+            response.put("orderNumber", order.getFormattedOrderNumber());
+            response.put("paymentStatus", order.getPaymentStatus());
+            
+            if (order.getPaymentStatus() == Order.PaymentStatus.FAILED) {
+                response.put("error", "Payment failed. Please try again with a different payment method.");
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping("/orders/{orderId}")
+    public String viewOrder(@PathVariable String orderId, Model model) {
+        Optional<Order> orderOpt = orderService.getOrderByIdJPA(orderId);
+        
+        if (orderOpt.isEmpty()) {
+            return "redirect:/buyers/dashboard?error=order-not-found";
+        }
+        
+        model.addAttribute("order", orderOpt.get());
+        return "order-details";
+    }
+    
     @PostMapping("/api/claude-search")
     @ResponseBody
     public ResponseEntity<java.util.Map<String, Object>> claudeSearch(@RequestBody java.util.Map<String, String> request) {
@@ -898,5 +995,65 @@ public class BuyerController {
         } catch (Exception e) {
             return ResponseEntity.status(500).build();
         }
+    }
+    
+    @PostMapping("/api/smart-search")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String, Object>> smartSearch(@RequestBody java.util.Map<String, String> request) {
+        try {
+            String query = request.get("query");
+            if (query == null) {
+                query = "";
+            }
+            
+            SmartSearchService.SearchResult searchResult = smartSearchService.parseAndSearch(query);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("originalQuery", searchResult.getOriginalQuery());
+            response.put("interpretedQuery", searchResult.getInterpretedQuery());
+            response.put("products", searchResult.getProducts());
+            response.put("resultCount", searchResult.getResultCount());
+            response.put("searchCriteria", searchResult.getCriteria());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            java.util.Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", "Smart search failed: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
+    }
+    
+    @GetMapping("/api/products")
+    @ResponseBody
+    public ResponseEntity<List<Product>> getAllProducts() {
+        try {
+            List<Product> products = productRepository.findByIsAvailableTrue();
+            return ResponseEntity.ok(products);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+    
+    @GetMapping("/orders")
+    public String orders(HttpServletRequest request, Model model) {
+        String sessionId = request.getSession().getId();
+        String buyerId = (String) request.getSession().getAttribute("buyerId");
+        
+        List<Order> orders;
+        Map<String, Object> orderStats = new HashMap<>();
+        
+        if (buyerId != null) {
+            orders = orderService.getBuyerOrdersJPA(buyerId);
+            orderStats = orderService.getBuyerOrderStats(buyerId);
+        } else {
+            orders = orderService.getSessionOrdersJPA(sessionId);
+            orderStats = orderService.getSessionOrderStats(sessionId);
+        }
+        
+        model.addAttribute("orders", orders);
+        model.addAttribute("orderStats", orderStats);
+        model.addAttribute("buyerId", buyerId);
+        
+        return "orders";
     }
 }

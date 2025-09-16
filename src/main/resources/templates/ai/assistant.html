@@ -272,37 +272,45 @@
         
         .product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
             margin-top: 1rem;
         }
         
         .product-card {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
             cursor: pointer;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
         .product-card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-5px) scale(1.02);
             border-color: var(--primary);
-            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+            box-shadow: 0 12px 30px rgba(0, 212, 255, 0.25);
         }
         
         .product-image {
             position: relative;
-            height: 120px;
+            height: 180px;
             overflow: hidden;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
         }
         
         .product-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .product-card:hover .product-image img {
+            transform: scale(1.1);
         }
         
         .placeholder-image {
@@ -311,62 +319,183 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--glass-bg);
+            background: linear-gradient(135deg, var(--glass-bg), rgba(255,255,255,0.05));
             color: var(--text-muted);
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .placeholder-image .category-icon {
+            font-size: 2rem;
+            opacity: 0.6;
         }
         
         .discount-badge {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: 12px;
+            right: 12px;
             background: linear-gradient(135deg, #ff4757, #ff3742);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 25px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
+            z-index: 2;
+        }
+        
+        .condition-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(40, 167, 69, 0.9);
             color: white;
             padding: 0.3rem 0.6rem;
             border-radius: 20px;
             font-size: 0.7rem;
             font-weight: 600;
+            backdrop-filter: blur(5px);
         }
         
         .product-info {
-            padding: 1rem;
+            padding: 1.25rem;
         }
         
         .product-name {
             color: var(--text-primary);
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-weight: 600;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            height: 2.8rem;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
         
         .product-brand {
+            color: #00d4ff;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .product-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .stars {
+            color: #ffc107;
+            font-size: 0.9rem;
+        }
+        
+        .rating-text {
             color: rgba(255, 255, 255, 0.7);
             font-size: 0.8rem;
-            margin-bottom: 0.5rem;
         }
         
         .product-price {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
         }
         
         .current-price {
             color: var(--primary);
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.25rem;
         }
         
         .original-price {
             color: rgba(255, 255, 255, 0.5);
-            font-size: 0.9rem;
+            font-size: 1rem;
             text-decoration: line-through;
-            margin-left: 0.5rem;
+        }
+        
+        .savings-text {
+            color: #28a745;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
         
         .product-condition {
             color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .product-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-tag {
+            background: rgba(0, 212, 255, 0.15);
+            color: var(--primary);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 0.6rem;
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            background: var(--glass-bg);
+            color: var(--text-primary);
             font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:hover {
+            background: var(--primary);
+            color: var(--black);
+            border-color: var(--primary);
+        }
+        
+        .action-btn.primary {
+            background: var(--primary);
+            color: var(--black);
+            border-color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .wishlist-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .wishlist-btn:hover {
+            color: #ff4757;
+            border-color: #ff4757;
+            background: rgba(255, 71, 87, 0.1);
         }
         
         /* Product Detail Modal */
@@ -430,6 +559,29 @@
             padding: 0.5rem 1rem;
             border-radius: 20px;
             font-weight: 600;
+        }
+        
+        /* Animations for temporary messages */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
     </style>
 </head>
@@ -723,26 +875,76 @@
                     const discount = product.originalPrice > 0 ? 
                         Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
                     
+                    // Generate mock rating (in real app, this would come from database)
+                    const rating = (3.5 + Math.random() * 1.5).toFixed(1);
+                    const reviewCount = Math.floor(Math.random() * 200) + 10;
+                    const stars = Math.floor(rating);
+                    const hasHalfStar = rating % 1 >= 0.5;
+                    
+                    // Generate category icon
+                    const categoryIcons = {
+                        'CLOTHING': 'fas fa-tshirt',
+                        'SHOES': 'fas fa-shoe-prints',
+                        'ACCESSORIES': 'fas fa-gem',
+                        'ELECTRONICS': 'fas fa-mobile-alt',
+                        'BOOKS': 'fas fa-book',
+                        'HOME_GARDEN': 'fas fa-home',
+                        'SPORTS_OUTDOORS': 'fas fa-dumbbell'
+                    };
+                    const categoryIcon = categoryIcons[product.category] || 'fas fa-box';
+                    
+                    // Generate features based on product attributes
+                    const features = [];
+                    if (product.condition === 'EXCELLENT') features.push('Like New');
+                    if (discount > 20) features.push('Great Deal');
+                    if (product.brand && ['Nike', 'Apple', 'Levi'].includes(product.brand)) features.push('Premium Brand');
+                    if (product.size) features.push(`Size ${product.size}`);
+                    
                     content += `
                         <div class="product-card" onclick="showProductDetails('${product.id}')">
                             <div class="product-image">
                                 ${product.imageUrl ? 
-                                    `<img src="${product.imageUrl}" alt="${product.name}">` : 
-                                    `<div class="placeholder-image"><i class="fas fa-image fa-2x text-muted"></i></div>`
+                                    `<img src="${product.imageUrl}" alt="${product.name}" loading="lazy">` : 
+                                    `<div class="placeholder-image">
+                                        <i class="${categoryIcon} category-icon"></i>
+                                        <small>${product.category.replace('_', ' ')}</small>
+                                    </div>`
                                 }
                                 ${discount > 0 ? `<div class="discount-badge">${discount}% OFF</div>` : ''}
+                                ${product.condition ? `<div class="condition-badge">${product.condition}</div>` : ''}
                             </div>
                             <div class="product-info">
-                                <h6 class="product-name">${product.name}</h6>
-                                <div class="product-brand">${product.brand}</div>
-                                <div class="product-price">
-                                    <span class="current-price">$${product.price}</span>
-                                    ${product.originalPrice > 0 ? 
-                                        `<span class="original-price">$${product.originalPrice}</span>` : ''}
+                                <h6 class="product-name" title="${product.name}">${product.name}</h6>
+                                ${product.brand ? `<div class="product-brand">${product.brand}</div>` : ''}
+                                
+                                <div class="product-rating">
+                                    <div class="stars">
+                                        ${Array.from({length: stars}, () => '<i class="fas fa-star"></i>').join('')}
+                                        ${hasHalfStar ? '<i class="fas fa-star-half-alt"></i>' : ''}
+                                        ${Array.from({length: 5 - stars - (hasHalfStar ? 1 : 0)}, () => '<i class="far fa-star"></i>').join('')}
+                                    </div>
+                                    <span class="rating-text">(${reviewCount})</span>
                                 </div>
-                                <div class="product-condition">
-                                    <i class="fas fa-star text-warning"></i>
-                                    ${product.condition}
+                                
+                                <div class="product-price">
+                                    <span class="current-price">$${product.price.toFixed(2)}</span>
+                                    ${product.originalPrice > 0 ? 
+                                        `<span class="original-price">$${product.originalPrice.toFixed(2)}</span>
+                                         <div class="savings-text">Save $${(product.originalPrice - product.price).toFixed(2)}</div>` : ''}
+                                </div>
+                                
+                                ${features.length > 0 ? `
+                                <div class="product-features">
+                                    ${features.map(feature => `<span class="feature-tag">${feature}</span>`).join('')}
+                                </div>` : ''}
+                                
+                                <div class="product-actions">
+                                    <button class="action-btn primary" onclick="event.stopPropagation(); viewProduct('${product.id}')">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </button>
+                                    <button class="wishlist-btn" onclick="event.stopPropagation(); addToWishlist('${product.id}')" title="Add to Wishlist">
+                                        <i class="far fa-heart"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -858,9 +1060,60 @@
         
         // Product detail functions
         function showProductDetails(productId) {
-            // For now, just show an alert. In production, this would show a detailed modal
             addUserMessage(`Show me more details about product ${productId}`);
             sendMessage();
+        }
+        
+        function viewProduct(productId) {
+            // Open product in new tab/page for detailed view
+            window.open(`/products/${productId}`, '_blank');
+        }
+        
+        function addToWishlist(productId) {
+            // Add visual feedback
+            const heartIcon = event.target.closest('.wishlist-btn').querySelector('i');
+            const wasAdded = heartIcon.classList.contains('far');
+            
+            if (wasAdded) {
+                heartIcon.classList.remove('far');
+                heartIcon.classList.add('fas');
+                heartIcon.style.color = '#ff4757';
+                
+                // Show temporary success message
+                showTemporaryMessage('Added to wishlist! ❤️', 'success');
+            } else {
+                heartIcon.classList.remove('fas');
+                heartIcon.classList.add('far');
+                heartIcon.style.color = '';
+                
+                showTemporaryMessage('Removed from wishlist', 'info');
+            }
+            
+            // Here you would typically make an API call to save the wishlist state
+            console.log(`${wasAdded ? 'Added' : 'Removed'} product ${productId} ${wasAdded ? 'to' : 'from'} wishlist`);
+        }
+        
+        function showTemporaryMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `alert alert-${type === 'success' ? 'success' : 'info'} position-fixed`;
+            messageDiv.style.cssText = `
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                min-width: 250px;
+                animation: slideIn 0.3s ease;
+            `;
+            messageDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 2000);
         }
         
         function getPricingInsight(productId) {

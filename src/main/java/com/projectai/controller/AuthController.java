@@ -166,7 +166,6 @@ public class AuthController {
                               RedirectAttributes redirectAttributes,
                               Model model) {
         
-        // Simple authentication (in production, use proper password hashing)
         if (userType == null || userType.isEmpty()) {
             userType = "buyer"; // Default to buyer
         }

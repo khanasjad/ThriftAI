@@ -268,7 +268,7 @@ public class CartService {
     private double getTotalSavings(List<CartItem> items) {
         return items.stream()
             .filter(item -> item.getProduct() != null && item.getProduct().isAvailable())
-            .filter(item -> item.getProduct().getOriginalPrice() != null)
+            .filter(item -> item.getProduct().getOriginalPrice() > 0)
             .filter(item -> item.getProduct().getOriginalPrice() > item.getProduct().getPrice())
             .mapToDouble(item -> {
                 Product product = item.getProduct();

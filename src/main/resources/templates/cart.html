@@ -274,7 +274,9 @@
                     <span>$<span th:text="${#numbers.formatDecimal(cartSummary.total, 1, 2)}">0.00</span></span>
                 </div>
                 
-                <button class="checkout-btn" onclick="proceedToCheckout()">Proceed to Checkout</button>
+                <a href="/buyers/checkout" class="checkout-btn" style="display: block; text-align: center; text-decoration: none; color: white;">
+                    Proceed to Checkout
+                </a>
             </div>
         </div>
         

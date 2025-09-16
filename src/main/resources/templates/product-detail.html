@@ -237,6 +237,195 @@
                 </div>
             </div>
 
+            <!-- Reviews Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="product-info">
+                        <h4 class="mb-4">
+                            <i class="fas fa-star me-2"></i>Customer Reviews
+                        </h4>
+                        
+                        <!-- Review Summary -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="review-summary text-center p-4" style="background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,100,200,0.05)); border-radius: 15px;">
+                                    <div class="display-4 fw-bold text-primary mb-2" id="averageRating">4.3</div>
+                                    <div class="stars mb-2" id="averageStars">
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star-half-alt text-warning"></i>
+                                    </div>
+                                    <div class="text-muted">Based on <span id="totalReviews">42</span> reviews</div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="rating-breakdown">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2">5★</span>
+                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" style="width: 60%"></div>
+                                        </div>
+                                        <span class="text-muted small">25</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2">4★</span>
+                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" style="width: 30%"></div>
+                                        </div>
+                                        <span class="text-muted small">12</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2">3★</span>
+                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" style="width: 7%"></div>
+                                        </div>
+                                        <span class="text-muted small">3</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2">2★</span>
+                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" style="width: 2%"></div>
+                                        </div>
+                                        <span class="text-muted small">1</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2">1★</span>
+                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" style="width: 2%"></div>
+                                        </div>
+                                        <span class="text-muted small">1</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Review Filters and Write Review Button -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-secondary active" onclick="filterReviews('all')">All Reviews</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterReviews('5')">5★</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterReviews('4')">4★</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterReviews('3')">3★</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterReviews('2')">2★</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterReviews('1')">1★</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterReviews('photos')">With Photos</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="filterReviews('verified')">Verified</button>
+                            </div>
+                            <div>
+                                <select class="form-select d-inline-block me-2" style="width: auto;" onchange="sortReviews(this.value)">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="highest">Highest Rated</option>
+                                    <option value="lowest">Lowest Rated</option>
+                                    <option value="helpful">Most Helpful</option>
+                                </select>
+                                <button class="btn btn-primary" onclick="showWriteReviewForm()">
+                                    <i class="fas fa-edit me-2"></i>Write a Review
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Write Review Form (Initially Hidden) -->
+                        <div id="writeReviewForm" class="card mb-4" style="display: none;">
+                            <div class="card-body">
+                                <h5 class="card-title">Write Your Review</h5>
+                                <form id="reviewForm">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Overall Rating *</label>
+                                            <div class="rating-input" data-rating="0">
+                                                <i class="far fa-star" data-value="1"></i>
+                                                <i class="far fa-star" data-value="2"></i>
+                                                <i class="far fa-star" data-value="3"></i>
+                                                <i class="far fa-star" data-value="4"></i>
+                                                <i class="far fa-star" data-value="5"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Review Title *</label>
+                                            <input type="text" class="form-control" id="reviewTitle" maxlength="200" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Review Content</label>
+                                        <textarea class="form-control" id="reviewContent" rows="4" maxlength="2000" placeholder="Share your experience with this product..."></textarea>
+                                        <div class="form-text">Optional - help others by sharing details about quality, fit, appearance, etc.</div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Condition Rating</label>
+                                            <div class="rating-input" data-rating="0" data-field="condition">
+                                                <i class="far fa-star" data-value="1"></i>
+                                                <i class="far fa-star" data-value="2"></i>
+                                                <i class="far fa-star" data-value="3"></i>
+                                                <i class="far fa-star" data-value="4"></i>
+                                                <i class="far fa-star" data-value="5"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Value Rating</label>
+                                            <div class="rating-input" data-rating="0" data-field="value">
+                                                <i class="far fa-star" data-value="1"></i>
+                                                <i class="far fa-star" data-value="2"></i>
+                                                <i class="far fa-star" data-value="3"></i>
+                                                <i class="far fa-star" data-value="4"></i>
+                                                <i class="far fa-star" data-value="5"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Seller Rating</label>
+                                            <div class="rating-input" data-rating="0" data-field="seller">
+                                                <i class="far fa-star" data-value="1"></i>
+                                                <i class="far fa-star" data-value="2"></i>
+                                                <i class="far fa-star" data-value="3"></i>
+                                                <i class="far fa-star" data-value="4"></i>
+                                                <i class="far fa-star" data-value="5"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Shipping Rating</label>
+                                            <div class="rating-input" data-rating="0" data-field="shipping">
+                                                <i class="far fa-star" data-value="1"></i>
+                                                <i class="far fa-star" data-value="2"></i>
+                                                <i class="far fa-star" data-value="3"></i>
+                                                <i class="far fa-star" data-value="4"></i>
+                                                <i class="far fa-star" data-value="5"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-end">
+                                        <button type="button" class="btn btn-secondary me-2" onclick="hideWriteReviewForm()">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Reviews List -->
+                        <div id="reviewsList">
+                            <!-- Reviews will be loaded here -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading reviews...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Load More Reviews -->
+                        <div class="text-center mt-4">
+                            <button class="btn btn-outline-primary" id="loadMoreReviews" onclick="loadMoreReviews()" style="display: none;">
+                                <i class="fas fa-chevron-down me-2"></i>Load More Reviews
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Similar Products -->
             <div class="row mt-4">
                 <div class="col-12">
@@ -259,11 +448,13 @@
     </main>
     
     <script th:fragment="page-scripts">
-        // Load price comparison and similar products on page load
+        // Load price comparison, similar products, and reviews on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadPriceComparison();
             loadSimilarProducts();
             calculateQualityScore();
+            loadReviews();
+            initializeRatingInputs();
         });
         
         function loadPriceComparison() {
@@ -497,6 +688,394 @@
         
         function searchSimilarByImage() {
             alert('Visual search feature coming soon!');
+        }
+        
+        // Review System Functions
+        let currentReviews = [];
+        let currentPage = 0;
+        let currentFilter = 'all';
+        let currentSort = 'newest';
+        
+        function loadReviews() {
+            const productId = /*[[${product.id}]]*/ 'product-id';
+            
+            fetch(`/buyers/api/products/${productId}/reviews?page=0&size=10&sort=${currentSort}&filter=${currentFilter}`)
+            .then(response => response.json())
+            .then(data => {
+                currentReviews = data.reviews || [];
+                updateReviewSummary(data.summary);
+                displayReviews(currentReviews);
+                updateLoadMoreButton(data.hasMore);
+            })
+            .catch(error => {
+                console.error('Reviews loading error:', error);
+                document.getElementById('reviewsList').innerHTML = 
+                    '<p class="text-muted text-center">Reviews temporarily unavailable.</p>';
+            });
+        }
+        
+        function updateReviewSummary(summary) {
+            if (!summary) return;
+            
+            document.getElementById('averageRating').textContent = summary.averageRating?.toFixed(1) || '0.0';
+            document.getElementById('totalReviews').textContent = summary.totalReviews || '0';
+            
+            // Update stars
+            const starsContainer = document.getElementById('averageStars');
+            const rating = summary.averageRating || 0;
+            let starsHtml = '';
+            
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    starsHtml += '<i class="fas fa-star text-warning"></i>';
+                } else if (i - 0.5 <= rating) {
+                    starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
+                } else {
+                    starsHtml += '<i class="far fa-star text-warning"></i>';
+                }
+            }
+            starsContainer.innerHTML = starsHtml;
+            
+            // Update rating breakdown
+            if (summary.ratingBreakdown) {
+                updateRatingBreakdown(summary.ratingBreakdown, summary.totalReviews);
+            }
+        }
+        
+        function updateRatingBreakdown(breakdown, total) {
+            const container = document.querySelector('.rating-breakdown');
+            let html = '';
+            
+            for (let i = 5; i >= 1; i--) {
+                const count = breakdown[i] || 0;
+                const percentage = total > 0 ? (count / total) * 100 : 0;
+                
+                html += `
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-2">${i}★</span>
+                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                            <div class="progress-bar bg-warning" style="width: ${percentage}%"></div>
+                        </div>
+                        <span class="text-muted small">${count}</span>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function displayReviews(reviews) {
+            const container = document.getElementById('reviewsList');
+            
+            if (!reviews || reviews.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center py-4">No reviews yet. Be the first to write a review!</p>';
+                return;
+            }
+            
+            let html = '';
+            reviews.forEach(review => {
+                html += createReviewHTML(review);
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function createReviewHTML(review) {
+            const stars = generateStars(review.rating);
+            const verifiedBadge = review.verifiedPurchase ? 
+                '<span class="badge bg-success ms-2"><i class="fas fa-check-circle me-1"></i>Verified Purchase</span>' : '';
+            
+            const aspectRatings = [];
+            if (review.conditionRating) aspectRatings.push(`Condition: ${generateStars(review.conditionRating, true)}`);
+            if (review.valueRating) aspectRatings.push(`Value: ${generateStars(review.valueRating, true)}`);
+            if (review.sellerRating) aspectRatings.push(`Seller: ${generateStars(review.sellerRating, true)}`);
+            if (review.shippingRating) aspectRatings.push(`Shipping: ${generateStars(review.shippingRating, true)}`);
+            
+            const photos = review.photoUrls && review.photoUrls.length > 0 ? 
+                `<div class="review-photos mt-2">
+                    ${review.photoUrls.map(url => `<img src="${url}" alt="Review photo" class="review-photo me-2" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer;" onclick="enlargeReviewPhoto('${url}')">`).join('')}
+                </div>` : '';
+            
+            return `
+                <div class="review-item border-bottom pb-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="d-flex align-items-center">
+                                <div class="review-stars me-2">${stars}</div>
+                                <h6 class="mb-0">${review.title}</h6>
+                                ${verifiedBadge}
+                            </div>
+                            <small class="text-muted">
+                                By ${review.buyer?.firstName || 'Anonymous'} on ${formatDate(review.createdAt)}
+                            </small>
+                        </div>
+                        <div class="review-actions">
+                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="toggleReviewHelpful('${review.id}', true)">
+                                <i class="fas fa-thumbs-up me-1"></i>Helpful (${review.helpfulVotes || 0})
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="toggleReviewHelpful('${review.id}', false)">
+                                <i class="fas fa-thumbs-down me-1"></i>Not Helpful (${review.unhelpfulVotes || 0})
+                            </button>
+                        </div>
+                    </div>
+                    
+                    ${review.content ? `<p class="review-content">${review.content}</p>` : ''}
+                    
+                    ${aspectRatings.length > 0 ? `
+                        <div class="aspect-ratings mt-2">
+                            <small class="text-muted">${aspectRatings.join(' • ')}</small>
+                        </div>
+                    ` : ''}
+                    
+                    ${photos}
+                </div>
+            `;
+        }
+        
+        function generateStars(rating, small = false) {
+            const size = small ? 'small' : '';
+            let html = '';
+            
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    html += `<i class="fas fa-star text-warning ${size}"></i>`;
+                } else {
+                    html += `<i class="far fa-star text-muted ${size}"></i>`;
+                }
+            }
+            
+            return html;
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        function filterReviews(filter) {
+            currentFilter = filter;
+            currentPage = 0;
+            
+            // Update active filter button
+            document.querySelectorAll('.btn-group button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            loadReviews();
+        }
+        
+        function sortReviews(sort) {
+            currentSort = sort;
+            currentPage = 0;
+            loadReviews();
+        }
+        
+        function loadMoreReviews() {
+            currentPage++;
+            const productId = /*[[${product.id}]]*/ 'product-id';
+            
+            fetch(`/buyers/api/products/${productId}/reviews?page=${currentPage}&size=10&sort=${currentSort}&filter=${currentFilter}`)
+            .then(response => response.json())
+            .then(data => {
+                const newReviews = data.reviews || [];
+                currentReviews = [...currentReviews, ...newReviews];
+                
+                // Append new reviews to existing ones
+                const container = document.getElementById('reviewsList');
+                newReviews.forEach(review => {
+                    container.innerHTML += createReviewHTML(review);
+                });
+                
+                updateLoadMoreButton(data.hasMore);
+            })
+            .catch(error => {
+                console.error('Load more reviews error:', error);
+            });
+        }
+        
+        function updateLoadMoreButton(hasMore) {
+            const button = document.getElementById('loadMoreReviews');
+            button.style.display = hasMore ? 'block' : 'none';
+        }
+        
+        function toggleReviewHelpful(reviewId, isHelpful) {
+            const action = isHelpful ? 'helpful' : 'unhelpful';
+            
+            fetch(`/buyers/api/reviews/${reviewId}/${action}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Refresh reviews to show updated counts
+                    loadReviews();
+                } else {
+                    alert('Failed to record your feedback: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Review feedback error:', error);
+                alert('Failed to record your feedback');
+            });
+        }
+        
+        function showWriteReviewForm() {
+            document.getElementById('writeReviewForm').style.display = 'block';
+            document.getElementById('writeReviewForm').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function hideWriteReviewForm() {
+            document.getElementById('writeReviewForm').style.display = 'none';
+            document.getElementById('reviewForm').reset();
+            resetAllRatings();
+        }
+        
+        function initializeRatingInputs() {
+            document.querySelectorAll('.rating-input').forEach(ratingDiv => {
+                const stars = ratingDiv.querySelectorAll('i');
+                
+                stars.forEach((star, index) => {
+                    star.addEventListener('click', () => {
+                        const rating = index + 1;
+                        ratingDiv.setAttribute('data-rating', rating);
+                        
+                        // Update visual state
+                        stars.forEach((s, i) => {
+                            if (i < rating) {
+                                s.classList.remove('far');
+                                s.classList.add('fas');
+                                s.classList.add('text-warning');
+                            } else {
+                                s.classList.remove('fas', 'text-warning');
+                                s.classList.add('far');
+                            }
+                        });
+                    });
+                    
+                    star.addEventListener('mouseenter', () => {
+                        const rating = index + 1;
+                        stars.forEach((s, i) => {
+                            if (i < rating) {
+                                s.classList.add('text-warning');
+                            } else {
+                                s.classList.remove('text-warning');
+                            }
+                        });
+                    });
+                });
+                
+                ratingDiv.addEventListener('mouseleave', () => {
+                    const currentRating = parseInt(ratingDiv.getAttribute('data-rating'));
+                    stars.forEach((s, i) => {
+                        if (i < currentRating) {
+                            s.classList.add('text-warning');
+                        } else {
+                            s.classList.remove('text-warning');
+                        }
+                    });
+                });
+            });
+            
+            // Handle review form submission
+            document.getElementById('reviewForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitReview();
+            });
+        }
+        
+        function resetAllRatings() {
+            document.querySelectorAll('.rating-input').forEach(ratingDiv => {
+                ratingDiv.setAttribute('data-rating', '0');
+                const stars = ratingDiv.querySelectorAll('i');
+                stars.forEach(star => {
+                    star.classList.remove('fas', 'text-warning');
+                    star.classList.add('far');
+                });
+            });
+        }
+        
+        function submitReview() {
+            const productId = /*[[${product.id}]]*/ 'product-id';
+            
+            const overall = document.querySelector('.rating-input:not([data-field])').getAttribute('data-rating');
+            const title = document.getElementById('reviewTitle').value;
+            const content = document.getElementById('reviewContent').value;
+            
+            if (!overall || overall === '0') {
+                alert('Please provide an overall rating');
+                return;
+            }
+            
+            if (!title.trim()) {
+                alert('Please provide a review title');
+                return;
+            }
+            
+            const reviewData = {
+                productId: productId,
+                rating: parseInt(overall),
+                title: title.trim(),
+                content: content.trim(),
+                conditionRating: parseInt(document.querySelector('[data-field="condition"]').getAttribute('data-rating')) || null,
+                valueRating: parseInt(document.querySelector('[data-field="value"]').getAttribute('data-rating')) || null,
+                sellerRating: parseInt(document.querySelector('[data-field="seller"]').getAttribute('data-rating')) || null,
+                shippingRating: parseInt(document.querySelector('[data-field="shipping"]').getAttribute('data-rating')) || null
+            };
+            
+            // Remove null values
+            Object.keys(reviewData).forEach(key => {
+                if (reviewData[key] === null || reviewData[key] === 0) {
+                    delete reviewData[key];
+                }
+            });
+            
+            fetch('/buyers/api/reviews', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(reviewData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Review submitted successfully! It will appear after moderation.');
+                    hideWriteReviewForm();
+                    loadReviews(); // Refresh reviews
+                } else {
+                    alert('Failed to submit review: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Review submission error:', error);
+                alert('Failed to submit review');
+            });
+        }
+        
+        function enlargeReviewPhoto(photoUrl) {
+            // Create modal for enlarged photo
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); z-index: 9999; display: flex; 
+                align-items: center; justify-content: center; cursor: pointer;
+            `;
+            
+            const img = document.createElement('img');
+            img.src = photoUrl;
+            img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 8px;';
+            
+            modal.appendChild(img);
+            modal.addEventListener('click', () => document.body.removeChild(modal));
+            document.body.appendChild(modal);
         }
     </script>
 </body>

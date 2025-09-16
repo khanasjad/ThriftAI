@@ -111,7 +111,7 @@ public class DataInitializationService implements CommandLineRunner {
         // Products for Vintage Treasures
         Product product1 = new Product();
         product1.setName("Vintage Levi's 501 Jeans");
-        product1.setCategory("Clothing");
+        product1.setCategory("CLOTHING");
         product1.setBrand("Levi's");
         product1.setPrice(45.00);
         product1.setOriginalPrice(120.00);
@@ -120,11 +120,12 @@ public class DataInitializationService implements CommandLineRunner {
         product1.setSize("32x34");
         product1.setAvailable(true);
         product1.setSeller(sellers.get(0));
+        product1.setStoreId("vintage-treasures-001");
         product1.setImageUrl("https://via.placeholder.com/300x300?text=Vintage+Levis");
 
         Product product2 = new Product();
         product2.setName("Vintage Band T-Shirt - Led Zeppelin");
-        product2.setCategory("Clothing");
+        product2.setCategory("CLOTHING");
         product2.setBrand("Vintage");
         product2.setPrice(35.00);
         product2.setOriginalPrice(80.00);
@@ -133,11 +134,12 @@ public class DataInitializationService implements CommandLineRunner {
         product2.setSize("Medium");
         product2.setAvailable(true);
         product2.setSeller(sellers.get(0));
+        product2.setStoreId("vintage-treasures-001");
         product2.setImageUrl("https://via.placeholder.com/300x300?text=Led+Zeppelin+Tee");
 
         Product product3 = new Product();
         product3.setName("Vintage Leather Jacket");
-        product3.setCategory("Outerwear");
+        product3.setCategory("CLOTHING");
         product3.setBrand("Wilson's Leather");
         product3.setPrice(75.00);
         product3.setOriginalPrice(250.00);
@@ -146,12 +148,13 @@ public class DataInitializationService implements CommandLineRunner {
         product3.setSize("Large");
         product3.setAvailable(true);
         product3.setSeller(sellers.get(0));
+        product3.setStoreId("vintage-treasures-001");
         product3.setImageUrl("https://via.placeholder.com/300x300?text=Leather+Jacket");
 
         // Products for Second Chance Boutique
         Product product4 = new Product();
         product4.setName("Gucci Designer Handbag");
-        product4.setCategory("Accessories");
+        product4.setCategory("ACCESSORIES");
         product4.setBrand("Gucci");
         product4.setPrice(850.00);
         product4.setOriginalPrice(1800.00);
@@ -160,11 +163,12 @@ public class DataInitializationService implements CommandLineRunner {
         product4.setSize("Medium");
         product4.setAvailable(true);
         product4.setSeller(sellers.get(1));
+        product4.setStoreId("second-chance-002");
         product4.setImageUrl("https://via.placeholder.com/300x300?text=Gucci+Bag");
 
         Product product5 = new Product();
         product5.setName("Chanel Little Black Dress");
-        product5.setCategory("Clothing");
+        product5.setCategory("CLOTHING");
         product5.setBrand("Chanel");
         product5.setPrice(1200.00);
         product5.setOriginalPrice(3500.00);
@@ -173,11 +177,12 @@ public class DataInitializationService implements CommandLineRunner {
         product5.setSize("Size 6");
         product5.setAvailable(true);
         product5.setSeller(sellers.get(1));
+        product5.setStoreId("second-chance-002");
         product5.setImageUrl("https://via.placeholder.com/300x300?text=Chanel+Dress");
 
         Product product6 = new Product();
         product6.setName("Louboutin Red Sole Heels");
-        product6.setCategory("Shoes");
+        product6.setCategory("SHOES");
         product6.setBrand("Christian Louboutin");
         product6.setPrice(450.00);
         product6.setOriginalPrice(1200.00);
@@ -186,12 +191,13 @@ public class DataInitializationService implements CommandLineRunner {
         product6.setSize("Size 8");
         product6.setAvailable(true);
         product6.setSeller(sellers.get(1));
+        product6.setStoreId("second-chance-002");
         product6.setImageUrl("https://via.placeholder.com/300x300?text=Louboutin+Heels");
 
         // Products for Eco Fashion Hub
         Product product7 = new Product();
         product7.setName("Organic Cotton Sundress");
-        product7.setCategory("Clothing");
+        product7.setCategory("CLOTHING");
         product7.setBrand("Eileen Fisher");
         product7.setPrice(65.00);
         product7.setOriginalPrice(180.00);
@@ -200,11 +206,12 @@ public class DataInitializationService implements CommandLineRunner {
         product7.setSize("Medium");
         product7.setAvailable(true);
         product7.setSeller(sellers.get(2));
+        product7.setStoreId("eco-fashion-003");
         product7.setImageUrl("https://via.placeholder.com/300x300?text=Organic+Sundress");
 
         Product product8 = new Product();
         product8.setName("Recycled Denim Jacket");
-        product8.setCategory("Outerwear");
+        product8.setCategory("CLOTHING");
         product8.setBrand("Patagonia");
         product8.setPrice(55.00);
         product8.setOriginalPrice(149.00);
@@ -213,11 +220,12 @@ public class DataInitializationService implements CommandLineRunner {
         product8.setSize("Large");
         product8.setAvailable(true);
         product8.setSeller(sellers.get(2));
+        product8.setStoreId("eco-fashion-003");
         product8.setImageUrl("https://via.placeholder.com/300x300?text=Recycled+Denim");
 
         Product product9 = new Product();
         product9.setName("Hemp Canvas Tote Bag");
-        product9.setCategory("Accessories");
+        product9.setCategory("ACCESSORIES");
         product9.setBrand("Baggu");
         product9.setPrice(25.00);
         product9.setOriginalPrice(45.00);
@@ -226,11 +234,12 @@ public class DataInitializationService implements CommandLineRunner {
         product9.setSize("Large");
         product9.setAvailable(true);
         product9.setSeller(sellers.get(2));
+        product9.setStoreId("eco-fashion-003");
         product9.setImageUrl("https://via.placeholder.com/300x300?text=Hemp+Tote");
 
         Product product10 = new Product();
         product10.setName("Vintage Nike Air Jordans");
-        product10.setCategory("Shoes");
+        product10.setCategory("SHOES");
         product10.setBrand("Nike");
         product10.setPrice(180.00);
         product10.setOriginalPrice(450.00);
@@ -239,12 +248,13 @@ public class DataInitializationService implements CommandLineRunner {
         product10.setSize("Size 10");
         product10.setAvailable(true);
         product10.setSeller(sellers.get(0));
+        product10.setStoreId("vintage-treasures-001");
         product10.setImageUrl("https://via.placeholder.com/300x300?text=Air+Jordans");
 
         // Additional products for better search diversity
         Product product11 = new Product();
         product11.setName("Adidas Track Jacket");
-        product11.setCategory("Clothing");
+        product11.setCategory("CLOTHING");
         product11.setBrand("Adidas");
         product11.setPrice(28.00);
         product11.setOriginalPrice(65.00);
@@ -253,11 +263,12 @@ public class DataInitializationService implements CommandLineRunner {
         product11.setSize("Large");
         product11.setAvailable(true);
         product11.setSeller(sellers.get(1));
+        product11.setStoreId("second-chance-002");
         product11.setImageUrl("https://via.placeholder.com/300x300?text=Adidas+Jacket");
 
         Product product12 = new Product();
         product12.setName("Nintendo Game Console");
-        product12.setCategory("Electronics");
+        product12.setCategory("ELECTRONICS");
         product12.setBrand("Nintendo");
         product12.setPrice(85.00);
         product12.setOriginalPrice(200.00);
@@ -266,11 +277,12 @@ public class DataInitializationService implements CommandLineRunner {
         product12.setSize("Standard");
         product12.setAvailable(true);
         product12.setSeller(sellers.get(2));
+        product12.setStoreId("eco-fashion-003");
         product12.setImageUrl("https://via.placeholder.com/300x300?text=Nintendo+Console");
 
         Product product13 = new Product();
         product13.setName("Ray-Ban Sunglasses");
-        product13.setCategory("Accessories");
+        product13.setCategory("ACCESSORIES");
         product13.setBrand("Ray-Ban");
         product13.setPrice(45.00);
         product13.setOriginalPrice(150.00);
@@ -279,11 +291,12 @@ public class DataInitializationService implements CommandLineRunner {
         product13.setSize("One Size");
         product13.setAvailable(true);
         product13.setSeller(sellers.get(0));
+        product13.setStoreId("vintage-treasures-001");
         product13.setImageUrl("https://via.placeholder.com/300x300?text=Ray-Ban");
 
         Product product14 = new Product();
         product14.setName("Vintage Cookbook Collection");
-        product14.setCategory("Books");
+        product14.setCategory("BOOKS");
         product14.setBrand("Various");
         product14.setPrice(15.00);
         product14.setOriginalPrice(45.00);
@@ -292,11 +305,12 @@ public class DataInitializationService implements CommandLineRunner {
         product14.setSize("Standard");
         product14.setAvailable(true);
         product14.setSeller(sellers.get(1));
+        product14.setStoreId("second-chance-002");
         product14.setImageUrl("https://via.placeholder.com/300x300?text=Cookbooks");
 
         Product product15 = new Product();
         product15.setName("Levi's Denim Jacket");
-        product15.setCategory("Outerwear");
+        product15.setCategory("CLOTHING");
         product15.setBrand("Levi's");
         product15.setPrice(42.00);
         product15.setOriginalPrice(89.00);
@@ -305,10 +319,100 @@ public class DataInitializationService implements CommandLineRunner {
         product15.setSize("Medium");
         product15.setAvailable(true);
         product15.setSeller(sellers.get(2));
+        product15.setStoreId("eco-fashion-003");
         product15.setImageUrl("https://via.placeholder.com/300x300?text=Levi+Denim");
+
+        // Add more clothing items for better search
+        Product product16 = new Product();
+        product16.setName("White Cotton Dress Shirt");
+        product16.setCategory("CLOTHING");
+        product16.setBrand("Brooks Brothers");
+        product16.setPrice(22.00);
+        product16.setOriginalPrice(65.00);
+        product16.setCondition("Like New");
+        product16.setDescription("Crisp white cotton dress shirt, barely worn");
+        product16.setSize("Medium");
+        product16.setAvailable(true);
+        product16.setSeller(sellers.get(0));
+        product16.setStoreId("vintage-treasures-001");
+        product16.setImageUrl("https://via.placeholder.com/300x300?text=White+Shirt");
+
+        Product product17 = new Product();
+        product17.setName("Blue Cotton T-Shirt");
+        product17.setCategory("CLOTHING");
+        product17.setBrand("Gap");
+        product17.setPrice(12.00);
+        product17.setOriginalPrice(25.00);
+        product17.setCondition("Good");
+        product17.setDescription("Soft blue cotton t-shirt, comfortable fit");
+        product17.setSize("Large");
+        product17.setAvailable(true);
+        product17.setSeller(sellers.get(1));
+        product17.setStoreId("second-chance-002");
+        product17.setImageUrl("https://via.placeholder.com/300x300?text=Blue+Tshirt");
+
+        Product product18 = new Product();
+        product18.setName("Red Summer Blouse");
+        product18.setCategory("CLOTHING");
+        product18.setBrand("Zara");
+        product18.setPrice(18.00);
+        product18.setOriginalPrice(45.00);
+        product18.setCondition("Very Good");
+        product18.setDescription("Flowy red summer blouse with floral pattern");
+        product18.setSize("Small");
+        product18.setAvailable(true);
+        product18.setSeller(sellers.get(2));
+        product18.setStoreId("eco-fashion-003");
+        product18.setImageUrl("https://via.placeholder.com/300x300?text=Red+Blouse");
+
+        // Add shoes
+        Product product19 = new Product();
+        product19.setName("White Canvas Sneakers");
+        product19.setCategory("SHOES");
+        product19.setBrand("Converse");
+        product19.setPrice(25.00);
+        product19.setOriginalPrice(60.00);
+        product19.setCondition("Good");
+        product19.setDescription("Classic white canvas sneakers, some wear but still great");
+        product19.setSize("9");
+        product19.setAvailable(true);
+        product19.setSeller(sellers.get(0));
+        product19.setStoreId("vintage-treasures-001");
+        product19.setImageUrl("https://via.placeholder.com/300x300?text=White+Sneakers");
+
+        // Add electronics
+        Product product20 = new Product();
+        product20.setName("iPhone 13 Pro");
+        product20.setCategory("ELECTRONICS");
+        product20.setBrand("Apple");
+        product20.setPrice(650.00);
+        product20.setOriginalPrice(999.00);
+        product20.setCondition("Very Good");
+        product20.setDescription("iPhone 13 Pro 128GB in excellent condition");
+        product20.setSize(null);
+        product20.setAvailable(true);
+        product20.setSeller(sellers.get(1));
+        product20.setStoreId("second-chance-002");
+        product20.setImageUrl("https://via.placeholder.com/300x300?text=iPhone13");
+
+        // Add vintage items
+        Product product21 = new Product();
+        product21.setName("Vintage 90s Windbreaker");
+        product21.setCategory("CLOTHING");
+        product21.setBrand("Nike");
+        product21.setPrice(35.00);
+        product21.setOriginalPrice(80.00);
+        product21.setCondition("Good");
+        product21.setDescription("Authentic 90s Nike windbreaker, vintage style");
+        product21.setSize("Large");
+        product21.setAvailable(true);
+        product21.setSeller(sellers.get(0));
+        product21.setStoreId("vintage-treasures-001");
+        product21.setImageUrl("https://via.placeholder.com/300x300?text=Vintage+Nike");
 
         return Arrays.asList(product1, product2, product3, product4, product5, 
                            product6, product7, product8, product9, product10,
-                           product11, product12, product13, product14, product15);
+                           product11, product12, product13, product14, product15,
+                           product16, product17, product18, product19, product20, product21);
     }
 }

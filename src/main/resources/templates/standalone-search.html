@@ -232,11 +232,11 @@
                         
                         <!-- Search Suggestions -->
                         <div class="search-suggestions">
-                            <span class="suggestion-chip" onclick="searchSuggestion('vintage Nike sneakers under $50')">vintage Nike sneakers under $50</span>
-                            <span class="suggestion-chip" onclick="searchSuggestion('designer handbags')">designer handbags</span>
-                            <span class="suggestion-chip" onclick="searchSuggestion('cozy winter sweaters')">cozy winter sweaters</span>
-                            <span class="suggestion-chip" onclick="searchSuggestion('retro gaming console')">retro gaming console</span>
-                            <span class="suggestion-chip" onclick="searchSuggestion('leather jacket')">leather jacket</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('I want a white shirt for $20')">white shirt for $20</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('black leather jacket under $100')">black leather jacket under $100</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('red dress size M')">red dress size M</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('Nike sneakers in excellent condition')">Nike sneakers excellent condition</span>
+                            <span class="suggestion-chip" onclick="searchSuggestion('blue jeans size 32')">blue jeans size 32</span>
                         </div>
                         
                         <!-- AI Response Area -->
@@ -502,7 +502,8 @@
         function performChatSearch(query) {
             showLoading('chatLoadingSpinner');
             
-            fetch('/buyers/api/chat-search', {
+            // Try smart search first
+            fetch('/buyers/api/smart-search', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -512,13 +513,34 @@
             .then(response => response.json())
             .then(data => {
                 hideLoading('chatLoadingSpinner');
-                displayChatResponse(data);
-                displaySearchResults(data.products, 'AI Search Results for: ' + query);
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                displaySmartSearchResponse(data);
+                displaySearchResults(data.products, 'Smart Search Results for: ' + query);
             })
             .catch(error => {
-                hideLoading('chatLoadingSpinner');
-                console.error('Search error:', error);
-                displayErrorMessage('Search failed. Please try again.');
+                console.log('Smart search failed, falling back to chat search:', error);
+                
+                // Fallback to chat search
+                fetch('/buyers/api/chat-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading('chatLoadingSpinner');
+                    displayChatResponse(data);
+                    displaySearchResults(data.products, 'AI Search Results for: ' + query);
+                })
+                .catch(error => {
+                    hideLoading('chatLoadingSpinner');
+                    console.error('Search error:', error);
+                    displayErrorMessage('Search failed. Please try again.');
+                });
             });
         }
 
@@ -527,6 +549,19 @@
             const responseElement = document.getElementById('aiResponse');
             
             responseElement.innerHTML = '<i class="fas fa-robot me-2"></i>' + data.chatResponse;
+            responseArea.style.display = 'block';
+        }
+        
+        function displaySmartSearchResponse(data) {
+            const responseArea = document.getElementById('aiResponseArea');
+            const responseElement = document.getElementById('aiResponse');
+            
+            let responseText = '<i class="fas fa-brain me-2"></i><strong>Smart Search Interpretation:</strong><br>';
+            responseText += '<em>Original Query:</em> "' + data.originalQuery + '"<br>';
+            responseText += '<em>Interpreted as:</em> ' + data.interpretedQuery + '<br>';
+            responseText += '<em>Found:</em> ' + data.resultCount + ' matching product' + (data.resultCount !== 1 ? 's' : '');
+            
+            responseElement.innerHTML = responseText;
             responseArea.style.display = 'block';
         }
 

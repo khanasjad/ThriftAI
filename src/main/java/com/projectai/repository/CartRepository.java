@@ -57,7 +57,7 @@ public interface CartRepository extends JpaRepository<CartItem, String> {
     void deleteOldGuestCarts(@Param("cutoffDate") LocalDateTime cutoffDate);
     
     // Find cart items with products that are no longer available
-    @Query("SELECT c FROM CartItem c JOIN c.product p WHERE (c.sessionId = :sessionId OR c.buyerId = :buyerId) AND p.available = false")
+    @Query("SELECT c FROM CartItem c JOIN c.product p WHERE (c.sessionId = :sessionId OR c.buyerId = :buyerId) AND p.isAvailable = false")
     List<CartItem> findUnavailableItemsBySessionIdOrBuyerId(@Param("sessionId") String sessionId, @Param("buyerId") String buyerId);
     
     // Find cart items where price has changed
