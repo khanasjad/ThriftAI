@@ -13,6 +13,7 @@ import com.projectai.service.OrderService;
 import com.projectai.service.ReviewService;
 import com.projectai.service.CartService;
 import com.projectai.service.SmartSearchService;
+import com.projectai.service.WorldClassSearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -64,7 +65,10 @@ public class BuyerController {
     
     @Autowired
     private SmartSearchService smartSearchService;
-    
+
+    @Autowired
+    private WorldClassSearchService worldClassSearchService;
+
     // Add API endpoint for filter options
     @GetMapping("/api/filter-options")
     @ResponseBody
@@ -761,30 +765,17 @@ public class BuyerController {
     @GetMapping("/search")
     public String searchResults(@RequestParam(value = "q", required = false) String query, Model model) {
         try {
-            List<Product> searchResults;
-            SmartSearchService.SearchResult smartResult = null;
-            
-            if (query == null || query.trim().isEmpty()) {
-                // Show all available products when no query is provided
-                searchResults = thriftAIService.getAllAvailableProducts();
-                query = ""; // Set empty string for template
-            } else {
-                // Use smart search for natural language queries
-                smartResult = smartSearchService.parseAndSearch(query);
-                searchResults = smartResult.getProducts();
-            }
-            
-            model.addAttribute("query", query);
-            model.addAttribute("products", searchResults);
-            model.addAttribute("resultCount", searchResults.size());
-            
-            // Add smart search interpretation if available
-            if (smartResult != null) {
-                model.addAttribute("interpretedQuery", smartResult.getInterpretedQuery());
-                model.addAttribute("originalQuery", smartResult.getOriginalQuery());
-                model.addAttribute("searchCriteria", smartResult.getCriteria());
-            }
-            
+            // Use the new world-class search service that GUARANTEES results
+            WorldClassSearchService.SearchResponse response = worldClassSearchService.performWorldClassSearch(query);
+
+            model.addAttribute("query", query != null ? query : "");
+            model.addAttribute("products", response.getProducts());
+            model.addAttribute("resultCount", response.getTotalResults());
+            model.addAttribute("searchInsights", response.getInsights());
+            model.addAttribute("searchSuggestions", response.getSuggestions());
+            model.addAttribute("interpretedQuery", response.getProcessedQuery());
+            model.addAttribute("originalQuery", response.getOriginalQuery());
+
             return "search-results";
         } catch (Exception e) {
             model.addAttribute("query", query);

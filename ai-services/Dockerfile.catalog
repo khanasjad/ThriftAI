@@ -1,0 +1,46 @@
+# Dockerfile for Catalog Extractor AI Service
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY catalog_extractor.py .
+COPY *.py .
+
+# Create necessary directories
+RUN mkdir -p /app/models /tmp/uploads
+
+# Download pre-trained models (in production, these would be mounted or downloaded separately)
+RUN python -c "from transformers import BlipProcessor, BlipForConditionalGeneration; BlipProcessor.from_pretrained('Salesforce/blip-image-captioning-base'); BlipForConditionalGeneration.from_pretrained('Salesforce/blip-image-captioning-base')"
+
+# Expose port
+EXPOSE 8085
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8085/health || exit 1
+
+# Run the application
+CMD ["python", "catalog_extractor.py"]

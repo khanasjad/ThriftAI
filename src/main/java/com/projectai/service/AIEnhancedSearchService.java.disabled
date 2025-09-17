@@ -1,0 +1,547 @@
+package com.projectai.service;
+
+import com.projectai.models.Product;
+import com.projectai.repository.ProductRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
+
+@Service
+public class AIEnhancedSearchService {
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private AIIntegrationService aiIntegrationService;
+
+    @Autowired
+    private MLProductMatchingService mlProductMatchingService;
+
+    private static final Map<String, List<String>> SMART_SYNONYMS = new HashMap<>();
+    private static final Map<String, List<String>> CATEGORY_KEYWORDS = new HashMap<>();
+    private static final Map<String, Double> BRAND_DESIGNER_SCORES = new HashMap<>();
+
+    static {
+        // Smart synonyms for better matching
+        SMART_SYNONYMS.put("vintage", Arrays.asList("vintage", "retro", "classic", "antique", "old-school", "throwback", "nostalgic", "period"));
+        SMART_SYNONYMS.put("designer", Arrays.asList("designer", "luxury", "high-end", "premium", "brand", "couture", "exclusive", "upscale"));
+        SMART_SYNONYMS.put("jacket", Arrays.asList("jacket", "coat", "blazer", "outerwear", "windbreaker", "bomber"));
+        SMART_SYNONYMS.put("bag", Arrays.asList("bag", "handbag", "purse", "tote", "clutch", "satchel", "backpack"));
+        SMART_SYNONYMS.put("shoes", Arrays.asList("shoes", "sneakers", "boots", "heels", "flats", "sandals", "loafers"));
+        SMART_SYNONYMS.put("dress", Arrays.asList("dress", "gown", "frock", "sundress", "cocktail", "evening wear"));
+        SMART_SYNONYMS.put("jeans", Arrays.asList("jeans", "denim", "pants", "trousers", "slacks"));
+
+        // Category keywords for intelligent categorization
+        CATEGORY_KEYWORDS.put("Clothing", Arrays.asList("shirt", "dress", "jacket", "pants", "jeans", "sweater", "hoodie", "coat", "blazer", "top", "bottom", "outfit", "wear", "apparel", "garment"));
+        CATEGORY_KEYWORDS.put("Shoes", Arrays.asList("shoes", "sneakers", "boots", "heels", "sandals", "flats", "loafers", "athletic", "footwear", "kicks"));
+        CATEGORY_KEYWORDS.put("Accessories", Arrays.asList("bag", "handbag", "purse", "jewelry", "watch", "belt", "hat", "scarf", "sunglasses", "wallet", "accessory"));
+        CATEGORY_KEYWORDS.put("Electronics", Arrays.asList("phone", "laptop", "tablet", "camera", "headphones", "speaker", "gaming", "tech", "gadget", "device"));
+        CATEGORY_KEYWORDS.put("Books", Arrays.asList("book", "novel", "textbook", "cookbook", "manual", "guide", "literature", "reading"));
+
+        // Designer brand scoring for luxury detection
+        BRAND_DESIGNER_SCORES.put("gucci", 1.0);
+        BRAND_DESIGNER_SCORES.put("prada", 1.0);
+        BRAND_DESIGNER_SCORES.put("chanel", 1.0);
+        BRAND_DESIGNER_SCORES.put("louis vuitton", 1.0);
+        BRAND_DESIGNER_SCORES.put("versace", 1.0);
+        BRAND_DESIGNER_SCORES.put("armani", 0.9);
+        BRAND_DESIGNER_SCORES.put("nike", 0.7);
+        BRAND_DESIGNER_SCORES.put("adidas", 0.7);
+        BRAND_DESIGNER_SCORES.put("zara", 0.6);
+        BRAND_DESIGNER_SCORES.put("levi", 0.5);
+    }
+
+    public CompletableFuture<AIEnhancedSearchResult> performAISearch(String userId, String originalQuery, int page, int size) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // Step 1: AI-powered query understanding and expansion
+                SearchIntent intent = analyzeSearchIntent(originalQuery);
+                List<String> expandedQueries = expandQuery(originalQuery, intent);
+
+                // Step 2: Multi-pass search with different strategies
+                List<Product> allResults = new ArrayList<>();
+
+                // Direct search with expanded queries
+                for (String query : expandedQueries) {
+                    List<Product> directResults = performDirectSearch(query);
+                    allResults.addAll(directResults);
+                }
+
+                // Step 3: If results are limited, use AI semantic search
+                if (allResults.size() < 10) {
+                    List<Product> semanticResults = performSemanticSearch(originalQuery, intent);
+                    allResults.addAll(semanticResults);
+                }
+
+                // Step 4: If still limited, generate intelligent recommendations
+                if (allResults.size() < 5) {
+                    List<Product> recommendedResults = generateIntelligentFallbacks(originalQuery, intent);
+                    allResults.addAll(recommendedResults);
+                }
+
+                // Step 5: Smart deduplication and ranking
+                List<Product> finalResults = deduplicateAndRank(allResults, originalQuery, intent);
+
+                // Step 6: Create paginated result
+                Pageable pageable = PageRequest.of(page, size);
+                Page<Product> resultPage = createPage(finalResults, pageable);
+
+                // Step 7: Generate AI insights and suggestions
+                SearchInsights insights = generateSearchInsights(originalQuery, intent, finalResults);
+
+                return new AIEnhancedSearchResult(
+                    resultPage,
+                    intent,
+                    expandedQueries,
+                    insights,
+                    generateSmartSuggestions(originalQuery, intent)
+                );
+
+            } catch (Exception e) {
+                // Fallback to basic search
+                return createFallbackResult(originalQuery, page, size);
+            }
+        });
+    }
+
+    private SearchIntent analyzeSearchIntent(String query) {
+        String lowerQuery = query.toLowerCase();
+        SearchIntent intent = new SearchIntent();
+
+        // Detect vintage intent
+        if (containsAnyKeyword(lowerQuery, SMART_SYNONYMS.get("vintage"))) {
+            intent.setVintageIntent(true);
+            intent.setStylePreference("vintage");
+        }
+
+        // Detect designer intent
+        if (containsAnyKeyword(lowerQuery, SMART_SYNONYMS.get("designer"))) {
+            intent.setDesignerIntent(true);
+            intent.setPriceRange("high");
+        }
+
+        // Detect category intent
+        for (Map.Entry<String, List<String>> entry : CATEGORY_KEYWORDS.entrySet()) {
+            if (containsAnyKeyword(lowerQuery, entry.getValue())) {
+                intent.setPrimaryCategory(entry.getKey());
+                break;
+            }
+        }
+
+        // Detect brand intent
+        for (String brand : BRAND_DESIGNER_SCORES.keySet()) {
+            if (lowerQuery.contains(brand)) {
+                intent.setBrandFocus(brand);
+                intent.setDesignerScore(BRAND_DESIGNER_SCORES.get(brand));
+                break;
+            }
+        }
+
+        // Detect price indicators
+        if (lowerQuery.contains("cheap") || lowerQuery.contains("affordable") || lowerQuery.contains("budget")) {
+            intent.setPriceRange("low");
+        } else if (lowerQuery.contains("expensive") || lowerQuery.contains("luxury") || lowerQuery.contains("premium")) {
+            intent.setPriceRange("high");
+        }
+
+        return intent;
+    }
+
+    private List<String> expandQuery(String originalQuery, SearchIntent intent) {
+        Set<String> expandedQueries = new HashSet<>();
+        expandedQueries.add(originalQuery);
+
+        String[] words = originalQuery.toLowerCase().split("\\s+");
+
+        for (String word : words) {
+            if (SMART_SYNONYMS.containsKey(word)) {
+                for (String synonym : SMART_SYNONYMS.get(word)) {
+                    String expandedQuery = originalQuery.toLowerCase().replace(word, synonym);
+                    expandedQueries.add(expandedQuery);
+                }
+            }
+        }
+
+        // Add intent-based expansions
+        if (intent.isVintageIntent()) {
+            expandedQueries.add("vintage " + originalQuery);
+            expandedQueries.add("retro " + originalQuery);
+            expandedQueries.add("classic " + originalQuery);
+        }
+
+        if (intent.isDesignerIntent()) {
+            expandedQueries.add("designer " + originalQuery);
+            expandedQueries.add("luxury " + originalQuery);
+            expandedQueries.add("premium " + originalQuery);
+        }
+
+        if (intent.getPrimaryCategory() != null) {
+            expandedQueries.add(intent.getPrimaryCategory().toLowerCase());
+        }
+
+        return new ArrayList<>(expandedQueries);
+    }
+
+    private List<Product> performDirectSearch(String query) {
+        // Multi-field search across name, description, brand, category
+        List<Product> results = new ArrayList<>();
+
+        results.addAll(productRepository.findByNameContainingIgnoreCase(query));
+        results.addAll(productRepository.findByDescriptionContainingIgnoreCase(query));
+        results.addAll(productRepository.findByBrandContainingIgnoreCase(query));
+        results.addAll(productRepository.findByCategoryContainingIgnoreCase(query));
+
+        return results;
+    }
+
+    private List<Product> performSemanticSearch(String originalQuery, SearchIntent intent) {
+        List<Product> allProducts = productRepository.findAll();
+        List<Product> semanticMatches = new ArrayList<>();
+
+        for (Product product : allProducts) {
+            double semanticScore = calculateSemanticSimilarity(originalQuery, product, intent);
+            if (semanticScore > 0.3) { // Semantic threshold
+                semanticMatches.add(product);
+            }
+        }
+
+        return semanticMatches;
+    }
+
+    private double calculateSemanticSimilarity(String query, Product product, SearchIntent intent) {
+        double score = 0.0;
+        String productText = (product.getName() + " " +
+                             (product.getDescription() != null ? product.getDescription() : "") + " " +
+                             (product.getBrand() != null ? product.getBrand() : "") + " " +
+                             (product.getCategory() != null ? product.getCategory() : "")).toLowerCase();
+
+        // Direct word matching
+        String[] queryWords = query.toLowerCase().split("\\s+");
+        for (String word : queryWords) {
+            if (productText.contains(word)) {
+                score += 0.2;
+            }
+        }
+
+        // Synonym matching
+        for (String word : queryWords) {
+            if (SMART_SYNONYMS.containsKey(word)) {
+                for (String synonym : SMART_SYNONYMS.get(word)) {
+                    if (productText.contains(synonym)) {
+                        score += 0.15;
+                    }
+                }
+            }
+        }
+
+        // Intent-based scoring
+        if (intent.isVintageIntent() && (productText.contains("vintage") || productText.contains("retro") || productText.contains("classic"))) {
+            score += 0.3;
+        }
+
+        if (intent.isDesignerIntent()) {
+            String brand = product.getBrand() != null ? product.getBrand().toLowerCase() : "";
+            if (BRAND_DESIGNER_SCORES.containsKey(brand)) {
+                score += 0.2 * BRAND_DESIGNER_SCORES.get(brand);
+            }
+        }
+
+        // Category matching
+        if (intent.getPrimaryCategory() != null &&
+            product.getCategory() != null &&
+            product.getCategory().equalsIgnoreCase(intent.getPrimaryCategory())) {
+            score += 0.25;
+        }
+
+        return Math.min(score, 1.0);
+    }
+
+    private List<Product> generateIntelligentFallbacks(String originalQuery, SearchIntent intent) {
+        List<Product> fallbacks = new ArrayList<>();
+
+        // Strategy 1: Category-based fallbacks
+        if (intent.getPrimaryCategory() != null) {
+            fallbacks.addAll(productRepository.findByCategoryIgnoreCase(intent.getPrimaryCategory()));
+        }
+
+        // Strategy 2: Brand-based fallbacks
+        if (intent.getBrandFocus() != null) {
+            fallbacks.addAll(productRepository.findByBrandContainingIgnoreCase(intent.getBrandFocus()));
+        }
+
+        // Strategy 3: Style-based fallbacks (vintage, designer)
+        if (intent.isVintageIntent()) {
+            fallbacks.addAll(productRepository.findByNameContainingIgnoreCase("vintage"));
+            fallbacks.addAll(productRepository.findByDescriptionContainingIgnoreCase("vintage"));
+            fallbacks.addAll(productRepository.findByNameContainingIgnoreCase("classic"));
+        }
+
+        if (intent.isDesignerIntent()) {
+            // Add products from designer brands
+            for (String brand : BRAND_DESIGNER_SCORES.keySet()) {
+                if (BRAND_DESIGNER_SCORES.get(brand) > 0.8) {
+                    fallbacks.addAll(productRepository.findByBrandContainingIgnoreCase(brand));
+                }
+            }
+        }
+
+        // Strategy 4: Popular/trending items as ultimate fallback
+        if (fallbacks.isEmpty()) {
+            fallbacks.addAll(productRepository.findAll().stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .limit(10)
+                .collect(Collectors.toList()));
+        }
+
+        return fallbacks;
+    }
+
+    private List<Product> deduplicateAndRank(List<Product> products, String originalQuery, SearchIntent intent) {
+        Map<String, Product> uniqueProducts = new LinkedHashMap<>();
+
+        for (Product product : products) {
+            String key = product.getId();
+            if (!uniqueProducts.containsKey(key)) {
+                uniqueProducts.put(key, product);
+            }
+        }
+
+        return uniqueProducts.values().stream()
+            .sorted((a, b) -> Double.compare(
+                calculateRelevanceScore(b, originalQuery, intent),
+                calculateRelevanceScore(a, originalQuery, intent)
+            ))
+            .limit(50)  // Limit to top 50 results
+            .collect(Collectors.toList());
+    }
+
+    private double calculateRelevanceScore(Product product, String query, SearchIntent intent) {
+        double score = 0.0;
+
+        // Base relevance from semantic similarity
+        score += calculateSemanticSimilarity(query, product, intent) * 0.4;
+
+        // Boost for exact matches in name
+        if (product.getName().toLowerCase().contains(query.toLowerCase())) {
+            score += 0.3;
+        }
+
+        // Intent-specific boosts
+        if (intent.isVintageIntent() && (
+            product.getName().toLowerCase().contains("vintage") ||
+            (product.getDescription() != null && product.getDescription().toLowerCase().contains("vintage"))
+        )) {
+            score += 0.2;
+        }
+
+        if (intent.isDesignerIntent() && product.getBrand() != null) {
+            String brand = product.getBrand().toLowerCase();
+            if (BRAND_DESIGNER_SCORES.containsKey(brand)) {
+                score += 0.15 * BRAND_DESIGNER_SCORES.get(brand);
+            }
+        }
+
+        // Price preference alignment
+        if (intent.getPriceRange() != null && product.getPrice() != null) {
+            if ("low".equals(intent.getPriceRange()) && product.getPrice() < 50) {
+                score += 0.1;
+            } else if ("high".equals(intent.getPriceRange()) && product.getPrice() > 100) {
+                score += 0.1;
+            }
+        }
+
+        return score;
+    }
+
+    private boolean containsAnyKeyword(String text, List<String> keywords) {
+        return keywords.stream().anyMatch(text::contains);
+    }
+
+    private Page<Product> createPage(List<Product> products, Pageable pageable) {
+        int start = Math.min((int) pageable.getOffset(), products.size());
+        int end = Math.min((start + pageable.getPageSize()), products.size());
+        List<Product> pageContent = products.subList(start, end);
+        return new PageImpl<>(pageContent, pageable, products.size());
+    }
+
+    private SearchInsights generateSearchInsights(String query, SearchIntent intent, List<Product> results) {
+        SearchInsights insights = new SearchInsights();
+        insights.setOriginalQuery(query);
+        insights.setIntentAnalysis(intent);
+        insights.setResultCount(results.size());
+
+        if (results.isEmpty()) {
+            insights.setNoResultsReason("No exact matches found, but we've found similar items that might interest you!");
+        }
+
+        // Generate insight messages
+        List<String> messages = new ArrayList<>();
+
+        if (intent.isVintageIntent()) {
+            messages.add("🕰️ Showing vintage and retro items from our curated collection");
+        }
+
+        if (intent.isDesignerIntent()) {
+            messages.add("✨ Including premium and designer pieces");
+        }
+
+        if (results.size() > 0) {
+            long priceRange = results.stream()
+                .filter(p -> p.getPrice() != null)
+                .mapToLong(p -> p.getPrice().longValue())
+                .max()
+                .orElse(0) -
+                results.stream()
+                .filter(p -> p.getPrice() != null)
+                .mapToLong(p -> p.getPrice().longValue())
+                .min()
+                .orElse(0);
+
+            if (priceRange > 100) {
+                messages.add("💰 Wide price range available - from affordable to luxury options");
+            }
+        }
+
+        insights.setInsightMessages(messages);
+        return insights;
+    }
+
+    private List<String> generateSmartSuggestions(String originalQuery, SearchIntent intent) {
+        List<String> suggestions = new ArrayList<>();
+
+        if (intent.isVintageIntent()) {
+            suggestions.add("vintage " + intent.getPrimaryCategory());
+            suggestions.add("retro " + intent.getPrimaryCategory());
+            suggestions.add("classic designer pieces");
+        }
+
+        if (intent.isDesignerIntent()) {
+            suggestions.add("luxury " + intent.getPrimaryCategory());
+            suggestions.add("designer vintage items");
+            suggestions.add("premium brands");
+        }
+
+        // Add trending suggestions
+        suggestions.add("vintage leather jackets");
+        suggestions.add("designer handbags");
+        suggestions.add("classic denim");
+        suggestions.add("retro sneakers");
+
+        return suggestions.stream().distinct().limit(5).collect(Collectors.toList());
+    }
+
+    private AIEnhancedSearchResult createFallbackResult(String query, int page, int size) {
+        // Basic fallback search
+        List<Product> fallbackResults = productRepository.findAll().stream()
+            .limit(10)
+            .collect(Collectors.toList());
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Product> resultPage = createPage(fallbackResults, pageable);
+
+        SearchIntent basicIntent = new SearchIntent();
+        SearchInsights basicInsights = new SearchInsights();
+        basicInsights.setOriginalQuery(query);
+        basicInsights.setResultCount(fallbackResults.size());
+        basicInsights.setNoResultsReason("Showing popular items from our collection");
+
+        return new AIEnhancedSearchResult(
+            resultPage,
+            basicIntent,
+            Arrays.asList(query),
+            basicInsights,
+            Arrays.asList("popular items", "trending now", "new arrivals")
+        );
+    }
+
+    // Inner classes for structured responses
+    public static class SearchIntent {
+        private boolean vintageIntent = false;
+        private boolean designerIntent = false;
+        private String primaryCategory;
+        private String brandFocus;
+        private String stylePreference;
+        private String priceRange;
+        private double designerScore = 0.0;
+
+        // Getters and setters
+        public boolean isVintageIntent() { return vintageIntent; }
+        public void setVintageIntent(boolean vintageIntent) { this.vintageIntent = vintageIntent; }
+
+        public boolean isDesignerIntent() { return designerIntent; }
+        public void setDesignerIntent(boolean designerIntent) { this.designerIntent = designerIntent; }
+
+        public String getPrimaryCategory() { return primaryCategory; }
+        public void setPrimaryCategory(String primaryCategory) { this.primaryCategory = primaryCategory; }
+
+        public String getBrandFocus() { return brandFocus; }
+        public void setBrandFocus(String brandFocus) { this.brandFocus = brandFocus; }
+
+        public String getStylePreference() { return stylePreference; }
+        public void setStylePreference(String stylePreference) { this.stylePreference = stylePreference; }
+
+        public String getPriceRange() { return priceRange; }
+        public void setPriceRange(String priceRange) { this.priceRange = priceRange; }
+
+        public double getDesignerScore() { return designerScore; }
+        public void setDesignerScore(double designerScore) { this.designerScore = designerScore; }
+    }
+
+    public static class SearchInsights {
+        private String originalQuery;
+        private SearchIntent intentAnalysis;
+        private int resultCount;
+        private String noResultsReason;
+        private List<String> insightMessages = new ArrayList<>();
+
+        // Getters and setters
+        public String getOriginalQuery() { return originalQuery; }
+        public void setOriginalQuery(String originalQuery) { this.originalQuery = originalQuery; }
+
+        public SearchIntent getIntentAnalysis() { return intentAnalysis; }
+        public void setIntentAnalysis(SearchIntent intentAnalysis) { this.intentAnalysis = intentAnalysis; }
+
+        public int getResultCount() { return resultCount; }
+        public void setResultCount(int resultCount) { this.resultCount = resultCount; }
+
+        public String getNoResultsReason() { return noResultsReason; }
+        public void setNoResultsReason(String noResultsReason) { this.noResultsReason = noResultsReason; }
+
+        public List<String> getInsightMessages() { return insightMessages; }
+        public void setInsightMessages(List<String> insightMessages) { this.insightMessages = insightMessages; }
+    }
+
+    public static class AIEnhancedSearchResult {
+        private final Page<Product> products;
+        private final SearchIntent intent;
+        private final List<String> expandedQueries;
+        private final SearchInsights insights;
+        private final List<String> smartSuggestions;
+
+        public AIEnhancedSearchResult(Page<Product> products, SearchIntent intent,
+                                    List<String> expandedQueries, SearchInsights insights,
+                                    List<String> smartSuggestions) {
+            this.products = products;
+            this.intent = intent;
+            this.expandedQueries = expandedQueries;
+            this.insights = insights;
+            this.smartSuggestions = smartSuggestions;
+        }
+
+        // Getters
+        public Page<Product> getProducts() { return products; }
+        public SearchIntent getIntent() { return intent; }
+        public List<String> getExpandedQueries() { return expandedQueries; }
+        public SearchInsights getInsights() { return insights; }
+        public List<String> getSmartSuggestions() { return smartSuggestions; }
+    }
+}
