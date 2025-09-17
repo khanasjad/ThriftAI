@@ -171,11 +171,7 @@ public class AuthController {
                               RedirectAttributes redirectAttributes,
                               Model model) {
 
-        System.out.println("===============================================");
-        System.out.println("🔍 LOGIN DEBUG - ENTRY POINT");
         System.out.println("🔍 Login attempt - Email: " + email + ", UserType: " + userType);
-        System.out.println("🔍 Password length: " + (password != null ? password.length() : "null"));
-        System.out.println("===============================================");
 
         if (userType == null || userType.isEmpty()) {
             userType = "buyer"; // Default to buyer

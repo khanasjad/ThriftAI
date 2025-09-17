@@ -13,6 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.projectai.service.PriceComparisonService;
 import com.projectai.service.LocationService;
 import com.projectai.service.LocationService.LocationData;
+import com.projectai.service.RecommendationEngineService;
+import com.projectai.service.IntelligentSearchService;
+import com.projectai.service.RealTimeRecommendationService;
 import com.projectai.models.Seller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -48,6 +51,15 @@ public class WebController {
 
     @Autowired
     private LocationService locationService;
+
+    @Autowired
+    private RecommendationEngineService recommendationService;
+
+    @Autowired
+    private IntelligentSearchService intelligentSearchService;
+
+    @Autowired
+    private RealTimeRecommendationService realTimeRecommendationService;
 
     @GetMapping("/")
     public String home(Model model) {
