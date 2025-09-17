@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Map;
+import java.util.HashMap;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "products")
@@ -54,6 +57,11 @@ public class Product {
     
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    
+    // Transient fields for location and metadata
+    @Transient
+    @JsonIgnore
+    private Map<String, Object> locationMetadata = new HashMap<>();
     
     @PrePersist
     protected void onCreate() {
@@ -111,12 +119,29 @@ public class Product {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     
+    // Location metadata methods
+    public Map<String, Object> getLocationMetadata() { return locationMetadata; }
+    public void setLocationMetadata(Map<String, Object> locationMetadata) { this.locationMetadata = locationMetadata; }
+    
+    // Helper method to get seller ID from seller object or storeId
+    public String getSellerId() {
+        if (seller != null) {
+            return seller.getId();
+        }
+        return storeId; // Fallback to storeId if seller object not loaded
+    }
+    
     // Calculate discount percentage
     public double getDiscountPercentage() {
         if (originalPrice > 0) {
             return ((originalPrice - price) / originalPrice) * 100;
         }
         return 0.0;
+    }
+    
+    // Helper method to check if product has significant discount
+    public boolean isOnSale() {
+        return getDiscountPercentage() > 10.0; // Consider 10%+ as "on sale"
     }
     
     @Override

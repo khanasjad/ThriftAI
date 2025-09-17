@@ -5,21 +5,49 @@ import com.projectai.models.Deal;
 import com.projectai.models.Product;
 import com.projectai.models.UserPreferences;
 import com.projectai.service.ThriftAIService;
+import com.projectai.service.CartService;
+import com.projectai.service.VisualSearchService;
+import com.projectai.service.ExternalMarketplaceService;
+import com.projectai.service.ExternalMarketplaceService.ExternalProduct;
+import jakarta.servlet.http.HttpServletRequest;
+import com.projectai.service.PriceComparisonService;
+import com.projectai.service.LocationService;
+import com.projectai.service.LocationService.LocationData;
+import com.projectai.models.Seller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Controller
 public class WebController {
 
     @Autowired
     private ThriftAIService thriftAIService;
+
+    @Autowired
+    private CartService cartService;
+
+    @Autowired
+    private VisualSearchService visualSearchService;
+
+    @Autowired
+    private ExternalMarketplaceService externalMarketplaceService;
+
+    @Autowired
+    private PriceComparisonService priceComparisonService;
+
+    @Autowired
+    private LocationService locationService;
 
     @GetMapping("/")
     public String home(Model model) {
@@ -427,6 +455,138 @@ public class WebController {
         return recommendations;
     }
 
+    // Shopping Cart API Endpoints
+    @PostMapping("/api/cart/add")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> addToCart(
+            @RequestParam String productId,
+            @RequestParam(defaultValue = "1") Integer quantity,
+            @RequestParam(required = false) String sessionId,
+            @RequestParam(required = false) String buyerId,
+            jakarta.servlet.http.HttpServletRequest request) {
+        
+        // Use session ID from request if not provided
+        if (sessionId == null) {
+            sessionId = request.getSession().getId();
+        }
+        
+        Map<String, Object> response = cartService.quickAddToCart(sessionId, buyerId, productId, quantity);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/cart")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getCart(
+            @RequestParam(required = false) String sessionId,
+            @RequestParam(required = false) String buyerId,
+            jakarta.servlet.http.HttpServletRequest request) {
+        
+        // Use session ID from request if not provided
+        if (sessionId == null) {
+            sessionId = request.getSession().getId();
+        }
+        
+        Map<String, Object> cartSummary = cartService.getCartSummary(sessionId, buyerId);
+        return ResponseEntity.ok(cartSummary);
+    }
+
+    @PutMapping("/api/cart/items/{cartItemId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateCartItem(
+            @PathVariable String cartItemId,
+            @RequestParam Integer quantity,
+            @RequestParam(required = false) String sessionId,
+            @RequestParam(required = false) String buyerId,
+            jakarta.servlet.http.HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Use session ID from request if not provided
+            if (sessionId == null) {
+                sessionId = request.getSession().getId();
+            }
+            
+            cartService.updateCartItemQuantity(sessionId, buyerId, cartItemId, quantity);
+            Map<String, Object> cartSummary = cartService.getCartSummary(sessionId, buyerId);
+            
+            response.put("success", true);
+            response.put("message", "Cart item updated successfully");
+            response.put("cartSummary", cartSummary);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/api/cart/items/{cartItemId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> removeFromCart(
+            @PathVariable String cartItemId,
+            @RequestParam(required = false) String sessionId,
+            @RequestParam(required = false) String buyerId,
+            jakarta.servlet.http.HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Use session ID from request if not provided
+            if (sessionId == null) {
+                sessionId = request.getSession().getId();
+            }
+            
+            cartService.removeFromCart(sessionId, buyerId, cartItemId);
+            Map<String, Object> cartSummary = cartService.getCartSummary(sessionId, buyerId);
+            
+            response.put("success", true);
+            response.put("message", "Item removed from cart");
+            response.put("cartSummary", cartSummary);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/api/cart/clear")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> clearCart(
+            @RequestParam(required = false) String sessionId,
+            @RequestParam(required = false) String buyerId,
+            jakarta.servlet.http.HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Use session ID from request if not provided
+            if (sessionId == null) {
+                sessionId = request.getSession().getId();
+            }
+            
+            cartService.clearCart(sessionId, buyerId);
+            
+            response.put("success", true);
+            response.put("message", "Cart cleared successfully");
+            response.put("cartSummary", Map.of("isEmpty", true, "itemCount", 0, "subtotal", 0.0));
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/cart")
+    public String cartPage(Model model) {
+        return "cart";
+    }
+
     // Review system API endpoints for product detail page
     @GetMapping("/api/products/{productId}/reviews")
     @ResponseBody
@@ -467,5 +627,796 @@ public class WebController {
     public List<Product> getSimilarProductsForWeb(@PathVariable String productId, @RequestParam(defaultValue = "4") int limit) {
         // Reuse existing similar products functionality
         return getSimilarProducts(productId, limit);
+    }
+
+    // === VISUAL SEARCH API ENDPOINTS ===
+    
+    @GetMapping("/visual-search")
+    public String visualSearchPage(Model model) {
+        return "visual-search";
+    }
+
+    @PostMapping("/api/visual-search/upload")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> searchByImage(@RequestParam("image") MultipartFile image) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (image.isEmpty()) {
+                response.put("success", false);
+                response.put("error", "No image file provided");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // Validate file type
+            String contentType = image.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                response.put("success", false);
+                response.put("error", "Please upload a valid image file");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // Validate file size (max 10MB)
+            if (image.getSize() > 10 * 1024 * 1024) {
+                response.put("success", false);
+                response.put("error", "Image file too large. Maximum size is 10MB");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // Search for products using the image
+            List<Product> products = visualSearchService.searchByImage(image);
+            String description = visualSearchService.describeImage(image);
+            Map<String, Object> analysis = visualSearchService.analyzeImage(image);
+            
+            response.put("success", true);
+            response.put("products", products);
+            response.put("description", description);
+            response.put("analysis", analysis);
+            response.put("productCount", products.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error processing image: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/api/visual-search/analyze")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> analyzeImage(@RequestParam("image") MultipartFile image) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (image.isEmpty()) {
+                response.put("success", false);
+                response.put("error", "No image file provided");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            Map<String, Object> analysis = visualSearchService.analyzeImage(image);
+            String description = visualSearchService.describeImage(image);
+            
+            response.put("success", true);
+            response.put("analysis", analysis);
+            response.put("description", description);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error analyzing image: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/visual-search/similar/{productId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getVisualSimilarProducts(@PathVariable String productId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Product product = thriftAIService.getProductById(productId);
+            if (product == null) {
+                response.put("success", false);
+                response.put("error", "Product not found");
+                return ResponseEntity.notFound().build();
+            }
+            
+            List<Product> similarProducts = visualSearchService.findSimilarProducts(product);
+            
+            response.put("success", true);
+            response.put("originalProduct", product);
+            response.put("similarProducts", similarProducts);
+            response.put("count", similarProducts.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error finding similar products: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    // === EXTERNAL MARKETPLACE API ENDPOINTS ===
+    
+    @GetMapping("/api/marketplace/search")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> searchMarketplaces(
+            @RequestParam String query,
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "false") boolean includeLocal) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Search external marketplaces asynchronously
+            CompletableFuture<List<Map<String, Object>>> externalResults = 
+                externalMarketplaceService.searchAllMarketplaces(query, category, limit)
+                    .thenApply(products -> products.stream()
+                        .map(product -> {
+                            Map<String, Object> productMap = new HashMap<>();
+                            productMap.put("id", product.getId());
+                            productMap.put("name", product.getName());
+                            productMap.put("price", product.getPrice());
+                            productMap.put("originalPrice", product.getOriginalPrice());
+                            productMap.put("imageUrl", product.getImageUrl());
+                            productMap.put("marketplace", product.getMarketplace());
+                            productMap.put("condition", product.getCondition());
+                            productMap.put("rating", product.getRating());
+                            productMap.put("reviewCount", product.getReviewCount());
+                            productMap.put("affiliateLink", product.getAffiliateLink());
+                            productMap.put("savings", product.getOriginalPrice() - product.getPrice());
+                            productMap.put("savingsPercentage", product.getSavingsPercentage());
+                            productMap.put("isSponsored", product.isSponsored());
+                            productMap.put("popularityScore", product.getPopularityScore());
+                            return productMap;
+                        })
+                        .toList());
+            
+            // Get local products if requested
+            List<Product> localProducts = new ArrayList<>();
+            if (includeLocal) {
+                localProducts = thriftAIService.searchProducts(query, category)
+                    .stream()
+                    .limit(limit / 2)
+                    .toList();
+            }
+            
+            // Wait for external results with timeout
+            List<Map<String, Object>> externalProductMaps = externalResults.get(5, TimeUnit.SECONDS);
+            
+            response.put("success", true);
+            response.put("query", query);
+            response.put("category", category);
+            response.put("externalProducts", externalProductMaps);
+            response.put("localProducts", localProducts);
+            response.put("totalResults", externalProductMaps.size() + localProducts.size());
+            response.put("hasExternalResults", !externalProductMaps.isEmpty());
+            response.put("hasLocalResults", !localProducts.isEmpty());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error searching marketplaces: " + e.getMessage());
+            response.put("externalProducts", new ArrayList<>());
+            response.put("localProducts", new ArrayList<>());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/marketplace/price-compare/{productId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> comparePrices(@PathVariable String productId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Product localProduct = thriftAIService.getProductById(productId);
+            if (localProduct == null) {
+                response.put("success", false);
+                response.put("error", "Product not found");
+                return ResponseEntity.notFound().build();
+            }
+            
+            Map<String, Object> comparison = priceComparisonService.compareProductPrices(localProduct);
+            
+            response.put("success", true);
+            response.put("localProduct", localProduct);
+            response.put("comparison", comparison);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error comparing prices: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/marketplace/trending")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getTrendingMarketplaceProducts(
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "15") int limit) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            CompletableFuture<List<Map<String, Object>>> trendingResults =
+                externalMarketplaceService.getTrendingProductsAsync(category, limit)
+                    .thenApply(result -> {
+                        @SuppressWarnings("unchecked")
+                        List<ExternalProduct> products = (List<ExternalProduct>) result.get("products");
+                        if (products == null) return new ArrayList<>();
+                        return products.stream()
+                        .map(product -> {
+                            Map<String, Object> productMap = new HashMap<>();
+                            productMap.put("id", product.getId());
+                            productMap.put("name", product.getName());
+                            productMap.put("price", product.getPrice());
+                            productMap.put("originalPrice", product.getOriginalPrice());
+                            productMap.put("imageUrl", product.getImageUrl());
+                            productMap.put("marketplace", product.getMarketplace());
+                            productMap.put("rating", product.getRating());
+                            productMap.put("reviewCount", product.getReviewCount());
+                            productMap.put("affiliateLink", product.getAffiliateLink());
+                            productMap.put("savingsPercentage", product.getSavingsPercentage());
+                            productMap.put("popularityScore", product.getPopularityScore());
+                            productMap.put("trendingReason", product.getTrendingReason());
+                            return productMap;
+                        })
+                        .toList();
+                    });
+            
+            List<Map<String, Object>> trending = trendingResults.get(5, TimeUnit.SECONDS);
+            
+            response.put("success", true);
+            response.put("category", category);
+            response.put("trendingProducts", trending);
+            response.put("count", trending.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error getting trending products: " + e.getMessage());
+            response.put("trendingProducts", new ArrayList<>());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/marketplace/best-deals")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getBestMarketplaceDeals(
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "12") int limit,
+            @RequestParam(defaultValue = "30") double minSavingsPercentage) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<Map<String, Object>> bestDeals = externalMarketplaceService.getBestDeals(category, limit, minSavingsPercentage)
+                .get().stream()
+                .map(product -> {
+                    Map<String, Object> dealMap = new HashMap<>();
+                    dealMap.put("id", product.getId());
+                    dealMap.put("name", product.getName());
+                    dealMap.put("price", product.getPrice());
+                    dealMap.put("originalPrice", product.getOriginalPrice());
+                    dealMap.put("imageUrl", product.getImageUrl());
+                    dealMap.put("marketplace", product.getMarketplace());
+                    dealMap.put("condition", product.getCondition());
+                    dealMap.put("rating", product.getRating());
+                    dealMap.put("affiliateLink", product.getAffiliateLink());
+                    dealMap.put("savings", product.getOriginalPrice() - product.getPrice());
+                    dealMap.put("savingsPercentage", product.getSavingsPercentage());
+                    dealMap.put("dealQuality", product.getDealQuality());
+                    dealMap.put("timeLeft", product.getTimeLeft());
+                    return dealMap;
+                })
+                .toList();
+            
+            response.put("success", true);
+            response.put("category", category);
+            response.put("bestDeals", bestDeals);
+            response.put("count", bestDeals.size());
+            response.put("minSavingsPercentage", minSavingsPercentage);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error getting best deals: " + e.getMessage());
+            response.put("bestDeals", new ArrayList<>());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/api/marketplace/track-click")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> trackAffiliateClick(
+            @RequestParam String productId,
+            @RequestParam String marketplace,
+            @RequestParam String affiliateLink,
+            jakarta.servlet.http.HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            String sessionId = request.getSession().getId();
+            String userAgent = request.getHeader("User-Agent");
+            String referrer = request.getHeader("Referer");
+            
+            externalMarketplaceService.trackAffiliateClick(productId, marketplace, affiliateLink, sessionId, userAgent, referrer);
+            
+            response.put("success", true);
+            response.put("message", "Click tracked successfully");
+            response.put("redirectUrl", affiliateLink);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error tracking click: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/marketplace/similar-deals/{productId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getSimilarDeals(
+            @PathVariable String productId,
+            @RequestParam(defaultValue = "8") int limit) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Product localProduct = thriftAIService.getProductById(productId);
+            if (localProduct == null) {
+                response.put("success", false);
+                response.put("error", "Product not found");
+                return ResponseEntity.notFound().build();
+            }
+            
+            CompletableFuture<List<Map<String, Object>>> similarDeals = 
+                externalMarketplaceService.findSimilarDeals(localProduct, limit)
+                    .thenApply(products -> products.stream()
+                        .map(product -> {
+                            Map<String, Object> dealMap = new HashMap<>();
+                            dealMap.put("id", product.getId());
+                            dealMap.put("name", product.getName());
+                            dealMap.put("price", product.getPrice());
+                            dealMap.put("originalPrice", product.getOriginalPrice());
+                            dealMap.put("imageUrl", product.getImageUrl());
+                            dealMap.put("marketplace", product.getMarketplace());
+                            dealMap.put("condition", product.getCondition());
+                            dealMap.put("affiliateLink", product.getAffiliateLink());
+                            dealMap.put("savingsPercentage", product.getSavingsPercentage());
+                            dealMap.put("similarityScore", product.getSimilarityScore());
+                            return dealMap;
+                        })
+                        .toList());
+            
+            List<Map<String, Object>> deals = similarDeals.get(5, TimeUnit.SECONDS);
+            
+            response.put("success", true);
+            response.put("originalProduct", localProduct);
+            response.put("similarDeals", deals);
+            response.put("count", deals.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error finding similar deals: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/marketplace/commission-stats")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getCommissionStats(
+            @RequestParam(required = false) String timeframe) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Map<String, Object> stats = externalMarketplaceService.getCommissionStats(timeframe);
+            
+            response.put("success", true);
+            response.put("timeframe", timeframe != null ? timeframe : "all");
+            response.put("stats", stats);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Error getting commission stats: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    // === LOCATION-BASED API ENDPOINTS ===
+    
+    @GetMapping("/api/location/detect")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> detectUserLocation(HttpServletRequest request) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocationData userLocation = locationService.getUserLocation(request);
+            
+            response.put("success", true);
+            response.put("location", Map.of(
+                "latitude", userLocation.getLatitude(),
+                "longitude", userLocation.getLongitude(),
+                "city", userLocation.getCity(),
+                "state", userLocation.getState(),
+                "country", userLocation.getCountry(),
+                "zipCode", userLocation.getZipCode(),
+                "timezone", userLocation.getTimezone(),
+                "source", userLocation.getSource()
+            ));
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to detect location");
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/location/nearby-products")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getNearbyProducts(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(defaultValue = "25") double radiusMiles,
+            @RequestParam(defaultValue = "20") int limit,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocationData userLocation;
+            if (latitude != null && longitude != null) {
+                userLocation = locationService.getLocationFromCoordinates(latitude, longitude);
+            } else {
+                userLocation = locationService.getUserLocation(request);
+            }
+            
+            List<Product> nearbyProducts = locationService.getProductsNearLocation(userLocation, radiusMiles, limit);
+            
+            response.put("success", true);
+            response.put("userLocation", Map.of(
+                "city", userLocation.getCity(),
+                "state", userLocation.getState(),
+                "latitude", userLocation.getLatitude(),
+                "longitude", userLocation.getLongitude()
+            ));
+            response.put("radiusMiles", radiusMiles);
+            response.put("products", nearbyProducts);
+            response.put("count", nearbyProducts.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to find nearby products: " + e.getMessage());
+            response.put("products", new ArrayList<>());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/location/nearby-sellers")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getNearbySellers(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(defaultValue = "50") double radiusMiles,
+            @RequestParam(defaultValue = "15") int limit,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocationData userLocation;
+            if (latitude != null && longitude != null) {
+                userLocation = locationService.getLocationFromCoordinates(latitude, longitude);
+            } else {
+                userLocation = locationService.getUserLocation(request);
+            }
+            
+            List<Seller> nearbySellers = locationService.getNearbysellers(userLocation, radiusMiles, limit);
+            
+            response.put("success", true);
+            response.put("userLocation", Map.of(
+                "city", userLocation.getCity(),
+                "state", userLocation.getState()
+            ));
+            response.put("radiusMiles", radiusMiles);
+            response.put("sellers", nearbySellers);
+            response.put("count", nearbySellers.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to find nearby sellers: " + e.getMessage());
+            response.put("sellers", new ArrayList<>());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/location/shipping-cost")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> calculateShipping(
+            @RequestParam String productId,
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(defaultValue = "1.0") double weight,
+            @RequestParam(required = false) String serviceLevel,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            Product product = thriftAIService.getProductById(productId);
+            if (product == null) {
+                response.put("success", false);
+                response.put("error", "Product not found");
+                return ResponseEntity.notFound().build();
+            }
+            
+            LocationData userLocation;
+            if (latitude != null && longitude != null) {
+                userLocation = locationService.getLocationFromCoordinates(latitude, longitude);
+            } else {
+                userLocation = locationService.getUserLocation(request);
+            }
+            
+            // Get seller location
+            Seller seller = product.getSeller();
+            if (seller == null) {
+                response.put("success", false);
+                response.put("error", "Seller information not available");
+                return ResponseEntity.ok(response);
+            }
+            
+            LocationData sellerLocation = getSellerLocationHelper(seller);
+            Map<String, Object> shippingInfo = locationService.calculateShippingCost(
+                sellerLocation, userLocation, weight, serviceLevel);
+            
+            response.put("success", true);
+            response.put("product", Map.of(
+                "id", product.getId(),
+                "name", product.getName(),
+                "price", product.getPrice()
+            ));
+            response.put("shipping", shippingInfo);
+            response.put("from", Map.of(
+                "city", sellerLocation.getCity(),
+                "state", sellerLocation.getState()
+            ));
+            response.put("to", Map.of(
+                "city", userLocation.getCity(),
+                "state", userLocation.getState()
+            ));
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to calculate shipping: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/location/regional-trends")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getRegionalTrends(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocationData userLocation;
+            if (latitude != null && longitude != null) {
+                userLocation = locationService.getLocationFromCoordinates(latitude, longitude);
+            } else {
+                userLocation = locationService.getUserLocation(request);
+            }
+            
+            List<String> trends = locationService.getRegionalTrends(userLocation);
+            
+            response.put("success", true);
+            response.put("location", Map.of(
+                "city", userLocation.getCity(),
+                "state", userLocation.getState(),
+                "region", userLocation.getState() // Could be enhanced with region mapping
+            ));
+            response.put("trends", trends);
+            response.put("count", trends.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to get regional trends: " + e.getMessage());
+            response.put("trends", new ArrayList<>());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/location/analytics")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getLocationAnalytics(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(defaultValue = "7d") String timeframe,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocationData userLocation;
+            if (latitude != null && longitude != null) {
+                userLocation = locationService.getLocationFromCoordinates(latitude, longitude);
+            } else {
+                userLocation = locationService.getUserLocation(request);
+            }
+            
+            Map<String, Object> analytics = locationService.getLocationAnalytics(userLocation, timeframe);
+            
+            response.put("success", true);
+            response.put("analytics", analytics);
+            response.put("timeframe", timeframe);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to get location analytics: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/location/pickup-locations")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getPickupLocations(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(defaultValue = "10") double radiusMiles,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocationData userLocation;
+            if (latitude != null && longitude != null) {
+                userLocation = locationService.getLocationFromCoordinates(latitude, longitude);
+            } else {
+                userLocation = locationService.getUserLocation(request);
+            }
+            
+            List<Map<String, Object>> pickupLocations = locationService.getPickupLocations(userLocation, radiusMiles);
+            
+            response.put("success", true);
+            response.put("userLocation", Map.of(
+                "city", userLocation.getCity(),
+                "state", userLocation.getState(),
+                "latitude", userLocation.getLatitude(),
+                "longitude", userLocation.getLongitude()
+            ));
+            response.put("radiusMiles", radiusMiles);
+            response.put("pickupLocations", pickupLocations);
+            response.put("count", pickupLocations.size());
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to find pickup locations: " + e.getMessage());
+            response.put("pickupLocations", new ArrayList<>());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/api/location/update")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateUserLocation(
+            @RequestParam double latitude,
+            @RequestParam double longitude) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocationData location = locationService.getLocationFromCoordinates(latitude, longitude);
+            
+            response.put("success", true);
+            response.put("location", Map.of(
+                "latitude", location.getLatitude(),
+                "longitude", location.getLongitude(),
+                "city", location.getCity(),
+                "state", location.getState(),
+                "country", location.getCountry(),
+                "source", "gps"
+            ));
+            response.put("message", "Location updated successfully");
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to update location: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/location/distance")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> calculateDistance(
+            @RequestParam double fromLat,
+            @RequestParam double fromLon,
+            @RequestParam double toLat,
+            @RequestParam double toLon) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocationData from = locationService.getLocationFromCoordinates(fromLat, fromLon);
+            LocationData to = locationService.getLocationFromCoordinates(toLat, toLon);
+            
+            // Use the Haversine formula from LocationService
+            double distance = calculateDistanceInMiles(fromLat, fromLon, toLat, toLon);
+            
+            response.put("success", true);
+            response.put("from", Map.of(
+                "latitude", from.getLatitude(),
+                "longitude", from.getLongitude(),
+                "city", from.getCity(),
+                "state", from.getState()
+            ));
+            response.put("to", Map.of(
+                "latitude", to.getLatitude(),
+                "longitude", to.getLongitude(),
+                "city", to.getCity(),
+                "state", to.getState()
+            ));
+            response.put("distance", Math.round(distance * 100.0) / 100.0);
+            response.put("unit", "miles");
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", "Unable to calculate distance: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    // Helper method for distance calculation
+    private double calculateDistanceInMiles(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 3959; // Earth's radius in miles
+        
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        
+        return R * c;
+    }
+    
+    // Helper method to get seller location data
+    private LocationData getSellerLocationHelper(Seller seller) {
+        LocationData location = new LocationData();
+        
+        if (seller.getCity() != null && seller.getState() != null) {
+            location.setCity(seller.getCity());
+            location.setState(seller.getState());
+            location.setLatitude(40.7128 + (Math.random() - 0.5) * 0.1);
+            location.setLongitude(-74.0060 + (Math.random() - 0.5) * 0.1);
+        } else {
+            location.setCity("New York");
+            location.setState("New York");
+            location.setLatitude(40.7128);
+            location.setLongitude(-74.0060);
+        }
+        
+        location.setCountry("United States");
+        location.setSource("seller");
+        return location;
     }
 }

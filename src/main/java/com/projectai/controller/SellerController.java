@@ -5,6 +5,7 @@ import com.projectai.models.Seller;
 import com.projectai.repository.ProductRepository;
 import com.projectai.repository.SellerRepository;
 import com.projectai.service.ExternalMarketplaceService;
+import com.projectai.service.ExternalMarketplaceService.ExternalProduct;
 import com.projectai.service.TrendingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -420,11 +421,11 @@ public class SellerController {
             Map<String, Object> response = new HashMap<>();
             
             // Search Amazon
-            List<Map<String, Object>> amazonResults = externalMarketplaceService.searchAmazon(query, limit / 2);
+            List<ExternalProduct> amazonResults = externalMarketplaceService.searchAmazon(query, "general", limit / 2);
             response.put("amazon", amazonResults);
             
             // Search eBay
-            List<Map<String, Object>> ebayResults = externalMarketplaceService.searchEbay(query, limit / 2);
+            List<ExternalProduct> ebayResults = externalMarketplaceService.searchEbay(query, "general", limit / 2);
             response.put("ebay", ebayResults);
             
             response.put("success", true);
@@ -468,8 +469,8 @@ public class SellerController {
             response.put("localSimilar", similarProducts);
             
             // Search external marketplaces for alternatives
-            List<Map<String, Object>> amazonAlternatives = externalMarketplaceService.searchAmazon(searchQuery, 5);
-            List<Map<String, Object>> ebayAlternatives = externalMarketplaceService.searchEbay(searchQuery, 5);
+            List<ExternalProduct> amazonAlternatives = externalMarketplaceService.searchAmazon(searchQuery, "general", 5);
+            List<ExternalProduct> ebayAlternatives = externalMarketplaceService.searchEbay(searchQuery, "general", 5);
             
             response.put("amazon", amazonAlternatives);
             response.put("ebay", ebayAlternatives);

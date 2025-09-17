@@ -415,4 +415,8 @@ public class PriceComparisonService {
         if (coefficientOfVariation > 0.08) return "MEDIUM";
         return "LOW";
     }
+
+    public Map<String, Object> compareProductPrices(Product product) {
+        return comparePrice(product);
+    }
 }

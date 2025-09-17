@@ -122,4 +122,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
            "o.trackingNumber LIKE %:searchTerm% " +
            "ORDER BY o.createdAt DESC")
     List<Order> searchOrders(@Param("searchTerm") String searchTerm);
+    
+    // Additional methods for AdvancedFulfillmentService
+    List<Order> findByStatusAndCreatedAtBefore(Order.OrderStatus status, LocalDateTime date);
 }

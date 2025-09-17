@@ -6,6 +6,9 @@ import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "sellers")
@@ -91,6 +94,11 @@ public class Seller {
     private LocalDateTime updatedAt;
     
     private LocalDateTime lastLoginAt;
+    
+    // Transient fields for location information
+    @Transient
+    @JsonIgnore
+    private Map<String, Object> locationInfo = new HashMap<>();
     
     @PrePersist
     protected void onCreate() {
@@ -192,6 +200,10 @@ public class Seller {
     
     public LocalDateTime getLastLoginAt() { return lastLoginAt; }
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
+    
+    // Location information methods
+    public Map<String, Object> getLocationInfo() { return locationInfo; }
+    public void setLocationInfo(Map<String, Object> locationInfo) { this.locationInfo = locationInfo; }
     
     // Enums
     public enum SellerType {

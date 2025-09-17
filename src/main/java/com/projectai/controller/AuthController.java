@@ -44,8 +44,13 @@ public class AuthController {
                                BindingResult result,
                                RedirectAttributes redirectAttributes,
                                Model model) {
-        
+
+        System.out.println("🔍 Signup attempt - Email: " + buyer.getEmail() + ", FirstName: " + buyer.getFirstName());
+
         if (result.hasErrors()) {
+            System.out.println("❌ Validation errors found:");
+            result.getAllErrors().forEach(error ->
+                System.out.println("  - " + error.getDefaultMessage()));
             model.addAttribute("seller", new Seller());
             model.addAttribute("signupType", "buyer");
             return "auth/signup";
@@ -165,43 +170,66 @@ public class AuthController {
                               HttpSession session,
                               RedirectAttributes redirectAttributes,
                               Model model) {
-        
+
+        System.out.println("===============================================");
+        System.out.println("🔍 LOGIN DEBUG - ENTRY POINT");
+        System.out.println("🔍 Login attempt - Email: " + email + ", UserType: " + userType);
+        System.out.println("🔍 Password length: " + (password != null ? password.length() : "null"));
+        System.out.println("===============================================");
+
         if (userType == null || userType.isEmpty()) {
             userType = "buyer"; // Default to buyer
         }
-        
+
         if ("buyer".equals(userType)) {
             var buyer = buyerRepository.findByEmail(email);
-            if (buyer.isPresent() && passwordService.verifyPassword(password, buyer.get().getPassword())) {
-                session.setAttribute("user", buyer.get());
-                session.setAttribute("userType", "buyer");
-                
-                // Update last login
-                Buyer b = buyer.get();
-                b.setLastLoginAt(LocalDateTime.now());
-                buyerRepository.save(b);
-                
-                redirectAttributes.addFlashAttribute("successMessage", 
-                    "Welcome back, " + b.getFirstName() + "!");
-                return "redirect:/";
+            System.out.println("🔍 Buyer lookup result: " + (buyer.isPresent() ? "Found" : "Not found"));
+
+            if (buyer.isPresent()) {
+                boolean passwordMatch = passwordService.verifyPassword(password, buyer.get().getPassword());
+                System.out.println("🔍 Password verification: " + passwordMatch);
+
+                if (passwordMatch) {
+                    session.setAttribute("user", buyer.get());
+                    session.setAttribute("userType", "buyer");
+
+                    // Update last login
+                    Buyer b = buyer.get();
+                    b.setLastLoginAt(LocalDateTime.now());
+                    buyerRepository.save(b);
+
+                    System.out.println("✅ Buyer login successful for: " + b.getFirstName());
+                    redirectAttributes.addFlashAttribute("successMessage",
+                        "Welcome back, " + b.getFirstName() + "!");
+                    return "redirect:/";
+                }
             }
         } else if ("seller".equals(userType)) {
             var seller = sellerRepository.findByEmail(email);
-            if (seller.isPresent() && passwordService.verifyPassword(password, seller.get().getPassword())) {
-                session.setAttribute("user", seller.get());
-                session.setAttribute("userType", "seller");
-                
-                // Update last login
-                Seller s = seller.get();
-                s.setLastLoginAt(LocalDateTime.now());
-                sellerRepository.save(s);
-                
-                redirectAttributes.addFlashAttribute("successMessage", 
-                    "Welcome back, " + s.getOwnerName() + "!");
-                return "redirect:/sellers";
+            System.out.println("🔍 Seller lookup result: " + (seller.isPresent() ? "Found" : "Not found"));
+
+            if (seller.isPresent()) {
+                boolean passwordMatch = passwordService.verifyPassword(password, seller.get().getPassword());
+                System.out.println("🔍 Password verification: " + passwordMatch);
+
+                if (passwordMatch) {
+                    session.setAttribute("user", seller.get());
+                    session.setAttribute("userType", "seller");
+
+                    // Update last login
+                    Seller s = seller.get();
+                    s.setLastLoginAt(LocalDateTime.now());
+                    sellerRepository.save(s);
+
+                    System.out.println("✅ Seller login successful for: " + s.getOwnerName());
+                    redirectAttributes.addFlashAttribute("successMessage",
+                        "Welcome back, " + s.getOwnerName() + "!");
+                    return "redirect:/sellers";
+                }
             }
         }
-        
+
+        System.out.println("❌ Login failed for: " + email + " (userType: " + userType + ")");
         model.addAttribute("errorMessage", "Invalid email or password");
         model.addAttribute("email", email);
         model.addAttribute("userType", userType);

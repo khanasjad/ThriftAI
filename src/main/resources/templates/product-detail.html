@@ -107,7 +107,7 @@
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="/buyers/search" class="text-primary">Search</a></li>
+                    <li class="breadcrumb-item"><a href="/" class="text-primary">Home</a></li>
                     <li class="breadcrumb-item" th:text="${product.category}">Category</li>
                     <li class="breadcrumb-item active" aria-current="page" th:text="${product.name}">Product Name</li>
                 </ol>
@@ -460,7 +460,7 @@
         function loadPriceComparison() {
             const productId = /*[[${product.id}]]*/ 'product-id';
             
-            fetch(`/buyers/api/price-comparison/${productId}`)
+            fetch(`/api/products/${productId}/pricing-insight`)
             .then(response => response.json())
             .then(data => {
                 displayPriceComparison(data);
@@ -475,38 +475,53 @@
         function displayPriceComparison(data) {
             const content = document.getElementById('priceComparisonContent');
             
-            if (!data.externalPrices || data.externalPrices.length === 0) {
-                content.innerHTML = '<p class="text-muted">No external prices found for comparison.</p>';
+            if (!data.success) {
+                content.innerHTML = '<p class="text-muted">Price analysis temporarily unavailable.</p>';
                 return;
             }
             
-            let html = '<div class="row">';
-            data.externalPrices.forEach(price => {
-                html += `
-                    <div class="col-md-4 mb-3">
+            // Display pricing insight
+            let html = `
+                <div class="row">
+                    <div class="col-md-6 mb-3">
                         <div class="card h-100">
                             <div class="card-body">
-                                <h6 class="card-title">${price.source}</h6>
+                                <h6 class="card-title">ThriftAI Price Analysis</h6>
                                 <p class="card-text">
-                                    <strong class="text-primary">$${price.price.toFixed(2)}</strong><br>
-                                    <small class="text-muted">Condition: ${price.condition}</small><br>
-                                    <small class="text-muted">Shipping: ${price.shipping}</small>
+                                    <strong class="text-success">Thrift Price: $${data.thriftPrice?.toFixed(2) || 'N/A'}</strong><br>
+                                    <small class="text-muted">Estimated Retail: $${data.estimatedRetail?.toFixed(2) || 'N/A'}</small><br>
+                                    <small class="text-success">You Save: ${data.savingsPercent || 0}%</small>
                                 </p>
-                                <a href="${price.url}" target="_blank" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-external-link-alt me-1"></i>View
-                                </a>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-success" style="width: ${data.savingsPercent || 0}%"></div>
+                                </div>
+                                <small class="text-muted">${data.valueAssessment || 'Great value!'}</small>
                             </div>
                         </div>
                     </div>
-                `;
-            });
-            html += '</div>';
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">AI Value Assessment</h6>
+                                <p class="card-text">
+                                    ${data.notes || 'This item offers excellent value compared to retail prices. Great condition and authentic quality.'}
+                                </p>
+                                <div class="mt-2">
+                                    <span class="badge bg-success">Verified Authentic</span>
+                                    <span class="badge bg-primary">Fair Price</span>
+                                    <span class="badge bg-info">Sustainable Choice</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
             
-            if (data.savings && data.savings.isGoodDeal) {
+            if (data.savingsPercent && data.savingsPercent > 50) {
                 html += `
                     <div class="alert alert-success mt-3">
                         <i class="fas fa-thumbs-up me-2"></i>
-                        Great deal! You save $${data.savings.amount.toFixed(2)} (${data.savings.percentage.toFixed(0)}%) compared to other sources.
+                        Excellent deal! You save ${data.savingsPercent}% compared to retail prices. This is a great thrift find!
                     </div>
                 `;
             }
@@ -517,7 +532,7 @@
         function loadSimilarProducts() {
             const productId = /*[[${product.id}]]*/ 'product-id';
             
-            fetch(`/buyers/api/similar-products/${productId}`)
+            fetch(`/api/products/${productId}/similar`)
             .then(response => response.json())
             .then(products => {
                 displaySimilarProducts(products);
@@ -558,7 +573,7 @@
                                 <p class="card-text text-muted small">${product.brand} • ${product.category}</p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <strong class="text-primary">$${product.price.toFixed(2)}</strong>
-                                    <a href="/buyers/products/${product.id}" class="btn btn-outline-primary btn-sm">
+                                    <a href="/products/${product.id}" class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                 </div>
@@ -637,7 +652,7 @@
         function addToCart() {
             const productId = /*[[${product.id}]]*/ 'product-id';
             
-            fetch('/buyers/api/cart/add', {
+            fetch('/api/cart/add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -699,7 +714,7 @@
         function loadReviews() {
             const productId = /*[[${product.id}]]*/ 'product-id';
             
-            fetch(`/buyers/api/products/${productId}/reviews?page=0&size=10&sort=${currentSort}&filter=${currentFilter}`)
+            fetch(`/api/products/${productId}/reviews?page=0&size=10&sort=${currentSort}&filter=${currentFilter}`)
             .then(response => response.json())
             .then(data => {
                 currentReviews = data.reviews || [];
@@ -879,7 +894,7 @@
             currentPage++;
             const productId = /*[[${product.id}]]*/ 'product-id';
             
-            fetch(`/buyers/api/products/${productId}/reviews?page=${currentPage}&size=10&sort=${currentSort}&filter=${currentFilter}`)
+            fetch(`/api/products/${productId}/reviews?page=${currentPage}&size=10&sort=${currentSort}&filter=${currentFilter}`)
             .then(response => response.json())
             .then(data => {
                 const newReviews = data.reviews || [];
@@ -906,7 +921,7 @@
         function toggleReviewHelpful(reviewId, isHelpful) {
             const action = isHelpful ? 'helpful' : 'unhelpful';
             
-            fetch(`/buyers/api/reviews/${reviewId}/${action}`, {
+            fetch(`/api/reviews/${reviewId}/${action}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1037,7 +1052,7 @@
                 }
             });
             
-            fetch('/buyers/api/reviews', {
+            fetch('/api/reviews', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

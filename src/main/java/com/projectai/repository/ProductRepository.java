@@ -130,4 +130,20 @@ public interface ProductRepository extends JpaRepository<Product, String> {
                          @Param("size") String size,
                          @Param("minPrice") Double minPrice,
                          @Param("maxPrice") Double maxPrice);
+                         
+    // Additional methods for RealTimeRecommendationService
+    @Query("SELECT p FROM Product p WHERE p.isAvailable = true AND LOWER(p.category) LIKE LOWER(CONCAT('%', :category, '%'))")
+    List<Product> findByCategoryContainingIgnoreCase(@Param("category") String category);
+    
+    @Query("SELECT p FROM Product p WHERE p.isAvailable = true AND LOWER(p.description) LIKE LOWER(CONCAT('%', :description, '%'))")
+    List<Product> findByDescriptionContainingIgnoreCase(@Param("description") String description);
+    
+    // Seller-specific queries for analytics
+    List<Product> findBySeller_Id(String sellerId);
+    
+    // Additional methods for IntelligentSearchService
+    List<Product> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String name, String description);
+    
+    // Additional methods for AdvancedInventoryManagementService
+    long countByIsAvailableTrue();
 }

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="html">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${pageTitle != null ? pageTitle + ' - ThriftAI' : 'ThriftAI - Smart Thrift Shopping'}">ThriftAI - Smart Thrift Shopping</title>
+    <title>ThriftAI - Smart Thrift Shopping</title>
     
     <!-- Bootstrap CSS -->
     <link href="/webjars/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
@@ -15,13 +15,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
     
     <!-- Page-specific head content -->
-    <th:block th:replace="${pageHead} ?: ~{}"></th:block>
+    
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand fw-bold" th:href="@{/}">
+            <a class="navbar-brand fw-bold" href="/">
                 <i class="fas fa-robot me-2" style="color: #00d4ff;"></i>
                 <span style="background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">Thrift</span><span style="color: var(--text-primary); font-weight: 300;">AI</span>
             </a>
@@ -33,22 +33,22 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/sellers}">
+                        <a class="nav-link" href="/sellers">
                             <i class="fas fa-store me-2"></i>Sellers
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/buyers/search}">
+                        <a class="nav-link" href="/buyers/search">
                             <i class="fas fa-search me-2"></i>Search
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/visual-search}">
+                        <a class="nav-link" href="/visual-search">
                             <i class="fas fa-camera me-2" style="color: #00d4ff;"></i>Visual Search
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link position-relative" th:href="@{/buyers/cart}">
+                        <a class="nav-link position-relative" href="/buyers/cart">
                             <i class="fas fa-shopping-cart me-2"></i>Cart
                             <span class="cart-counter badge bg-danger position-absolute top-0 start-100 translate-middle" 
                                   style="font-size: 0.65rem; display: none;">0</span>
@@ -57,7 +57,7 @@
                 </ul>
                 
                 <!-- Login/Signup Buttons -->
-                <div th:if="${session.user == null}" class="navbar-nav ms-auto">
+                <div class="navbar-nav ms-auto">
                     <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">
                         <i class="fas fa-sign-in-alt me-1"></i>Login
                     </button>
@@ -66,33 +66,14 @@
                     </button>
                 </div>
                 
-                <ul th:if="${session.user != null}" class="navbar-nav">
-                    
-                    <!-- Show user menu when logged in -->
-                    <li th:if="${session.user != null}" class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-2"></i>
-                            <span th:if="${session.userType == 'buyer'}" th:text="${session.user.firstName}">User</span>
-                            <span th:if="${session.userType == 'seller'}" th:text="${session.user.ownerName}">User</span>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Preferences</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-heart me-2"></i>Favorites</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" th:href="@{/about}"><i class="fas fa-info me-2"></i>About</a></li>
-                            <li><a class="dropdown-item" th:href="@{/contact}"><i class="fas fa-envelope me-2"></i>Contact</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" th:href="@{/auth/logout}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                        </ul>
-                    </li>
-                </ul>
+                
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
     <main class="py-4">
-        <th:block th:replace="${content} ?: ~{}"></th:block>
+        
     </main>
 
     <!-- Footer -->
@@ -284,6 +265,6 @@
     <script src="/js/ai-search-widget.js"></script>
     
     <!-- Page-specific scripts -->
-    <th:block th:replace="${pageScripts} ?: ~{}"></th:block>
+    
 </body>
 </html>

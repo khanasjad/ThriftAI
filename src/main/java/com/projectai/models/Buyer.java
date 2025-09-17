@@ -36,7 +36,7 @@ public class Buyer {
     @Column(nullable = false)
     private String password;
     
-    @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Please enter a valid phone number")
+    @Pattern(regexp = "^$|^\\+?[1-9]\\d{1,14}$", message = "Please enter a valid phone number or leave empty")
     private String phone;
     
     private LocalDate dateOfBirth;
