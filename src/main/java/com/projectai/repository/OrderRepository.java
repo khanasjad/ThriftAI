@@ -125,4 +125,13 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     
     // Additional methods for AdvancedFulfillmentService
     List<Order> findByStatusAndCreatedAtBefore(Order.OrderStatus status, LocalDateTime date);
+
+    // Methods for Commission and Payout Service
+    @Query("SELECT o FROM Order o WHERE o.status = :status AND o.deliveredAt BETWEEN :startDate AND :endDate")
+    List<Order> findByStatusAndDeliveredAtBetween(@Param("status") String status,
+                                                  @Param("startDate") LocalDateTime startDate,
+                                                  @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT o FROM Order o JOIN o.orderItems oi WHERE oi.sellerId = :sellerId ORDER BY o.createdAt DESC")
+    List<Order> findByOrderItemsSellerIdOrderByCreatedAtDesc(@Param("sellerId") String sellerId);
 }
