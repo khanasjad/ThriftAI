@@ -26,9 +26,12 @@ public class AITransformationService {
 
     @Autowired
     private ProductRepository productRepository;
-    
+
     @Autowired
     private ChatGPTService chatGPTService;
+
+    @Autowired
+    private QualityScoreAIService qualityScoreService;
     
     @Value("${openai.api.key:}")
     private String openAiApiKey;
@@ -389,10 +392,23 @@ public class AITransformationService {
     }
 
     private VisualSearchResult createFallbackVisualResult() {
+        // Enhanced fallback: return popular items from different categories
+        List<Product> fallbackProducts = productRepository.findByIsAvailableTrue()
+            .stream()
+            .filter(p -> p.getDiscountPercentage() > 30) // Good deals only
+            .sorted((p1, p2) -> Double.compare(p2.getDiscountPercentage(), p1.getDiscountPercentage()))
+            .limit(6)
+            .collect(Collectors.toList());
+
         return new VisualSearchResult(
-            "Image analysis temporarily unavailable",
-            new ArrayList<>(),
-            Arrays.asList("Try text search instead", "Browse categories")
+            "📸 Visual AI is learning... Here are some amazing deals I found for you!",
+            fallbackProducts,
+            Arrays.asList(
+                "Upload a photo of clothing items",
+                "Try searching for 'electronics'",
+                "Browse 'vintage clothing'",
+                "Search 'nike shoes'"
+            )
         );
     }
 

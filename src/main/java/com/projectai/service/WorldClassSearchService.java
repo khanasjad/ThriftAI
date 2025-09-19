@@ -15,6 +15,9 @@ public class WorldClassSearchService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private QualityScoreAIService qualityScoreService;
+
     public SearchResponse performWorldClassSearch(String query) {
         SearchResponse response = new SearchResponse();
 
@@ -31,7 +34,9 @@ public class WorldClassSearchService {
 
         if (results.isEmpty()) {
             // Ultimate fallback - return featured products with AI insights
-            return getFallbackResults(response, searchTerm);
+            // Pass the extracted price filter to ensure fallback respects price constraints
+            Double maxPrice = extractPriceFilter(searchTerm);
+            return getFallbackResults(response, searchTerm, maxPrice);
         }
 
         response.setProducts(results);
@@ -109,8 +114,29 @@ public class WorldClassSearchService {
             results.addAll(getSmartCategoryMatches(allProducts, searchTerm));
         }
 
-        return results.stream()
-            .sorted((a, b) -> calculateRelevanceScore(b, searchTerm) - calculateRelevanceScore(a, searchTerm))
+        // Convert to list for quality scoring
+        List<Product> resultsList = new ArrayList<>(results);
+        System.out.println("DEBUG: Results before quality scoring: " + resultsList.size());
+        resultsList.forEach(p -> System.out.println("  - " + p.getName() + ": $" + p.getPrice()));
+
+        // Apply quality scoring and ranking
+        List<Product> qualityRankedResults = qualityScoreService.rankProductsByQuality(resultsList);
+        System.out.println("DEBUG: Results after quality scoring: " + qualityRankedResults.size());
+
+        // Final sort by combined relevance and quality score
+        return qualityRankedResults.stream()
+            .sorted((a, b) -> {
+                int relevanceA = calculateRelevanceScore(a, searchTerm);
+                int relevanceB = calculateRelevanceScore(b, searchTerm);
+                int qualityA = (Integer) a.getLocationMetadata().getOrDefault("qualityScore", 0);
+                int qualityB = (Integer) b.getLocationMetadata().getOrDefault("qualityScore", 0);
+
+                // Combined score: 70% relevance + 30% quality
+                int combinedA = (int) (relevanceA * 0.7 + qualityA * 0.3);
+                int combinedB = (int) (relevanceB * 0.7 + qualityB * 0.3);
+
+                return combinedB - combinedA; // Descending order
+            })
             .limit(20)
             .collect(Collectors.toList());
     }
@@ -142,13 +168,19 @@ public class WorldClassSearchService {
     private List<Product> getSmartCategoryMatches(List<Product> allProducts, String searchTerm) {
         Map<String, List<String>> categoryMappings = new HashMap<>();
 
-        // Fashion & Apparel
+        // Fashion & Apparel - Enhanced for vintage/designer
         categoryMappings.put("shoes", Arrays.asList("SHOES", "SNEAKERS", "FOOTWEAR"));
         categoryMappings.put("sneakers", Arrays.asList("SHOES", "SNEAKERS", "FOOTWEAR"));
         categoryMappings.put("clothing", Arrays.asList("CLOTHING", "APPAREL", "FASHION"));
         categoryMappings.put("jacket", Arrays.asList("CLOTHING", "OUTERWEAR"));
         categoryMappings.put("bag", Arrays.asList("ACCESSORIES", "BAGS", "HANDBAGS"));
         categoryMappings.put("watch", Arrays.asList("ACCESSORIES", "WATCHES", "JEWELRY"));
+
+        // Vintage & Designer specific mappings
+        categoryMappings.put("vintage", Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES", "VINTAGE"));
+        categoryMappings.put("designer", Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES", "LUXURY"));
+        categoryMappings.put("luxury", Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES", "LUXURY"));
+        categoryMappings.put("fashion", Arrays.asList("CLOTHING", "APPAREL", "FASHION", "ACCESSORIES"));
 
         // Electronics & Technology - EXPANDED
         categoryMappings.put("electronics", Arrays.asList("ELECTRONICS", "TECHNOLOGY", "GADGETS", "TECH"));
@@ -190,37 +222,85 @@ public class WorldClassSearchService {
 
     private int calculateRelevanceScore(Product product, String searchTerm) {
         int score = 0;
+        String lowerSearchTerm = searchTerm.toLowerCase();
+        String[] searchWords = lowerSearchTerm.split("\\s+");
+
+        // Category context detection for better relevance
+        boolean isVintageSearch = lowerSearchTerm.contains("vintage");
+        boolean isDesignerSearch = lowerSearchTerm.contains("designer");
+        boolean isElectronicsSearch = lowerSearchTerm.contains("electronics") || lowerSearchTerm.contains("tech");
+        boolean isClothingSearch = lowerSearchTerm.contains("clothing") || lowerSearchTerm.contains("fashion");
+
+        // Apply category filtering penalties for mismatched contexts
+        if ((isVintageSearch || isDesignerSearch || isClothingSearch) &&
+            product.getCategory() != null &&
+            product.getCategory().toLowerCase().contains("electronics")) {
+            score -= 200; // Heavy penalty for electronics when searching for fashion/vintage
+        }
+
+        if (isElectronicsSearch &&
+            product.getCategory() != null &&
+            (product.getCategory().toLowerCase().contains("clothing") ||
+             product.getCategory().toLowerCase().contains("shoes"))) {
+            score -= 150; // Penalty for clothing when searching electronics
+        }
 
         // Brand exact match gets highest score
         if (product.getBrand() != null &&
-            product.getBrand().toLowerCase().equals(searchTerm)) {
+            product.getBrand().toLowerCase().equals(lowerSearchTerm)) {
             score += 100;
         } else if (product.getBrand() != null &&
-                  product.getBrand().toLowerCase().contains(searchTerm)) {
+                  product.getBrand().toLowerCase().contains(lowerSearchTerm)) {
             score += 80;
         }
 
-        // Product name matches
-        if (product.getName().toLowerCase().contains(searchTerm)) {
-            score += 60;
+        // Product name matches with word-level scoring
+        for (String word : searchWords) {
+            if (product.getName().toLowerCase().contains(word)) {
+                score += 60;
+            }
         }
 
-        // Category matches
-        if (product.getCategory() != null &&
-            product.getCategory().toLowerCase().contains(searchTerm)) {
-            score += 40;
+        // Category matches with context awareness
+        if (product.getCategory() != null) {
+            String category = product.getCategory().toLowerCase();
+
+            // Boost clothing/fashion for vintage/designer searches
+            if ((isVintageSearch || isDesignerSearch) &&
+                (category.contains("clothing") || category.contains("shoes") || category.contains("accessories"))) {
+                score += 100;
+            }
+
+            // Regular category matching
+            for (String word : searchWords) {
+                if (category.contains(word)) {
+                    score += 40;
+                }
+            }
         }
 
         // Description matches
-        if (product.getDescription() != null &&
-            product.getDescription().toLowerCase().contains(searchTerm)) {
-            score += 20;
+        if (product.getDescription() != null) {
+            for (String word : searchWords) {
+                if (product.getDescription().toLowerCase().contains(word)) {
+                    score += 20;
+                }
+            }
         }
 
-        // Boost popular brands
+        // Special vintage/designer brand boosts
         if (product.getBrand() != null) {
             String brand = product.getBrand().toLowerCase();
-            if (Arrays.asList("nike", "adidas", "gucci", "prada", "supreme").contains(brand)) {
+
+            if (isVintageSearch || isDesignerSearch) {
+                // Boost luxury/designer brands for designer searches
+                if (Arrays.asList("gucci", "prada", "supreme", "levi's", "zara", "versace", "armani").contains(brand)) {
+                    score += 50;
+                }
+            }
+
+            // General popular brand boost
+            if (Arrays.asList("nike", "adidas", "gucci", "prada", "supreme", "levi's").contains(brand)) {
                 score += 10;
             }
         }
@@ -243,7 +323,7 @@ public class WorldClassSearchService {
         return response;
     }
 
-    private SearchResponse getFallbackResults(SearchResponse response, String searchTerm) {
+    private SearchResponse getFallbackResults(SearchResponse response, String searchTerm, Double maxPrice) {
         // AI-powered intelligent fallback based on search intent
         String lowerTerm = searchTerm.toLowerCase();
 
@@ -266,8 +346,10 @@ public class WorldClassSearchService {
         }
 
         // For other searches, show relevant products from our inventory
+        // Apply price filtering if a price constraint was detected in the search
         List<Product> fallback = productRepository.findByIsAvailableTrue()
             .stream()
+            .filter(p -> maxPrice == null || p.getPrice() <= maxPrice) // Respect price filtering
             .limit(8)
             .collect(Collectors.toList());
 
@@ -381,5 +463,38 @@ public class WorldClassSearchService {
         processed = processed.trim().replaceAll("\\s+", " ");
 
         return processed;
+    }
+
+    private Double extractPriceFilter(String searchTerm) {
+        if (searchTerm == null) return null;
+
+        // Enhanced price patterns to handle various formats
+        String[] patterns = {
+            // "best deals under $25", "items under 50", "deals below $100"
+            "(?:deals?|items?|products?)\\s+(?:under|below|less\\s+than|<)\\s*\\$?(\\d+(?:\\.\\d{2})?)",
+            // "under $25", "below 50", "< 75"
+            "(?:under|below|less\\s+than|<)\\s*\\$?(\\d+(?:\\.\\d{2})?)",
+            // "cheap items $25", "budget finds $30"
+            "(?:cheap|budget|affordable)\\s+(?:items?|finds?|deals?)\\s*\\$?(\\d+(?:\\.\\d{2})?)",
+            // "$25 or less", "$30 and under"
+            "\\$?(\\d+(?:\\.\\d{2})?)\\s*(?:or\\s+less|and\\s+under|maximum|max)"
+        };
+
+        for (String patternStr : patterns) {
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                patternStr, java.util.regex.Pattern.CASE_INSENSITIVE
+            );
+
+            java.util.regex.Matcher matcher = pattern.matcher(searchTerm);
+            if (matcher.find()) {
+                try {
+                    return Double.parseDouble(matcher.group(1));
+                } catch (NumberFormatException e) {
+                    continue; // Try next pattern
+                }
+            }
+        }
+
+        return null;
     }
 }

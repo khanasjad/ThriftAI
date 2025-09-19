@@ -5,6 +5,7 @@ import com.projectai.service.ChatGPTService;
 import com.projectai.service.ClaudeService;
 import com.projectai.service.StreamingTextService;
 import com.projectai.models.Product;
+import com.projectai.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -32,6 +33,9 @@ public class AIAssistantController {
     
     @Autowired
     private StreamingTextService streamingTextService;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     @GetMapping("/assistant")
     public String aiAssistant(Model model) {
@@ -125,11 +129,15 @@ public class AIAssistantController {
             response.put("message", "I analyzed your image and found some similar thrift items!");
             
         } catch (Exception e) {
-            // Fallback to mock response
+            // Enhanced fallback using actual products
+            AITransformationService.VisualSearchResult fallbackResult =
+                aiTransformationService.analyzeProductImage(imageData);
+
             response.put("success", true);
-            response.put("products", generateMockProducts());
-            response.put("message", "I found some similar products based on your image!");
-            response.put("note", "Visual AI temporarily unavailable - showing popular items");
+            response.put("analysis", fallbackResult.analysis);
+            response.put("products", fallbackResult.similarProducts);
+            response.put("suggestions", fallbackResult.suggestions);
+            response.put("message", fallbackResult.analysis);
         }
         
         return ResponseEntity.ok(response);
@@ -142,18 +150,34 @@ public class AIAssistantController {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            // Find product and generate pricing insight
-            // This would typically fetch from repository
-            Product mockProduct = new Product(); // Replace with actual product lookup
-            AITransformationService.PricingInsight insight = 
-                aiTransformationService.generatePricingInsight(mockProduct);
-            
+            // Find actual product from database
+            Product product = null;
+            if (productId != null && !productId.isEmpty()) {
+                product = productRepository.findById(productId).orElse(null);
+            }
+
+            // If no specific product, use a sample product for demonstration
+            if (product == null) {
+                product = productRepository.findByIsAvailableTrue()
+                    .stream()
+                    .filter(p -> p.getOriginalPrice() > 0) // Has retail comparison
+                    .findFirst()
+                    .orElse(createSampleProduct());
+            }
+
+            AITransformationService.PricingInsight insight =
+                aiTransformationService.generatePricingInsight(product);
+
             response.put("success", true);
+            response.put("productName", product.getName());
+            response.put("productBrand", product.getBrand());
             response.put("thriftPrice", insight.thriftPrice);
             response.put("estimatedRetail", insight.estimatedRetail);
             response.put("savingsPercent", insight.savingsPercent);
             response.put("valueAssessment", insight.valueAssessment);
             response.put("notes", insight.notes);
+            response.put("condition", product.getCondition());
+            response.put("actualSavings", product.getOriginalPrice() - product.getPrice());
             
         } catch (Exception e) {
             response.put("success", false);
@@ -362,5 +386,17 @@ public class AIAssistantController {
                 "distance", "0.9 miles"
             )
         };
+    }
+
+    private Product createSampleProduct() {
+        Product sample = new Product();
+        sample.setName("Nike Air Max Sneakers");
+        sample.setBrand("NIKE");
+        sample.setCategory("SHOES");
+        sample.setPrice(65.0);
+        sample.setOriginalPrice(150.0);
+        sample.setCondition("VERY_GOOD");
+        sample.setDescription("Gently used Nike Air Max sneakers");
+        return sample;
     }
 }

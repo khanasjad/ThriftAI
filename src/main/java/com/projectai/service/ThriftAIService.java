@@ -457,6 +457,92 @@ public class ThriftAIService {
         product5.setAvailable(true);
         products.add(product5);
 
+        // Add budget-friendly products under $25
+        Product product6 = new Product();
+        product6.setName("H&M Cotton T-Shirt");
+        product6.setCategory("CLOTHING");
+        product6.setPrice(8.99);
+        product6.setBrand("H&M");
+        product6.setOriginalPrice(19.99);
+        product6.setCondition("GOOD");
+        product6.setSize("M");
+        product6.setStoreId("store1");
+        product6.setDescription("Soft cotton t-shirt in great condition");
+        product6.setAvailable(true);
+        products.add(product6);
+
+        Product product7 = new Product();
+        product7.setName("Vintage Coffee Mug");
+        product7.setCategory("HOME");
+        product7.setPrice(12.50);
+        product7.setBrand("GENERIC");
+        product7.setOriginalPrice(25.00);
+        product7.setCondition("EXCELLENT");
+        product7.setStoreId("store3");
+        product7.setDescription("Charming vintage-style coffee mug, perfect condition");
+        product7.setAvailable(true);
+        products.add(product7);
+
+        Product product8 = new Product();
+        product8.setName("Used Paperback Novel");
+        product8.setCategory("BOOKS");
+        product8.setPrice(4.99);
+        product8.setBrand("PENGUIN");
+        product8.setOriginalPrice(14.99);
+        product8.setCondition("GOOD");
+        product8.setStoreId("store2");
+        product8.setDescription("Classic paperback novel, some wear but readable");
+        product8.setAvailable(true);
+        products.add(product8);
+
+        Product product9 = new Product();
+        product9.setName("Canvas Tote Bag");
+        product9.setCategory("ACCESSORIES");
+        product9.setPrice(15.99);
+        product9.setBrand("UNIQLO");
+        product9.setOriginalPrice(29.99);
+        product9.setCondition("LIKE_NEW");
+        product9.setStoreId("store1");
+        product9.setDescription("Eco-friendly canvas tote bag, barely used");
+        product9.setAvailable(true);
+        products.add(product9);
+
+        Product product10 = new Product();
+        product10.setName("Ceramic Plant Pot");
+        product10.setCategory("HOME");
+        product10.setPrice(18.99);
+        product10.setBrand("IKEA");
+        product10.setOriginalPrice(35.00);
+        product10.setCondition("EXCELLENT");
+        product10.setStoreId("store3");
+        product10.setDescription("Beautiful ceramic plant pot with drainage holes");
+        product10.setAvailable(true);
+        products.add(product10);
+
+        Product product11 = new Product();
+        product11.setName("Basic Baseball Cap");
+        product11.setCategory("ACCESSORIES");
+        product11.setPrice(9.99);
+        product11.setBrand("OLD NAVY");
+        product11.setOriginalPrice(19.99);
+        product11.setCondition("GOOD");
+        product11.setStoreId("store2");
+        product11.setDescription("Simple black baseball cap, adjustable strap");
+        product11.setAvailable(true);
+        products.add(product11);
+
+        Product product12 = new Product();
+        product12.setName("Kitchen Utensil Set");
+        product12.setCategory("HOME");
+        product12.setPrice(22.99);
+        product12.setBrand("TARGET");
+        product12.setOriginalPrice(39.99);
+        product12.setCondition("VERY_GOOD");
+        product12.setStoreId("store1");
+        product12.setDescription("Set of essential kitchen utensils, lightly used");
+        product12.setAvailable(true);
+        products.add(product12);
+
         return products;
     }
 }
