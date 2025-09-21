@@ -7,25 +7,35 @@ spring:
   application:
     name: ThriftAI
   
-  # Database Configuration
+  # Database Configuration (Profile-based)
   datasource:
-    url: jdbc:h2:mem:thriftai
-    driverClassName: org.h2.Driver
-    username: sa
-    password: 
-  
+    url: ${DATABASE_URL:jdbc:h2:mem:thriftai}
+    driverClassName: ${DATABASE_DRIVER:org.h2.Driver}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: ${DATABASE_DIALECT:org.hibernate.dialect.H2Dialect}
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: ${DATABASE_DDL_AUTO:create-drop}
+    show-sql: ${DATABASE_SHOW_SQL:true}
     properties:
       hibernate:
         format_sql: true
-  
+        jdbc:
+          time_zone: UTC
+
+  # Flyway Migration Configuration
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    clean-disabled: true
+
   h2:
     console:
-      enabled: true
+      enabled: ${H2_CONSOLE_ENABLED:true}
       path: /h2-console
       settings:
         web-allow-others: true
@@ -83,6 +93,34 @@ claude:
   streaming:
     enabled: true
     chunk-size: 256
+
+# Payment Processing Configuration
+payments:
+  stripe:
+    public-key: ${STRIPE_PUBLIC_KEY:pk_test_}  # Stripe publishable key
+    secret-key: ${STRIPE_SECRET_KEY:sk_test_}  # Stripe secret key
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_}  # Stripe webhook endpoint secret
+    currency: "usd"
+    capture-method: "automatic"
+
+  paypal:
+    client-id: ${PAYPAL_CLIENT_ID:}  # PayPal client ID
+    client-secret: ${PAYPAL_CLIENT_SECRET:}  # PayPal client secret
+    environment: ${PAYPAL_ENVIRONMENT:sandbox}  # sandbox or live
+    webhook-id: ${PAYPAL_WEBHOOK_ID:}  # PayPal webhook ID
+
+  processing:
+    enabled: true
+    default-provider: "stripe"  # stripe or paypal
+    retry-attempts: 3
+    timeout-seconds: 30
+
+  payouts:
+    enabled: true
+    schedule: "daily"  # daily, weekly, monthly
+    minimum-amount: 10.00
+    processing-fee: 0.25  # Fixed fee per payout
+    percentage-fee: 0.02  # 2% of payout amount
 
 # Logging Configuration
 logging:

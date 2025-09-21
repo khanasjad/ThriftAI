@@ -55,11 +55,26 @@
         </dependency>
 
         <!-- Database -->
+        <!-- H2 Database (Development) -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- PostgreSQL (Production) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Flyway Database Migrations -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
 
         <!-- DevTools for hot reload -->
         <dependency>
@@ -99,6 +114,26 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
+        <!-- Stripe Payment Integration -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>24.16.0</version>
+        </dependency>
+
+        <!-- PayPal Payment Integration -->
+        <dependency>
+            <groupId>com.paypal.sdk</groupId>
+            <artifactId>checkout-sdk</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+
+        <!-- Jackson for JSON processing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -115,6 +150,22 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>com.projectai.ThriftAIApplication</mainClass>
+                </configuration>
+            </plugin>
+
+            <!-- Flyway Maven Plugin for Database Migrations -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:5432/thriftai</url>
+                    <user>thriftai_user</user>
+                    <password>thriftai_password</password>
+                    <locations>
+                        <location>classpath:db/migration</location>
+                    </locations>
+                    <baselineOnMigrate>true</baselineOnMigrate>
+                    <validateOnMigrate>true</validateOnMigrate>
                 </configuration>
             </plugin>
         </plugins>

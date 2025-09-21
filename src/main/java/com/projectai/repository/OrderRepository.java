@@ -134,4 +134,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
 
     @Query("SELECT o FROM Order o JOIN o.orderItems oi WHERE oi.sellerId = :sellerId ORDER BY o.createdAt DESC")
     List<Order> findByOrderItemsSellerIdOrderByCreatedAtDesc(@Param("sellerId") String sellerId);
+
+    @Query("SELECT o FROM Order o JOIN o.orderItems oi WHERE oi.sellerId = :sellerId AND o.paymentStatus = :paymentStatus ORDER BY o.createdAt DESC")
+    List<Order> findBySellersAndPaymentStatus(@Param("sellerId") String sellerId, @Param("paymentStatus") Order.PaymentStatus paymentStatus);
 }

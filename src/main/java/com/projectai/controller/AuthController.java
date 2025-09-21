@@ -14,6 +14,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -145,7 +146,7 @@ public class AuthController {
         seller.setStatus(Seller.SellerStatus.PENDING);
         seller.setRating(0.0);
         seller.setTotalSales(0);
-        seller.setTotalRevenue(0.0);
+        seller.setTotalRevenue(BigDecimal.ZERO);
         seller.setCommissionRate(5.0); // Default 5% commission
         
         sellerRepository.save(seller);

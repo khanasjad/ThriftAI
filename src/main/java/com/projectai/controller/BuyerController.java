@@ -6,6 +6,7 @@ import com.projectai.models.Product;
 import com.projectai.repository.BuyerRepository;
 import com.projectai.repository.ProductRepository;
 import com.projectai.service.ChatGPTService;
+import com.projectai.service.ClaudeService;
 import com.projectai.service.VisualSearchService;
 import com.projectai.service.PriceComparisonService;
 import com.projectai.service.ThriftAIService;
@@ -14,6 +15,8 @@ import com.projectai.service.ReviewService;
 import com.projectai.service.CartService;
 import com.projectai.service.SmartSearchService;
 import com.projectai.service.WorldClassSearchService;
+import com.projectai.service.ClaudeEnhancedService;
+import com.projectai.models.ClaudeSearchAnalytics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,7 +47,10 @@ public class BuyerController {
     
     @Autowired
     private ChatGPTService chatGPTService;
-    
+
+    @Autowired
+    private ClaudeService claudeService;
+
     @Autowired
     private VisualSearchService visualSearchService;
     
@@ -68,6 +74,9 @@ public class BuyerController {
 
     @Autowired
     private WorldClassSearchService worldClassSearchService;
+
+    @Autowired
+    private ClaudeEnhancedService claudeEnhancedService;
 
     // Add API endpoint for filter options
     @GetMapping("/api/filter-options")
@@ -768,6 +777,10 @@ public class BuyerController {
             // Use the new world-class search service that GUARANTEES results
             WorldClassSearchService.SearchResponse response = worldClassSearchService.performWorldClassSearch(query);
 
+            // Generate AI assistant response using both ChatGPT and Claude
+            String aiResponse = generateAIResponse(query, response.getProducts());
+            System.out.println("🔍 DEBUG: AI response to be passed to template: " + (aiResponse != null ? aiResponse.substring(0, Math.min(200, aiResponse.length())) + "..." : "null"));
+
             model.addAttribute("query", query != null ? query : "");
             model.addAttribute("products", response.getProducts());
             model.addAttribute("resultCount", response.getTotalResults());
@@ -775,6 +788,8 @@ public class BuyerController {
             model.addAttribute("searchSuggestions", response.getSuggestions());
             model.addAttribute("interpretedQuery", response.getProcessedQuery());
             model.addAttribute("originalQuery", response.getOriginalQuery());
+            model.addAttribute("aiResponse", aiResponse);
+            System.out.println("🔍 DEBUG: All model attributes set successfully, rendering search-results template");
 
             return "search-results";
         } catch (Exception e) {
@@ -785,7 +800,104 @@ public class BuyerController {
             return "search-results";
         }
     }
-    
+
+    @GetMapping("/search-3step")
+    public String searchThreeStep(@RequestParam(value = "q", required = false) String query, Model model) {
+        try {
+            System.out.println("🚀 Testing 3-Step LLM Search Flow via /buyers/search-3step endpoint");
+
+            // Step 1: Extract filters using LLM
+            SearchFilters filters = chatGPTService.extractSearchFilters(query);
+
+            // Step 2: Execute business logic search with extracted filters
+            List<Product> filteredProducts = chatGPTService.executeFilteredSearch(filters);
+
+            // Step 3: Generate intelligent summary using LLM
+            String aiResponse = chatGPTService.generateIntelligentSummary(filters, filteredProducts);
+
+            model.addAttribute("query", query != null ? query : "");
+            model.addAttribute("products", filteredProducts);
+            model.addAttribute("resultCount", filteredProducts.size());
+            model.addAttribute("searchInsights", "3-Step LLM Search: " + filters.toString());
+            model.addAttribute("searchSuggestions", java.util.Arrays.asList("Try more specific terms", "Adjust price range", "Explore different brands"));
+            model.addAttribute("interpretedQuery", "Filters: " + (filters.getCategory() != null ? filters.getCategory() : "Any Category") +
+                " | Intent: " + (filters.getIntent() != null ? filters.getIntent() : "General") +
+                " | Style: " + (filters.getStyle() != null ? filters.getStyle() : "Any"));
+            model.addAttribute("originalQuery", query);
+            model.addAttribute("aiResponse", aiResponse);
+            model.addAttribute("searchType", "3-Step LLM Search");
+
+            System.out.println("✅ 3-Step LLM Search completed successfully with " + filteredProducts.size() + " products");
+            return "search-results";
+
+        } catch (Exception e) {
+            System.err.println("❌ 3-Step LLM Search failed: " + e.getMessage());
+            e.printStackTrace();
+            model.addAttribute("query", query);
+            model.addAttribute("products", java.util.Collections.emptyList());
+            model.addAttribute("resultCount", 0);
+            model.addAttribute("error", "3-Step LLM Search failed. Please try again.");
+            model.addAttribute("searchType", "3-Step LLM Search (Failed)");
+            return "search-results";
+        }
+    }
+
+    private String generateAIResponse(String query, List<Product> products) {
+        System.out.println("🔍 DEBUG: generateAIResponse called with query: " + query + ", products count: " + products.size());
+        String openAIResponse = null;
+        String claudeResponse = null;
+
+        // Try ChatGPT first
+        try {
+            System.out.println("🔍 DEBUG: Calling ChatGPT service...");
+            openAIResponse = chatGPTService.generateSearchResponse(query, products);
+            System.out.println("🔍 DEBUG: ChatGPT response received: " + (openAIResponse != null ? openAIResponse.substring(0, Math.min(100, openAIResponse.length())) + "..." : "null"));
+        } catch (Exception e) {
+            System.out.println("❌ ChatGPT service failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        // Try Claude as backup or alternative
+        try {
+            System.out.println("🔍 DEBUG: Calling Claude service...");
+            claudeResponse = claudeService.generateThriftResponse(query, products, "search");
+            System.out.println("🔍 DEBUG: Claude response received: " + (claudeResponse != null ? claudeResponse.substring(0, Math.min(100, claudeResponse.length())) + "..." : "null"));
+        } catch (Exception e) {
+            System.out.println("❌ Claude service failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        // Return best available response with fallback logic
+        String finalResponse = null;
+        if (openAIResponse != null && !openAIResponse.contains("I'm having trouble")) {
+            finalResponse = openAIResponse;
+            System.out.println("✅ DEBUG: Using ChatGPT response");
+        } else if (claudeResponse != null && !claudeResponse.contains("I'm having trouble")) {
+            finalResponse = claudeResponse;
+            System.out.println("✅ DEBUG: Using Claude response");
+        } else if (openAIResponse != null) {
+            finalResponse = openAIResponse;
+            System.out.println("✅ DEBUG: Using ChatGPT response (fallback)");
+        } else if (claudeResponse != null) {
+            finalResponse = claudeResponse;
+            System.out.println("✅ DEBUG: Using Claude response (fallback)");
+        } else {
+            finalResponse = generateFallbackResponse(query, products);
+            System.out.println("✅ DEBUG: Using fallback response");
+        }
+
+        System.out.println("🔍 DEBUG: Final AI response (first 100 chars): " + (finalResponse != null ? finalResponse.substring(0, Math.min(100, finalResponse.length())) + "..." : "null"));
+        return finalResponse;
+    }
+
+    private String generateFallbackResponse(String query, List<Product> products) {
+        if (products == null || products.isEmpty()) {
+            return "🤖 No exact matches found for '" + query + "', but here are popular items you might love! 💡 Our AI suggests browsing these categories or trying more specific search terms.";
+        } else {
+            return "🎯 Found " + products.size() + " perfect matches for your search! Let me know if you need help choosing the best option for you.";
+        }
+    }
+
     // Shopping Cart API Endpoints
     @PostMapping("/api/cart/add")
     @ResponseBody
@@ -1029,10 +1141,10 @@ public class BuyerController {
     public String orders(HttpServletRequest request, Model model) {
         String sessionId = request.getSession().getId();
         String buyerId = (String) request.getSession().getAttribute("buyerId");
-        
+
         List<Order> orders;
         Map<String, Object> orderStats = new HashMap<>();
-        
+
         if (buyerId != null) {
             orders = orderService.getBuyerOrdersJPA(buyerId);
             orderStats = orderService.getBuyerOrderStats(buyerId);
@@ -1040,11 +1152,95 @@ public class BuyerController {
             orders = orderService.getSessionOrdersJPA(sessionId);
             orderStats = orderService.getSessionOrderStats(sessionId);
         }
-        
+
         model.addAttribute("orders", orders);
         model.addAttribute("orderStats", orderStats);
         model.addAttribute("buyerId", buyerId);
-        
+
         return "orders";
+    }
+
+    @GetMapping("/claude-enhanced-search")
+    public String claudeEnhancedSearch(@RequestParam(value = "q", required = false) String query, Model model) {
+        try {
+            System.out.println("🚀 Claude Enhanced Search initiated for query: " + query);
+
+            if (query == null || query.trim().isEmpty()) {
+                query = "budget laptops under $500"; // Default example query for testing
+            }
+
+            ClaudeSearchAnalytics analytics = claudeEnhancedService.performComprehensiveSearch(query);
+
+            model.addAttribute("query", query);
+            model.addAttribute("products", analytics.getMatchedProducts());
+            model.addAttribute("resultCount", analytics.getMatchedProducts().size());
+            model.addAttribute("searchInsights", "Claude Enhanced Search: " + analytics.toString());
+            model.addAttribute("interpretedQuery", "Strategy: " + analytics.getSearchStrategy() +
+                " | Quality: " + String.format("%.1f%%", analytics.getSearchQuality()) +
+                " | Processing: " + analytics.getProcessingTimeMs() + "ms");
+            model.addAttribute("originalQuery", query);
+            model.addAttribute("aiResponse", analytics.getClaudeInsight());
+            model.addAttribute("searchType", "Claude Enhanced AI Search");
+
+            // Add analytics data for frontend visualization
+            model.addAttribute("analytics", analytics);
+            model.addAttribute("categoryScores", analytics.getCategoryConfidenceScores());
+            model.addAttribute("brandDistribution", analytics.getBrandDistribution());
+            model.addAttribute("priceDistribution", analytics.getPriceRangeDistribution());
+            model.addAttribute("conditionDistribution", analytics.getConditionDistribution());
+            model.addAttribute("suggestedAlternatives", analytics.getSuggestedAlternatives());
+            model.addAttribute("visualData", analytics.getVisualData());
+
+            System.out.println("✅ Claude Enhanced Search completed successfully with " +
+                analytics.getMatchedProducts().size() + " products");
+            return "search-results-enhanced";
+
+        } catch (Exception e) {
+            System.err.println("❌ Claude Enhanced Search failed: " + e.getMessage());
+            e.printStackTrace();
+            model.addAttribute("query", query);
+            model.addAttribute("products", java.util.Collections.emptyList());
+            model.addAttribute("resultCount", 0);
+            model.addAttribute("error", "Claude Enhanced Search failed. Please try again.");
+            model.addAttribute("searchType", "Claude Enhanced Search (Failed)");
+            return "search-results";
+        }
+    }
+
+    @PostMapping("/api/claude-enhanced-search")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> claudeEnhancedSearchAPI(@RequestBody Map<String, String> request) {
+        try {
+            String query = request.get("query");
+            if (query == null || query.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            ClaudeSearchAnalytics analytics = claudeEnhancedService.performComprehensiveSearch(query);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("query", query);
+            response.put("products", analytics.getMatchedProducts());
+            response.put("resultCount", analytics.getMatchedProducts().size());
+            response.put("claudeInsight", analytics.getClaudeInsight());
+            response.put("searchQuality", analytics.getSearchQuality());
+            response.put("searchStrategy", analytics.getSearchStrategy());
+            response.put("processingTime", analytics.getProcessingTimeMs());
+            response.put("extractedFilters", analytics.getExtractedFilters());
+            response.put("categoryScores", analytics.getCategoryConfidenceScores());
+            response.put("brandDistribution", analytics.getBrandDistribution());
+            response.put("priceDistribution", analytics.getPriceRangeDistribution());
+            response.put("conditionDistribution", analytics.getConditionDistribution());
+            response.put("suggestedAlternatives", analytics.getSuggestedAlternatives());
+            response.put("visualData", analytics.getVisualData());
+            response.put("success", true);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Claude Enhanced Search failed: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
     }
 }

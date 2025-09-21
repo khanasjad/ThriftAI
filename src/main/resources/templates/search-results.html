@@ -619,7 +619,8 @@
                     <div th:if="${searchSuggestions != null and !searchSuggestions.isEmpty()}">
                         <span th:each="suggestion : ${searchSuggestions}"
                               class="question-chip"
-                              th:onclick="'askFollowUp(\'' + ${suggestion} + '\')'"
+                              th:data-suggestion="${suggestion}"
+                              onclick="askFollowUp(this.getAttribute('data-suggestion'))"
                               th:text="${suggestion}">Suggestion</span>
                     </div>
                     <!-- Fallback suggestions if none from backend -->
@@ -985,6 +986,11 @@
 
         // Start the animation when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Get the server-side AI response
+            const serverAIResponse = /*[[${aiResponse}]]*/ '';
+            if (serverAIResponse && serverAIResponse.trim() !== '') {
+                typeWriter(serverAIResponse, 'aiResponse', 30);
+            }
             startSearchAnimation();
         });
     </script>

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -59,7 +60,7 @@ public class DataInitializationService implements CommandLineRunner {
         seller1.setVerified(true);
         seller1.setRating(4.8);
         seller1.setTotalSales(150);
-        seller1.setTotalRevenue(12500.0);
+        seller1.setTotalRevenue(BigDecimal.valueOf(12500.0));
         seller1.setCommissionRate(0.08);
         seller1.setDescription("Curated vintage clothing and accessories from the 60s-90s");
         seller1.setCategories(Arrays.asList("Clothing", "Accessories", "Shoes"));
@@ -79,7 +80,7 @@ public class DataInitializationService implements CommandLineRunner {
         seller2.setVerified(true);
         seller2.setRating(4.6);
         seller2.setTotalSales(200);
-        seller2.setTotalRevenue(18750.0);
+        seller2.setTotalRevenue(BigDecimal.valueOf(18750.0));
         seller2.setCommissionRate(0.10);
         seller2.setDescription("High-end consignment with designer brands");
         seller2.setCategories(Arrays.asList("Designer Clothing", "Luxury Bags", "Jewelry"));
@@ -99,7 +100,7 @@ public class DataInitializationService implements CommandLineRunner {
         seller3.setVerified(true);
         seller3.setRating(4.9);
         seller3.setTotalSales(180);
-        seller3.setTotalRevenue(15600.0);
+        seller3.setTotalRevenue(BigDecimal.valueOf(15600.0));
         seller3.setCommissionRate(0.07);
         seller3.setDescription("Sustainable fashion for the environmentally conscious");
         seller3.setCategories(Arrays.asList("Sustainable Clothing", "Eco Accessories", "Organic Cotton"));

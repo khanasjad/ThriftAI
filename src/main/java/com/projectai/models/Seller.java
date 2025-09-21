@@ -3,6 +3,7 @@ package com.projectai.models;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
@@ -72,15 +73,19 @@ public class Seller {
     @Size(max = 500, message = "Description must be less than 500 characters")
     @Column(length = 500)
     private String description;
-    
+
     @ElementCollection
     @Enumerated(EnumType.STRING)
     private List<String> categories = new ArrayList<>();
-    
+
+    // Payment information
+    private String stripeAccountId;
+    private String paypalEmail;
+
     private double commissionRate = 0.10; // 10% default
     private double rating = 0.0;
     private int totalSales = 0;
-    private double totalRevenue = 0.0;
+    private BigDecimal totalRevenue = BigDecimal.ZERO;
     
     @Column(nullable = false)
     private boolean isActive = true;
@@ -183,8 +188,8 @@ public class Seller {
     public int getTotalSales() { return totalSales; }
     public void setTotalSales(int totalSales) { this.totalSales = totalSales; }
     
-    public double getTotalRevenue() { return totalRevenue; }
-    public void setTotalRevenue(double totalRevenue) { this.totalRevenue = totalRevenue; }
+    public BigDecimal getTotalRevenue() { return totalRevenue; }
+    public void setTotalRevenue(BigDecimal totalRevenue) { this.totalRevenue = totalRevenue; }
     
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
@@ -200,7 +205,13 @@ public class Seller {
     
     public LocalDateTime getLastLoginAt() { return lastLoginAt; }
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
-    
+
+    public String getStripeAccountId() { return stripeAccountId; }
+    public void setStripeAccountId(String stripeAccountId) { this.stripeAccountId = stripeAccountId; }
+
+    public String getPaypalEmail() { return paypalEmail; }
+    public void setPaypalEmail(String paypalEmail) { this.paypalEmail = paypalEmail; }
+
     // Location information methods
     public Map<String, Object> getLocationInfo() { return locationInfo; }
     public void setLocationInfo(Map<String, Object> locationInfo) { this.locationInfo = locationInfo; }
