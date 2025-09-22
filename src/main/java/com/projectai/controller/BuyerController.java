@@ -17,6 +17,7 @@ import com.projectai.service.SmartSearchService;
 import com.projectai.service.WorldClassSearchService;
 import com.projectai.service.ClaudeEnhancedService;
 import com.projectai.models.ClaudeSearchAnalytics;
+import com.projectai.models.SearchFilters;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -774,23 +775,24 @@ public class BuyerController {
     @GetMapping("/search")
     public String searchResults(@RequestParam(value = "q", required = false) String query, Model model) {
         try {
-            // Use the new world-class search service that GUARANTEES results
-            WorldClassSearchService.SearchResponse response = worldClassSearchService.performWorldClassSearch(query);
+            System.out.println("🚀 [Claude Enhanced] Starting comprehensive search for: " + query);
 
-            // Generate AI assistant response using both ChatGPT and Claude
-            String aiResponse = generateAIResponse(query, response.getProducts());
-            System.out.println("🔍 DEBUG: AI response to be passed to template: " + (aiResponse != null ? aiResponse.substring(0, Math.min(200, aiResponse.length())) + "..." : "null"));
+            // Use Claude Enhanced Search Service for intelligent AI-powered search
+            ClaudeSearchAnalytics analytics = claudeEnhancedService.performComprehensiveSearch(query);
 
             model.addAttribute("query", query != null ? query : "");
-            model.addAttribute("products", response.getProducts());
-            model.addAttribute("resultCount", response.getTotalResults());
-            model.addAttribute("searchInsights", response.getInsights());
-            model.addAttribute("searchSuggestions", response.getSuggestions());
-            model.addAttribute("interpretedQuery", response.getProcessedQuery());
-            model.addAttribute("originalQuery", response.getOriginalQuery());
-            model.addAttribute("aiResponse", aiResponse);
-            System.out.println("🔍 DEBUG: All model attributes set successfully, rendering search-results template");
+            model.addAttribute("products", analytics.getMatchedProducts());
+            model.addAttribute("resultCount", analytics.getMatchedProducts().size());
+            model.addAttribute("searchInsights", analytics.getClaudeInsight());
+            model.addAttribute("searchSuggestions", analytics.getSuggestedAlternatives());
+            model.addAttribute("interpretedQuery", query);
+            model.addAttribute("originalQuery", query);
+            model.addAttribute("aiResponse", analytics.getClaudeInsight());
+            model.addAttribute("analytics", analytics);
+            model.addAttribute("categoryScores", analytics.getCategoryConfidenceScores());
+            model.addAttribute("visualData", analytics.getVisualData());
 
+            System.out.println("✅ [Claude Enhanced] Search completed with " + analytics.getMatchedProducts().size() + " products");
             return "search-results";
         } catch (Exception e) {
             model.addAttribute("query", query);

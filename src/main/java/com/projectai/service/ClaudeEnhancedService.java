@@ -206,7 +206,10 @@ public class ClaudeEnhancedService {
         String lowerQuery = query.toLowerCase();
 
         // Basic keyword extraction
-        if (lowerQuery.contains("laptop") || lowerQuery.contains("computer")) {
+        if (lowerQuery.contains("laptop") || lowerQuery.contains("computer") ||
+            lowerQuery.contains("electronics") || lowerQuery.contains("gadgets") ||
+            lowerQuery.contains("phone") || lowerQuery.contains("radio") ||
+            lowerQuery.contains("walkman") || lowerQuery.contains("device")) {
             filters.setCategory("Electronics");
             filters.setIntent("specific-item");
         } else if (lowerQuery.contains("budget")) {

@@ -13,7 +13,10 @@
     
     <!-- Font Awesome for icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-    
+
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- Claude-style Search Results CSS -->
     <style>
         .claude-search-interface {
@@ -576,6 +579,63 @@
                 </div>
             </div>
 
+            <!-- Enhanced Analytics Section (only show if analytics data is available) -->
+            <div th:if="${analytics != null}" class="analytics-section" style="margin: 2rem 0;">
+                <!-- Search Quality & Strategy -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card h-100" style="background: rgba(0,0,0,0.8); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body text-center">
+                                <h6 class="text-white"><i class="fas fa-chart-line"></i> Search Quality</h6>
+                                <div th:if="${analytics.searchQuality > 0}"
+                                     th:class="|badge fs-6 ${analytics.searchQuality >= 80 ? 'bg-success' : (analytics.searchQuality >= 60 ? 'bg-primary' : (analytics.searchQuality >= 40 ? 'bg-warning' : 'bg-danger'))}|"
+                                     style="padding: 10px 20px; border-radius: 25px;">
+                                    <span th:text="${#numbers.formatDecimal(analytics.searchQuality, 0, 1)}">85</span>%
+                                </div>
+                                <small class="text-muted d-block mt-2">AI-computed relevance score</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100" style="background: rgba(0,0,0,0.8); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body text-center">
+                                <h6 class="text-white"><i class="fas fa-strategy"></i> Search Strategy</h6>
+                                <p class="text-primary mb-2" th:text="${analytics?.searchStrategy ?: 'Smart Search'}">Precision Search</p>
+                                <small class="text-muted">AI-determined approach</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100" style="background: rgba(0,0,0,0.8); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body text-center">
+                                <h6 class="text-white"><i class="fas fa-clock"></i> Processing Time</h6>
+                                <p class="text-success mb-2" th:text="${analytics?.processingTimeMs ?: '0'} + 'ms'">1,250ms</p>
+                                <small class="text-muted">Lightning fast AI analysis</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Analytics Charts -->
+                <div class="row mb-4" th:if="${visualData != null}">
+                    <div class="col-md-6">
+                        <div class="card" style="background: rgba(0,0,0,0.8); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body">
+                                <h6 class="text-white"><i class="fas fa-chart-pie"></i> Price Distribution</h6>
+                                <canvas id="priceChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card" style="background: rgba(0,0,0,0.8); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body">
+                                <h6 class="text-white"><i class="fas fa-chart-bar"></i> Brand Distribution</h6>
+                                <canvas id="brandChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Product Results -->
             <div id="productResults" style="display: block; opacity: 1;">
@@ -984,6 +1044,90 @@
             });
         }
 
+        // Initialize charts if analytics data is available
+        function initializeAnalyticsCharts() {
+            // Price Distribution Chart
+            const priceData = /*[[${visualData?.priceDistribution}]]*/ [];
+            if (priceData && priceData.length > 0) {
+                const ctx = document.getElementById('priceChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: priceData.map(item => item.range),
+                            datasets: [{
+                                data: priceData.map(item => item.count),
+                                backgroundColor: [
+                                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: '#ffffff'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Brand Distribution Chart
+            const brandData = /*[[${visualData?.brandDistribution}]]*/ [];
+            if (brandData && brandData.length > 0) {
+                const ctx2 = document.getElementById('brandChart');
+                if (ctx2) {
+                    new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: brandData.map(item => item.brand),
+                            datasets: [{
+                                label: 'Products',
+                                data: brandData.map(item => item.count),
+                                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: '#ffffff'
+                                    },
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                },
+                                x: {
+                                    ticks: {
+                                        color: '#ffffff'
+                                    },
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: '#ffffff'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
         // Start the animation when page loads
         document.addEventListener('DOMContentLoaded', function() {
             // Get the server-side AI response
@@ -992,6 +1136,9 @@
                 typeWriter(serverAIResponse, 'aiResponse', 30);
             }
             startSearchAnimation();
+
+            // Initialize analytics charts
+            initializeAnalyticsCharts();
         });
     </script>
 </body>

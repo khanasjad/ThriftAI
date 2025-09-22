@@ -180,8 +180,8 @@
                         <div class="mt-auto">
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="h5 text-primary mb-0" th:text="'$' + ${#numbers.formatDecimal(product.price, 0, 2)}">$XX.XX</span>
-                                <button class="btn btn-primary btn-sm"
-                                        th:onclick="'addToCart(\'' + ${product.id} + '\')'">
+                                <button class="btn btn-primary btn-sm add-to-cart-btn"
+                                        th:data-product-id="${product.id}">
                                     <i class="fas fa-cart-plus"></i> Add
                                 </button>
                             </div>
@@ -200,8 +200,8 @@
                         <p class="text-muted">Claude AI suggests these alternative searches:</p>
                         <div>
                             <span th:each="alternative : ${suggestedAlternatives}"
-                                  th:onclick="'searchAlternative(\'' + ${alternative} + '\')'"
-                                  class="alternative-tag"
+                                  th:data-alternative="${alternative}"
+                                  class="alternative-tag search-alternative-btn"
                                   style="cursor: pointer;"
                                   th:text="${alternative}">Alternative Search</span>
                         </div>
@@ -232,6 +232,22 @@
         // Initialize charts if data is available
         document.addEventListener('DOMContentLoaded', function() {
             initializeCharts();
+
+            // Add event listeners for add-to-cart buttons
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.getAttribute('data-product-id');
+                    addToCart(productId);
+                });
+            });
+
+            // Add event listeners for alternative search buttons
+            document.querySelectorAll('.search-alternative-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const alternative = this.getAttribute('data-alternative');
+                    searchAlternative(alternative);
+                });
+            });
         });
 
         function initializeCharts() {
