@@ -252,7 +252,9 @@
 
         function initializeCharts() {
             // Price Distribution Chart
-            const priceData = /*[[${visualData?.priceDistribution}]]*/ [];
+            const priceData = JSON.parse('/*[[${priceDistributionJson}]]*/');
+            console.log('Price data from server:', priceData);
+
             if (priceData && priceData.length > 0) {
                 const priceChart = new Chart(document.getElementById('priceChart'), {
                     type: 'doughnut',
@@ -274,10 +276,16 @@
                         }
                     }
                 });
+                console.log('✅ Price chart created successfully');
+            } else {
+                console.log('No price data available, charts will be empty');
+                document.getElementById('priceChart').parentElement.innerHTML = '<p class="text-muted text-center">No price data available</p>';
             }
 
             // Brand Distribution Chart
-            const brandData = /*[[${visualData?.brandDistribution}]]*/ [];
+            const brandData = JSON.parse('/*[[${brandDistributionJson}]]*/');
+            console.log('Brand data from server:', brandData);
+
             if (brandData && brandData.length > 0) {
                 const brandChart = new Chart(document.getElementById('brandChart'), {
                     type: 'bar',
@@ -300,6 +308,10 @@
                         }
                     }
                 });
+                console.log('✅ Brand chart created successfully');
+            } else {
+                console.log('No brand data available, charts will be empty');
+                document.getElementById('brandChart').parentElement.innerHTML = '<p class="text-muted text-center">No brand data available</p>';
             }
         }
 

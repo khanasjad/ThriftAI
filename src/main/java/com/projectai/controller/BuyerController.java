@@ -1193,6 +1193,24 @@ public class BuyerController {
             model.addAttribute("suggestedAlternatives", analytics.getSuggestedAlternatives());
             model.addAttribute("visualData", analytics.getVisualData());
 
+            // Add JSON-serialized chart data for JavaScript
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                if (analytics.getVisualData() != null) {
+                    String priceDistributionJson = mapper.writeValueAsString(analytics.getVisualData().get("priceDistribution"));
+                    String brandDistributionJson = mapper.writeValueAsString(analytics.getVisualData().get("brandDistribution"));
+                    model.addAttribute("priceDistributionJson", priceDistributionJson);
+                    model.addAttribute("brandDistributionJson", brandDistributionJson);
+                } else {
+                    model.addAttribute("priceDistributionJson", "[]");
+                    model.addAttribute("brandDistributionJson", "[]");
+                }
+            } catch (Exception e) {
+                System.err.println("❌ [Claude Enhanced] Failed to serialize chart data: " + e.getMessage());
+                model.addAttribute("priceDistributionJson", "[]");
+                model.addAttribute("brandDistributionJson", "[]");
+            }
+
             System.out.println("✅ Claude Enhanced Search completed successfully with " +
                 analytics.getMatchedProducts().size() + " products");
             return "search-results-enhanced";

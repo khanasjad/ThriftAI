@@ -634,7 +634,7 @@ public class WebController {
         return response;
     }
 
-    @GetMapping("/api/products/{productId}/similar")
+    @GetMapping("/api/web/products/{productId}/similar")
     @ResponseBody
     public List<Product> getSimilarProductsForWeb(@PathVariable String productId, @RequestParam(defaultValue = "4") int limit) {
         // Reuse existing similar products functionality

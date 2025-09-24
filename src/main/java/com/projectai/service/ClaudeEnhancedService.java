@@ -133,7 +133,7 @@ public class ClaudeEnhancedService {
         headers.set("anthropic-version", "2023-06-01");
 
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "claude-3-5-sonnet-20241022");
+        requestBody.put("model", "claude-3-haiku-20240307");
         requestBody.put("max_tokens", 2000);
 
         List<Map<String, String>> messages = new ArrayList<>();
@@ -459,8 +459,142 @@ public class ClaudeEnhancedService {
     }
 
     private void generateVisualAnalytics(ClaudeSearchAnalytics analytics) {
+        System.out.println("📊 [Claude Enhanced] Generating visual analytics...");
         Map<String, Object> visualData = new HashMap<>();
 
+        // If no products found, generate market insights using Claude
+        if (analytics.getMatchedProducts().isEmpty()) {
+            System.out.println("🎯 [Claude Enhanced] No products found - generating market insights");
+            generateMarketInsightsWithClaude(analytics, visualData);
+        } else {
+            System.out.println("🎯 [Claude Enhanced] Products found - using actual product data");
+            // Use actual product data
+            generateActualProductAnalytics(analytics, visualData);
+        }
+
+        // Search quality metrics
+        Map<String, Double> qualityMetrics = new HashMap<>();
+        qualityMetrics.put("relevance", calculateRelevanceScore(analytics));
+        qualityMetrics.put("coverage", calculateCoverageScore(analytics));
+        qualityMetrics.put("diversity", calculateDiversityScore(analytics));
+        visualData.put("qualityMetrics", qualityMetrics);
+
+        // Ensure visual data is never null and has required keys
+        if (!visualData.containsKey("priceDistribution")) {
+            System.out.println("⚠️ [Claude Enhanced] Missing priceDistribution - adding fallback");
+            generateFallbackMarketData(visualData);
+        }
+        if (!visualData.containsKey("brandDistribution")) {
+            System.out.println("⚠️ [Claude Enhanced] Missing brandDistribution - adding fallback");
+            generateFallbackMarketData(visualData);
+        }
+
+        analytics.setVisualData(visualData);
+        System.out.println("✅ [Claude Enhanced] Visual analytics generated with " +
+                          ((List<?>) visualData.get("priceDistribution")).size() + " price ranges and " +
+                          ((List<?>) visualData.get("brandDistribution")).size() + " brands");
+    }
+
+    private void generateMarketInsightsWithClaude(ClaudeSearchAnalytics analytics, Map<String, Object> visualData) {
+        System.out.println("🔮 [Claude Enhanced] Generating market insights for no-products scenario...");
+
+        if (claudeApiKey == null || claudeApiKey.trim().isEmpty()) {
+            System.out.println("⚠️ [Claude Enhanced] No Claude API key, using fallback market data");
+            generateFallbackMarketData(visualData);
+            return;
+        }
+
+        try {
+            String marketDataPrompt = buildMarketDataPrompt(analytics.getOriginalQuery());
+            String claudeResponse = callClaudeAPI(marketDataPrompt);
+            parseMarketDataResponse(claudeResponse, visualData);
+            System.out.println("✅ [Claude Enhanced] Market insights generated successfully");
+        } catch (Exception e) {
+            System.err.println("❌ [Claude Enhanced] Market data generation failed: " + e.getMessage());
+            e.printStackTrace();
+            generateFallbackMarketData(visualData);
+        }
+    }
+
+    private String buildMarketDataPrompt(String query) {
+        return String.format("""
+            Generate market analysis data for this thrift/secondhand shopping query: "%s"
+
+            Please provide realistic market data in this exact JSON format:
+            {
+              "priceDistribution": [
+                {"range": "$0-$50", "count": 45},
+                {"range": "$50-$100", "count": 30},
+                {"range": "$100-$200", "count": 20},
+                {"range": "$200+", "count": 5}
+              ],
+              "brandDistribution": [
+                {"brand": "Dell", "count": 25},
+                {"brand": "HP", "count": 20},
+                {"brand": "Lenovo", "count": 18},
+                {"brand": "Apple", "count": 15},
+                {"brand": "Asus", "count": 12}
+              ],
+              "marketTrends": {
+                "averagePrice": 125,
+                "popularConditions": ["Good", "Like New", "Fair"],
+                "seasonalDemand": "High",
+                "availabilityTrend": "Increasing"
+              }
+            }
+
+            Base the data on typical market conditions for the searched item category.
+            Make the price ranges and brand popularity realistic for secondhand markets.
+            Return only valid JSON, no additional text.
+            """, query);
+    }
+
+    private void parseMarketDataResponse(String claudeResponse, Map<String, Object> visualData) {
+        try {
+            System.out.println("📊 [Claude Enhanced] Parsing market data response...");
+            JsonNode jsonNode = objectMapper.readTree(claudeResponse);
+
+            // Parse price distribution
+            List<Map<String, Object>> priceChartData = new ArrayList<>();
+            if (jsonNode.has("priceDistribution")) {
+                jsonNode.get("priceDistribution").forEach(item -> {
+                    Map<String, Object> dataPoint = new HashMap<>();
+                    dataPoint.put("range", item.get("range").asText());
+                    dataPoint.put("count", item.get("count").asInt());
+                    priceChartData.add(dataPoint);
+                });
+                System.out.println("✅ [Claude Enhanced] Parsed " + priceChartData.size() + " price distribution points");
+            }
+            visualData.put("priceDistribution", priceChartData);
+
+            // Parse brand distribution
+            List<Map<String, Object>> brandChartData = new ArrayList<>();
+            if (jsonNode.has("brandDistribution")) {
+                jsonNode.get("brandDistribution").forEach(item -> {
+                    Map<String, Object> dataPoint = new HashMap<>();
+                    dataPoint.put("brand", item.get("brand").asText());
+                    dataPoint.put("count", item.get("count").asInt());
+                    brandChartData.add(dataPoint);
+                });
+                System.out.println("✅ [Claude Enhanced] Parsed " + brandChartData.size() + " brand distribution points");
+            }
+            visualData.put("brandDistribution", brandChartData);
+
+            // Parse market trends
+            if (jsonNode.has("marketTrends")) {
+                visualData.put("marketTrends", jsonNode.get("marketTrends"));
+                System.out.println("✅ [Claude Enhanced] Parsed market trends data");
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ [Claude Enhanced] Failed to parse market data JSON: " + e.getMessage());
+            System.err.println("📄 [Claude Enhanced] Raw Claude response: " + claudeResponse);
+            e.printStackTrace();
+            generateFallbackMarketData(visualData);
+        }
+    }
+
+    private void generateActualProductAnalytics(ClaudeSearchAnalytics analytics, Map<String, Object> visualData) {
         // Price distribution data for charts
         List<Map<String, Object>> priceChartData = new ArrayList<>();
         analytics.getPriceRangeDistribution().forEach((range, count) -> {
@@ -482,15 +616,31 @@ public class ClaudeEnhancedService {
                     brandChartData.add(dataPoint);
                 });
         visualData.put("brandDistribution", brandChartData);
+    }
 
-        // Search quality metrics
-        Map<String, Double> qualityMetrics = new HashMap<>();
-        qualityMetrics.put("relevance", calculateRelevanceScore(analytics));
-        qualityMetrics.put("coverage", calculateCoverageScore(analytics));
-        qualityMetrics.put("diversity", calculateDiversityScore(analytics));
-        visualData.put("qualityMetrics", qualityMetrics);
+    private void generateFallbackMarketData(Map<String, Object> visualData) {
+        System.out.println("🔄 [Claude Enhanced] Generating fallback market data...");
 
-        analytics.setVisualData(visualData);
+        // Fallback market data when Claude is unavailable
+        List<Map<String, Object>> priceChartData = Arrays.asList(
+            Map.of("range", "$0-$50", "count", 35),
+            Map.of("range", "$50-$100", "count", 25),
+            Map.of("range", "$100-$200", "count", 25),
+            Map.of("range", "$200+", "count", 15)
+        );
+        visualData.put("priceDistribution", priceChartData);
+
+        List<Map<String, Object>> brandChartData = Arrays.asList(
+            Map.of("brand", "Various", "count", 30),
+            Map.of("brand", "Generic", "count", 25),
+            Map.of("brand", "Popular Brands", "count", 20),
+            Map.of("brand", "Vintage", "count", 15),
+            Map.of("brand", "Designer", "count", 10)
+        );
+        visualData.put("brandDistribution", brandChartData);
+
+        System.out.println("✅ [Claude Enhanced] Fallback market data generated: " +
+                          priceChartData.size() + " price ranges, " + brandChartData.size() + " brands");
     }
 
     private double calculateRelevanceScore(ClaudeSearchAnalytics analytics) {
