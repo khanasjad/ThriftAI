@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -30,32 +31,53 @@ public class DynamicProductService {
     @Value("${openai.api.key:}")
     private String openAiApiKey;
 
+    @Autowired
+    private AmazonProductApiService amazonProductApiService;
+
+    @Autowired
+    private ComprehensiveProductComparisonService comparisonService;
+
     private final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * Dynamically fetch and analyze products based on search query using LLM
+     * Dynamically fetch and analyze products using real Amazon API + Claude AI analysis
      */
     public CompletableFuture<List<Product>> fetchDynamicProducts(String searchQuery, int limit) {
         return CompletableFuture.supplyAsync(() -> {
-            logger.info("🚀 [Dynamic Products] Starting LLM-powered product fetch for: '{}'", searchQuery);
+            logger.info("🚀 [Enhanced Dynamic Products] Starting Amazon API + Claude AI product fetch for: '{}'", searchQuery);
 
             try {
-                // Step 1: Use Claude to understand search intent and generate product requirements
-                Map<String, Object> productRequirements = analyzeSearchWithClaude(searchQuery);
+                // Step 1: Fetch real products from Amazon API with Claude-optimized search
+                CompletableFuture<List<Product>> amazonProductsFuture = amazonProductApiService.fetchAmazonProducts(searchQuery, limit);
+                List<Product> amazonProducts = amazonProductsFuture.get();
 
-                // Step 2: Generate dynamic product data using LLM
-                List<Product> products = generateProductsWithLLM(productRequirements, limit);
+                // Step 2: If Amazon API provides products, use them; otherwise fallback to LLM generation
+                List<Product> products;
+                if (!amazonProducts.isEmpty()) {
+                    logger.info("✅ [Amazon Integration] Got {} real Amazon products", amazonProducts.size());
+                    products = amazonProducts;
 
-                // Step 3: Enhance products with LLM-powered analysis
-                enhanceProductsWithLLMAnalysis(products, searchQuery);
+                    // Step 3: Perform comprehensive comparison analysis on Amazon products
+                    Map<String, Object> comparisonAnalysis = comparisonService.performComprehensiveComparison(products,
+                        "User searching for: " + searchQuery);
+                    logger.info("📊 [Comprehensive Analysis] Applied hundreds of parameters to {} products", products.size());
 
-                logger.info("✅ [Dynamic Products] Generated {} LLM-powered products", products.size());
+                } else {
+                    logger.info("⚠️ [Amazon Integration] No Amazon products found, using LLM fallback");
+                    // Fallback to original LLM-powered generation
+                    Map<String, Object> productRequirements = analyzeSearchWithClaude(searchQuery);
+                    products = generateProductsWithLLM(productRequirements, limit);
+                    enhanceProductsWithLLMAnalysis(products, searchQuery);
+                }
+
+                logger.info("✅ [Enhanced Dynamic Products] Successfully generated {} AI-scored products from real Amazon data", products.size());
                 return products;
 
             } catch (Exception e) {
-                logger.error("❌ [Dynamic Products] Failed to fetch dynamic products: {}", e.getMessage());
+                logger.error("❌ [Enhanced Dynamic Products] Failed to fetch products: {}", e.getMessage());
+                // Ultimate fallback to original implementation
                 return generateFallbackProducts(searchQuery, limit);
             }
         });

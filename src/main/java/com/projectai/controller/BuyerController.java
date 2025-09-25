@@ -17,6 +17,7 @@ import com.projectai.service.SmartSearchService;
 import com.projectai.service.WorldClassSearchService;
 import com.projectai.service.ClaudeEnhancedService;
 import com.projectai.service.DynamicProductService;
+import com.projectai.service.OpenSourceProductService;
 import com.projectai.models.ClaudeSearchAnalytics;
 import com.projectai.models.SearchFilters;
 import java.util.concurrent.CompletableFuture;
@@ -33,6 +34,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map;
@@ -83,6 +85,9 @@ public class BuyerController {
 
     @Autowired
     private DynamicProductService dynamicProductService;
+
+    @Autowired
+    private OpenSourceProductService openSourceProductService;
 
     // Add API endpoint for filter options
     @GetMapping("/api/filter-options")
@@ -782,44 +787,80 @@ public class BuyerController {
         try {
             System.out.println("🚀 [Integrated Search] Starting comprehensive search for: " + query);
 
-            // Step 1: Try Claude Enhanced Search first
-            ClaudeSearchAnalytics analytics = claudeEnhancedService.performComprehensiveSearch(query);
-            List<Product> foundProducts = analytics.getMatchedProducts();
+            List<Product> foundProducts = new ArrayList<>();
+            ClaudeSearchAnalytics analytics = null;
 
-            // Step 2: If no products found, use dynamic LLM generation
+            // Step 1: First, try searching in bulk products catalog (prioritized for relevance)
+            if (query != null && !query.trim().isEmpty()) {
+                System.out.println("🔍 [Integrated Search] Step 1: Searching in bulk products for: " + query);
+                try {
+                    // Search existing bulk products using simple keyword matching
+                    List<Product> bulkProducts = productRepository.findAll().stream()
+                        .filter(product -> matchesSearchQuery(product, query))
+                        .limit(12)
+                        .toList();
+
+                    if (!bulkProducts.isEmpty()) {
+                        foundProducts = bulkProducts;
+                        System.out.println("✅ [Integrated Search] Found " + foundProducts.size() + " products from bulk catalog");
+                    } else {
+                        System.out.println("🔄 [Integrated Search] No bulk products found for query: '" + query + "'");
+                        long totalProducts = productRepository.count();
+                        System.out.println("📊 [Integrated Search] Total products in database: " + totalProducts);
+                    }
+                } catch (Exception bulkError) {
+                    System.err.println("❌ [Integrated Search] Bulk products search failed: " + bulkError.getMessage());
+                }
+            }
+
+            // Step 2: If no bulk products found, try Claude Enhanced Search as fallback
             if (foundProducts.isEmpty() && query != null && !query.trim().isEmpty()) {
-                System.out.println("🔄 [Integrated Search] No products found, generating dynamic LLM products for: " + query);
+                System.out.println("🧠 [Integrated Search] Step 2: Trying Claude Enhanced Search as fallback");
+                analytics = claudeEnhancedService.performComprehensiveSearch(query);
+                foundProducts = analytics.getMatchedProducts();
+            }
+
+            // Step 3: If still no products found, use dynamic LLM generation as final fallback
+            if (foundProducts.isEmpty() && query != null && !query.trim().isEmpty()) {
+                System.out.println("🔄 [Integrated Search] Step 3: No products found in catalogs, generating dynamic LLM products for: " + query);
                 try {
                     CompletableFuture<List<Product>> dynamicProductsFuture = dynamicProductService.fetchDynamicProducts(query, 8);
                     List<Product> dynamicProducts = dynamicProductsFuture.get();
-
                     // Save dynamic products to database for consistent experience
                     List<Product> savedProducts = productRepository.saveAll(dynamicProducts);
                     foundProducts = savedProducts;
-
                     System.out.println("✅ [Integrated Search] Generated " + foundProducts.size() + " dynamic products");
                 } catch (Exception dynamicError) {
                     System.err.println("❌ [Integrated Search] Dynamic generation failed: " + dynamicError.getMessage());
                 }
             }
 
+
             model.addAttribute("query", query != null ? query : "");
             model.addAttribute("products", foundProducts);
             model.addAttribute("resultCount", foundProducts.size());
-            model.addAttribute("searchInsights", foundProducts.isEmpty() ?
+            // Handle analytics data - prioritize bulk products results
+            String searchInsight = foundProducts.isEmpty() ?
                 "No products found. Try different keywords or browse our categories." :
-                analytics.getClaudeInsight());
-            model.addAttribute("searchSuggestions", analytics.getSuggestedAlternatives());
+                String.format("Found %d products for '%s'. Price range: $%.2f - $%.2f. Consider expanding search criteria if results are limited.",
+                    foundProducts.size(), query != null ? query : "",
+                    foundProducts.stream().mapToDouble(Product::getPrice).min().orElse(0.0),
+                    foundProducts.stream().mapToDouble(Product::getPrice).max().orElse(0.0));
+
+            if (analytics != null && analytics.getClaudeInsight() != null) {
+                searchInsight = analytics.getClaudeInsight();
+            }
+
+            model.addAttribute("searchInsights", searchInsight);
+            model.addAttribute("searchSuggestions", analytics != null ? analytics.getSuggestedAlternatives() : java.util.Collections.emptyList());
             model.addAttribute("interpretedQuery", query);
             model.addAttribute("originalQuery", query);
-            model.addAttribute("aiResponse", foundProducts.isEmpty() ?
-                "No products found for \"" + query + "\". Try different keywords!" :
-                analytics.getClaudeInsight());
+            model.addAttribute("aiResponse", searchInsight);
             model.addAttribute("analytics", analytics);
-            model.addAttribute("categoryScores", analytics.getCategoryConfidenceScores());
-            model.addAttribute("visualData", analytics.getVisualData());
-            model.addAttribute("searchType", foundProducts.isEmpty() && analytics.getMatchedProducts().isEmpty() ?
-                "Integrated Search (Dynamic LLM)" : "Integrated Search (Database)");
+            model.addAttribute("categoryScores", analytics != null ? analytics.getCategoryConfidenceScores() : java.util.Collections.emptyMap());
+            model.addAttribute("visualData", analytics != null ? analytics.getVisualData() : java.util.Collections.emptyMap());
+            model.addAttribute("searchType", !foundProducts.isEmpty() ?
+                "Integrated Search (Database)" : "Integrated Search (Dynamic LLM)");
 
             System.out.println("✅ [Integrated Search] Search completed with " + foundProducts.size() + " products");
             return "search-results";
@@ -1293,5 +1334,17 @@ public class BuyerController {
             error.put("error", "Claude Enhanced Search failed: " + e.getMessage());
             return ResponseEntity.status(500).body(error);
         }
+    }
+
+    /**
+     * Helper method to match products against search query
+     * This is similar to the matching logic used in the OpenSourceProductController
+     */
+    private boolean matchesSearchQuery(Product product, String query) {
+        String lowerQuery = query.toLowerCase();
+        return (product.getName() != null && product.getName().toLowerCase().contains(lowerQuery)) ||
+               (product.getBrand() != null && product.getBrand().toLowerCase().contains(lowerQuery)) ||
+               (product.getCategory() != null && product.getCategory().toLowerCase().contains(lowerQuery)) ||
+               (product.getDescription() != null && product.getDescription().toLowerCase().contains(lowerQuery));
     }
 }
