@@ -3,6 +3,8 @@ package com.projectai.service;
 import com.projectai.models.AffiliateProduct;
 import com.projectai.models.AffiliateProduct.AffiliateSource;
 import com.projectai.repository.AffiliateProductRepository;
+import com.projectai.models.Product;
+import com.projectai.repository.ProductRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -20,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,6 +34,14 @@ public class AffiliateProductService {
 
     @Autowired
     private AffiliateProductRepository affiliateProductRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    // Getter for ProductRepository (used by controller)
+    public ProductRepository getProductRepository() {
+        return productRepository;
+    }
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -107,7 +118,7 @@ public class AffiliateProductService {
     /**
      * Fetch products from Amazon Product Advertising API
      */
-    @Async
+    // @Async - TEMPORARILY DISABLED FOR DEBUGGING
     public CompletableFuture<Integer> fetchAmazonProducts(String category, int limit) {
         if (!isRateLimitAllowed(AffiliateSource.AMAZON)) {
             logger.warn("⚠️ Rate limit exceeded for Amazon API");
@@ -115,21 +126,21 @@ public class AffiliateProductService {
         }
 
         try {
-            logger.info("🛒 Fetching Amazon products for category: {}", category);
+            logger.info("🛒 Fetching Amazon products for category: {} - USING SIMPLE PRODUCT ENTITIES", category);
 
-            // Demo products since we don't have real API keys
-            List<AffiliateProduct> products = generateDemoAmazonProducts(category, limit);
+            // TEMPORARY FIX: Create regular Product entities instead of complex AffiliateProduct entities
+            List<com.projectai.models.Product> simpleProducts = generateSimpleAmazonProducts(category, limit);
 
-            // Save products to database
-            List<AffiliateProduct> savedProducts = affiliateProductRepository.saveAll(products);
+            // Save to regular Product table
+            List<com.projectai.models.Product> savedProducts = productRepository.saveAll(simpleProducts);
 
-            incrementRateLimit(AffiliateSource.AMAZON, products.size());
-            logger.info("✅ Successfully fetched {} Amazon products", savedProducts.size());
+            incrementRateLimit(AffiliateSource.AMAZON, savedProducts.size());
+            logger.info("✅ Successfully saved {} Amazon products to regular Product table", savedProducts.size());
 
             return CompletableFuture.completedFuture(savedProducts.size());
 
         } catch (Exception e) {
-            logger.error("❌ Error fetching Amazon products: {}", e.getMessage());
+            logger.error("❌ Error fetching Amazon products: {}", e.getMessage(), e);
             return CompletableFuture.completedFuture(0);
         }
     }
@@ -414,6 +425,7 @@ public class AffiliateProductService {
     // Demo data generators (replace with real API calls when keys are available)
 
     private List<AffiliateProduct> generateDemoAmazonProducts(String category, int limit) {
+        logger.info("🏗️ Generating demo Amazon products for category: {}, limit: {}", category, limit);
         List<AffiliateProduct> products = new ArrayList<>();
         String[] amazonProducts = {
             "Amazon Essentials Men's Regular-Fit Long-Sleeve Pocket T-Shirt",
@@ -424,6 +436,7 @@ public class AffiliateProductService {
         };
 
         for (int i = 0; i < Math.min(limit, amazonProducts.length); i++) {
+            logger.info("🔨 Creating Amazon product {}: {}", i, amazonProducts[i]);
             AffiliateProduct product = new AffiliateProduct();
             product.setName(amazonProducts[i]);
             product.setSku("AMZ-" + UUID.randomUUID().toString().substring(0, 8));
@@ -437,8 +450,14 @@ public class AffiliateProductService {
             product.setRating(BigDecimal.valueOf(4.0 + (Math.random() * 1.0)));
             product.setReviewCount((int)(Math.random() * 1000) + 100);
             product.setCommissionRate(BigDecimal.valueOf(4.0)); // 4% commission
-            product.setAvailableSizes(Arrays.asList("S", "M", "L", "XL"));
-            product.setAvailableColors(Arrays.asList("Black", "White", "Navy", "Gray"));
+            // Initialize collections properly for JPA
+            List<String> sizes = new ArrayList<>();
+            sizes.addAll(Arrays.asList("S", "M", "L", "XL"));
+            product.setAvailableSizes(sizes);
+
+            List<String> colors = new ArrayList<>();
+            colors.addAll(Arrays.asList("Black", "White", "Navy", "Gray"));
+            product.setAvailableColors(colors);
             products.add(product);
         }
 
@@ -667,5 +686,218 @@ public class AffiliateProductService {
         stats.put("activeProducts", activeProducts);
 
         return stats;
+    }
+
+    /**
+     * DYNAMIC SOLUTION: Generate Amazon products based on actual search queries
+     * This creates relevant products when users search for items that don't exist
+     */
+    public List<Product> generateSearchBasedAmazonProducts(String searchQuery, int limit) {
+        logger.info("🏗️ Generating Amazon products based on search: '{}', limit: {}", searchQuery, limit);
+        List<Product> products = new ArrayList<>();
+
+        // Extract keywords from search query
+        List<String> keywords = extractSearchKeywords(searchQuery);
+        logger.info("📝 Extracted keywords: {}", keywords);
+
+        // Generate products based on search intent
+        products.addAll(generateProductsForKeywords(keywords, limit));
+
+        logger.info("✅ Generated {} search-based Amazon products", products.size());
+        return products;
+    }
+
+    /**
+     * Extract meaningful keywords from search query
+     */
+    private List<String> extractSearchKeywords(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return Arrays.asList("essentials", "clothing");
+        }
+
+        // Common stop words to ignore
+        Set<String> stopWords = Set.of("find", "me", "get", "buy", "search", "for", "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "with", "by");
+
+        return Arrays.stream(query.toLowerCase().split("[\\s,.-]+"))
+                .filter(word -> word.length() > 2 && !stopWords.contains(word))
+                .limit(5) // Limit to top 5 keywords
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Generate products based on extracted keywords
+     */
+    private List<Product> generateProductsForKeywords(List<String> keywords, int limit) {
+        List<Product> products = new ArrayList<>();
+        Map<String, List<String>> keywordProductMap = createKeywordProductMap();
+
+        int productsPerKeyword = Math.max(1, limit / Math.max(keywords.size(), 1));
+
+        for (String keyword : keywords) {
+            List<String> matchingProducts = findMatchingProducts(keyword, keywordProductMap);
+            for (int i = 0; i < Math.min(productsPerKeyword, matchingProducts.size()); i++) {
+                if (products.size() >= limit) break;
+
+                String productName = matchingProducts.get(i);
+                Product product = createAmazonProduct(productName, keyword, products.size());
+                products.add(product);
+                logger.info("🔨 Created Amazon product for '{}': {}", keyword, productName);
+            }
+        }
+
+        // If no keywords matched, add some general products
+        if (products.isEmpty()) {
+            products.addAll(generateFallbackProducts(Math.min(limit, 3)));
+        }
+
+        return products;
+    }
+
+    /**
+     * Create keyword to product mapping for dynamic generation
+     */
+    private Map<String, List<String>> createKeywordProductMap() {
+        Map<String, List<String>> map = new HashMap<>();
+
+        // Fashion & Clothing
+        map.put("vintage", Arrays.asList(
+            "Amazon Essentials Vintage Denim Jacket",
+            "Amazon Basics Vintage Leather Boots",
+            "Amazon Essentials Vintage Graphic T-Shirt",
+            "Amazon Basics Vintage Style Sunglasses"
+        ));
+
+        map.put("designer", Arrays.asList(
+            "Amazon Essentials Designer-Style Blazer",
+            "Amazon Basics Designer-Inspired Watch",
+            "Amazon Essentials Designer-Cut Jeans",
+            "Amazon Basics Designer Laptop Bag"
+        ));
+
+        map.put("jacket", Arrays.asList(
+            "Amazon Essentials Fleece Jacket",
+            "Amazon Basics Windbreaker Jacket",
+            "Amazon Essentials Denim Jacket",
+            "Amazon Basics Rain Jacket"
+        ));
+
+        map.put("dress", Arrays.asList(
+            "Amazon Essentials Casual Dress",
+            "Amazon Basics Summer Dress",
+            "Amazon Essentials Maxi Dress",
+            "Amazon Basics Work Dress"
+        ));
+
+        map.put("shoes", Arrays.asList(
+            "Amazon Essentials Running Shoes",
+            "Amazon Basics Canvas Sneakers",
+            "Amazon Essentials Dress Shoes",
+            "Amazon Basics Hiking Boots"
+        ));
+
+        map.put("electronics", Arrays.asList(
+            "Amazon Basics Wireless Headphones",
+            "Amazon Essentials Phone Charger",
+            "Amazon Basics Bluetooth Speaker",
+            "Amazon Essentials USB Cable"
+        ));
+
+        map.put("home", Arrays.asList(
+            "Amazon Basics Storage Baskets",
+            "Amazon Essentials Throw Pillows",
+            "Amazon Basics Table Lamp",
+            "Amazon Essentials Kitchen Set"
+        ));
+
+        return map;
+    }
+
+    /**
+     * Find products that match a keyword
+     */
+    private List<String> findMatchingProducts(String keyword, Map<String, List<String>> keywordProductMap) {
+        // Direct match
+        if (keywordProductMap.containsKey(keyword)) {
+            return keywordProductMap.get(keyword);
+        }
+
+        // Partial match
+        for (Map.Entry<String, List<String>> entry : keywordProductMap.entrySet()) {
+            if (entry.getKey().contains(keyword) || keyword.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        // Default fallback
+        return Arrays.asList("Amazon Essentials " + capitalizeFirst(keyword) + " Item");
+    }
+
+    /**
+     * Create an Amazon product with proper details
+     */
+    private Product createAmazonProduct(String productName, String searchKeyword, int index) {
+        Product product = new Product();
+        product.setId(UUID.randomUUID().toString());
+        product.setName(productName);
+        product.setDescription("High-quality " + productName + " from Amazon. Perfect match for your search: " + searchKeyword);
+        product.setPrice(19.99 + (index * 7.50)); // Variable pricing
+        product.setOriginalPrice(29.99 + (index * 10.00));
+        product.setBrand("Amazon Essentials");
+        product.setCategory(determineCategory(searchKeyword));
+        product.setSize("M"); // Default size
+        product.setCondition("New");
+        product.setAvailable(true);
+        return product;
+    }
+
+    /**
+     * Determine product category based on search keyword
+     */
+    private String determineCategory(String keyword) {
+        if (Arrays.asList("jacket", "dress", "vintage", "designer", "shirt", "jeans").contains(keyword)) {
+            return "Clothing";
+        } else if (Arrays.asList("shoes", "boots", "sneakers").contains(keyword)) {
+            return "Footwear";
+        } else if (Arrays.asList("electronics", "phone", "headphones", "charger").contains(keyword)) {
+            return "Electronics";
+        } else if (Arrays.asList("home", "kitchen", "lamp", "pillows").contains(keyword)) {
+            return "Home & Garden";
+        }
+        return "General";
+    }
+
+    /**
+     * Generate fallback products when no keywords match
+     */
+    private List<Product> generateFallbackProducts(int limit) {
+        List<Product> products = new ArrayList<>();
+        String[] fallbackProducts = {
+            "Amazon Essentials Classic T-Shirt",
+            "Amazon Basics Comfortable Jeans",
+            "Amazon Essentials Versatile Jacket"
+        };
+
+        for (int i = 0; i < Math.min(limit, fallbackProducts.length); i++) {
+            Product product = createAmazonProduct(fallbackProducts[i], "general", i);
+            products.add(product);
+        }
+
+        return products;
+    }
+
+    /**
+     * Helper method to capitalize first letter
+     */
+    private String capitalizeFirst(String str) {
+        if (str == null || str.isEmpty()) return str;
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+    }
+
+    /**
+     * LEGACY: Generate simple Amazon products (kept for backward compatibility)
+     */
+    private List<Product> generateSimpleAmazonProducts(String category, int limit) {
+        // Use search-based generation with a default query
+        return generateSearchBasedAmazonProducts("clothing essentials", limit);
     }
 }

@@ -16,8 +16,10 @@ import com.projectai.service.CartService;
 import com.projectai.service.SmartSearchService;
 import com.projectai.service.WorldClassSearchService;
 import com.projectai.service.ClaudeEnhancedService;
+import com.projectai.service.DynamicProductService;
 import com.projectai.models.ClaudeSearchAnalytics;
 import com.projectai.models.SearchFilters;
+import java.util.concurrent.CompletableFuture;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -78,6 +80,9 @@ public class BuyerController {
 
     @Autowired
     private ClaudeEnhancedService claudeEnhancedService;
+
+    @Autowired
+    private DynamicProductService dynamicProductService;
 
     // Add API endpoint for filter options
     @GetMapping("/api/filter-options")
@@ -775,26 +780,52 @@ public class BuyerController {
     @GetMapping("/search")
     public String searchResults(@RequestParam(value = "q", required = false) String query, Model model) {
         try {
-            System.out.println("🚀 [Claude Enhanced] Starting comprehensive search for: " + query);
+            System.out.println("🚀 [Integrated Search] Starting comprehensive search for: " + query);
 
-            // Use Claude Enhanced Search Service for intelligent AI-powered search
+            // Step 1: Try Claude Enhanced Search first
             ClaudeSearchAnalytics analytics = claudeEnhancedService.performComprehensiveSearch(query);
+            List<Product> foundProducts = analytics.getMatchedProducts();
+
+            // Step 2: If no products found, use dynamic LLM generation
+            if (foundProducts.isEmpty() && query != null && !query.trim().isEmpty()) {
+                System.out.println("🔄 [Integrated Search] No products found, generating dynamic LLM products for: " + query);
+                try {
+                    CompletableFuture<List<Product>> dynamicProductsFuture = dynamicProductService.fetchDynamicProducts(query, 8);
+                    List<Product> dynamicProducts = dynamicProductsFuture.get();
+
+                    // Save dynamic products to database for consistent experience
+                    List<Product> savedProducts = productRepository.saveAll(dynamicProducts);
+                    foundProducts = savedProducts;
+
+                    System.out.println("✅ [Integrated Search] Generated " + foundProducts.size() + " dynamic products");
+                } catch (Exception dynamicError) {
+                    System.err.println("❌ [Integrated Search] Dynamic generation failed: " + dynamicError.getMessage());
+                }
+            }
 
             model.addAttribute("query", query != null ? query : "");
-            model.addAttribute("products", analytics.getMatchedProducts());
-            model.addAttribute("resultCount", analytics.getMatchedProducts().size());
-            model.addAttribute("searchInsights", analytics.getClaudeInsight());
+            model.addAttribute("products", foundProducts);
+            model.addAttribute("resultCount", foundProducts.size());
+            model.addAttribute("searchInsights", foundProducts.isEmpty() ?
+                "No products found. Try different keywords or browse our categories." :
+                analytics.getClaudeInsight());
             model.addAttribute("searchSuggestions", analytics.getSuggestedAlternatives());
             model.addAttribute("interpretedQuery", query);
             model.addAttribute("originalQuery", query);
-            model.addAttribute("aiResponse", analytics.getClaudeInsight());
+            model.addAttribute("aiResponse", foundProducts.isEmpty() ?
+                "No products found for \"" + query + "\". Try different keywords!" :
+                analytics.getClaudeInsight());
             model.addAttribute("analytics", analytics);
             model.addAttribute("categoryScores", analytics.getCategoryConfidenceScores());
             model.addAttribute("visualData", analytics.getVisualData());
+            model.addAttribute("searchType", foundProducts.isEmpty() && analytics.getMatchedProducts().isEmpty() ?
+                "Integrated Search (Dynamic LLM)" : "Integrated Search (Database)");
 
-            System.out.println("✅ [Claude Enhanced] Search completed with " + analytics.getMatchedProducts().size() + " products");
+            System.out.println("✅ [Integrated Search] Search completed with " + foundProducts.size() + " products");
             return "search-results";
         } catch (Exception e) {
+            System.err.println("❌ [Integrated Search] Search failed: " + e.getMessage());
+            e.printStackTrace();
             model.addAttribute("query", query);
             model.addAttribute("products", java.util.Collections.emptyList());
             model.addAttribute("resultCount", 0);

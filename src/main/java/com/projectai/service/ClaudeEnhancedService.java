@@ -205,12 +205,33 @@ public class ClaudeEnhancedService {
         SearchFilters filters = new SearchFilters(query);
         String lowerQuery = query.toLowerCase();
 
-        // Basic keyword extraction
+        // Brand detection - check against common brands first
+        String[] commonBrands = {"nike", "adidas", "apple", "samsung", "sony", "levi", "levis",
+                                "amazon", "brooks", "schott", "alpha", "herman miller", "motorola"};
+        for (String brand : commonBrands) {
+            if (lowerQuery.contains(brand)) {
+                // Set the brand filter to trigger proper filtering
+                filters.setBrand(brand);
+                System.out.println("🏷️ [Brand Detection] Found brand in query: " + brand);
+                break;
+            }
+        }
+
+        // Category extraction
         if (lowerQuery.contains("laptop") || lowerQuery.contains("computer") ||
             lowerQuery.contains("electronics") || lowerQuery.contains("gadgets") ||
             lowerQuery.contains("phone") || lowerQuery.contains("radio") ||
             lowerQuery.contains("walkman") || lowerQuery.contains("device")) {
             filters.setCategory("Electronics");
+            filters.setIntent("specific-item");
+        } else if (lowerQuery.contains("clothing") || lowerQuery.contains("jacket") ||
+                   lowerQuery.contains("shirt") || lowerQuery.contains("denim") ||
+                   lowerQuery.contains("blazer") || lowerQuery.contains("coat")) {
+            filters.setCategory("Clothing");
+            filters.setIntent("specific-item");
+        } else if (lowerQuery.contains("furniture") || lowerQuery.contains("chair") ||
+                   lowerQuery.contains("desk") || lowerQuery.contains("table")) {
+            filters.setCategory("Furniture");
             filters.setIntent("specific-item");
         } else if (lowerQuery.contains("budget")) {
             filters.setIntent("budget-shopping");

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-// @Component
+// @Component - Disabled to prevent hardcoded data loading
 public class DataLoader implements CommandLineRunner {
 
     @Autowired

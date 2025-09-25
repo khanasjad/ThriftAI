@@ -201,6 +201,43 @@ public class AffiliateProductController {
     }
 
     /**
+     * Generate Amazon products based on search query
+     */
+    @PostMapping("/api/generate-for-search")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateProductsForSearch(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "5") int limit) {
+        logger.info("🔍 Generating products for search query: '{}'", query);
+
+        try {
+            List<com.projectai.models.Product> products = affiliateProductService.generateSearchBasedAmazonProducts(query, limit);
+
+            // Save the products
+            List<com.projectai.models.Product> savedProducts = affiliateProductService.getProductRepository().saveAll(products);
+
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Products generated for search",
+                "query", query,
+                "totalGenerated", savedProducts.size(),
+                "products", savedProducts.stream().map(p -> Map.of(
+                    "name", p.getName(),
+                    "category", p.getCategory(),
+                    "price", p.getPrice(),
+                    "description", p.getDescription()
+                )).collect(java.util.stream.Collectors.toList())
+            ));
+        } catch (Exception e) {
+            logger.error("❌ Error generating products for search: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Product generation failed: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * Get product statistics
      */
     @GetMapping("/api/stats")

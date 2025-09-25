@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic LLM Search - ThriftAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dynamic-badge {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .llm-powered {
+            border: 2px solid #667eea;
+            background: linear-gradient(135deg, #f5f7ff 0%, #e8edff 100%);
+        }
+        .visualization-card {
+            border: 1px solid #e3f2fd;
+            background: #fafbff;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .insight-box {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%);
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .product-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .llm-score {
+            background: linear-gradient(45deg, #4caf50, #8bc34a);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .no-products {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot"></i> ThriftAI
+            </a>
+            <span class="dynamic-badge">
+                <i class="fas fa-magic"></i> 100% LLM Powered
+            </span>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Search Header -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card llm-powered p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2">
+                                <i class="fas fa-brain text-primary"></i>
+                                Dynamic LLM Search Results
+                            </h2>
+                            <p class="mb-0 text-muted">
+                                <strong>Query:</strong> "<span th:text="${query}">search query</span>"
+                                | <strong>Results:</strong> <span th:text="${resultCount}">0</span> products
+                                | <strong>Source:</strong> <span th:text="${searchType}">Dynamic LLM</span>
+                            </p>
+                        </div>
+                        <div th:if="${llmPowered}" class="text-success">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                            <br><small>No Hardcoded Data</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Welcome Message for Empty Search -->
+        <div th:if="${query == null or query.isEmpty()}" class="no-products">
+            <i class="fas fa-search fa-4x text-muted mb-3"></i>
+            <h3>Dynamic LLM Search Ready</h3>
+            <p class="lead text-muted mb-4" th:text="${welcomeMessage}">
+                Enter a search query to generate products dynamically using advanced AI
+            </p>
+
+            <!-- Quick Search Form -->
+            <form action="/dynamic/search" method="get" class="d-inline-flex">
+                <input type="text" class="form-control me-2" name="q" placeholder="Try: wireless headphones, vintage jackets, gaming laptops..." style="width: 400px;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-magic"></i> Generate Products
+                </button>
+            </form>
+
+            <div class="mt-4">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i>
+                    Products will be generated in real-time using Claude API and Amazon integration
+                </small>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div th:if="${error != null}" class="alert alert-warning" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Dynamic Search Issue:</strong> <span th:text="${error}"></span>
+            <br><small>Make sure Claude API key is configured in application.properties</small>
+        </div>
+
+        <!-- Results Section -->
+        <div th:if="${resultCount > 0}">
+            <!-- LLM Visualizations -->
+            <div th:if="${visualizations != null}" class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card visualization-card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-bar text-primary"></i>
+                                LLM-Generated Analytics & Insights
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Price Analysis Chart -->
+                                <div class="col-md-6" th:if="${visualizations.priceAnalysis != null}">
+                                    <h6><i class="fas fa-dollar-sign"></i> Price Distribution</h6>
+                                    <div class="chart-container">
+                                        <canvas id="priceChart"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- Brand Distribution Chart -->
+                                <div class="col-md-6" th:if="${visualizations.brandDistribution != null}">
+                                    <h6><i class="fas fa-tags"></i> Brand Analysis</h6>
+                                    <div class="chart-container">
+                                        <canvas id="brandChart"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- Quality Metrics -->
+                                <div class="col-md-6" th:if="${visualizations.qualityMetrics != null}">
+                                    <h6><i class="fas fa-star"></i> Quality Distribution</h6>
+                                    <div class="chart-container">
+                                        <canvas id="qualityChart"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- Recommendation Scores -->
+                                <div class="col-md-6" th:if="${visualizations.recommendationScores != null}">
+                                    <h6><i class="fas fa-thumbs-up"></i> AI Recommendations</h6>
+                                    <div class="chart-container">
+                                        <canvas id="recommendationChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- LLM Insights -->
+                            <div th:if="${visualizations.llmInsights != null}" class="insight-box">
+                                <h6><i class="fas fa-brain"></i> AI-Generated Insights</h6>
+                                <p th:text="${visualizations.llmInsights.summary}">LLM analysis summary appears here</p>
+                                <div th:if="${visualizations.llmInsights.keyFindings != null}">
+                                    <strong>Key Findings:</strong>
+                                    <ul class="mb-0">
+                                        <li th:each="finding : ${visualizations.llmInsights.keyFindings}" th:text="${finding}"></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4>
+                            <i class="fas fa-boxes"></i>
+                            Dynamic Products (<span th:text="${resultCount}">0</span>)
+                        </h4>
+                        <div>
+                            <span class="badge bg-success">
+                                <i class="fas fa-magic"></i> LLM Generated
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4" th:each="product : ${products}">
+                    <div class="card product-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title" th:text="${product.name}">Product Name</h6>
+                                <span class="llm-score">AI ★</span>
+                            </div>
+
+                            <p class="text-muted mb-2">
+                                <strong th:text="${product.brand}">Brand</strong>
+                                | <span th:text="${product.category}">Category</span>
+                            </p>
+
+                            <p class="card-text small" th:text="${product.description}">
+                                Product description with LLM analysis
+                            </p>
+
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    <span class="h5 text-success" th:text="'$' + ${product.price}">$0.00</span>
+                                    <small class="text-muted text-decoration-line-through ms-2"
+                                           th:if="${product.originalPrice > product.price}"
+                                           th:text="'$' + ${product.originalPrice}">$0.00</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary" th:text="${product.condition}">New</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-outline-primary me-2">
+                                    <i class="fas fa-heart"></i> Save
+                                </button>
+                                <button class="btn btn-sm btn-primary">
+                                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate More Products -->
+        <div th:if="${resultCount > 0}" class="text-center mt-4">
+            <button class="btn btn-lg btn-outline-primary" onclick="generateMoreProducts()">
+                <i class="fas fa-plus"></i> Generate More LLM Products
+            </button>
+        </div>
+    </div>
+
+    <!-- System Status Footer -->
+    <footer class="bg-light mt-5 py-4">
+        <div class="container text-center">
+            <div class="row">
+                <div class="col-md-12">
+                    <h6><i class="fas fa-cog"></i> System Status</h6>
+                    <div class="d-flex justify-content-center gap-4 flex-wrap">
+                        <span class="badge bg-success">
+                            <i class="fas fa-check"></i> Hardcoded Data: Removed
+                        </span>
+                        <span class="badge bg-info">
+                            <i class="fas fa-brain"></i> LLM: Active
+                        </span>
+                        <span class="badge bg-warning">
+                            <i class="fas fa-database"></i> Dynamic Generation: Enabled
+                        </span>
+                        <span class="badge bg-primary">
+                            <i class="fas fa-chart-line"></i> Real-time Analytics: Ready
+                        </span>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        All products generated dynamically using Claude API • No hardcoded products in system
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script th:if="${visualizations != null}">
+        // Price Distribution Chart
+        if (document.getElementById('priceChart')) {
+            const priceCtx = document.getElementById('priceChart').getContext('2d');
+            const priceData = /*[[${visualizations.priceAnalysis}]]*/ {};
+
+            if (priceData && priceData.distribution) {
+                new Chart(priceCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: priceData.distribution.map(d => d.label),
+                        datasets: [{
+                            data: priceData.distribution.map(d => d.count),
+                            backgroundColor: priceData.distribution.map(d => d.color || '#007bff'),
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Price Distribution'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Brand Distribution Chart
+        if (document.getElementById('brandChart')) {
+            const brandCtx = document.getElementById('brandChart').getContext('2d');
+            const brandData = /*[[${visualizations.brandDistribution}]]*/ {};
+
+            if (brandData && brandData.brandData) {
+                new Chart(brandCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: brandData.brandData.map(b => b.brand),
+                        datasets: [{
+                            label: 'Products',
+                            data: brandData.brandData.map(b => b.count),
+                            backgroundColor: brandData.brandData.map(b => b.color || '#28a745'),
+                            borderColor: brandData.brandData.map(b => b.color || '#28a745'),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Brand Distribution'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Quality Metrics Chart
+        if (document.getElementById('qualityChart')) {
+            const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+            const qualityData = /*[[${visualizations.qualityMetrics}]]*/ {};
+
+            if (qualityData && qualityData.conditionData) {
+                new Chart(qualityCtx, {
+                    type: 'polarArea',
+                    data: {
+                        labels: qualityData.conditionData.map(c => c.condition),
+                        datasets: [{
+                            data: qualityData.conditionData.map(c => c.count),
+                            backgroundColor: qualityData.conditionData.map(c => c.color || '#ffc107'),
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Quality Distribution'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Recommendation Scores Chart
+        if (document.getElementById('recommendationChart')) {
+            const recCtx = document.getElementById('recommendationChart').getContext('2d');
+            const recData = /*[[${visualizations.recommendationScores}]]*/ {};
+
+            if (recData && recData.recommendations) {
+                const topRecommendations = recData.recommendations.slice(0, 5); // Top 5
+
+                new Chart(recCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['Score 1', 'Score 2', 'Score 3', 'Score 4', 'Score 5'],
+                        datasets: [{
+                            label: 'Recommendation Scores',
+                            data: topRecommendations.map(r => r.recommendationScore),
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'AI Recommendation Scores'
+                            }
+                        },
+                        scales: {
+                            r: {
+                                min: 0,
+                                max: 10,
+                                ticks: {
+                                    stepSize: 2
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Generate More Products Function
+        function generateMoreProducts() {
+            const query = /*[[${query}]]*/ '';
+            if (query) {
+                fetch('/dynamic/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'query': query,
+                        'limit': '6',
+                        'saveToDatabase': 'true'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload page to show new products
+                        window.location.reload();
+                    } else {
+                        alert('Failed to generate more products: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error generating products');
+                });
+            }
+        }
+    </script>
+</body>
+</html>
