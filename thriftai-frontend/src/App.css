@@ -1,0 +1,352 @@
+/* Global Styles for ThriftAI */
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --bg-glass: rgba(0, 0, 0, 0.8);
+  --text-primary: #ffffff;
+  --text-secondary: #b8b8b8;
+  --accent-blue: #00d4ff;
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --backdrop-blur: blur(20px);
+}
+
+body {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #000 100%);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.App {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #000 100%);
+}
+
+/* Navigation Styles */
+.navbar {
+  background: rgba(0, 0, 0, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+}
+
+/* Glass effect inputs */
+.glass-input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: blur(10px);
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--accent-blue) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.25) !important;
+}
+
+/* Button Styles */
+.btn-gradient-primary {
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  border: none;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-gradient-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+  color: white;
+}
+
+/* Text Gradient */
+.text-gradient-primary {
+  background: linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Floating Labels */
+.floating-label-group {
+  position: relative;
+}
+
+.floating-label {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-label-group input:focus + .floating-label,
+.floating-label-group input:not(:placeholder-shown) + .floating-label {
+  top: -0.5rem;
+  font-size: 0.8rem;
+  color: var(--accent-blue);
+  background: var(--bg-primary);
+  padding: 0 0.5rem;
+}
+
+/* Modal Styles */
+.modal-content {
+  background: var(--bg-glass);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-blue);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00b8e6;
+}
+
+/* Claude Hero Section Styles */
+.claude-hero {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: radial-gradient(ellipse at center, rgba(0,212,255,0.1) 0%, transparent 70%);
+}
+
+.claude-search-container {
+  max-width: 800px;
+  width: 100%;
+}
+
+.claude-input-area {
+  position: relative;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(0,212,255,0.3);
+  border-radius: 25px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.claude-input-area:focus-within {
+  border-color: #00d4ff;
+  box-shadow: 0 0 30px rgba(0,212,255,0.4);
+}
+
+.claude-textarea {
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 1.1rem;
+  padding: 1.5rem;
+  resize: none;
+  min-height: 120px;
+}
+
+.claude-textarea:focus {
+  outline: none;
+  color: #ffffff !important;
+}
+
+.claude-textarea::placeholder {
+  color: rgba(255,255,255,0.6);
+  font-style: italic;
+}
+
+.claude-send-btn {
+  position: absolute;
+  bottom: 15px;
+  right: 70px;
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  border: none;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.claude-send-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 15px rgba(0,212,255,0.4);
+}
+
+.claude-visual-search-btn {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  background: rgba(0,212,255,0.1);
+  border: 2px solid rgba(0,212,255,0.3);
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  color: #00d4ff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.claude-visual-search-btn:hover {
+  background: rgba(0,212,255,0.2);
+  border-color: #00d4ff;
+  transform: scale(1.1);
+  box-shadow: 0 5px 15px rgba(0,212,255,0.4);
+}
+
+.claude-visual-search-btn input[type="file"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.claude-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.claude-suggestion {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: #00d4ff;
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.claude-suggestion:hover {
+  background: rgba(0,212,255,0.2);
+  transform: translateY(-2px);
+  border-color: #00d4ff;
+}
+
+.advanced-search-section .btn {
+  background: rgba(0,0,0,0.8);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: #ffffff;
+  transition: all 0.3s ease;
+  padding: 0.75rem 1rem;
+}
+
+.advanced-search-section .btn:hover {
+  background: rgba(0,212,255,0.1);
+  border-color: #00d4ff;
+  color: #00d4ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,212,255,0.2);
+}
+
+/* Dynamic Content Styles */
+.dynamic-content {
+  background: rgba(0,0,0,0.9);
+  border: 1px solid rgba(0,212,255,0.3);
+  border-radius: 15px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.dynamic-content h4 {
+  color: #00d4ff;
+  margin-bottom: 1rem;
+}
+
+.product-card-mini {
+  background: rgba(0,0,0,0.8);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.product-card-mini:hover {
+  border-color: rgba(0,212,255,0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,212,255,0.1);
+}
+
+.filter-group {
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-group label {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.trend-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(0,212,255,0.1);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(0,212,255,0.2);
+}
+
+.trend-number {
+  background: #00d4ff;
+  color: black;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 1rem;
+}
+
+/* Modal Styles */
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.btn-link {
+  text-decoration: none !important;
+  border: none !important;
+  background: none !important;
+}

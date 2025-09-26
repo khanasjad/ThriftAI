@@ -155,7 +155,7 @@ public class ProductComparisonService {
         headers.set("anthropic-version", "2023-06-01");
 
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "claude-3-sonnet-20240229");
+        requestBody.put("model", "claude-3-5-sonnet-20241022");
         requestBody.put("max_tokens", 4000);
 
         List<Map<String, Object>> messages = new ArrayList<>();

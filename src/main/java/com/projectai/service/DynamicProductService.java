@@ -309,7 +309,7 @@ public class DynamicProductService {
         headers.set("anthropic-version", "2023-06-01");
 
         Map<String, Object> requestBody = Map.of(
-            "model", "claude-3-sonnet-20240229",
+            "model", "claude-3-5-sonnet-20241022",
             "max_tokens", 2000,
             "messages", List.of(Map.of(
                 "role", "user",

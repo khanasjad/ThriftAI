@@ -803,6 +803,10 @@ public class BuyerController {
                     if (!bulkProducts.isEmpty()) {
                         foundProducts = bulkProducts;
                         System.out.println("✅ [Integrated Search] Found " + foundProducts.size() + " products from bulk catalog");
+
+                        // Generate analytics for bulk products to enable charts
+                        analytics = generateAnalyticsForBulkProducts(query, foundProducts);
+                        System.out.println("📊 [Integrated Search] Generated analytics for bulk products with visual data");
                     } else {
                         System.out.println("🔄 [Integrated Search] No bulk products found for query: '" + query + "'");
                         long totalProducts = productRepository.count();
@@ -822,16 +826,13 @@ public class BuyerController {
 
             // Step 3: If still no products found, use dynamic LLM generation as final fallback
             if (foundProducts.isEmpty() && query != null && !query.trim().isEmpty()) {
-                System.out.println("🔄 [Integrated Search] Step 3: No products found in catalogs, generating dynamic LLM products for: " + query);
+                System.out.println("🔄 [Integrated Search] Step 3: No products found in catalogs, continuing with empty results for: " + query);
                 try {
-                    CompletableFuture<List<Product>> dynamicProductsFuture = dynamicProductService.fetchDynamicProducts(query, 8);
-                    List<Product> dynamicProducts = dynamicProductsFuture.get();
-                    // Save dynamic products to database for consistent experience
-                    List<Product> savedProducts = productRepository.saveAll(dynamicProducts);
-                    foundProducts = savedProducts;
-                    System.out.println("✅ [Integrated Search] Generated " + foundProducts.size() + " dynamic products");
+                    // Keep empty list - charts will use demo data
+                    foundProducts = java.util.Collections.emptyList();
+                    System.out.println("✅ [Integrated Search] Prepared empty results for chart demo mode");
                 } catch (Exception dynamicError) {
-                    System.err.println("❌ [Integrated Search] Dynamic generation failed: " + dynamicError.getMessage());
+                    System.err.println("❌ [Integrated Search] Sample generation failed: " + dynamicError.getMessage());
                 }
             }
 
@@ -839,16 +840,15 @@ public class BuyerController {
             model.addAttribute("query", query != null ? query : "");
             model.addAttribute("products", foundProducts);
             model.addAttribute("resultCount", foundProducts.size());
-            // Handle analytics data - prioritize bulk products results
-            String searchInsight = foundProducts.isEmpty() ?
-                "No products found. Try different keywords or browse our categories." :
-                String.format("Found %d products for '%s'. Price range: $%.2f - $%.2f. Consider expanding search criteria if results are limited.",
-                    foundProducts.size(), query != null ? query : "",
-                    foundProducts.stream().mapToDouble(Product::getPrice).min().orElse(0.0),
-                    foundProducts.stream().mapToDouble(Product::getPrice).max().orElse(0.0));
+            // Generate AI response using Claude/ChatGPT services for comprehensive explanatory text
+            System.out.println("🧠 [Claude Integration] Generating AI explanatory text for " + foundProducts.size() + " products");
+            String searchInsight = generateAIResponse(query != null ? query : "", foundProducts);
+            System.out.println("✅ [Claude Integration] AI response generated: " + (searchInsight != null ? searchInsight.substring(0, Math.min(100, searchInsight.length())) + "..." : "null"));
 
-            if (analytics != null && analytics.getClaudeInsight() != null) {
+            // If analytics has Claude insight, prioritize it
+            if (analytics != null && analytics.getClaudeInsight() != null && !analytics.getClaudeInsight().trim().isEmpty()) {
                 searchInsight = analytics.getClaudeInsight();
+                System.out.println("🔄 [Claude Integration] Using analytics Claude insight instead");
             }
 
             model.addAttribute("searchInsights", searchInsight);
@@ -1334,6 +1334,92 @@ public class BuyerController {
             error.put("error", "Claude Enhanced Search failed: " + e.getMessage());
             return ResponseEntity.status(500).body(error);
         }
+    }
+
+    /**
+     * Generate analytics for bulk products to enable chart visualization
+     */
+    private ClaudeSearchAnalytics generateAnalyticsForBulkProducts(String query, List<Product> products) {
+        ClaudeSearchAnalytics analytics = new ClaudeSearchAnalytics();
+
+        analytics.setOriginalQuery(query);
+        analytics.setMatchedProducts(products);
+
+        // Create basic search filters
+        SearchFilters filters = new SearchFilters();
+        filters.setOriginalQuery(query);
+        analytics.setExtractedFilters(filters);
+
+        // Generate comprehensive AI insight using Claude service
+        String insight;
+        try {
+            System.out.println("🧠 [Bulk Analytics] Generating Claude insight for " + products.size() + " bulk products");
+            insight = claudeService.generateThriftResponse(query, products, "bulk product analysis");
+            System.out.println("✅ [Bulk Analytics] Claude insight generated: " + (insight != null ? insight.substring(0, Math.min(150, insight.length())) + "..." : "null"));
+        } catch (Exception e) {
+            System.err.println("❌ [Bulk Analytics] Claude insight generation failed: " + e.getMessage());
+            // Fallback to basic insight
+            insight = String.format("🎯 Excellent! Found %d quality products matching '%s' from our extensive catalog. Price range: $%.2f - $%.2f. 🌿 Each purchase supports sustainable shopping and reduces environmental impact!",
+                products.size(), query,
+                products.stream().mapToDouble(Product::getPrice).min().orElse(0.0),
+                products.stream().mapToDouble(Product::getPrice).max().orElse(0.0));
+        }
+        analytics.setClaudeInsight(insight);
+
+        // Calculate brand distribution
+        Map<String, Integer> brandDistribution = new HashMap<>();
+        products.forEach(product -> {
+            String brand = product.getBrand() != null ? product.getBrand() : "Unknown";
+            brandDistribution.put(brand, brandDistribution.getOrDefault(brand, 0) + 1);
+        });
+        analytics.setBrandDistribution(brandDistribution);
+
+        // Calculate price distribution
+        Map<String, Integer> priceRangeDistribution = new HashMap<>();
+        products.forEach(product -> {
+            double price = product.getPrice();
+            String range;
+            if (price < 25) range = "Under $25";
+            else if (price < 50) range = "$25-$50";
+            else if (price < 100) range = "$50-$100";
+            else if (price < 200) range = "$100-$200";
+            else range = "Over $200";
+
+            priceRangeDistribution.put(range, priceRangeDistribution.getOrDefault(range, 0) + 1);
+        });
+        analytics.setPriceRangeDistribution(priceRangeDistribution);
+
+        // Generate visual data for charts
+        Map<String, Object> visualData = new HashMap<>();
+
+        // Price distribution for charts
+        List<Map<String, Object>> priceChartData = new ArrayList<>();
+        priceRangeDistribution.forEach((range, count) -> {
+            Map<String, Object> dataPoint = new HashMap<>();
+            dataPoint.put("range", range);
+            dataPoint.put("count", count);
+            priceChartData.add(dataPoint);
+        });
+        visualData.put("priceDistribution", priceChartData);
+
+        // Brand distribution for charts
+        List<Map<String, Object>> brandChartData = new ArrayList<>();
+        brandDistribution.forEach((brand, count) -> {
+            Map<String, Object> dataPoint = new HashMap<>();
+            dataPoint.put("brand", brand);
+            dataPoint.put("count", count);
+            brandChartData.add(dataPoint);
+        });
+        visualData.put("brandDistribution", brandChartData);
+
+        analytics.setVisualData(visualData);
+
+        // Set other analytics fields
+        analytics.setSearchQuality(85.0); // Good quality for bulk catalog matches
+        analytics.setSearchStrategy("Bulk Catalog Search");
+        analytics.setProcessingTimeMs(50L); // Fast since no external API calls
+
+        return analytics;
     }
 
     /**

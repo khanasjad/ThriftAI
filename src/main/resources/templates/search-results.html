@@ -635,6 +635,68 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Enhanced Quality Analytics -->
+                <div class="row mb-4" th:if="${products != null and !products.empty}">
+                    <div class="col-12 mb-3">
+                        <div class="card" style="background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(16,185,129,0.1)); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body">
+                                <h5 class="text-white mb-3">
+                                    <i class="fas fa-star me-2" style="color: #fbbf24;"></i>
+                                    Smart Purchase Decision Analytics
+                                </h5>
+                                <p class="text-muted mb-3">AI-powered insights to help you choose the best product from these 8 options</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4" th:if="${products != null and !products.empty}">
+                    <div class="col-md-4">
+                        <div class="card h-100" style="background: rgba(0,0,0,0.8); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body">
+                                <h6 class="text-white"><i class="fas fa-balance-scale"></i> Value vs Quality Score</h6>
+                                <canvas id="valueQualityChart" width="400" height="250"></canvas>
+                                <small class="text-muted">Higher up = Better quality, Right = Lower price</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100" style="background: rgba(0,0,0,0.8); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body">
+                                <h6 class="text-white"><i class="fas fa-shield-alt"></i> Condition Quality</h6>
+                                <canvas id="conditionChart" width="400" height="250"></canvas>
+                                <small class="text-muted">Product condition distribution</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100" style="background: rgba(0,0,0,0.8); border: 1px solid rgba(0,212,255,0.3);">
+                            <div class="card-body">
+                                <h6 class="text-white"><i class="fas fa-award"></i> AI Recommendations</h6>
+                                <canvas id="recommendationChart" width="400" height="250"></canvas>
+                                <small class="text-muted">Personalized scoring system</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchase Decision Summary -->
+                <div class="row mb-4" th:if="${products != null and !products.empty}">
+                    <div class="col-12">
+                        <div class="card" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);">
+                            <div class="card-body">
+                                <h6 class="text-success">
+                                    <i class="fas fa-lightbulb me-2"></i>
+                                    Smart Buying Recommendations
+                                </h6>
+                                <div id="aiRecommendations" class="text-white">
+                                    <!-- AI recommendations will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Product Results -->
@@ -709,6 +771,9 @@
     <!-- Bootstrap JS -->
     <script src="/webjars/jquery/3.7.1/jquery.min.js"></script>
     <script src="/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chart.js for Advanced Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
     
     <!-- Claude-style Search Results JS -->
     <script>
@@ -1055,9 +1120,144 @@
             });
         }
 
-        // Initialize charts if analytics data is available
+        // Create demo charts with sample data when no products are available
+        function createDemoCharts() {
+            console.log("Creating demo charts with sample data");
+
+            // Demo Value vs Quality Scatter Chart
+            const valueQualityCtx = document.getElementById('valueQualityChart');
+            if (valueQualityCtx) {
+                new Chart(valueQualityCtx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Sample Products',
+                            data: [
+                                {x: 85, y: 92, label: "Premium Laptop", price: 799},
+                                {x: 70, y: 78, label: "Vintage Jacket", price: 45},
+                                {x: 60, y: 85, label: "Designer Watch", price: 129},
+                                {x: 40, y: 60, label: "Basic Phone", price: 89},
+                                {x: 90, y: 70, label: "Retro Camera", price: 35},
+                                {x: 75, y: 88, label: "Leather Bag", price: 67},
+                            ],
+                            backgroundColor: 'rgba(0, 212, 255, 0.8)',
+                            borderColor: 'rgba(0, 212, 255, 1)',
+                            borderWidth: 2,
+                            pointRadius: 8,
+                            pointHoverRadius: 12
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: { display: true, text: 'Value vs Quality Analysis (Demo)', color: '#ffffff' },
+                            legend: { labels: { color: '#ffffff' } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const point = context.parsed;
+                                        return `${context.dataset.data[context.dataIndex].label}: Quality ${point.y}%, Value ${point.x}% ($${context.dataset.data[context.dataIndex].price})`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Value Score (Higher = Better Value)', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Quality Score (Higher = Better Quality)', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Demo Condition Chart
+            const conditionCtx = document.getElementById('conditionChart');
+            if (conditionCtx) {
+                new Chart(conditionCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Excellent', 'Very Good', 'Good', 'Fair'],
+                        datasets: [{
+                            data: [35, 28, 22, 15],
+                            backgroundColor: [
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                                'rgba(239, 68, 68, 0.8)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: { display: true, text: 'Condition Distribution (Demo)', color: '#ffffff' },
+                            legend: { labels: { color: '#ffffff' } }
+                        }
+                    }
+                });
+            }
+
+            // Demo Recommendations Chart
+            const recommendationCtx = document.getElementById('recommendationChart');
+            if (recommendationCtx) {
+                new Chart(recommendationCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Top Pick', 'Best Value', 'Highest Quality'],
+                        datasets: [{
+                            data: [95, 88, 92],
+                            backgroundColor: [
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                                'rgba(59, 130, 246, 0.8)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y',
+                        plugins: {
+                            title: { display: true, text: 'AI Recommendations (Demo)', color: '#ffffff' },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Recommendation Score', color: '#ffffff' },
+                                ticks: { color: '#ffffff' },
+                                grid: { color: 'rgba(255,255,255,0.1)' }
+                            },
+                            y: {
+                                ticks: { color: '#ffffff' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Initialize comprehensive product quality analytics charts
         function initializeAnalyticsCharts() {
-            // Price Distribution Chart
+            // Get products data from Thymeleaf
+            const products = /*[[${products}]]*/ [];
+
+            console.log("Products available for charts:", products ? products.length : 0);
+
+            // If no products, create mock data for demonstration
+            if (!products || products.length === 0) {
+                console.log("No products available, creating demo charts with sample data");
+                createDemoCharts();
+                return;
+            }
+
+            // Price Distribution Chart (existing)
             const priceData = /*[[${visualData?.priceDistribution}]]*/ [];
             if (priceData && priceData.length > 0) {
                 const ctx = document.getElementById('priceChart');
@@ -1088,7 +1288,7 @@
                 }
             }
 
-            // Brand Distribution Chart
+            // Brand Distribution Chart (existing)
             const brandData = /*[[${visualData?.brandDistribution}]]*/ [];
             if (brandData && brandData.length > 0) {
                 const ctx2 = document.getElementById('brandChart');
@@ -1137,6 +1337,282 @@
                     });
                 }
             }
+
+            // NEW: Value vs Quality Scatter Chart
+            const valueQualityCtx = document.getElementById('valueQualityChart');
+            if (valueQualityCtx && products.length > 0) {
+                const scatterData = products.map((product, index) => {
+                    const qualityScore = calculateQualityScore(product);
+                    const valueScore = 100 - (product.price / Math.max(...products.map(p => p.price)) * 100);
+
+                    return {
+                        x: valueScore, // Higher = Better value (lower price)
+                        y: qualityScore, // Higher = Better quality
+                        label: product.name.substring(0, 20) + "...",
+                        price: product.price,
+                        condition: product.condition
+                    };
+                });
+
+                new Chart(valueQualityCtx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Products',
+                            data: scatterData,
+                            backgroundColor: 'rgba(0, 212, 255, 0.8)',
+                            borderColor: 'rgba(0, 212, 255, 1)',
+                            borderWidth: 2,
+                            pointRadius: 8,
+                            pointHoverRadius: 12
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ffffff'
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].raw.label;
+                                    },
+                                    label: function(context) {
+                                        const point = context.raw;
+                                        return [
+                                            `Value Score: ${Math.round(point.x)}/100`,
+                                            `Quality Score: ${Math.round(point.y)}/100`,
+                                            `Price: $${point.price}`,
+                                            `Condition: ${point.condition}`
+                                        ];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Value Score (Lower Price = Higher Score)',
+                                    color: '#ffffff'
+                                },
+                                ticks: {
+                                    color: '#ffffff'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Quality Score',
+                                    color: '#ffffff'
+                                },
+                                ticks: {
+                                    color: '#ffffff'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // NEW: Condition Quality Chart
+            const conditionCtx = document.getElementById('conditionChart');
+            if (conditionCtx && products.length > 0) {
+                const conditionCounts = {};
+                products.forEach(product => {
+                    const condition = product.condition || 'Unknown';
+                    conditionCounts[condition] = (conditionCounts[condition] || 0) + 1;
+                });
+
+                const conditionColors = {
+                    'New': '#10b981',
+                    'Like New': '#34d399',
+                    'Excellent': '#4ade80',
+                    'Very Good': '#fbbf24',
+                    'Good': '#f59e0b',
+                    'Fair': '#f97316',
+                    'Poor': '#ef4444',
+                    'Unknown': '#6b7280'
+                };
+
+                new Chart(conditionCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(conditionCounts),
+                        datasets: [{
+                            data: Object.values(conditionCounts),
+                            backgroundColor: Object.keys(conditionCounts).map(condition =>
+                                conditionColors[condition] || '#6b7280'
+                            ),
+                            borderWidth: 2,
+                            borderColor: '#1f2937'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: '#ffffff',
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // NEW: AI Recommendation Chart
+            const recommendationCtx = document.getElementById('recommendationChart');
+            if (recommendationCtx && products.length > 0) {
+                const productScores = products.map(product => ({
+                    name: product.name.substring(0, 15) + "...",
+                    score: calculateOverallScore(product)
+                })).sort((a, b) => b.score - a.score);
+
+                new Chart(recommendationCtx, {
+                    type: 'horizontalBar',
+                    data: {
+                        labels: productScores.map(p => p.name),
+                        datasets: [{
+                            label: 'AI Score',
+                            data: productScores.map(p => p.score),
+                            backgroundColor: productScores.map((_, index) => {
+                                if (index === 0) return '#10b981'; // Best
+                                if (index < 3) return '#3b82f6'; // Top 3
+                                return '#6b7280'; // Others
+                            }),
+                            borderWidth: 1,
+                            borderColor: '#1f2937'
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ffffff'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'AI Recommendation Score',
+                                    color: '#ffffff'
+                                },
+                                ticks: {
+                                    color: '#ffffff'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#ffffff'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Generate AI recommendations text
+            generateAIRecommendations(products);
+        }
+
+        // Helper function to calculate quality score based on product attributes
+        function calculateQualityScore(product) {
+            let score = 50; // Base score
+
+            // Condition scoring
+            const conditionScores = {
+                'New': 100,
+                'Like New': 90,
+                'Excellent': 80,
+                'Very Good': 70,
+                'Good': 60,
+                'Fair': 40,
+                'Poor': 20
+            };
+            score += (conditionScores[product.condition] || 50) * 0.3;
+
+            // Brand reputation (simplified)
+            const premiumBrands = ['Apple', 'Samsung', 'Nike', 'Sony', 'Canon'];
+            if (premiumBrands.some(brand => product.brand?.includes(brand))) {
+                score += 15;
+            }
+
+            // Price reasonableness (products with extremely high prices get penalized)
+            if (product.originalPrice && product.price < product.originalPrice) {
+                score += 10; // Discount bonus
+            }
+
+            return Math.min(100, Math.max(0, score));
+        }
+
+        // Helper function to calculate overall recommendation score
+        function calculateOverallScore(product) {
+            const qualityScore = calculateQualityScore(product);
+            const priceScore = 100 - (product.price / 1000 * 50); // Lower price = higher score
+            const availabilityBonus = product.available ? 10 : 0;
+
+            return Math.round((qualityScore * 0.4 + priceScore * 0.4 + availabilityBonus * 0.2));
+        }
+
+        // Generate AI recommendations
+        function generateAIRecommendations(products) {
+            const sortedProducts = products
+                .map(p => ({ ...p, score: calculateOverallScore(p) }))
+                .sort((a, b) => b.score - a.score);
+
+            const bestProduct = sortedProducts[0];
+            const worstProduct = sortedProducts[sortedProducts.length - 1];
+
+            const recommendations = `
+                <div class="mb-3">
+                    <h6 class="text-success"><i class="fas fa-trophy me-2"></i>Top Recommendation</h6>
+                    <p><strong>${bestProduct.name}</strong> - Score: ${bestProduct.score}/100</p>
+                    <small class="text-muted">Best overall value considering quality, price, and condition.</small>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="text-info"><i class="fas fa-dollar-sign me-2"></i>Best Value</h6>
+                    <p><strong>${sortedProducts.find(p => p.price === Math.min(...products.map(pr => pr.price))).name}</strong></p>
+                    <small class="text-muted">Lowest price in your search results.</small>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="text-warning"><i class="fas fa-star me-2"></i>Highest Quality</h6>
+                    <p><strong>${sortedProducts.find(p => calculateQualityScore(p) === Math.max(...products.map(pr => calculateQualityScore(pr)))).name}</strong></p>
+                    <small class="text-muted">Best condition and brand reputation.</small>
+                </div>
+
+                <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Smart Tip:</strong> Look for products in the top-right of the Value vs Quality chart for the best balance of quality and price.
+                </div>
+            `;
+
+            document.getElementById('aiRecommendations').innerHTML = recommendations;
         }
 
         // Start the animation when page loads

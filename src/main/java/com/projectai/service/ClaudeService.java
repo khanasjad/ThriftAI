@@ -32,7 +32,7 @@ public class ClaudeService {
     @Value("${claude.api.url:https://api.anthropic.com/v1/messages}")
     private String claudeApiUrl;
     
-    @Value("${claude.api.model:claude-3-sonnet-20240229}")
+    @Value("${claude.api.model:claude-3-5-sonnet-20241022}")
     private String claudeModel;
     
     @Value("${claude.api.max-tokens:1000}")
