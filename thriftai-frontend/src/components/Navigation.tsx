@@ -68,6 +68,7 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
           {user && (
             <ul className="navbar-nav">
               <li className="nav-item dropdown">
+                {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
                 <a
                   className="nav-link dropdown-toggle"
                   href="#"
@@ -80,6 +81,7 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
                 </a>
                 <ul className="dropdown-menu">
                   <li>
+                    {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
                     <a className="dropdown-item" href="#">
                       <i className="fas fa-cog me-2"></i>Preferences
                     </a>

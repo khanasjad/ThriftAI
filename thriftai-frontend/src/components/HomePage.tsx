@@ -15,6 +15,19 @@ interface User {
   userType: 'buyer' | 'seller';
 }
 
+interface SignupData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  city: string;
+  state: string;
+  password: string;
+  confirmPassword: string;
+  accountType: 'buyer' | 'seller';
+  agreeTerms: boolean;
+}
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -64,11 +77,12 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const handleSignup = async (userData: any): Promise<{ success: boolean; error?: string; message?: string }> => {
+  const handleSignup = async (userData: SignupData): Promise<{ success: boolean; error?: string; message?: string }> => {
     try {
       const formData = new FormData();
       Object.keys(userData).forEach(key => {
-        formData.append(key, userData[key]);
+        const typedKey = key as keyof SignupData;
+        formData.append(key, String(userData[typedKey]));
       });
 
       const endpoint = userData.accountType === 'seller' ? '/auth/api/signup/seller' : '/auth/api/signup/buyer';
@@ -100,22 +114,34 @@ const HomePage: React.FC = () => {
 
   const handleSearch = async (query: string) => {
     try {
-      const response = await axios.post('/buyers/api/chat-search', { query });
+      // Use enhanced Claude AI search for better results
+      const response = await axios.post('/buyers/api/claude-ai-search', {
+        query,
+        userId: user?.id || 'anonymous'
+      });
 
       if (response.data.error) {
         throw new Error(response.data.error);
       }
 
-      // Store search results and navigate using React Router
+      // Store enhanced search results and navigate using React Router
       sessionStorage.setItem('searchResults', JSON.stringify(response.data));
       sessionStorage.setItem('searchQuery', query);
 
       // Navigate to search results page using React Router
       navigate(`/buyers/search?q=${encodeURIComponent(query)}`);
     } catch (error) {
-      console.error('Search error:', error);
-      // Fallback to basic search page
-      navigate(`/buyers/search?q=${encodeURIComponent(query)}`);
+      console.error('Enhanced search error:', error);
+      // Fallback to basic search if Claude AI search fails
+      try {
+        const fallbackResponse = await axios.post('/buyers/api/chat-search', { query });
+        sessionStorage.setItem('searchResults', JSON.stringify(fallbackResponse.data));
+        sessionStorage.setItem('searchQuery', query);
+        navigate(`/buyers/search?q=${encodeURIComponent(query)}`);
+      } catch (fallbackError) {
+        console.error('Fallback search error:', fallbackError);
+        navigate(`/buyers/search?q=${encodeURIComponent(query)}`);
+      }
     }
   };
 

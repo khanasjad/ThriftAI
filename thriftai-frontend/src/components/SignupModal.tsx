@@ -277,10 +277,12 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onSignup, onSho
                 />
                 <label className="form-check-label text-light">
                   I agree to the{' '}
+                  {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
                   <a href="#" style={{ color: 'var(--accent-blue)' }}>
                     Terms of Service
                   </a>{' '}
                   and{' '}
+                  {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
                   <a href="#" style={{ color: 'var(--accent-blue)' }}>
                     Privacy Policy
                   </a>

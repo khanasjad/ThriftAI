@@ -22,7 +22,8 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT p FROM Product p WHERE p.isAvailable = true AND " +
            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(p.brand) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(p.category) LIKE LOWER(CONCAT('%', :query, '%')))")
+           "LOWER(p.category) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<Product> searchProducts(@Param("query") String query);
     
     @Query("SELECT p FROM Product p WHERE p.isAvailable = true AND p.category = :category AND " +

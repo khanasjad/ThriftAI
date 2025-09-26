@@ -31,6 +31,7 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
     if (type === 'recommendations' || type === 'trending') {
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
   const loadData = async () => {

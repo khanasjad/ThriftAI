@@ -239,18 +239,45 @@ public class ClaudeEnhancedService {
             filters.setStyle("vintage");
         }
 
-        // Extract price range
-        if (lowerQuery.contains("under") && lowerQuery.contains("$")) {
+        // Enhanced price range extraction using robust regex patterns
+        // Pattern for "under $X", "below $X", "less than $X"
+        java.util.regex.Pattern underPattern = java.util.regex.Pattern.compile("(under|below|less than)\\s*\\$?([0-9]+(?:\\.[0-9]{2})?)");
+        java.util.regex.Matcher underMatcher = underPattern.matcher(lowerQuery);
+        if (underMatcher.find()) {
             try {
-                String[] parts = lowerQuery.split("\\$");
-                if (parts.length > 1) {
-                    String priceStr = parts[1].replaceAll("[^0-9]", "");
-                    if (!priceStr.isEmpty()) {
-                        filters.setMaxPrice(Double.parseDouble(priceStr));
-                    }
-                }
+                double maxPrice = Double.parseDouble(underMatcher.group(2));
+                filters.setMaxPrice(maxPrice);
+                System.out.println("🔍 [Price Filter] Detected max price in ClaudeEnhancedService: $" + maxPrice);
             } catch (Exception e) {
-                System.err.println("Failed to extract price: " + e.getMessage());
+                System.err.println("Failed to parse under price: " + e.getMessage());
+            }
+        }
+
+        // Pattern for "over $X", "above $X", "more than $X"
+        java.util.regex.Pattern overPattern = java.util.regex.Pattern.compile("(over|above|more than)\\s*\\$?([0-9]+(?:\\.[0-9]{2})?)");
+        java.util.regex.Matcher overMatcher = overPattern.matcher(lowerQuery);
+        if (overMatcher.find()) {
+            try {
+                double minPrice = Double.parseDouble(overMatcher.group(2));
+                filters.setMinPrice(minPrice);
+                System.out.println("🔍 [Price Filter] Detected min price in ClaudeEnhancedService: $" + minPrice);
+            } catch (Exception e) {
+                System.err.println("Failed to parse over price: " + e.getMessage());
+            }
+        }
+
+        // Pattern for "$X to $Y" or "$X - $Y"
+        java.util.regex.Pattern rangePattern = java.util.regex.Pattern.compile("\\$?([0-9]+(?:\\.[0-9]{2})?)\\s*(?:to|-|and)\\s*\\$?([0-9]+(?:\\.[0-9]{2})?)");
+        java.util.regex.Matcher rangeMatcher = rangePattern.matcher(lowerQuery);
+        if (rangeMatcher.find()) {
+            try {
+                double minPrice = Double.parseDouble(rangeMatcher.group(1));
+                double maxPrice = Double.parseDouble(rangeMatcher.group(2));
+                filters.setMinPrice(minPrice);
+                filters.setMaxPrice(maxPrice);
+                System.out.println("🔍 [Price Filter] Detected price range in ClaudeEnhancedService: $" + minPrice + " - $" + maxPrice);
+            } catch (Exception e) {
+                System.err.println("Failed to parse price range: " + e.getMessage());
             }
         }
 

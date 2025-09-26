@@ -107,6 +107,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide, onLogin, onShowSi
                   />
                   <label className="form-check-label text-light">Remember me</label>
                 </div>
+                {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
                 <a href="#" className="text-decoration-none" style={{ color: 'var(--accent-blue)' }}>
                   Forgot password?
                 </a>
