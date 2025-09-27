@@ -5,14 +5,8 @@ import Navigation from './Navigation';
 import Footer from './Footer';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
+import { useAuth } from '../contexts/AuthContext';
 
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  userType: 'buyer' | 'seller';
-}
 
 interface Product {
   id: string;
@@ -68,7 +62,7 @@ const SearchResults: React.FC = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
 
-  const [user, setUser] = useState<User | null>(null);
+  const { appUser, signOut } = useAuth();
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -78,22 +72,11 @@ const SearchResults: React.FC = () => {
   axios.defaults.withCredentials = true;
 
   useEffect(() => {
-    checkAuthStatus();
     if (query) {
       performSearch(query);
     }
   }, [query]);
 
-  const checkAuthStatus = async () => {
-    try {
-      const response = await axios.get('/auth/api/status');
-      if (response.data.authenticated && response.data.user) {
-        setUser(response.data.user);
-      }
-    } catch (error) {
-      console.log('No active session');
-    }
-  };
 
   const performSearch = async (searchQuery: string) => {
     setLoading(true);
@@ -116,7 +99,7 @@ const SearchResults: React.FC = () => {
 
       const response = await axios.post('/buyers/api/claude-ai-search', {
         query: searchQuery,
-        userId: user?.id || 'anonymous'
+        userId: appUser?.id || 'anonymous'
       });
 
       if (response.data.error) {
@@ -139,7 +122,7 @@ const SearchResults: React.FC = () => {
         console.log('🔄 Falling back to Claude AI search...');
         const fallbackResponse = await axios.post('/buyers/api/claude-ai-search', {
           query: searchQuery,
-          userId: user?.id || 'anonymous'
+          userId: appUser?.id || 'anonymous'
         });
         setSearchResults(fallbackResponse.data);
         sessionStorage.setItem('searchResults', JSON.stringify(fallbackResponse.data));
@@ -153,68 +136,16 @@ const SearchResults: React.FC = () => {
     }
   };
 
-  const handleLogin = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const formData = new FormData();
-      formData.append('email', email);
-      formData.append('password', password);
-      formData.append('userType', 'buyer');
 
-      const response = await axios.post('/auth/api/login', formData);
 
-      if (response.status === 200) {
-        await checkAuthStatus();
-        setShowLoginModal(false);
-        return { success: true };
-      }
-      return { success: false, error: 'Login failed' };
-    } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, error: 'Invalid email or password' };
-    }
-  };
-
-  const handleSignup = async (userData: any): Promise<{ success: boolean; error?: string; message?: string }> => {
-    try {
-      const formData = new FormData();
-      Object.keys(userData).forEach(key => {
-        formData.append(key, userData[key]);
-      });
-
-      const endpoint = userData.accountType === 'seller' ? '/auth/api/signup/seller' : '/auth/api/signup/buyer';
-      const response = await axios.post(endpoint, formData);
-
-      if (response.status === 200) {
-        setShowSignupModal(false);
-        setShowLoginModal(true);
-        return { success: true, message: 'Account created successfully! Please log in.' };
-      }
-      return { success: false, error: 'Failed to create account' };
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      if (error.response?.data?.includes('Email already exists')) {
-        return { success: false, error: 'An account with this email already exists.' };
-      }
-      return { success: false, error: 'Failed to create account. Please try again.' };
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await axios.post('/auth/api/logout');
-      setUser(null);
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
 
   return (
     <div className="SearchResults">
       <Navigation
-        user={user}
+        user={appUser}
         onShowLogin={() => setShowLoginModal(true)}
         onShowSignup={() => setShowSignupModal(true)}
-        onLogout={handleLogout}
+        onLogout={signOut}
       />
 
       <div className="container mt-4">
@@ -515,17 +446,11 @@ const SearchResults: React.FC = () => {
       <LoginModal
         show={showLoginModal}
         onHide={() => setShowLoginModal(false)}
-        onLogin={handleLogin}
-        onShowSignup={() => {
-          setShowLoginModal(false);
-          setShowSignupModal(true);
-        }}
       />
 
       <SignupModal
         show={showSignupModal}
         onHide={() => setShowSignupModal(false)}
-        onSignup={handleSignup}
         onShowLogin={() => {
           setShowSignupModal(false);
           setShowLoginModal(true);

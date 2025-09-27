@@ -20,6 +20,8 @@ import com.projectai.service.ClaudeEnhancedService;
 import com.projectai.service.DynamicProductService;
 import com.projectai.service.IntelligentSearchService;
 import com.projectai.service.OpenSourceProductService;
+import com.projectai.service.AdvancedAIOrchestrationService;
+import com.projectai.dto.AIInsights;
 import com.projectai.models.ClaudeSearchAnalytics;
 import com.projectai.models.SearchFilters;
 import java.util.concurrent.CompletableFuture;
@@ -102,6 +104,9 @@ public class BuyerController {
 
     @Autowired
     private OpenSourceProductService openSourceProductService;
+
+    @Autowired
+    private AdvancedAIOrchestrationService advancedAIOrchestrationService;
 
     // Add API endpoint for filter options
     @GetMapping("/api/filter-options")
@@ -472,8 +477,9 @@ public class BuyerController {
                 logger.info("🎯 Intelligent semantic search completed: {} contextually relevant products found", products.size());
             }
 
-            // 🚀 AI ORCHESTRATION LAYER - Enhanced Intelligence
-            java.util.Map<String, Object> aiAnalysis = comparisonAIService.performIntelligentComparison(products, query);
+            // 🚀 ADVANCED AI ORCHESTRATION LAYER - Claude 3.5 Sonnet Intelligence
+            AIInsights aiInsights = advancedAIOrchestrationService.generateComprehensiveProductAnalysis(
+                query != null ? query : "", products, userId);
 
             java.util.Map<String, Object> response = new java.util.HashMap<>();
 
@@ -482,34 +488,10 @@ public class BuyerController {
             response.put("totalProductsAnalyzed", products.size());
             response.put("searchTime", java.time.LocalDateTime.now());
 
-            // Enhanced AI Insights from Orchestration Layer
-            java.util.Map<String, Object> aiInsights = new java.util.HashMap<>();
-            aiInsights.put("userIntent", "Looking for items related to: " + query);
-            aiInsights.put("searchSummary", "AI analyzed " + products.size() + " products with intelligent comparison");
-
-            // Extract top recommendation from AI analysis
-            if (aiAnalysis.containsKey("topRecommendation")) {
-                Map<String, Object> topRec = (Map<String, Object>) aiAnalysis.get("topRecommendation");
-                aiInsights.put("topRecommendation", topRec.get("reason"));
-                aiInsights.put("topProductId", topRec.get("productId"));
-                aiInsights.put("recommendationScore", topRec.get("score"));
-            } else {
-                aiInsights.put("topRecommendation", products.isEmpty() ? "No products found" : products.get(0).getName());
-            }
-
-            // Calculate total potential savings
-            double totalSavings = products.stream()
-                .mapToDouble(p -> p.getOriginalPrice() - p.getPrice())
-                .sum();
-            aiInsights.put("totalSavings", totalSavings);
-            aiInsights.put("averageAiScore", 85.0); // Higher score with AI orchestration
-
+            // Advanced AI Insights with graphs and comprehensive analysis
             response.put("aiInsights", aiInsights);
 
-            // Include AI comparison results
-            response.put("aiComparison", aiAnalysis);
-
-            response.put("message", "🤖 AI Analysis: Intelligent comparison of " + products.size() + " products for '" + query + "'. Results ranked by AI recommendation engine with detailed analysis.");
+            response.put("message", "🚀 Advanced AI Analysis: Claude 3.5 Sonnet analyzed " + products.size() + " products for '" + query + "' with comprehensive insights, dynamic graphs, comparison matrices, and multi-dimensional scoring.");
 
             // Enhanced products with AI scores
             List<java.util.Map<String, Object>> enhancedProducts = new ArrayList<>();
@@ -543,6 +525,17 @@ public class BuyerController {
 
                 enhancedProduct.put("aiScore", Math.round(aiScore * 10.0) / 10.0);
                 enhancedProduct.put("scoreBreakdown", scoreBreakdown);
+
+                // Apply minimum relevance threshold filtering to exclude poor matches
+                final double MINIMUM_RELEVANCE_THRESHOLD = 50.0;
+                if (aiScore < MINIMUM_RELEVANCE_THRESHOLD) {
+                    logger.info("🚫 THRESHOLD FILTER: Excluding '{}' (aiScore: {:.1f} < {:.1f})",
+                        product.getName(), aiScore, MINIMUM_RELEVANCE_THRESHOLD);
+                    continue; // Skip this product - it doesn't meet minimum relevance
+                }
+
+                logger.info("✅ THRESHOLD PASS: Including '{}' (aiScore: {:.1f} >= {:.1f})",
+                    product.getName(), aiScore, MINIMUM_RELEVANCE_THRESHOLD);
 
                 // Add savings calculation
                 if (product.getOriginalPrice() > product.getPrice()) {
@@ -2065,10 +2058,22 @@ public class BuyerController {
     private double calculateSemanticRelevance(Product product, SearchIntent intent, String searchTerm) {
         double score = 0.0;
 
-        // 1. Category relevance (40% weight)
+        // 1. Category relevance (40% weight) - with content validation
         if (intent.relevantCategories.contains(product.getCategory())) {
-            score += 40.0;
-            logger.debug("📊 SCORE: +40 for category relevance ({})", product.getCategory());
+            // Special validation for automotive queries
+            if (intent.style != null && intent.style.contains("automotive")) {
+                if (isActuallyAutomotiveRelated(product)) {
+                    score += 40.0;
+                    logger.debug("📊 SCORE: +40 for verified automotive category relevance ({})", product.getCategory());
+                } else {
+                    logger.debug("❌ AUTOMOTIVE VALIDATION: '{}' not car-related despite being in {}", product.getName(), product.getCategory());
+                    // No category points for non-automotive items in automotive searches
+                }
+            } else {
+                // Normal category scoring for non-automotive searches
+                score += 40.0;
+                logger.debug("📊 SCORE: +40 for category relevance ({})", product.getCategory());
+            }
         }
 
         // 2. Category exclusion (immediate disqualification)
@@ -2164,6 +2169,41 @@ public class BuyerController {
             String.format("%.1f", score), product.getName(), product.getCategory(), intent.style);
 
         return score;
+    }
+
+    private boolean isActuallyAutomotiveRelated(Product product) {
+        if (product == null) return false;
+
+        String productText = ((product.getName() != null ? product.getName() : "") + " " +
+                             (product.getDescription() != null ? product.getDescription() : "") + " " +
+                             (product.getBrand() != null ? product.getBrand() : "")).toLowerCase();
+
+        // Automotive keywords - products must contain these to be considered automotive
+        String[] automotiveKeywords = {
+            "car", "auto", "vehicle", "automotive", "car mount", "car charger",
+            "dashboard", "navigation", "gps", "windshield", "console", "steering",
+            "ignition", "engine", "transmission", "brake", "tire", "wheel",
+            "headlight", "taillight", "bumper", "hood", "trunk", "door handle",
+            "seat cover", "floor mat", "air freshener", "phone mount", "cup holder",
+            "sun visor", "mirror", "antenna", "radio", "stereo", "speaker",
+            "amplifier", "subwoofer", "dash cam", "backup camera", "car wash",
+            "wax", "polish", "detailing", "garage", "parking", "license plate",
+            "registration", "insurance", "roadside", "jumper cables", "battery",
+            "oil", "fluid", "coolant", "antifreeze", "gas", "fuel", "diesel",
+            "hybrid", "electric vehicle", "ev", "tesla", "ford", "chevy", "honda",
+            "toyota", "nissan", "bmw", "mercedes", "audi", "volkswagen", "jeep",
+            "truck", "suv", "sedan", "coupe", "convertible", "motorcycle", "bike"
+        };
+
+        for (String keyword : automotiveKeywords) {
+            if (productText.contains(keyword)) {
+                logger.debug("✅ AUTOMOTIVE VALIDATION: '{}' contains keyword '{}'", product.getName(), keyword);
+                return true;
+            }
+        }
+
+        logger.debug("❌ AUTOMOTIVE VALIDATION: '{}' contains no automotive keywords", product.getName());
+        return false;
     }
 
     // Helper classes for semantic search

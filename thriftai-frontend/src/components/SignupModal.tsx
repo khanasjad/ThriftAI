@@ -16,11 +16,10 @@ interface SignupData {
 interface SignupModalProps {
   show: boolean;
   onHide: () => void;
-  onSignup: (userData: SignupData) => Promise<{ success: boolean; error?: string; message?: string }>;
   onShowLogin: () => void;
 }
 
-const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onSignup, onShowLogin }) => {
+const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) => {
   const [formData, setFormData] = useState<SignupData>({
     firstName: '',
     lastName: '',

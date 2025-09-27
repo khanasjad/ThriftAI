@@ -1,45 +1,32 @@
 import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginModalProps {
   show: boolean;
   onHide: () => void;
-  onLogin: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  onShowSignup: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ show, onHide, onLogin, onShowSignup }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const { signInWithGoogle } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
     setError('');
-
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
     setIsLoading(true);
+
     try {
-      const result = await onLogin(email, password);
-      if (!result.success) {
-        setError(result.error || 'Login failed');
-      }
-    } catch (error) {
-      setError('Login failed. Please try again.');
+      await signInWithGoogle();
+      onHide(); // Close modal on successful login
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      setError(error.message || 'Failed to sign in with Google. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const resetForm = () => {
-    setEmail('');
-    setPassword('');
-    setRememberMe(false);
     setError('');
   };
 
@@ -70,74 +57,33 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide, onLogin, onShowSi
                 {error}
               </div>
             )}
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <div className="floating-label-group">
-                  <input
-                    type="email"
-                    className="form-control glass-input"
-                    placeholder=" "
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                  <label className="floating-label">Email address</label>
-                </div>
-              </div>
-              <div className="mb-4">
-                <div className="floating-label-group">
-                  <input
-                    type="password"
-                    className="form-control glass-input"
-                    placeholder=" "
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <label className="floating-label">Password</label>
-                </div>
-              </div>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                  />
-                  <label className="form-check-label text-light">Remember me</label>
-                </div>
-                {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                <a href="#" className="text-decoration-none" style={{ color: 'var(--accent-blue)' }}>
-                  Forgot password?
-                </a>
-              </div>
+            <div className="text-center mb-4">
+              <p className="text-light mb-4">
+                Sign in to access personalized recommendations and save your favorite finds!
+              </p>
               <button
-                type="submit"
-                className="btn btn-gradient-primary w-100 mb-3"
+                type="button"
+                className="btn btn-gradient-primary w-100 d-flex align-items-center justify-content-center"
+                onClick={handleGoogleSignIn}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin me-2"></i>Signing In...
+                    <i className="fas fa-spinner fa-spin me-2"></i>
+                    Signing in...
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-sign-in-alt me-2"></i>Sign In
+                    <i className="fab fa-google me-2"></i>
+                    Sign in with Google
                   </>
                 )}
               </button>
-            </form>
+            </div>
             <div className="text-center">
-              <span className="text-light">Don't have an account? </span>
-              <button
-                type="button"
-                className="btn btn-link p-0"
-                style={{ color: 'var(--accent-blue)' }}
-                onClick={onShowSignup}
-              >
-                Sign up here
-              </button>
+              <small className="text-muted">
+                By signing in, you agree to our terms of service and privacy policy.
+              </small>
             </div>
           </div>
         </div>
