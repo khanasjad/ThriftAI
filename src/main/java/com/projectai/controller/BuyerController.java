@@ -47,6 +47,9 @@ import java.util.Optional;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Controller
 @RequestMapping("/buyers")
@@ -1153,9 +1156,41 @@ public class BuyerController {
             model.addAttribute("interpretedQuery", query);
             model.addAttribute("originalQuery", query);
             model.addAttribute("aiResponse", searchInsight);
+
+            // Add JavaScript-safe version of AI response
+            if (searchInsight != null) {
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    String aiResponseJson = objectMapper.writeValueAsString(searchInsight);
+                    model.addAttribute("aiResponseJson", aiResponseJson);
+                    System.out.println("🤖 [AI Debug] AI response JSON: " + aiResponseJson);
+                } catch (Exception e) {
+                    System.err.println("❌ [AI Debug] Failed to serialize AI response: " + e.getMessage());
+                    model.addAttribute("aiResponseJson", "\"AI response temporarily unavailable\"");
+                }
+            } else {
+                model.addAttribute("aiResponseJson", "\"\"");
+            }
+
             model.addAttribute("analytics", analytics);
             model.addAttribute("categoryScores", analytics != null ? analytics.getCategoryConfidenceScores() : java.util.Collections.emptyMap());
             model.addAttribute("visualData", analytics != null ? analytics.getVisualData() : java.util.Collections.emptyMap());
+
+            // Add JSON serialized version for JavaScript consumption
+            if (analytics != null && analytics.getVisualData() != null) {
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    String visualDataJson = objectMapper.writeValueAsString(analytics.getVisualData());
+                    model.addAttribute("visualDataJson", visualDataJson);
+                    System.out.println("📊 [Chart Debug] Visual data JSON: " + visualDataJson);
+                } catch (Exception e) {
+                    System.err.println("❌ [Chart Debug] Failed to serialize visual data: " + e.getMessage());
+                    model.addAttribute("visualDataJson", "{}");
+                }
+            } else {
+                model.addAttribute("visualDataJson", "{}");
+            }
+
             model.addAttribute("searchType", !foundProducts.isEmpty() ?
                 "Integrated Search (Database)" : "Integrated Search (Dynamic LLM)");
 
@@ -1817,6 +1852,18 @@ public class BuyerController {
         }
 
         String lowerQuery = query.toLowerCase();
+
+        // Enhanced automotive detection for "car" queries
+        if (lowerQuery.contains("car") || lowerQuery.contains("auto") || lowerQuery.contains("vehicle")) {
+            // For automotive queries, only return automotive products
+            if (isAutomotiveProductForSearch(product)) {
+                return true; // Automotive product for automotive query
+            } else {
+                return false; // Non-automotive product for automotive query - filter out
+            }
+        }
+
+        // Standard matching for non-automotive queries
         return (product.getName() != null && product.getName().toLowerCase().contains(lowerQuery)) ||
                (product.getBrand() != null && product.getBrand().toLowerCase().contains(lowerQuery)) ||
                (product.getCategory() != null && product.getCategory().toLowerCase().contains(lowerQuery)) ||
@@ -2204,6 +2251,132 @@ public class BuyerController {
 
         logger.debug("❌ AUTOMOTIVE VALIDATION: '{}' contains no automotive keywords", product.getName());
         return false;
+    }
+
+    /**
+     * Check if a product is automotive-related for search filtering
+     */
+    private boolean isAutomotiveProductForSearch(Product product) {
+        String productText = ((product.getName() != null ? product.getName() : "") + " " +
+                             (product.getDescription() != null ? product.getDescription() : "") + " " +
+                             (product.getCategory() != null ? product.getCategory() : "")).toLowerCase();
+
+        String[] automotiveKeywords = {
+            "car mount", "car charger", "dashboard", "windshield", "automotive",
+            "steering wheel", "seat cover", "floor mat", "air freshener",
+            "phone mount", "cup holder", "sun visor", "car wash", "tire", "wheel",
+            "vehicle", "auto", "automotive accessory", "car care", "driving",
+            "parking", "garage", "road trip", "travel mug"
+        };
+
+        for (String keyword : automotiveKeywords) {
+            if (productText.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * AI Analytics Dashboard - Display comprehensive AI insights with graphs
+     */
+    @GetMapping("/ai-analytics")
+    public String aiAnalyticsDashboard(
+            @RequestParam(required = false, defaultValue = "electronics") String query,
+            @RequestParam(required = false) String userId,
+            Model model) {
+
+        System.out.println("🧠 [AI Analytics] Loading dashboard for query: " + query);
+
+        try {
+            // Get products for analysis
+            List<Product> products = new ArrayList<>();
+
+            // First try to get products from existing search
+            if (query != null && !query.trim().isEmpty()) {
+                products = productRepository.findAll().stream()
+                    .filter(product -> matchesSearchQuery(product, query))
+                    .limit(20)
+                    .collect(Collectors.toList());
+            }
+
+            // If no products found, get sample products for demo
+            if (products.isEmpty()) {
+                products = productRepository.findAll().stream()
+                    .limit(10)
+                    .collect(Collectors.toList());
+                System.out.println("📊 [AI Analytics] Using sample products for demo: " + products.size() + " products");
+            }
+
+            // Generate comprehensive AI insights
+            AIInsights aiInsights = advancedAIOrchestrationService.generateComprehensiveProductAnalysis(
+                query, products, userId != null ? userId : "demo_user");
+
+            // Serialize AI insights to JSON for JavaScript consumption
+            ObjectMapper objectMapper = new ObjectMapper();
+            String aiInsightsJson = objectMapper.writeValueAsString(aiInsights);
+
+            // Add data to model
+            model.addAttribute("aiInsights", aiInsights);
+            model.addAttribute("aiInsightsJson", aiInsightsJson);
+            model.addAttribute("products", products);
+            model.addAttribute("query", query);
+            model.addAttribute("productCount", products.size());
+
+            System.out.println("✅ [AI Analytics] Dashboard data prepared successfully");
+            System.out.println("📊 [AI Analytics] Graphs available: " + (aiInsights.getGraphs() != null ? aiInsights.getGraphs().size() : 0));
+            System.out.println("📈 [AI Analytics] Average AI Score: " + aiInsights.getAverageAiScore());
+
+            return "ai-insights-dashboard";
+
+        } catch (Exception e) {
+            System.err.println("❌ [AI Analytics] Dashboard failed: " + e.getMessage());
+            e.printStackTrace();
+
+            // Fallback with minimal data
+            model.addAttribute("aiInsights", null);
+            model.addAttribute("aiInsightsJson", "{}");
+            model.addAttribute("products", Collections.emptyList());
+            model.addAttribute("query", query);
+            model.addAttribute("error", "Failed to load AI analytics: " + e.getMessage());
+
+            return "ai-insights-dashboard";
+        }
+    }
+
+    /**
+     * API endpoint for AI Analytics data (for AJAX requests)
+     */
+    @GetMapping("/api/ai-analytics")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getAIAnalytics(
+            @RequestParam(required = false, defaultValue = "electronics") String query,
+            @RequestParam(required = false) String userId) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            List<Product> products = productRepository.findAll().stream()
+                .filter(product -> matchesSearchQuery(product, query))
+                .limit(20)
+                .collect(Collectors.toList());
+
+            AIInsights aiInsights = advancedAIOrchestrationService.generateComprehensiveProductAnalysis(
+                query, products, userId != null ? userId : "api_user");
+
+            response.put("success", true);
+            response.put("aiInsights", aiInsights);
+            response.put("products", products);
+            response.put("query", query);
+            response.put("timestamp", System.currentTimeMillis());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
     }
 
     // Helper classes for semantic search

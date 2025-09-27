@@ -6,6 +6,7 @@ import Footer from './Footer';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
 import { useAuth } from '../contexts/AuthContext';
+import authService from '../services/authService';
 import axios from 'axios';
 
 
@@ -105,6 +106,7 @@ const HomePage: React.FC = () => {
           setShowSignupModal(false);
           setShowLoginModal(true);
         }}
+        onSignup={authService.signup.bind(authService)}
       />
     </div>
   );

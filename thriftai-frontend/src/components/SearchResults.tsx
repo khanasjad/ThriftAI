@@ -6,6 +6,7 @@ import Footer from './Footer';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
 import { useAuth } from '../contexts/AuthContext';
+import authService from '../services/authService';
 
 
 interface Product {
@@ -224,11 +225,11 @@ const SearchResults: React.FC = () => {
                       <div className="col-md-6">
                         <p className="text-light mb-2">
                           <strong>Average AI Score:</strong>
-                          <span className="badge bg-primary ms-2">{searchResults.aiInsights.averageAiScore.toFixed(1)}/100</span>
+                          <span className="badge bg-primary ms-2">{(searchResults.aiInsights.averageAiScore || 0).toFixed(1)}/100</span>
                         </p>
                         <p className="text-light mb-2">
                           <strong>Total Potential Savings:</strong>
-                          <span className="text-success ms-2">${searchResults.aiInsights.totalSavings.toFixed(2)}</span>
+                          <span className="text-success ms-2">${(searchResults.aiInsights.totalSavings || 0).toFixed(2)}</span>
                         </p>
                         <p className="text-info mb-0">
                           <i className="fas fa-star me-1"></i>
@@ -342,7 +343,7 @@ const SearchResults: React.FC = () => {
                               <div className="position-absolute top-0 end-0 m-2">
                                 <span className={`badge ${product.aiScore >= 80 ? 'bg-success' : product.aiScore >= 60 ? 'bg-warning' : 'bg-secondary'}`}>
                                   <i className="fas fa-brain me-1"></i>
-                                  AI: {product.aiScore.toFixed(0)}
+                                  AI: {(product.aiScore || 0).toFixed(0)}
                                 </span>
                               </div>
                             )}
@@ -375,7 +376,7 @@ const SearchResults: React.FC = () => {
                                   </small>
                                   <small className="text-success ms-2">
                                     <i className="fas fa-tag me-1"></i>
-                                    Save ${product.savings.toFixed(2)} ({product.savingsPercentage?.toFixed(0)}%)
+                                    Save ${(product.savings || 0).toFixed(2)} ({(product.savingsPercentage || 0).toFixed(0)}%)
                                   </small>
                                 </div>
                               )}
@@ -388,15 +389,15 @@ const SearchResults: React.FC = () => {
                                 <div className="score-bars mt-1">
                                   <div className="score-item d-flex justify-content-between">
                                     <small>Price Match:</small>
-                                    <small>{product.scoreBreakdown.priceMatching.toFixed(0)}%</small>
+                                    <small>{(product.scoreBreakdown.priceMatching || 0).toFixed(0)}%</small>
                                   </div>
                                   <div className="score-item d-flex justify-content-between">
                                     <small>Relevance:</small>
-                                    <small>{product.scoreBreakdown.categoryRelevance.toFixed(0)}%</small>
+                                    <small>{(product.scoreBreakdown.categoryRelevance || 0).toFixed(0)}%</small>
                                   </div>
                                   <div className="score-item d-flex justify-content-between">
                                     <small>Value:</small>
-                                    <small>{product.scoreBreakdown.valueProposition.toFixed(0)}%</small>
+                                    <small>{(product.scoreBreakdown.valueProposition || 0).toFixed(0)}%</small>
                                   </div>
                                 </div>
                               </div>
@@ -455,6 +456,7 @@ const SearchResults: React.FC = () => {
           setShowSignupModal(false);
           setShowLoginModal(true);
         }}
+        onSignup={authService.signup.bind(authService)}
       />
     </div>
   );

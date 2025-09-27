@@ -16,6 +16,7 @@ interface AuthContextType {
   appUser: AppUser | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmailPassword: (email: string, password: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -90,6 +91,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithEmailPassword = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      const result = await authService.signInWithEmailPassword(email, password);
+      if (result.success) {
+        // For now, create a temporary user object for traditional login
+        // In a real app, you'd get user details from the backend response
+        const tempUser: AppUser = {
+          id: 'temp-' + Date.now(),
+          email: email,
+          firstName: 'User',
+          lastName: '',
+          userType: 'buyer',
+          firebaseUid: ''
+        };
+        setAppUser(tempUser);
+      }
+      return result;
+    } catch (error) {
+      console.error('Error signing in with email/password:', error);
+      return {
+        success: false,
+        error: 'Login failed. Please try again.'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       setLoading(true);
@@ -109,8 +139,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     appUser,
     loading,
     signInWithGoogle,
+    signInWithEmailPassword,
     signOut,
-    isAuthenticated: !!firebaseUser
+    isAuthenticated: !!firebaseUser || !!appUser
   };
 
   return (

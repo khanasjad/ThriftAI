@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Analytics Dashboard - ThriftAI</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        .analytics-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        .chart-container:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: transform 0.2s ease;
+        }
+        .metric-card:hover {
+            transform: scale(1.05);
+        }
+        .ai-score-high { background: linear-gradient(135deg, #4CAF50, #8BC34A) !important; }
+        .ai-score-medium { background: linear-gradient(135deg, #2196F3, #03A9F4) !important; }
+        .ai-score-low { background: linear-gradient(135deg, #FF9800, #FFC107) !important; }
+        .chart-title {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .chart-title i {
+            margin-right: 10px;
+            color: #667eea;
+        }
+        .insights-panel {
+            background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .product-highlight {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .score-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .score-excellent { background: #4CAF50; color: white; }
+        .score-good { background: #2196F3; color: white; }
+        .score-fair { background: #FF9800; color: white; }
+        .score-poor { background: #F44336; color: white; }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/buyers"><i class="fas fa-brain"></i> ThriftAI Analytics</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/buyers/search-page"><i class="fas fa-search"></i> Search</a>
+                <a class="nav-link" href="/buyers/cart"><i class="fas fa-shopping-cart"></i> Cart</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Analytics Header -->
+        <div class="analytics-header text-center py-4">
+            <h1><i class="fas fa-chart-line"></i> AI-Powered Product Analytics</h1>
+            <p class="mb-0">Comprehensive insights powered by Claude 3.5 Sonnet and advanced machine learning</p>
+        </div>
+
+        <!-- Key Metrics Row -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="metric-card" th:classappend="${aiInsights?.averageAiScore >= 80 ? 'ai-score-high' :
+                                      aiInsights?.averageAiScore >= 60 ? 'ai-score-medium' : 'ai-score-low'}">
+                    <h3><i class="fas fa-robot"></i></h3>
+                    <h2 th:text="${aiInsights?.averageAiScore != null ? #numbers.formatDecimal(aiInsights.averageAiScore, 0, 1) : '0.0'}">85.4</h2>
+                    <p class="mb-0">Average AI Score</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h3><i class="fas fa-star"></i></h3>
+                    <h2 th:text="${products?.size() ?: 0}">12</h2>
+                    <p class="mb-0">Products Analyzed</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h3><i class="fas fa-tags"></i></h3>
+                    <h2 th:text="${aiInsights?.environmentalImpact?.sustainabilityScore ?: 0}">78</h2>
+                    <p class="mb-0">Sustainability Score</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h3><i class="fas fa-dollar-sign"></i></h3>
+                    <h2 th:text="'$' + ${aiInsights?.environmentalImpact?.totalMoneySaved ?: 0}">$245</h2>
+                    <p class="mb-0">Total Savings</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Insights Panel -->
+        <div class="insights-panel" th:if="${aiInsights?.chatResponse}">
+            <h4><i class="fas fa-lightbulb"></i> Claude AI Insights</h4>
+            <p th:text="${aiInsights.chatResponse}">AI-generated insights about your search results...</p>
+
+            <div class="product-highlight" th:if="${aiInsights.topRecommendation}">
+                <h6><i class="fas fa-trophy"></i> Top Recommendation</h6>
+                <p th:text="${aiInsights.topRecommendation}" class="mb-0">Best product recommendation...</p>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="row">
+            <!-- AI Score Bar Chart -->
+            <div class="col-lg-6 mb-4">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-robot"></i>
+                        AI Recommendation Scores
+                    </h5>
+                    <canvas id="aiScoreChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Price vs Quality Scatter Plot -->
+            <div class="col-lg-6 mb-4">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-balance-scale"></i>
+                        Price vs Quality Analysis
+                    </h5>
+                    <canvas id="priceQualityChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Brand Points Radar Chart -->
+            <div class="col-lg-6 mb-4">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-star-half-alt"></i>
+                        Multi-Dimensional Product Comparison
+                    </h5>
+                    <canvas id="brandRadarChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Quality Metrics Pie Chart -->
+            <div class="col-lg-6 mb-4">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-award"></i>
+                        Quality Distribution
+                    </h5>
+                    <canvas id="qualityChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Savings Opportunities -->
+            <div class="col-lg-6 mb-4">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-piggy-bank"></i>
+                        Savings Opportunities
+                    </h5>
+                    <canvas id="savingsChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Category Distribution -->
+            <div class="col-lg-6 mb-4">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-layer-group"></i>
+                        Category Breakdown
+                    </h5>
+                    <canvas id="categoryChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Score Breakdown -->
+        <div class="row" th:if="${aiInsights?.products}">
+            <div class="col-12">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-list-alt"></i>
+                        Detailed Product Scoring
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>AI Score</th>
+                                    <th>Price Match</th>
+                                    <th>Quality</th>
+                                    <th>Brand Score</th>
+                                    <th>Value</th>
+                                    <th>Savings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="productAnalysis : ${aiInsights.products}">
+                                    <td>
+                                        <strong th:text="${productAnalysis.product.name}">Product Name</strong><br>
+                                        <small class="text-muted" th:text="${productAnalysis.product.brand}">Brand</small>
+                                    </td>
+                                    <td>
+                                        <span class="score-badge"
+                                              th:classappend="${productAnalysis.aiScore >= 80 ? 'score-excellent' :
+                                                              productAnalysis.aiScore >= 60 ? 'score-good' :
+                                                              productAnalysis.aiScore >= 40 ? 'score-fair' : 'score-poor'}"
+                                              th:text="${#numbers.formatDecimal(productAnalysis.aiScore, 0, 1)}">85.5</span>
+                                    </td>
+                                    <td th:text="${#numbers.formatDecimal((productAnalysis.scoreBreakdown['priceMatching'] ?: 0) * 100, 0, 1)} + '%'">75%</td>
+                                    <td th:text="${#numbers.formatDecimal((productAnalysis.scoreBreakdown['conditionMatching'] ?: 0) * 100, 0, 1)} + '%'">90%</td>
+                                    <td th:text="${#numbers.formatDecimal((productAnalysis.scoreBreakdown['brandPreference'] ?: 0) * 100, 0, 1)} + '%'">85%</td>
+                                    <td th:text="${#numbers.formatDecimal((productAnalysis.scoreBreakdown['valueProposition'] ?: 0) * 100, 0, 1)} + '%'">70%</td>
+                                    <td th:text="${productAnalysis.savingsPercentage != null ? #numbers.formatDecimal(productAnalysis.savingsPercentage, 0, 1) + '%' : 'N/A'}">25%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Matrix -->
+        <div class="row" th:if="${aiInsights?.comparisonMatrix}">
+            <div class="col-12">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-table"></i>
+                        Product Comparison Matrix
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Product</th>
+                                    <th th:each="criterion : ${aiInsights.comparisonMatrix.criteria}" th:text="${criterion}">Criterion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="product, rowStat : ${aiInsights.comparisonMatrix.products}">
+                                    <td>
+                                        <strong th:text="${product.name}">Product Name</strong>
+                                    </td>
+                                    <td th:each="value : ${aiInsights.comparisonMatrix.data[rowStat.index]}" th:text="${value}">Value</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get AI insights data from Thymeleaf
+            const aiInsights = /*[[${aiInsightsJson}]]*/ '{}';
+            console.log('AI Insights Data:', aiInsights);
+
+            if (aiInsights && aiInsights !== '{}') {
+                const insights = JSON.parse(aiInsights);
+                initializeAllCharts(insights);
+            } else {
+                console.log('No AI insights data available, showing demo charts');
+                initializeDemoCharts();
+            }
+        });
+
+        function initializeAllCharts(insights) {
+            // 1. AI Score Bar Chart
+            if (insights.graphs && insights.graphs.length > 0) {
+                const aiScoreGraph = insights.graphs.find(g => g.type === 'bar' && g.title.includes('AI'));
+                if (aiScoreGraph) {
+                    createChart('aiScoreChart', aiScoreGraph);
+                }
+
+                // 2. Price vs Quality Scatter Plot
+                const scatterGraph = insights.graphs.find(g => g.type === 'scatter');
+                if (scatterGraph) {
+                    createChart('priceQualityChart', scatterGraph);
+                }
+
+                // 3. Radar Chart
+                const radarGraph = insights.graphs.find(g => g.type === 'radar');
+                if (radarGraph) {
+                    createChart('brandRadarChart', radarGraph);
+                }
+
+                // 4. Quality Pie Chart
+                const pieGraph = insights.graphs.find(g => g.type === 'pie');
+                if (pieGraph) {
+                    createChart('qualityChart', pieGraph);
+                }
+
+                // 5. Savings Chart
+                const savingsGraph = insights.graphs.find(g => g.type === 'horizontalBar');
+                if (savingsGraph) {
+                    createChart('savingsChart', savingsGraph);
+                }
+            }
+        }
+
+        function createChart(canvasId, graphData) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            const config = {
+                type: graphData.type === 'horizontalBar' ? 'bar' : graphData.type,
+                data: graphData.data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: graphData.title || 'Chart'
+                        }
+                    }
+                }
+            };
+
+            // Add specific options for different chart types
+            if (graphData.type === 'horizontalBar') {
+                config.options.indexAxis = 'y';
+            }
+
+            if (graphData.type === 'scatter') {
+                config.options.scales = {
+                    x: { title: { display: true, text: graphData.xAxis || 'X Axis' }},
+                    y: { title: { display: true, text: graphData.yAxis || 'Y Axis' }}
+                };
+            }
+
+            new Chart(ctx, config);
+        }
+
+        function initializeDemoCharts() {
+            // Demo AI Score Chart
+            new Chart(document.getElementById('aiScoreChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Product A', 'Product B', 'Product C', 'Product D'],
+                    datasets: [{
+                        label: 'AI Score',
+                        data: [85, 78, 92, 67],
+                        backgroundColor: ['rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(255, 206, 86, 0.8)']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100 }}
+                }
+            });
+
+            // Demo Price vs Quality Scatter
+            new Chart(document.getElementById('priceQualityChart'), {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Products',
+                        data: [
+                            {x: 25, y: 85}, {x: 45, y: 78}, {x: 65, y: 92}, {x: 35, y: 67}
+                        ],
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Price ($)' }},
+                        y: { title: { display: true, text: 'Quality Score' }}
+                    }
+                }
+            });
+
+            // Demo Radar Chart
+            new Chart(document.getElementById('brandRadarChart'), {
+                type: 'radar',
+                data: {
+                    labels: ['Price Match', 'Quality', 'Brand Score', 'Value', 'Keyword Match', 'Condition'],
+                    datasets: [{
+                        label: 'Top Product',
+                        data: [85, 90, 75, 80, 95, 88],
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: { beginAtZero: true, max: 100 }
+                    }
+                }
+            });
+
+            // Demo Quality Distribution
+            new Chart(document.getElementById('qualityChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Excellent', 'Good', 'Fair', 'Poor'],
+                    datasets: [{
+                        data: [45, 35, 15, 5],
+                        backgroundColor: ['#4CAF50', '#2196F3', '#FF9800', '#F44336']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Demo Savings Chart
+            new Chart(document.getElementById('savingsChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Product A', 'Product B', 'Product C'],
+                    datasets: [{
+                        label: 'Savings %',
+                        data: [25, 40, 15],
+                        backgroundColor: 'rgba(75, 192, 192, 0.8)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y'
+                }
+            });
+
+            // Demo Category Chart
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Electronics', 'Clothing', 'Books', 'Home'],
+                    datasets: [{
+                        data: [30, 25, 20, 25],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+    </script>
+</body>
+</html>

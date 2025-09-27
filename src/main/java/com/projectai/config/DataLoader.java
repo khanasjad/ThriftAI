@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-// @Component - Disabled to prevent hardcoded data loading
+@Component // Enabled to load sample data including automotive products
 public class DataLoader implements CommandLineRunner {
 
     @Autowired
@@ -20,6 +20,9 @@ public class DataLoader implements CommandLineRunner {
         // Only load sample data if the database is empty
         if (productRepository.count() == 0) {
             loadSampleProducts();
+        } else {
+            // Always ensure automotive products exist for testing
+            loadAutomotiveProductsIfMissing();
         }
     }
 
@@ -158,6 +161,140 @@ public class DataLoader implements CommandLineRunner {
         lamp.setAvailable(true);
         productRepository.save(lamp);
 
-        System.out.println("Loaded " + productRepository.count() + " sample products into the database.");
+        // Automotive Products
+        Product carMount = new Product();
+        carMount.setId(UUID.randomUUID().toString());
+        carMount.setName("Universal Car Phone Mount");
+        carMount.setDescription("Adjustable car phone mount with dashboard suction cup. Compatible with all smartphone sizes. Perfect for GPS navigation.");
+        carMount.setPrice(15.99);
+        carMount.setOriginalPrice(29.99);
+        carMount.setCategory("Automotive");
+        carMount.setBrand("AutoTech");
+        carMount.setSize("Universal");
+        carMount.setCondition("Like New");
+        carMount.setAvailable(true);
+        productRepository.save(carMount);
+
+        Product carCharger = new Product();
+        carCharger.setId(UUID.randomUUID().toString());
+        carCharger.setName("Dual USB Car Charger");
+        carCharger.setDescription("Fast charging dual USB car charger adapter. Works with all devices. LED indicator shows charging status.");
+        carCharger.setPrice(12.50);
+        carCharger.setOriginalPrice(24.99);
+        carCharger.setCategory("Automotive");
+        carCharger.setBrand("PowerDrive");
+        carCharger.setSize("Compact");
+        carCharger.setCondition("Excellent");
+        carCharger.setAvailable(true);
+        productRepository.save(carCharger);
+
+        Product dashboardCover = new Product();
+        dashboardCover.setId(UUID.randomUUID().toString());
+        dashboardCover.setName("Dashboard Sun Cover");
+        dashboardCover.setDescription("Reflective dashboard sun cover protects your car interior from UV damage. Foldable and easy to store.");
+        dashboardCover.setPrice(18.99);
+        dashboardCover.setOriginalPrice(35.00);
+        dashboardCover.setCategory("Automotive");
+        dashboardCover.setBrand("SunShield");
+        dashboardCover.setSize("Standard");
+        dashboardCover.setCondition("Very Good");
+        dashboardCover.setAvailable(true);
+        productRepository.save(dashboardCover);
+
+        Product seatCovers = new Product();
+        seatCovers.setId(UUID.randomUUID().toString());
+        seatCovers.setName("Waterproof Car Seat Covers");
+        seatCovers.setDescription("Set of 2 waterproof car seat covers. Protects upholstery from spills and wear. Easy to install and remove.");
+        seatCovers.setPrice(35.00);
+        seatCovers.setOriginalPrice(65.00);
+        seatCovers.setCategory("Automotive");
+        seatCovers.setBrand("AutoGuard");
+        seatCovers.setSize("Universal");
+        seatCovers.setCondition("Good");
+        seatCovers.setAvailable(true);
+        productRepository.save(seatCovers);
+
+        Product airFreshener = new Product();
+        airFreshener.setId(UUID.randomUUID().toString());
+        airFreshener.setName("Car Air Freshener Set");
+        airFreshener.setDescription("Set of 5 long-lasting car air fresheners in various scents. Hanging style for rearview mirror.");
+        airFreshener.setPrice(8.99);
+        airFreshener.setOriginalPrice(15.99);
+        airFreshener.setCategory("Automotive");
+        airFreshener.setBrand("FreshRide");
+        airFreshener.setSize("Small");
+        airFreshener.setCondition("New");
+        airFreshener.setAvailable(true);
+        productRepository.save(airFreshener);
+
+        Product cupHolder = new Product();
+        cupHolder.setId(UUID.randomUUID().toString());
+        cupHolder.setName("Expandable Car Cup Holder");
+        cupHolder.setDescription("Adjustable car cup holder organizer with phone slot. Fits in most vehicle cup holders.");
+        cupHolder.setPrice(22.99);
+        cupHolder.setOriginalPrice(39.99);
+        cupHolder.setCategory("Automotive");
+        cupHolder.setBrand("OrganizeIt");
+        cupHolder.setSize("Adjustable");
+        cupHolder.setCondition("Like New");
+        cupHolder.setAvailable(true);
+        productRepository.save(cupHolder);
+
+        System.out.println("Loaded " + productRepository.count() + " sample products into the database (including automotive items).");
+    }
+
+    private void loadAutomotiveProductsIfMissing() {
+        // Check if automotive products already exist
+        long automotiveCount = productRepository.findAll().stream()
+                .filter(p -> "Automotive".equals(p.getCategory()))
+                .count();
+
+        if (automotiveCount == 0) {
+            System.out.println("No automotive products found. Adding automotive products for testing...");
+
+            // Add automotive products
+            Product carMount = new Product();
+            carMount.setId(UUID.randomUUID().toString());
+            carMount.setName("Universal Car Phone Mount");
+            carMount.setDescription("Adjustable car phone mount with dashboard suction cup. Compatible with all smartphone sizes. Perfect for GPS navigation.");
+            carMount.setPrice(15.99);
+            carMount.setOriginalPrice(29.99);
+            carMount.setCategory("Automotive");
+            carMount.setBrand("AutoTech");
+            carMount.setSize("Universal");
+            carMount.setCondition("Like New");
+            carMount.setAvailable(true);
+            productRepository.save(carMount);
+
+            Product carCharger = new Product();
+            carCharger.setId(UUID.randomUUID().toString());
+            carCharger.setName("Dual USB Car Charger");
+            carCharger.setDescription("Fast charging dual USB car charger adapter. Works with all devices. LED indicator shows charging status.");
+            carCharger.setPrice(12.50);
+            carCharger.setOriginalPrice(24.99);
+            carCharger.setCategory("Automotive");
+            carCharger.setBrand("PowerDrive");
+            carCharger.setSize("Compact");
+            carCharger.setCondition("Excellent");
+            carCharger.setAvailable(true);
+            productRepository.save(carCharger);
+
+            Product dashboardCover = new Product();
+            dashboardCover.setId(UUID.randomUUID().toString());
+            dashboardCover.setName("Dashboard Sun Cover");
+            dashboardCover.setDescription("Reflective dashboard sun cover protects your car interior from UV damage. Foldable and easy to store.");
+            dashboardCover.setPrice(18.99);
+            dashboardCover.setOriginalPrice(35.00);
+            dashboardCover.setCategory("Automotive");
+            dashboardCover.setBrand("SunShield");
+            dashboardCover.setSize("Standard");
+            dashboardCover.setCondition("Very Good");
+            dashboardCover.setAvailable(true);
+            productRepository.save(dashboardCover);
+
+            System.out.println("Added " + 3 + " automotive products. Total products: " + productRepository.count());
+        } else {
+            System.out.println("Found " + automotiveCount + " existing automotive products. No additional loading needed.");
+        }
     }
 }

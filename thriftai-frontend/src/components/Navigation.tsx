@@ -20,7 +20,6 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
     <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
       <div className="container">
         <a className="navbar-brand fw-bold" href="/">
-          <i className="fas fa-robot me-2" style={{ color: '#00d4ff' }}></i>
           <span className="text-gradient-primary fw-bold">Thrift</span>
           <span style={{ color: 'var(--text-primary)', fontWeight: 300 }}>AI</span>
         </a>
@@ -39,25 +38,58 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
 
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto">
-            <li className="nav-item">
-              <a className="nav-link" href="/sellers">
-                <i className="fas fa-store me-2"></i>Sellers
-              </a>
-            </li>
           </ul>
 
           {/* Login/Signup Buttons - shown when user is not logged in */}
           {!user && (
             <div className="navbar-nav ms-auto">
               <button
-                className="btn btn-outline-primary me-2"
+                className="btn me-2"
                 onClick={onShowLogin}
+                style={{
+                  background: 'transparent',
+                  border: '2px solid #00d4ff',
+                  color: '#00d4ff',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+                  fontWeight: 500,
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 212, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
               >
                 <i className="fas fa-sign-in-alt me-1"></i>Login
               </button>
               <button
-                className="btn btn-primary"
+                className="btn"
                 onClick={onShowSignup}
+                style={{
+                  background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                  border: 'none',
+                  color: 'white',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+                  fontWeight: 500,
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 212, 255, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
               >
                 <i className="fas fa-user-plus me-1"></i>Sign Up
               </button>

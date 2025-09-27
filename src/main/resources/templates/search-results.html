@@ -1258,7 +1258,8 @@
             }
 
             // Price Distribution Chart (existing)
-            const priceData = /*[[${visualData?.priceDistribution}]]*/ [];
+            const visualDataObj = JSON.parse(/*[(...${visualDataJson}...)]*/ '{}');
+            const priceData = visualDataObj.priceDistribution || [];
             if (priceData && priceData.length > 0) {
                 const ctx = document.getElementById('priceChart');
                 if (ctx) {
@@ -1289,7 +1290,7 @@
             }
 
             // Brand Distribution Chart (existing)
-            const brandData = /*[[${visualData?.brandDistribution}]]*/ [];
+            const brandData = visualDataObj.brandDistribution || [];
             if (brandData && brandData.length > 0) {
                 const ctx2 = document.getElementById('brandChart');
                 if (ctx2) {
@@ -1618,7 +1619,7 @@
         // Start the animation when page loads
         document.addEventListener('DOMContentLoaded', function() {
             // Get the server-side AI response
-            const serverAIResponse = /*[[${aiResponse}]]*/ '';
+            const serverAIResponse = JSON.parse(/*[(...${aiResponseJson}...)]*/ '""');
             if (serverAIResponse && serverAIResponse.trim() !== '') {
                 typeWriter(serverAIResponse, 'aiResponse', 30);
             }

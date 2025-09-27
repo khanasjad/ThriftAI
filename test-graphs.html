@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AI Analytics Graphs</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .chart-container {
+            width: 600px;
+            height: 400px;
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🧠 AI Analytics Graph Test</h1>
+
+    <div id="status" class="status">
+        <strong>Status:</strong> <span id="statusText">Testing connection...</span>
+    </div>
+
+    <div>
+        <button onclick="testGraphs()">🔄 Test AI Analytics</button>
+        <button onclick="testAPI()">📊 Test API Endpoint</button>
+    </div>
+
+    <!-- Demo Charts -->
+    <div class="chart-container">
+        <h3>📊 AI Score Bar Chart</h3>
+        <canvas id="aiScoreChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h3>💰 Price vs Quality Scatter Plot</h3>
+        <canvas id="priceQualityChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h3>⭐ Multi-Dimensional Radar Chart</h3>
+        <canvas id="radarChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h3>🏷️ Quality Distribution</h3>
+        <canvas id="qualityChart"></canvas>
+    </div>
+
+    <script>
+        function updateStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+
+            statusText.textContent = message;
+            statusDiv.className = isError ? 'status error' : 'status success';
+        }
+
+        async function testAPI() {
+            try {
+                updateStatus('Testing API endpoint...');
+
+                const response = await fetch('http://localhost:8084/buyers/api/ai-analytics?query=electronics');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+
+                if (data.success) {
+                    updateStatus(`✅ API Success! Found ${data.products?.length || 0} products with AI insights`);
+                } else {
+                    updateStatus(`⚠️ API returned error: ${data.error}`, true);
+                }
+
+            } catch (error) {
+                console.error('API Test failed:', error);
+                updateStatus(`❌ API Test failed: ${error.message}`, true);
+            }
+        }
+
+        async function testGraphs() {
+            try {
+                updateStatus('Testing graph functionality...');
+
+                // Test if we can reach the main page
+                const response = await fetch('http://localhost:8084/buyers/ai-analytics?query=test');
+
+                if (response.ok) {
+                    updateStatus('✅ AI Analytics page is accessible! Creating demo graphs...');
+                    createDemoGraphs();
+                } else {
+                    throw new Error(`Page not accessible: ${response.status}`);
+                }
+
+            } catch (error) {
+                console.error('Graph test failed:', error);
+                updateStatus(`❌ Graph test failed: ${error.message}`, true);
+
+                // Create demo graphs anyway to show functionality
+                updateStatus('⚠️ Server not accessible, showing demo graphs...', true);
+                createDemoGraphs();
+            }
+        }
+
+        function createDemoGraphs() {
+            // AI Score Bar Chart
+            new Chart(document.getElementById('aiScoreChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Product A', 'Product B', 'Product C', 'Product D'],
+                    datasets: [{
+                        label: 'AI Score',
+                        data: [85, 78, 92, 67],
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(255, 206, 86, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100 }}
+                }
+            });
+
+            // Price vs Quality Scatter
+            new Chart(document.getElementById('priceQualityChart'), {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Products',
+                        data: [
+                            {x: 25, y: 85}, {x: 45, y: 78},
+                            {x: 65, y: 92}, {x: 35, y: 67}
+                        ],
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Price ($)' }},
+                        y: { title: { display: true, text: 'Quality Score' }}
+                    }
+                }
+            });
+
+            // Radar Chart
+            new Chart(document.getElementById('radarChart'), {
+                type: 'radar',
+                data: {
+                    labels: ['Price Match', 'Quality', 'Brand Score', 'Value', 'Keywords', 'Condition'],
+                    datasets: [{
+                        label: 'Top Product',
+                        data: [85, 90, 75, 80, 95, 88],
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { r: { beginAtZero: true, max: 100 }}
+                }
+            });
+
+            // Quality Distribution
+            new Chart(document.getElementById('qualityChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Excellent', 'Good', 'Fair', 'Poor'],
+                    datasets: [{
+                        data: [45, 35, 15, 5],
+                        backgroundColor: ['#4CAF50', '#2196F3', '#FF9800', '#F44336']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            updateStatus('✅ Demo graphs created successfully! These show the types of AI analytics available.');
+        }
+
+        // Initialize demo graphs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('Ready to test AI analytics...');
+            createDemoGraphs();
+        });
+    </script>
+</body>
+</html>

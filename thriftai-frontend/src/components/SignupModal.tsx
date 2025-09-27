@@ -13,13 +13,20 @@ interface SignupData {
   agreeTerms: boolean;
 }
 
+interface SignupResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 interface SignupModalProps {
   show: boolean;
   onHide: () => void;
   onShowLogin: () => void;
+  onSignup: (formData: SignupData) => Promise<SignupResponse>;
 }
 
-const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) => {
+const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, onSignup }) => {
   const [formData, setFormData] = useState<SignupData>({
     firstName: '',
     lastName: '',
@@ -100,12 +107,18 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
   if (!show) return null;
 
   return (
-    <div className="modal fade show" style={{ display: 'block' }} tabIndex={-1}>
+    <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0, 0, 0, 0.5)' }} tabIndex={-1}>
       <div className="modal-dialog modal-lg modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title text-gradient-primary fw-bold">
-              <i className="fas fa-user-plus me-2"></i>Join ThriftAI
+            <h5 className="modal-title fw-bold" style={{
+              background: 'linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif'
+            }}>
+              <i className="fas fa-user-plus me-2" style={{ color: '#00d4ff' }}></i>Join ThriftAI
             </h5>
             <button
               type="button"
@@ -114,34 +127,6 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
             ></button>
           </div>
           <div className="modal-body pt-2">
-            {/* Account Type Selection */}
-            <div className="text-center mb-4">
-              <p className="text-light mb-3">Choose your account type:</p>
-              <div className="btn-group w-100" role="group">
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="accountType"
-                  id="buyerType"
-                  checked={formData.accountType === 'buyer'}
-                  onChange={() => handleInputChange('accountType', 'buyer')}
-                />
-                <label className="btn btn-outline-primary" htmlFor="buyerType">
-                  <i className="fas fa-shopping-cart me-2"></i>Buyer
-                </label>
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="accountType"
-                  id="sellerType"
-                  checked={formData.accountType === 'seller'}
-                  onChange={() => handleInputChange('accountType', 'seller')}
-                />
-                <label className="btn btn-outline-primary" htmlFor="sellerType">
-                  <i className="fas fa-store me-2"></i>Seller
-                </label>
-              </div>
-            </div>
 
             {error && (
               <div className="alert alert-danger" role="alert">
@@ -162,7 +147,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
                         required
                       />
-                      <label className="floating-label">First Name</label>
+                      <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>First Name</label>
                     </div>
                   </div>
                 </div>
@@ -177,7 +162,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
                         required
                       />
-                      <label className="floating-label">Last Name</label>
+                      <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Last Name</label>
                     </div>
                   </div>
                 </div>
@@ -192,7 +177,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     required
                   />
-                  <label className="floating-label">Email address</label>
+                  <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Email address</label>
                 </div>
               </div>
               <div className="mb-3">
@@ -205,7 +190,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     required
                   />
-                  <label className="floating-label">Phone number</label>
+                  <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Phone number</label>
                 </div>
               </div>
               <div className="row">
@@ -220,7 +205,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                         onChange={(e) => handleInputChange('city', e.target.value)}
                         required
                       />
-                      <label className="floating-label">City</label>
+                      <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>City</label>
                     </div>
                   </div>
                 </div>
@@ -235,7 +220,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                         onChange={(e) => handleInputChange('state', e.target.value)}
                         required
                       />
-                      <label className="floating-label">State</label>
+                      <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>State</label>
                     </div>
                   </div>
                 </div>
@@ -250,7 +235,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     required
                   />
-                  <label className="floating-label">Password</label>
+                  <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Password</label>
                 </div>
               </div>
               <div className="mb-4">
@@ -263,7 +248,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     required
                   />
-                  <label className="floating-label">Confirm Password</label>
+                  <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Confirm Password</label>
                 </div>
               </div>
               <div className="form-check mb-4">
@@ -274,15 +259,15 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
                   onChange={(e) => handleInputChange('agreeTerms', e.target.checked)}
                   required
                 />
-                <label className="form-check-label text-light">
+                <label className="form-check-label" style={{ color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
                   I agree to the{' '}
                   {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                  <a href="#" style={{ color: 'var(--accent-blue)' }}>
+                  <a href="#" style={{ color: '#00d4ff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
                     Terms of Service
                   </a>{' '}
                   and{' '}
                   {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                  <a href="#" style={{ color: 'var(--accent-blue)' }}>
+                  <a href="#" style={{ color: '#00d4ff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
                     Privacy Policy
                   </a>
                 </label>
@@ -304,11 +289,11 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
               </button>
             </form>
             <div className="text-center">
-              <span className="text-light">Already have an account? </span>
+              <span style={{ color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Already have an account? </span>
               <button
                 type="button"
                 className="btn btn-link p-0"
-                style={{ color: 'var(--accent-blue)' }}
+                style={{ color: '#00d4ff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}
                 onClick={onShowLogin}
               >
                 Sign in here
@@ -317,7 +302,6 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin }) 
           </div>
         </div>
       </div>
-      <div className="modal-backdrop fade show"></div>
     </div>
   );
 };

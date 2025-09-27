@@ -96,8 +96,8 @@ body {
 .floating-label-group input:not(:placeholder-shown) + .floating-label {
   top: -0.5rem;
   font-size: 0.8rem;
-  color: var(--accent-blue);
-  background: var(--bg-primary);
+  color: #00d4ff;
+  background: #0a0a0a;
   padding: 0 0.5rem;
 }
 

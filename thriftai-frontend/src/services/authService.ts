@@ -101,6 +101,95 @@ class AuthService {
   isAuthenticated(): boolean {
     return !!auth.currentUser;
   }
+
+  // Traditional email/password login
+  async signInWithEmailPassword(email: string, password: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const response = await fetch('http://localhost:8084/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        credentials: 'include',
+        body: new URLSearchParams({
+          email: email,
+          password: password,
+          userType: 'buyer'
+        })
+      });
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: 'Login successful!'
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Invalid email or password'
+        };
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        error: 'Login failed. Please try again.'
+      };
+    }
+  }
+
+  // Signup function for traditional email/password registration
+  async signup(formData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    city: string;
+    state: string;
+    password: string;
+    accountType: 'buyer' | 'seller';
+  }): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const endpoint = 'http://localhost:8084/auth/api/signup/buyer';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        credentials: 'include',
+        body: new URLSearchParams({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          city: formData.city,
+          state: formData.state,
+          password: formData.password
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        return {
+          success: true,
+          message: result.message || 'Account created successfully!'
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Failed to create account'
+        };
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      return {
+        success: false,
+        error: 'Network error. Please try again.'
+      };
+    }
+  }
 }
 
 export const authService = new AuthService();

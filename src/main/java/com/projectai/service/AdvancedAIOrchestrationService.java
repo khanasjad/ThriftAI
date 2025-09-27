@@ -123,13 +123,13 @@ public class AdvancedAIOrchestrationService {
 
             analysis.setScoreBreakdown(scores);
 
-            // Calculate overall AI score (weighted average)
-            double overallScore = scores.get("priceMatching") * 0.2 +
+            // Calculate overall AI score (weighted average) - convert to 0-100 scale
+            double overallScore = (scores.get("priceMatching") * 0.2 +
                                  scores.get("categoryRelevance") * 0.25 +
                                  scores.get("brandPreference") * 0.15 +
                                  scores.get("conditionMatching") * 0.15 +
                                  scores.get("valueProposition") * 0.15 +
-                                 scores.get("keywordRelevance") * 0.1;
+                                 scores.get("keywordRelevance") * 0.1) * 100.0;
 
             analysis.setAiScore(round(overallScore, 1));
 
@@ -365,9 +365,18 @@ public class AdvancedAIOrchestrationService {
         // Take top 5 products for comparison
         List<ProductAnalysis> topProducts = products.stream().limit(5).collect(Collectors.toList());
 
-        matrix.setProducts(topProducts.stream()
-                .map(ProductAnalysis::getProduct)
-                .collect(Collectors.toList()));
+        List<Map<String, Object>> productMaps = topProducts.stream()
+                .map(productAnalysis -> {
+                    Map<String, Object> productMap = new HashMap<>();
+                    Product product = productAnalysis.getProduct();
+                    productMap.put("id", product.getId());
+                    productMap.put("name", product.getName());
+                    productMap.put("price", product.getPrice());
+                    productMap.put("aiScore", productAnalysis.getAiScore());
+                    return productMap;
+                })
+                .collect(Collectors.toList());
+        matrix.setProducts(productMaps);
 
         // Create comparison criteria
         List<String> criteria = Arrays.asList(
@@ -459,23 +468,68 @@ public class AdvancedAIOrchestrationService {
         String lowerQuery = query.toLowerCase();
         String lowerCategory = product.getCategory().toLowerCase();
         String lowerName = product.getName().toLowerCase();
+        String lowerDescription = product.getDescription() != null ? product.getDescription().toLowerCase() : "";
 
         double score = 0.0;
 
-        // Direct category match
-        if (lowerCategory.contains(lowerQuery) || lowerQuery.contains(lowerCategory)) {
-            score += 0.8;
+        // Enhanced automotive detection for "car" queries
+        if (lowerQuery.contains("car") || lowerQuery.contains("auto") || lowerQuery.contains("vehicle")) {
+            if (isAutomotiveProduct(product)) {
+                score += 0.9; // High relevance for actual automotive products
+            } else if (isMobilePhoneAccessory(product)) {
+                score += 0.2; // Low relevance for phone accessories
+            } else {
+                score += 0.1; // Very low relevance for non-automotive items
+            }
+        } else {
+            // Standard category matching for non-automotive queries
+            if (lowerCategory.contains(lowerQuery) || lowerQuery.contains(lowerCategory)) {
+                score += 0.8;
+            }
         }
 
-        // Name relevance
+        // Enhanced name and description relevance
         String[] queryWords = lowerQuery.split("\\s+");
         for (String word : queryWords) {
-            if (lowerName.contains(word)) {
-                score += 0.3;
+            if (word.length() > 2) { // Skip very short words
+                if (lowerName.contains(word)) {
+                    score += 0.3;
+                }
+                if (lowerDescription.contains(word)) {
+                    score += 0.2;
+                }
             }
         }
 
         return Math.min(1.0, score);
+    }
+
+    private boolean isAutomotiveProduct(Product product) {
+        String productText = ((product.getName() != null ? product.getName() : "") + " " +
+                             (product.getDescription() != null ? product.getDescription() : "") + " " +
+                             (product.getCategory() != null ? product.getCategory() : "")).toLowerCase();
+
+        String[] automotiveKeywords = {
+            "car mount", "car charger", "dashboard", "windshield", "automotive",
+            "steering wheel", "seat cover", "floor mat", "air freshener",
+            "phone mount", "cup holder", "sun visor", "car wash", "tire", "wheel"
+        };
+
+        for (String keyword : automotiveKeywords) {
+            if (productText.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isMobilePhoneAccessory(Product product) {
+        String productText = ((product.getName() != null ? product.getName() : "") + " " +
+                             (product.getDescription() != null ? product.getDescription() : "")).toLowerCase();
+
+        return productText.contains("watch") || productText.contains("phone") ||
+               productText.contains("galaxy") || productText.contains("iphone") ||
+               productText.contains("smartphone");
     }
 
     private double calculateBrandScore(Product product) {
