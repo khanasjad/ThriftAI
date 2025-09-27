@@ -84,110 +84,303 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
     setShowDynamicContent(false);
   };
 
+  const suggestions = [
+    { text: 'Find vintage designer bags', icon: 'fas fa-handbag' },
+    { text: 'Best tech deals under $100', icon: 'fas fa-laptop' },
+    { text: 'Sustainable fashion options', icon: 'fas fa-leaf' },
+    { text: 'Rare collectibles and art', icon: 'fas fa-palette' },
+    { text: 'Home decor inspiration', icon: 'fas fa-home' }
+  ];
+
   return (
-    <main className="py-4">
-      {/* Claude-like AI Search Hero Section */}
-      <div className="claude-hero">
-        <div className="claude-search-container">
-          <h1 className="display-3 fw-light mb-4">
-            How can <span className="text-gradient-primary fw-bold">ThriftAI</span> help you today?
-          </h1>
+    <main className="hero-modern animate-fade-in">
+      <div className="hero-content">
+        {/* Modern Hero Title */}
+        <h1 className="hero-title">
+          Discover amazing finds with{' '}
+          <span className="text-gradient-primary">ThriftAI</span>
+        </h1>
 
-          <p className="lead text-muted mb-5">Ask me anything about thrift shopping, products, or deals</p>
+        <p className="hero-subtitle">
+          Your intelligent shopping companion for finding unique items, incredible deals,
+          and sustainable treasures across the thrift marketplace.
+        </p>
 
-          {/* Claude-style Input Area */}
-          <div className="claude-input-area">
+        {/* Modern Search Interface */}
+        <div className="search-container-modern animate-slide-up">
+          <div className="search-input-area">
             <textarea
-              className="form-control claude-textarea"
-              placeholder="What are you looking for? Try asking: 'Find me a vintage leather jacket under $50' or 'Show me the best tech deals this week'..."
-              rows={3}
+              className="search-textarea"
+              placeholder="What treasures are you looking for today? Try: 'Find me a vintage leather jacket under $50' or 'Show me sustainable home decor'..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={handleKeyPress}
             />
 
-            <button
-              className="claude-send-btn"
-              type="button"
-              onClick={handleSearch}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <i className="fas fa-spinner fa-spin"></i>
-              ) : (
-                <i className="fas fa-paper-plane"></i>
-              )}
-            </button>
-
-            <div className="claude-visual-search-btn" title="Search by image">
-              {isVisualLoading ? (
-                <i className="fas fa-spinner fa-spin"></i>
-              ) : (
-                <i className="fas fa-camera"></i>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
+            <div className="search-button-container">
+              <button
+                className="search-btn-modern search-btn-secondary"
+                type="button"
+                onClick={() => document.getElementById('visual-search-input')?.click()}
                 disabled={isVisualLoading}
-              />
+                title="Search by image"
+                style={{ position: 'relative', overflow: 'hidden' }}
+              >
+                {isVisualLoading ? (
+                  <i className="fas fa-spinner fa-spin"></i>
+                ) : (
+                  <i className="fas fa-camera"></i>
+                )}
+                <input
+                  id="visual-search-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isVisualLoading}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+              </button>
+
+              <button
+                className="search-btn-modern search-btn-primary"
+                type="button"
+                onClick={handleSearch}
+                disabled={isLoading}
+                title="Search"
+              >
+                {isLoading ? (
+                  <i className="fas fa-spinner fa-spin"></i>
+                ) : (
+                  <i className="fas fa-arrow-right"></i>
+                )}
+              </button>
             </div>
           </div>
 
-          {/* Quick Suggestions */}
-          <div className="claude-suggestions">
-            <span className="claude-suggestion" onClick={() => askClaude('Find me vintage designer items')}>
-              Vintage designer items
-            </span>
-            <span className="claude-suggestion" onClick={() => askClaude('Best deals under $25')}>
-              Best deals under $25
-            </span>
-            <span className="claude-suggestion" onClick={() => askClaude('Sustainable fashion options')}>
-              Sustainable fashion
-            </span>
-            <span className="claude-suggestion" onClick={() => askClaude('Electronics and gadgets')}>
-              Electronics & gadgets
-            </span>
-            <span className="claude-suggestion" onClick={() => askClaude('Help me find a gift')}>
-              Help me find a gift
-            </span>
+          {/* Modern Suggestions */}
+          <div className="suggestions-container">
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                className="suggestion-chip"
+                onClick={() => askClaude(suggestion.text)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  border: 'none'
+                }}
+              >
+                <i className={suggestion.icon} style={{ fontSize: 'var(--text-xs)' }}></i>
+                {suggestion.text}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Advanced Search Options */}
-          <div className="advanced-search-section mt-4">
-            <div className="row g-3">
-              <div className="col-md-3">
-                <button className="btn btn-outline-light w-100" onClick={openAdvancedFilters}>
-                  <i className="fas fa-filter me-2"></i>Advanced Filters
-                </button>
+        {/* Modern Feature Grid */}
+        <div className="container mt-5">
+          <div className="row g-4 justify-content-center">
+            <div className="col-lg-3 col-md-6">
+              <div
+                className="card-modern text-center animate-scale-in"
+                onClick={openAdvancedFilters}
+                style={{ cursor: 'pointer', animationDelay: '0.1s' }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: 'var(--radius-xl)',
+                    background: 'var(--accent-gradient)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto var(--space-4)',
+                    fontSize: 'var(--text-xl)',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <i className="fas fa-sliders-h"></i>
+                </div>
+                <h3
+                  style={{
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: 'var(--font-semibold)',
+                    color: 'var(--text-primary)',
+                    marginBottom: 'var(--space-2)'
+                  }}
+                >
+                  Smart Filters
+                </h3>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                    margin: 0
+                  }}
+                >
+                  Advanced filtering with AI-powered recommendations based on your style and budget
+                </p>
               </div>
-              <div className="col-md-3">
-                <button className="btn btn-outline-light w-100" onClick={showRecommendations}>
-                  <i className="fas fa-star me-2"></i>Get Recommendations
-                </button>
+            </div>
+
+            <div className="col-lg-3 col-md-6">
+              <div
+                className="card-modern text-center animate-scale-in"
+                onClick={showRecommendations}
+                style={{ cursor: 'pointer', animationDelay: '0.2s' }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: 'var(--radius-xl)',
+                    background: 'var(--accent-gradient)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto var(--space-4)',
+                    fontSize: 'var(--text-xl)',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <i className="fas fa-magic"></i>
+                </div>
+                <h3
+                  style={{
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: 'var(--font-semibold)',
+                    color: 'var(--text-primary)',
+                    marginBottom: 'var(--space-2)'
+                  }}
+                >
+                  Personal Curator
+                </h3>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                    margin: 0
+                  }}
+                >
+                  Get personalized recommendations tailored to your taste and shopping history
+                </p>
               </div>
-              <div className="col-md-3">
-                <button className="btn btn-outline-light w-100" onClick={showTrending}>
-                  <i className="fas fa-fire me-2"></i>Trending Now
-                </button>
+            </div>
+
+            <div className="col-lg-3 col-md-6">
+              <div
+                className="card-modern text-center animate-scale-in"
+                onClick={showTrending}
+                style={{ cursor: 'pointer', animationDelay: '0.3s' }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: 'var(--radius-xl)',
+                    background: 'var(--accent-gradient)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto var(--space-4)',
+                    fontSize: 'var(--text-xl)',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <i className="fas fa-fire"></i>
+                </div>
+                <h3
+                  style={{
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: 'var(--font-semibold)',
+                    color: 'var(--text-primary)',
+                    marginBottom: 'var(--space-2)'
+                  }}
+                >
+                  Trending Finds
+                </h3>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                    margin: 0
+                  }}
+                >
+                  Discover what's hot right now and find trending items before they're gone
+                </p>
               </div>
-              <div className="col-md-3">
-                <button className="btn btn-outline-light w-100" onClick={showPriceComparison}>
-                  <i className="fas fa-chart-line me-2"></i>Price Insights
-                </button>
+            </div>
+
+            <div className="col-lg-3 col-md-6">
+              <div
+                className="card-modern text-center animate-scale-in"
+                onClick={showPriceComparison}
+                style={{ cursor: 'pointer', animationDelay: '0.4s' }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: 'var(--radius-xl)',
+                    background: 'var(--accent-gradient)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto var(--space-4)',
+                    fontSize: 'var(--text-xl)',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <i className="fas fa-chart-line"></i>
+                </div>
+                <h3
+                  style={{
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: 'var(--font-semibold)',
+                    color: 'var(--text-primary)',
+                    marginBottom: 'var(--space-2)'
+                  }}
+                >
+                  Price Intelligence
+                </h3>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                    margin: 0
+                  }}
+                >
+                  Compare prices across platforms and get alerts for the best deals and savings
+                </p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Dynamic Content Area */}
-          {showDynamicContent && (
+        {/* Dynamic Content Area */}
+        {showDynamicContent && (
+          <div className="mt-5 animate-slide-up">
             <DynamicContent
               type={dynamicContentType}
               onHide={hideDynamicContent}
               onSearch={askClaude}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </main>
   );

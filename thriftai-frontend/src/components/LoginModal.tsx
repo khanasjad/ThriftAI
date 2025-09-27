@@ -71,18 +71,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
   if (!show) return null;
 
   return (
-    <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0, 0, 0, 0.5)' }} tabIndex={-1}>
+    <div className="modal-modern" tabIndex={-1}>
       <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content">
-          <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title fw-bold" style={{
-              background: 'linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif'
-            }}>
-              <i className="fas fa-sign-in-alt me-2" style={{ color: '#00d4ff' }}></i>Welcome Back
+        <div className="modal-content-modern">
+          <div className="modal-header-modern">
+            <h5 className="modal-title-modern text-gradient-primary">
+              <i className="fas fa-sign-in-alt me-2" style={{ color: 'var(--accent-primary)' }}></i>
+              Welcome Back
             </h5>
             <button
               type="button"
@@ -90,7 +85,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
               onClick={handleHide}
             ></button>
           </div>
-          <div className="modal-body pt-2">
+          <div className="modal-body-modern">
             {error && (
               <div className="alert alert-danger" role="alert">
                 {error}
@@ -98,19 +93,20 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
             )}
 
             <p className="mb-4 text-center" style={{
-              color: '#b8b8b8',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif'
+              color: 'var(--text-secondary)',
+              fontSize: 'var(--text-base)',
+              lineHeight: 1.6
             }}>
               Sign in to access personalized recommendations and save your favorite finds!
             </p>
 
             {/* Email/Password Login Form */}
             <form onSubmit={handleEmailLogin}>
-              <div className="mb-3">
-                <label className="form-label" style={{ color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif', fontWeight: 500 }}>Email address</label>
+              <div className="form-group-modern">
+                <label className="form-label-modern">Email address</label>
                 <input
                   type="email"
-                  className="form-control glass-input"
+                  className="input-modern"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -118,11 +114,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
                   autoFocus
                 />
               </div>
-              <div className="mb-3">
-                <label className="form-label" style={{ color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif', fontWeight: 500 }}>Password</label>
+              <div className="form-group-modern">
+                <label className="form-label-modern">Password</label>
                 <input
                   type="password"
-                  className="form-control glass-input"
+                  className="input-modern"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -138,8 +134,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
               </div>
               <button
                 type="submit"
-                className="btn btn-gradient-primary w-100 mb-3"
+                className="btn-modern-primary w-100 mb-3"
                 disabled={isLoading}
+style={{ width: '100%', marginBottom: '16px' }}
               >
                 {isLoading ? (
                   <>
@@ -165,9 +162,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
             {/* Google Login Button */}
             <button
               type="button"
-              className="btn btn-outline-light w-100 d-flex align-items-center justify-content-center mb-4"
+              className="btn-modern-secondary w-100 d-flex align-items-center justify-content-center mb-4"
               onClick={handleGoogleSignIn}
               disabled={isGoogleLoading}
+style={{ width: '100%', justifyContent: 'center', marginBottom: '24px' }}
             >
               {isGoogleLoading ? (
                 <>

@@ -107,18 +107,13 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, on
   if (!show) return null;
 
   return (
-    <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0, 0, 0, 0.5)' }} tabIndex={-1}>
+    <div className="modal-modern" tabIndex={-1}>
       <div className="modal-dialog modal-lg modal-dialog-centered">
-        <div className="modal-content">
-          <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title fw-bold" style={{
-              background: 'linear-gradient(135deg, #00d4ff 0%, #ffffff 50%, #00d4ff 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif'
-            }}>
-              <i className="fas fa-user-plus me-2" style={{ color: '#00d4ff' }}></i>Join ThriftAI
+        <div className="modal-content-modern">
+          <div className="modal-header-modern">
+            <h5 className="modal-title-modern text-gradient-primary">
+              <i className="fas fa-user-plus me-2" style={{ color: '#10b981' }}></i>
+              Join ThriftAI
             </h5>
             <button
               type="button"
@@ -126,7 +121,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, on
               onClick={handleHide}
             ></button>
           </div>
-          <div className="modal-body pt-2">
+          <div className="modal-body-modern">
 
             {error && (
               <div className="alert alert-danger" role="alert">
@@ -137,119 +132,103 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, on
             <form onSubmit={handleSubmit}>
               <div className="row">
                 <div className="col-md-6">
-                  <div className="mb-3">
-                    <div className="floating-label-group">
-                      <input
-                        type="text"
-                        className="form-control glass-input"
-                        placeholder=" "
-                        value={formData.firstName}
-                        onChange={(e) => handleInputChange('firstName', e.target.value)}
-                        required
-                      />
-                      <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>First Name</label>
-                    </div>
+                  <div className="form-group-modern">
+                    <label className="form-label-modern">First Name</label>
+                    <input
+                      type="text"
+                      className="input-modern"
+                      placeholder="Enter your first name"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
                 <div className="col-md-6">
-                  <div className="mb-3">
-                    <div className="floating-label-group">
-                      <input
-                        type="text"
-                        className="form-control glass-input"
-                        placeholder=" "
-                        value={formData.lastName}
-                        onChange={(e) => handleInputChange('lastName', e.target.value)}
-                        required
-                      />
-                      <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Last Name</label>
-                    </div>
+                  <div className="form-group-modern">
+                    <label className="form-label-modern">Last Name</label>
+                    <input
+                      type="text"
+                      className="input-modern"
+                      placeholder="Enter your last name"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
               </div>
-              <div className="mb-3">
-                <div className="floating-label-group">
-                  <input
-                    type="email"
-                    className="form-control glass-input"
-                    placeholder=" "
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    required
-                  />
-                  <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Email address</label>
-                </div>
+              <div className="form-group-modern">
+                <label className="form-label-modern">Email Address</label>
+                <input
+                  type="email"
+                  className="input-modern"
+                  placeholder="Enter your email address"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                />
               </div>
-              <div className="mb-3">
-                <div className="floating-label-group">
-                  <input
-                    type="tel"
-                    className="form-control glass-input"
-                    placeholder=" "
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    required
-                  />
-                  <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Phone number</label>
-                </div>
+              <div className="form-group-modern">
+                <label className="form-label-modern">Phone Number</label>
+                <input
+                  type="tel"
+                  className="input-modern"
+                  placeholder="Enter your phone number"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  required
+                />
               </div>
               <div className="row">
                 <div className="col-md-6">
-                  <div className="mb-3">
-                    <div className="floating-label-group">
-                      <input
-                        type="text"
-                        className="form-control glass-input"
-                        placeholder=" "
-                        value={formData.city}
-                        onChange={(e) => handleInputChange('city', e.target.value)}
-                        required
-                      />
-                      <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>City</label>
-                    </div>
+                  <div className="form-group-modern">
+                    <label className="form-label-modern">City</label>
+                    <input
+                      type="text"
+                      className="input-modern"
+                      placeholder="Enter your city"
+                      value={formData.city}
+                      onChange={(e) => handleInputChange('city', e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
                 <div className="col-md-6">
-                  <div className="mb-3">
-                    <div className="floating-label-group">
-                      <input
-                        type="text"
-                        className="form-control glass-input"
-                        placeholder=" "
-                        value={formData.state}
-                        onChange={(e) => handleInputChange('state', e.target.value)}
-                        required
-                      />
-                      <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>State</label>
-                    </div>
+                  <div className="form-group-modern">
+                    <label className="form-label-modern">State</label>
+                    <input
+                      type="text"
+                      className="input-modern"
+                      placeholder="Enter your state"
+                      value={formData.state}
+                      onChange={(e) => handleInputChange('state', e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
               </div>
-              <div className="mb-3">
-                <div className="floating-label-group">
-                  <input
-                    type="password"
-                    className="form-control glass-input"
-                    placeholder=" "
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    required
-                  />
-                  <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Password</label>
-                </div>
+              <div className="form-group-modern">
+                <label className="form-label-modern">Password</label>
+                <input
+                  type="password"
+                  className="input-modern"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  required
+                />
               </div>
-              <div className="mb-4">
-                <div className="floating-label-group">
-                  <input
-                    type="password"
-                    className="form-control glass-input"
-                    placeholder=" "
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    required
-                  />
-                  <label className="floating-label" style={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Confirm Password</label>
-                </div>
+              <div className="form-group-modern">
+                <label className="form-label-modern">Confirm Password</label>
+                <input
+                  type="password"
+                  className="input-modern"
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  required
+                />
               </div>
               <div className="form-check mb-4">
                 <input
@@ -259,23 +238,24 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, on
                   onChange={(e) => handleInputChange('agreeTerms', e.target.checked)}
                   required
                 />
-                <label className="form-check-label" style={{ color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
+                <label className="form-check-label" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-family-primary)' }}>
                   I agree to the{' '}
                   {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                  <a href="#" style={{ color: '#00d4ff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
+                  <a href="#" style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-family-primary)', textDecoration: 'none' }}>
                     Terms of Service
                   </a>{' '}
                   and{' '}
                   {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                  <a href="#" style={{ color: '#00d4ff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
+                  <a href="#" style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-family-primary)', textDecoration: 'none' }}>
                     Privacy Policy
                   </a>
                 </label>
               </div>
               <button
                 type="submit"
-                className="btn btn-gradient-primary w-100 mb-3"
+                className="btn-modern-primary w-100 mb-3"
                 disabled={isLoading}
+style={{ width: '100%', marginBottom: '16px' }}
               >
                 {isLoading ? (
                   <>
@@ -289,11 +269,18 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, on
               </button>
             </form>
             <div className="text-center">
-              <span style={{ color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Already have an account? </span>
+              <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-family-primary)' }}>Already have an account? </span>
               <button
                 type="button"
                 className="btn btn-link p-0"
-                style={{ color: '#00d4ff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}
+                style={{
+                  color: 'var(--accent-primary)',
+                  fontFamily: 'var(--font-family-primary)',
+                  textDecoration: 'none',
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0
+                }}
                 onClick={onShowLogin}
               >
                 Sign in here
