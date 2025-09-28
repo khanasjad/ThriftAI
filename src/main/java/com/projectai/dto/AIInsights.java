@@ -18,6 +18,7 @@ public class AIInsights {
     private String topRecommendation;
     private String chatResponse;
     private String recommendationReason;
+    private Map<String, Object> pythonGraphsData;
 
     public AIInsights() {}
 
@@ -131,5 +132,13 @@ public class AIInsights {
 
     public void setRecommendationReason(String recommendationReason) {
         this.recommendationReason = recommendationReason;
+    }
+
+    public Map<String, Object> getPythonGraphsData() {
+        return pythonGraphsData;
+    }
+
+    public void setPythonGraphsData(Map<String, Object> pythonGraphsData) {
+        this.pythonGraphsData = pythonGraphsData;
     }
 }

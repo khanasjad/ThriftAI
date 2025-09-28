@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,8 +33,13 @@ import java.io.IOException;
 @Service
 public class AdvancedAIOrchestrationService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AdvancedAIOrchestrationService.class);
+
     @Autowired
     private ClaudeService claudeService;
+
+    @Autowired(required = false)
+    private LangChainIntegrationService langChainService;
 
     @Value("${claude.api.key:}")
     private String claudeApiKey;
@@ -43,6 +50,15 @@ public class AdvancedAIOrchestrationService {
     @Value("${claude.api.model:claude-3-5-sonnet-20241022}")
     private String claudeModel;
 
+    @Value("${ai.service.enabled:true}")
+    private boolean langChainEnabled;
+
+    @Value("${python.ai.service.url:http://localhost:8082}")
+    private String pythonAIServiceUrl;
+
+    @Value("${python.ai.service.enabled:true}")
+    private boolean pythonAIServiceEnabled;
+
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -51,6 +67,28 @@ public class AdvancedAIOrchestrationService {
      * This is the main entry point for the "white shirt" example
      */
     public AIInsights generateComprehensiveProductAnalysis(String query, List<Product> products, String userProfile) {
+        // 🚀 Try Python AI Service with LangChain + Claude 3.5 Sonnet first
+        if (pythonAIServiceEnabled && isPythonAIServiceHealthy()) {
+            try {
+                logger.info("🐍 Using Python AI Service with LangChain + Claude 3.5 Sonnet integration");
+                return callPythonAIService(query, products, userProfile);
+            } catch (Exception e) {
+                logger.warn("❌ Python AI Service failed, falling back to Java LangChain: {}", e.getMessage());
+            }
+        }
+
+        // 🔄 Try LangChain enhanced analysis second
+        if (langChainEnabled && langChainService != null && langChainService.isAIServiceHealthy()) {
+            try {
+                logger.info("🤖 Using Java LangChain enhanced AI analysis");
+                return langChainService.generateEnhancedProductAnalysis(query, products, userProfile);
+            } catch (Exception e) {
+                logger.warn("❌ LangChain analysis failed, falling back to traditional analysis: {}", e.getMessage());
+            }
+        }
+
+        // 🔄 Fallback to traditional analysis
+        logger.info("Using traditional AI analysis");
         AIInsights insights = new AIInsights();
 
         try {
@@ -481,14 +519,36 @@ public class AdvancedAIOrchestrationService {
             } else {
                 score += 0.1; // Very low relevance for non-automotive items
             }
-        } else {
-            // Standard category matching for non-automotive queries
+        }
+        // Enhanced bag/purse detection
+        else if (lowerQuery.contains("bag") || lowerQuery.contains("purse") || lowerQuery.contains("handbag") ||
+                 lowerQuery.contains("tote") || lowerQuery.contains("clutch") || lowerQuery.contains("backpack")) {
+            if (isBagProduct(product)) {
+                score += 0.9; // High relevance for actual bag products
+            } else if (lowerCategory.contains("clothing") || lowerName.contains("jean") || lowerName.contains("shirt") ||
+                      lowerName.contains("dress") || lowerName.contains("pant")) {
+                score += 0.1; // Very low relevance for clothing items when searching for bags
+            } else {
+                score += 0.3; // Medium relevance for other items
+            }
+        }
+        // Enhanced clothing detection
+        else if (lowerQuery.contains("jean") || lowerQuery.contains("shirt") || lowerQuery.contains("dress") ||
+                 lowerQuery.contains("clothing") || lowerQuery.contains("apparel")) {
+            if (isClothingProduct(product)) {
+                score += 0.9; // High relevance for actual clothing products
+            } else {
+                score += 0.2; // Low relevance for non-clothing items
+            }
+        }
+        else {
+            // Standard category matching for other queries
             if (lowerCategory.contains(lowerQuery) || lowerQuery.contains(lowerCategory)) {
                 score += 0.8;
             }
         }
 
-        // Enhanced name and description relevance
+        // Enhanced name and description relevance with stricter matching for specific categories
         String[] queryWords = lowerQuery.split("\\s+");
         for (String word : queryWords) {
             if (word.length() > 2) { // Skip very short words
@@ -530,6 +590,44 @@ public class AdvancedAIOrchestrationService {
         return productText.contains("watch") || productText.contains("phone") ||
                productText.contains("galaxy") || productText.contains("iphone") ||
                productText.contains("smartphone");
+    }
+
+    private boolean isBagProduct(Product product) {
+        String productText = ((product.getName() != null ? product.getName() : "") + " " +
+                             (product.getDescription() != null ? product.getDescription() : "") + " " +
+                             (product.getCategory() != null ? product.getCategory() : "")).toLowerCase();
+
+        String[] bagKeywords = {
+            "bag", "purse", "handbag", "tote", "clutch", "backpack", "satchel",
+            "messenger", "crossbody", "shoulder bag", "evening bag", "wallet",
+            "briefcase", "duffel", "sling bag", "bucket bag", "hobo bag"
+        };
+
+        for (String keyword : bagKeywords) {
+            if (productText.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isClothingProduct(Product product) {
+        String productText = ((product.getName() != null ? product.getName() : "") + " " +
+                             (product.getDescription() != null ? product.getDescription() : "") + " " +
+                             (product.getCategory() != null ? product.getCategory() : "")).toLowerCase();
+
+        String[] clothingKeywords = {
+            "jean", "jeans", "shirt", "dress", "pant", "pants", "top", "blouse",
+            "sweater", "jacket", "coat", "skirt", "shorts", "t-shirt", "hoodie",
+            "cardigan", "blazer", "vest", "clothing", "apparel"
+        };
+
+        for (String keyword : clothingKeywords) {
+            if (productText.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private double calculateBrandScore(Product product) {
@@ -668,11 +766,18 @@ public class AdvancedAIOrchestrationService {
     private String findTopRecommendation(List<ProductAnalysis> products) {
         if (products.isEmpty()) return "No products available";
 
-        ProductAnalysis top = products.get(0);
+        // Find the product with the highest category relevance AND high AI score
+        ProductAnalysis bestMatch = products.stream()
+            .filter(p -> p.getScoreBreakdown() != null &&
+                        p.getScoreBreakdown().get("categoryRelevance") != null &&
+                        p.getScoreBreakdown().get("categoryRelevance") >= 0.6) // Must have good relevance
+            .findFirst() // Already sorted by AI score, so first with good relevance is best
+            .orElse(products.get(0)); // Fallback to highest AI score if none have good relevance
+
         return String.format("%s by %s (AI Score: %.1f)",
-            top.getProduct().getName(),
-            top.getProduct().getBrand(),
-            top.getAiScore());
+            bestMatch.getProduct().getName(),
+            bestMatch.getProduct().getBrand(),
+            bestMatch.getAiScore());
     }
 
     private String generateSearchSummary(String query, List<Product> products) {
@@ -818,5 +923,187 @@ public class AdvancedAIOrchestrationService {
             products.size(), query, top.getProduct().getName(), top.getProduct().getBrand(),
             top.getProduct().getPrice(),
             top.getSavingsPercentage() > 0 ? String.format("Save %.1f%%! 💰", top.getSavingsPercentage()) : "Great value! ✨");
+    }
+
+    /**
+     * Check if Python AI Service is healthy and available
+     */
+    private boolean isPythonAIServiceHealthy() {
+        try {
+            String healthUrl = pythonAIServiceUrl + "/health";
+            ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            logger.debug("Python AI Service health check failed: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Call Python AI Service for LangChain + Claude 3.5 Sonnet analysis
+     */
+    private AIInsights callPythonAIService(String query, List<Product> products, String userProfile) throws Exception {
+        try {
+            // Prepare request data for Python AI service
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("query", query);
+            requestBody.put("user_id", userProfile != null ? userProfile : "anonymous");
+
+            // Transform Java Product objects to Python API format
+            List<Map<String, Object>> pythonProducts = products.stream()
+                .map(this::transformProductToPythonFormat)
+                .collect(Collectors.toList());
+            requestBody.put("products", pythonProducts);
+
+            // Optional analysis options
+            Map<String, Object> analysisOptions = new HashMap<>();
+            analysisOptions.put("enable_graphs", true);
+            analysisOptions.put("enable_chat_response", true);
+            analysisOptions.put("max_products", Math.min(products.size(), 20)); // Limit for performance
+            requestBody.put("analysis_options", analysisOptions);
+
+            // Set up HTTP headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            // Call Python AI service
+            String analyzeUrl = pythonAIServiceUrl + "/analyze-products";
+            logger.info("🐍 Calling Python AI Service at: {}", analyzeUrl);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                analyzeUrl,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+
+            // Parse response
+            JsonNode pythonResponse = objectMapper.readTree(response.getBody());
+
+            // Transform Python response to AIInsights
+            return transformPythonResponseToAIInsights(pythonResponse, products);
+
+        } catch (Exception e) {
+            logger.error("❌ Failed to call Python AI Service: {}", e.getMessage());
+            throw new RuntimeException("Python AI Service call failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Transform Java Product object to Python AI service format
+     */
+    private Map<String, Object> transformProductToPythonFormat(Product product) {
+        Map<String, Object> pythonProduct = new HashMap<>();
+        pythonProduct.put("id", product.getId() != null ? product.getId().toString() : "unknown");
+        pythonProduct.put("name", product.getName() != null ? product.getName() : "");
+        pythonProduct.put("description", product.getDescription() != null ? product.getDescription() : "");
+        pythonProduct.put("price", product.getPrice());
+        pythonProduct.put("original_price", product.getOriginalPrice() > 0 ? product.getOriginalPrice() : null);
+        pythonProduct.put("category", product.getCategory() != null ? product.getCategory() : "");
+        pythonProduct.put("brand", product.getBrand() != null ? product.getBrand() : "");
+        pythonProduct.put("condition", product.getCondition() != null ? product.getCondition() : "");
+        return pythonProduct;
+    }
+
+    /**
+     * Transform Python AI service response to AIInsights
+     */
+    private AIInsights transformPythonResponseToAIInsights(JsonNode pythonResponse, List<Product> originalProducts) {
+        AIInsights insights = new AIInsights();
+
+        try {
+            // Extract AI insights from Python response
+            if (pythonResponse.has("aiInsights")) {
+                JsonNode aiInsights = pythonResponse.get("aiInsights");
+
+                insights.setUserIntent(getJsonText(aiInsights, "userIntent", "User search intent"));
+                insights.setSearchSummary(getJsonText(aiInsights, "searchSummary", "Search analysis"));
+                insights.setAverageAiScore(getJsonDouble(aiInsights, "averageAiScore", 75.0));
+                insights.setTopRecommendation(getJsonText(aiInsights, "topRecommendation", "Top product"));
+                insights.setChatResponse(getJsonText(aiInsights, "chatResponse", "AI analysis complete"));
+            }
+
+            // Extract enhanced products with AI scores
+            if (pythonResponse.has("products")) {
+                JsonNode products = pythonResponse.get("products");
+                List<ProductAnalysis> productAnalyses = new ArrayList<>();
+
+                for (int i = 0; i < products.size() && i < originalProducts.size(); i++) {
+                    JsonNode productNode = products.get(i);
+                    Product originalProduct = originalProducts.get(i);
+
+                    ProductAnalysis analysis = new ProductAnalysis();
+                    analysis.setProduct(originalProduct);
+                    analysis.setAiScore(getJsonDouble(productNode, "ai_score", 75.0));
+
+                    // Set savings if available
+                    if (originalProduct.getOriginalPrice() > 0) {
+                        double savings = originalProduct.getOriginalPrice() - originalProduct.getPrice();
+                        analysis.setSavings(round(savings, 2));
+                        analysis.setSavingsPercentage(round((savings / originalProduct.getOriginalPrice()) * 100, 1));
+                    }
+
+                    productAnalyses.add(analysis);
+                }
+
+                insights.setProducts(productAnalyses);
+            }
+
+            // Extract graphs data - this is the key enhancement!
+            if (pythonResponse.has("graphs")) {
+                JsonNode graphs = pythonResponse.get("graphs");
+                insights.setGraphs(transformPythonGraphsToJavaFormat(graphs));
+                // Store graphs in a format that can be passed directly to the response
+                insights.setPythonGraphsData(objectMapper.convertValue(graphs, Map.class));
+            }
+
+            // Extract environmental impact
+            if (pythonResponse.has("graphs") && pythonResponse.get("graphs").has("sustainabilityImpact")) {
+                JsonNode sustainability = pythonResponse.get("graphs").get("sustainabilityImpact");
+                Map<String, Object> envImpact = new HashMap<>();
+                envImpact.put("totalMoneySaved", getJsonDouble(sustainability, "totalMoneySaved", 0.0));
+                envImpact.put("co2SavedKg", getJsonDouble(sustainability, "estimatedCO2Saved", 0.0));
+                envImpact.put("waterSavedGallons", getJsonDouble(sustainability, "wasteReduced", 0.0));
+                envImpact.put("itemsRescued", getJsonInt(sustainability, "totalItemsRescued", originalProducts.size()));
+                envImpact.put("sustainabilityScore", getJsonInt(sustainability, "sustainabilityScore", 80));
+                insights.setEnvironmentalImpact(envImpact);
+            }
+
+            logger.info("✅ Successfully transformed Python AI response to AIInsights");
+            return insights;
+
+        } catch (Exception e) {
+            logger.error("❌ Error transforming Python response: {}", e.getMessage());
+            throw new RuntimeException("Failed to transform Python AI response", e);
+        }
+    }
+
+    /**
+     * Transform Python graphs format to Java format expected by React frontend
+     */
+    private List<GraphData> transformPythonGraphsToJavaFormat(JsonNode graphs) {
+        List<GraphData> graphList = new ArrayList<>();
+
+        // Note: The Python service already generates the exact format needed by React
+        // We just need to pass it through in the response structure React expects
+
+        // The actual graph data will be passed directly in the response
+        // This method ensures compatibility if needed in the future
+
+        return graphList; // Return empty list as graphs are handled directly in response
+    }
+
+    // Utility methods for safe JSON parsing
+    private String getJsonText(JsonNode node, String fieldName, String defaultValue) {
+        return node.has(fieldName) ? node.get(fieldName).asText() : defaultValue;
+    }
+
+    private double getJsonDouble(JsonNode node, String fieldName, double defaultValue) {
+        return node.has(fieldName) ? node.get(fieldName).asDouble() : defaultValue;
+    }
+
+    private int getJsonInt(JsonNode node, String fieldName, int defaultValue) {
+        return node.has(fieldName) ? node.get(fieldName).asInt() : defaultValue;
     }
 }

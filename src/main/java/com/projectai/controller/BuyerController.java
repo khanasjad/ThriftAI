@@ -461,7 +461,7 @@ public class BuyerController {
         String userId = request.getOrDefault("userId", "anonymous");
 
         try {
-            // 🚀 INTELLIGENT SEARCH with Claude AI - Semantic Understanding & Context Awareness
+            // Premium product discovery system
             List<Product> products;
             if (query == null || query.trim().isEmpty()) {
                 // If no query, get all available products
@@ -472,15 +472,14 @@ public class BuyerController {
 
                 logger.info("📋 Empty query - returning {} random products", products.size());
             } else {
-                // 🚀 INTELLIGENT SEMANTIC SEARCH FOR ALL QUERIES
-                // Use our enhanced semantic search system for all queries
-                logger.info("🚀 INTELLIGENT SEARCH: Starting semantic analysis for query: '{}'", query);
+                // Premium search system for all queries
+                logger.info("🌟 Starting personalized search for query: '{}'", query);
 
                 products = performIntelligentSemanticSearch(query, userId);
-                logger.info("🎯 Intelligent semantic search completed: {} contextually relevant products found", products.size());
+                logger.info("✨ Curated search completed: {} premium products found", products.size());
             }
 
-            // 🚀 ADVANCED AI ORCHESTRATION LAYER - Claude 3.5 Sonnet Intelligence
+            // Premium product analysis system
             AIInsights aiInsights = advancedAIOrchestrationService.generateComprehensiveProductAnalysis(
                 query != null ? query : "", products, userId);
 
@@ -494,7 +493,13 @@ public class BuyerController {
             // Advanced AI Insights with graphs and comprehensive analysis
             response.put("aiInsights", aiInsights);
 
-            response.put("message", "🚀 Advanced AI Analysis: Claude 3.5 Sonnet analyzed " + products.size() + " products for '" + query + "' with comprehensive insights, dynamic graphs, comparison matrices, and multi-dimensional scoring.");
+            // Prioritize chatResponse from Claude over technical messages
+            if (aiInsights.getChatResponse() != null && !aiInsights.getChatResponse().trim().isEmpty()) {
+                response.put("message", aiInsights.getChatResponse());
+            } else {
+                // Fallback to user-friendly message if no chatResponse
+                response.put("message", "I've analyzed " + products.size() + " great options for your search. Check out the recommendations above to find your perfect match!");
+            }
 
             // Enhanced products with AI scores
             List<java.util.Map<String, Object>> enhancedProducts = new ArrayList<>();
@@ -554,51 +559,61 @@ public class BuyerController {
 
             response.put("products", enhancedProducts);
 
-            // Graph data for visualizations
+            // 🚀 ENHANCED GRAPHS: Use Python AI service graphs when available, fallback to static graphs
             java.util.Map<String, Object> graphs = new java.util.HashMap<>();
 
-            // Price distribution
-            java.util.List<java.util.Map<String, Object>> priceDistribution = java.util.Arrays.asList(
-                java.util.Map.of("range", "$0-$25", "count", 3),
-                java.util.Map.of("range", "$25-$50", "count", 4),
-                java.util.Map.of("range", "$50-$100", "count", 2),
-                java.util.Map.of("range", "$100+", "count", 1)
-            );
-            graphs.put("priceDistribution", priceDistribution);
+            // Try to use Python AI service graphs first
+            if (aiInsights.getPythonGraphsData() != null && !aiInsights.getPythonGraphsData().isEmpty()) {
+                // Use dynamic graphs from Python AI service (LangChain + Claude)
+                graphs = aiInsights.getPythonGraphsData();
+                logger.info("✅ Using dynamic graphs from Python AI service: {} chart types", graphs.size());
+            } else {
+                // Fallback to static graphs for backward compatibility
+                logger.info("⚠️ Python graphs not available, using fallback static graphs");
 
-            // Category breakdown
-            java.util.List<java.util.Map<String, Object>> categoryBreakdown = new ArrayList<>();
-            java.util.Map<String, Long> categoryCount = products.stream()
-                .collect(java.util.stream.Collectors.groupingBy(Product::getCategory, java.util.stream.Collectors.counting()));
-            for (java.util.Map.Entry<String, Long> entry : categoryCount.entrySet()) {
-                categoryBreakdown.add(java.util.Map.of("category", entry.getKey(), "count", entry.getValue()));
+                // Price distribution
+                java.util.List<java.util.Map<String, Object>> priceDistribution = java.util.Arrays.asList(
+                    java.util.Map.of("range", "$0-$25", "count", 3),
+                    java.util.Map.of("range", "$25-$50", "count", 4),
+                    java.util.Map.of("range", "$50-$100", "count", 2),
+                    java.util.Map.of("range", "$100+", "count", 1)
+                );
+                graphs.put("priceDistribution", priceDistribution);
+
+                // Category breakdown
+                java.util.List<java.util.Map<String, Object>> categoryBreakdown = new ArrayList<>();
+                java.util.Map<String, Long> categoryCount = products.stream()
+                    .collect(java.util.stream.Collectors.groupingBy(Product::getCategory, java.util.stream.Collectors.counting()));
+                for (java.util.Map.Entry<String, Long> entry : categoryCount.entrySet()) {
+                    categoryBreakdown.add(java.util.Map.of("category", entry.getKey(), "count", entry.getValue()));
+                }
+                graphs.put("categoryBreakdown", categoryBreakdown);
+
+                // AI Score distribution
+                java.util.List<java.util.Map<String, Object>> aiScoreDistribution = java.util.Arrays.asList(
+                    java.util.Map.of("scoreRange", "90-100", "count", 2),
+                    java.util.Map.of("scoreRange", "80-89", "count", 3),
+                    java.util.Map.of("scoreRange", "70-79", "count", 3),
+                    java.util.Map.of("scoreRange", "60-69", "count", 2)
+                );
+                graphs.put("aiScoreDistribution", aiScoreDistribution);
+
+                // Savings analysis
+                java.util.List<java.util.Map<String, Object>> savingsAnalysis = java.util.Arrays.asList(
+                    java.util.Map.of("savingsRange", "$0-$10", "count", 4),
+                    java.util.Map.of("savingsRange", "$10-$25", "count", 3),
+                    java.util.Map.of("savingsRange", "$25-$50", "count", 2),
+                    java.util.Map.of("savingsRange", "$50+", "count", 1)
+                );
+                graphs.put("savingsAnalysis", savingsAnalysis);
             }
-            graphs.put("categoryBreakdown", categoryBreakdown);
-
-            // AI Score distribution
-            java.util.List<java.util.Map<String, Object>> aiScoreDistribution = java.util.Arrays.asList(
-                java.util.Map.of("scoreRange", "90-100", "count", 2),
-                java.util.Map.of("scoreRange", "80-89", "count", 3),
-                java.util.Map.of("scoreRange", "70-79", "count", 3),
-                java.util.Map.of("scoreRange", "60-69", "count", 2)
-            );
-            graphs.put("aiScoreDistribution", aiScoreDistribution);
-
-            // Savings analysis
-            java.util.List<java.util.Map<String, Object>> savingsAnalysis = java.util.Arrays.asList(
-                java.util.Map.of("savingsRange", "$0-$10", "count", 4),
-                java.util.Map.of("savingsRange", "$10-$25", "count", 3),
-                java.util.Map.of("savingsRange", "$25-$50", "count", 2),
-                java.util.Map.of("savingsRange", "$50+", "count", 1)
-            );
-            graphs.put("savingsAnalysis", savingsAnalysis);
 
             response.put("graphs", graphs);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             java.util.Map<String, Object> error = new java.util.HashMap<>();
-            error.put("error", "Claude AI search failed: " + e.getMessage());
+            error.put("error", "Premium search temporarily unavailable: " + e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
     }
@@ -1863,6 +1878,34 @@ public class BuyerController {
             }
         }
 
+        // Enhanced bag/handbag matching for fashion queries
+        if (lowerQuery.contains("bag") || lowerQuery.contains("handbag") || lowerQuery.contains("purse")) {
+            String productText = (
+                (product.getName() != null ? product.getName() : "") + " " +
+                (product.getBrand() != null ? product.getBrand() : "") + " " +
+                (product.getCategory() != null ? product.getCategory() : "") + " " +
+                (product.getDescription() != null ? product.getDescription() : "")
+            ).toLowerCase();
+
+            // Match bag synonyms - if product has bag-related terms, it's a potential match
+            if (productText.contains("bag") || productText.contains("handbag") ||
+                productText.contains("purse") || productText.contains("tote")) {
+
+                // For designer queries, check if product is from a designer brand or has designer keywords
+                if (lowerQuery.contains("designer")) {
+                    if (productText.contains("designer") || productText.contains("luxury") ||
+                        productText.contains("gucci") || productText.contains("prada") ||
+                        productText.contains("louis") || productText.contains("chanel") ||
+                        productText.contains("hermes") || productText.contains("versace")) {
+                        return true; // Designer bag found
+                    }
+                    // If "designer" was requested but product doesn't match designer criteria, continue to standard matching
+                } else {
+                    return true; // Bag product matches without designer requirement
+                }
+            }
+        }
+
         // Standard matching for non-automotive queries
         return (product.getName() != null && product.getName().toLowerCase().contains(lowerQuery)) ||
                (product.getBrand() != null && product.getBrand().toLowerCase().contains(lowerQuery)) ||
@@ -1887,6 +1930,7 @@ public class BuyerController {
             logger.info("🔧 STEP 3: Removing price info from query");
             String cleanSearchTerm = removePriceFromQuery(originalQuery);
             logger.info("🔧 STEP 4: Initial processing complete - originalQuery='{}', cleanSearchTerm='{}'", originalQuery, cleanSearchTerm);
+
         logger.info("🔧 STEP 5: Starting semantic search analysis");
 
         logger.info("🚀 SEMANTIC SEARCH START: User={}, Query='{}', Clean term='{}'", userId, originalQuery, cleanSearchTerm);
@@ -1894,86 +1938,86 @@ public class BuyerController {
             priceFilter.minPrice == null ? "0.00" : priceFilter.minPrice,
             priceFilter.maxPrice == null ? "unlimited" : priceFilter.maxPrice);
 
-        // 1. Analyze search intent and context
-        SearchIntent intent = analyzeSearchIntent(cleanSearchTerm);
-        logger.info("🎯 SEARCH INTENT ANALYSIS:");
-        logger.info("   📂 Relevant categories: {}", intent.relevantCategories);
-        logger.info("   🚫 Excluded categories: {}", intent.excludedCategories);
-        logger.info("   🎨 Style pattern: '{}'", intent.style);
-        logger.info("   🔤 Keywords: {}", intent.keywords);
+            // 1. Analyze search intent and context
+            SearchIntent intent = analyzeSearchIntent(cleanSearchTerm);
+            logger.info("🎯 SEARCH INTENT ANALYSIS:");
+            logger.info("   📂 Relevant categories: {}", intent.relevantCategories);
+            logger.info("   🚫 Excluded categories: {}", intent.excludedCategories);
+            logger.info("   🎨 Style pattern: '{}'", intent.style);
+            logger.info("   🔤 Keywords: {}", intent.keywords);
 
-        // 2. Get all products and apply intelligent filtering
-        List<Product> allProducts = productRepository.findByIsAvailableTrue();
-        logger.info("📊 PRODUCT POOL: {} total available products to analyze", allProducts.size());
+            // 2. Get all products and apply intelligent filtering
+            List<Product> allProducts = productRepository.findByIsAvailableTrue();
+            logger.info("📊 PRODUCT POOL: {} total available products to analyze", allProducts.size());
 
-        List<ProductMatch> matches = new ArrayList<>();
-        int priceFilteredOut = 0;
-        int categoryExcluded = 0;
-        int lowScore = 0;
+            List<ProductMatch> matches = new ArrayList<>();
+            int priceFilteredOut = 0;
+            int categoryExcluded = 0;
+            int lowScore = 0;
 
-        for (Product product : allProducts) {
-            // Apply price filter first
-            if (!matchesPriceFilter(product, priceFilter)) {
-                priceFilteredOut++;
-                continue;
-            }
+            for (Product product : allProducts) {
+                // Apply price filter first
+                if (!matchesPriceFilter(product, priceFilter)) {
+                    priceFilteredOut++;
+                    continue;
+                }
 
-            // Calculate semantic relevance score
-            double relevanceScore = calculateSemanticRelevance(product, intent, cleanSearchTerm);
+                // Calculate semantic relevance score
+                double relevanceScore = calculateSemanticRelevance(product, intent, cleanSearchTerm);
 
-            if (relevanceScore > 0) {
-                matches.add(new ProductMatch(product, relevanceScore));
-                logger.info("✅ MATCHED: '{}' (category: {}, score: {:.1f})",
-                    product.getName(), product.getCategory(), relevanceScore);
-            } else {
-                // Check if excluded by category or just low score
-                if (intent.excludedCategories.contains(product.getCategory())) {
-                    categoryExcluded++;
-                    logger.info("❌ EXCLUDED by category: '{}' ({})", product.getName(), product.getCategory());
+                if (relevanceScore > 0) {
+                    matches.add(new ProductMatch(product, relevanceScore));
+                    logger.info("✅ MATCHED: '{}' (category: {}, score: {:.1f})",
+                        product.getName(), product.getCategory(), relevanceScore);
                 } else {
-                    lowScore++;
-                    logger.info("📉 LOW SCORE: '{}' (score: 0)", product.getName());
+                    // Check if excluded by category or just low score
+                    if (intent.excludedCategories.contains(product.getCategory())) {
+                        categoryExcluded++;
+                        logger.info("❌ EXCLUDED by category: '{}' ({})", product.getName(), product.getCategory());
+                    } else {
+                        lowScore++;
+                        logger.info("📉 LOW SCORE: '{}' (score: 0)", product.getName());
+                    }
                 }
             }
-        }
 
-        // 3. Sort by relevance and return top matches
-        List<Product> results = matches.stream()
-            .sorted((a, b) -> Double.compare(b.score, a.score))
-            .limit(10)
-            .map(match -> match.product)
-            .collect(java.util.stream.Collectors.toList());
+            // 3. Sort by relevance and return top matches
+            List<Product> results = matches.stream()
+                .sorted((a, b) -> Double.compare(b.score, a.score))
+                .limit(10)
+                .map(match -> match.product)
+                .collect(java.util.stream.Collectors.toList());
 
-        long endTime = System.currentTimeMillis();
+            long endTime = System.currentTimeMillis();
 
-        // 📊 COMPREHENSIVE ANALYTICS
-        logger.info("📊 FILTERING ANALYTICS:");
-        logger.info("   🏪 Total products analyzed: {}", allProducts.size());
-        logger.info("   💰 Price filtered out: {}", priceFilteredOut);
-        logger.info("   🚫 Category excluded: {}", categoryExcluded);
-        logger.info("   📉 Low relevance score: {}", lowScore);
-        logger.info("   ✅ Semantically matched: {}", matches.size());
-        logger.info("   🎯 Top results returned: {}", results.size());
+            // 📊 COMPREHENSIVE ANALYTICS
+            logger.info("📊 KEYWORD SEARCH ANALYTICS:");
+            logger.info("   🏪 Total products analyzed: {}", allProducts.size());
+            logger.info("   💰 Price filtered out: {}", priceFilteredOut);
+            logger.info("   🚫 Category excluded: {}", categoryExcluded);
+            logger.info("   📉 Low relevance score: {}", lowScore);
+            logger.info("   ✅ Semantically matched: {}", matches.size());
+            logger.info("   🎯 Top results returned: {}", results.size());
 
-        if (!results.isEmpty()) {
-            logger.info("🏆 TOP SCORING RESULTS:");
-            for (int i = 0; i < Math.min(5, results.size()); i++) {
-                Product p = results.get(i);
-                double score = matches.stream()
-                    .filter(m -> m.product.getId().equals(p.getId()))
-                    .findFirst()
-                    .map(m -> m.score)
-                    .orElse(0.0);
-                logger.info("   {}. '{}' - {} (score: {:.1f})",
-                    i + 1, p.getName(), p.getCategory(), score);
+            if (!results.isEmpty()) {
+                logger.info("🏆 TOP SCORING RESULTS:");
+                for (int i = 0; i < Math.min(5, results.size()); i++) {
+                    Product p = results.get(i);
+                    double score = matches.stream()
+                        .filter(m -> m.product.getId().equals(p.getId()))
+                        .findFirst()
+                        .map(m -> m.score)
+                        .orElse(0.0);
+                    logger.info("   {}. '{}' - {} (score: {:.1f})",
+                        i + 1, p.getName(), p.getCategory(), score);
+                }
+            } else {
+                logger.warn("⚠️ NO RESULTS: No products matched semantic criteria for query '{}'", originalQuery);
+                logger.warn("💡 SUGGESTION: Consider adjusting search terms or categories");
             }
-        } else {
-            logger.warn("⚠️ NO RESULTS: No products matched semantic criteria for query '{}'", originalQuery);
-            logger.warn("💡 SUGGESTION: Consider adjusting search terms or categories");
-        }
 
-            logger.info("⏱️ SEMANTIC SEARCH COMPLETED: {}ms execution time", endTime - startTime);
-            logger.info("🎉 FINAL RESULT: {} contextually relevant products found for '{}' (style: {})",
+            logger.info("⏱️ KEYWORD SEARCH COMPLETED: {}ms execution time", endTime - startTime);
+            logger.info("🎉 KEYWORD SEARCH RESULT: {} contextually relevant products found for '{}' (style: {})",
                 results.size(), originalQuery, intent.style);
 
             return results;
@@ -2073,16 +2117,35 @@ public class BuyerController {
             intent.excludedCategories.addAll(Arrays.asList("ELECTRONICS", "HOME", "BOOKS"));
         }
 
+        // Check for bag/handbag/purse patterns - CRITICAL for proper category filtering
+        boolean matchedBag = false;
+        if (query.contains("bag") || query.contains("handbag") || query.contains("purse") ||
+                 query.contains("tote") || query.contains("clutch") || query.contains("satchel")) {
+            logger.debug("🔍 INTENT: Detected bag/accessory pattern");
+            matchedBag = true;
+            intent.style = intent.style.equals("general") ? "bags" : intent.style + "+bags";
+            intent.relevantCategories = Arrays.asList("ACCESSORIES");
+            intent.excludedCategories.addAll(Arrays.asList("CLOTHING", "SHOES", "ELECTRONICS", "HOME", "BOOKS"));
+            intent.keywords.addAll(Arrays.asList("bag", "handbag", "purse", "tote", "accessory"));
+            logger.info("🎯 BAG PATTERN MATCHED: Excluding CLOTHING category from search results");
+        }
+
         // 🚨 CRITICAL: For vintage+designer combinations, ensure strictest filtering
-        if (matchedVintage && matchedDesigner) {
+        // BUT: If bag pattern is matched, prioritize bag-specific filtering
+        if (matchedVintage && matchedDesigner && !matchedBag) {
             logger.info("🎯 CRITICAL PATTERN: vintage+designer detected - applying strictest filtering");
             intent.style = "vintage+designer";
             intent.relevantCategories = Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES");
             intent.excludedCategories = Arrays.asList("ELECTRONICS", "HOME", "BOOKS", "SPORTS", "BEAUTY");
+        } else if (matchedVintage && matchedDesigner && matchedBag) {
+            logger.info("🎯 CRITICAL PATTERN: vintage+designer+bags detected - prioritizing bag filtering");
+            intent.style = "vintage+designer+bags";
+            // Keep the bag-specific filtering: only ACCESSORIES, exclude CLOTHING
+            // This ensures jeans/clothing items don't appear in bag searches
         }
 
         // If no specific patterns matched, use general search
-        if (!matchedVintage && !matchedDesigner && !matchedTech && !matchedFashion && !matchedFootwear && !matchedAutomotive) {
+        if (!matchedVintage && !matchedDesigner && !matchedTech && !matchedFashion && !matchedFootwear && !matchedAutomotive && !matchedBag) {
             intent.style = "general";
             intent.relevantCategories = Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES", "ELECTRONICS");
             intent.excludedCategories = new ArrayList<>();
@@ -2203,7 +2266,31 @@ public class BuyerController {
             }
         }
 
-        // 8. 🏆 FINAL QUALITY FACTORS (5% weight)
+        // 8. 👜 BAG RELEVANCE BONUS: Prioritize actual bags for bag searches
+        if (intent.style != null && intent.style.contains("bags")) {
+            String productTextLower = (product.getName() + " " + product.getDescription()).toLowerCase();
+
+            // Strong bonus for actual bag products
+            if (productTextLower.contains("bag") || productTextLower.contains("handbag") ||
+                productTextLower.contains("purse") || productTextLower.contains("tote") ||
+                productTextLower.contains("clutch") || productTextLower.contains("satchel") ||
+                productTextLower.contains("messenger") || productTextLower.contains("backpack") ||
+                productTextLower.contains("shoulder bag") || productTextLower.contains("crossbody")) {
+                score += 25.0;
+                logger.debug("👜 BAG BONUS: +25 for actual bag product");
+            }
+
+            // Penalty for non-bag accessories in bag searches
+            else if (productTextLower.contains("cap") || productTextLower.contains("hat") ||
+                     productTextLower.contains("phone mount") || productTextLower.contains("charger") ||
+                     productTextLower.contains("watch") || productTextLower.contains("jewelry") ||
+                     productTextLower.contains("sunglasses") || productTextLower.contains("belt")) {
+                score -= 15.0;
+                logger.debug("👜 NON-BAG PENALTY: -15 for non-bag accessory in bag search");
+            }
+        }
+
+        // 9. 🏆 FINAL QUALITY FACTORS (5% weight)
         if (product.getPrice() > 0 && product.getOriginalPrice() > 0) {
             double discount = ((product.getOriginalPrice() - product.getPrice()) / product.getOriginalPrice()) * 100;
             if (discount > 50) {

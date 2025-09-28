@@ -190,10 +190,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
         <div className="container mt-5">
           <div className="row g-4 justify-content-center">
             <div className="col-lg-3 col-md-6">
-              <div
+              <button
                 className="card-modern text-center animate-scale-in"
                 onClick={openAdvancedFilters}
-                style={{ cursor: 'pointer', animationDelay: '0.1s' }}
+                style={{ animationDelay: '0.1s' }}
+                type="button"
+                aria-label="Open advanced filters"
               >
                 <div
                   style={{
@@ -231,14 +233,16 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                 >
                   Advanced filtering with AI-powered recommendations based on your style and budget
                 </p>
-              </div>
+              </button>
             </div>
 
             <div className="col-lg-3 col-md-6">
-              <div
+              <button
                 className="card-modern text-center animate-scale-in"
                 onClick={showRecommendations}
-                style={{ cursor: 'pointer', animationDelay: '0.2s' }}
+                style={{ animationDelay: '0.2s' }}
+                type="button"
+                aria-label="Show personal recommendations"
               >
                 <div
                   style={{
@@ -276,14 +280,16 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                 >
                   Get personalized recommendations tailored to your taste and shopping history
                 </p>
-              </div>
+              </button>
             </div>
 
             <div className="col-lg-3 col-md-6">
-              <div
+              <button
                 className="card-modern text-center animate-scale-in"
                 onClick={showTrending}
-                style={{ cursor: 'pointer', animationDelay: '0.3s' }}
+                style={{ animationDelay: '0.3s' }}
+                type="button"
+                aria-label="Show trending finds"
               >
                 <div
                   style={{
@@ -321,14 +327,16 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                 >
                   Discover what's hot right now and find trending items before they're gone
                 </p>
-              </div>
+              </button>
             </div>
 
             <div className="col-lg-3 col-md-6">
-              <div
+              <button
                 className="card-modern text-center animate-scale-in"
                 onClick={showPriceComparison}
-                style={{ cursor: 'pointer', animationDelay: '0.4s' }}
+                style={{ animationDelay: '0.4s' }}
+                type="button"
+                aria-label="Show price intelligence"
               >
                 <div
                   style={{
@@ -366,7 +374,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                 >
                   Compare prices across platforms and get alerts for the best deals and savings
                 </p>
-              </div>
+              </button>
             </div>
           </div>
         </div>

@@ -134,6 +134,10 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <!-- Vector Database Dependencies - Placeholder for future implementation -->
+        <!-- Note: Spring AI dependencies removed due to version compatibility issues -->
+        <!-- Will be re-added when upgrading to Spring Boot 3.2+ -->
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

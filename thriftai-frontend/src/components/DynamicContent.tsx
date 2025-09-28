@@ -157,10 +157,10 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
         </div>
       </div>
       <div className="mt-3">
-        <button className="btn btn-primary me-2" onClick={performAdvancedSearch}>
+        <button className="btn-modern-primary me-2" onClick={performAdvancedSearch}>
           <i className="fas fa-search me-2"></i>Search with Filters
         </button>
-        <button className="btn btn-secondary" onClick={onHide}>Cancel</button>
+        <button className="btn-modern-secondary" onClick={onHide}>Cancel</button>
       </div>
     </div>
   );
@@ -185,7 +185,7 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
                 )}
               </div>
               <div className="col-md-4 text-end">
-                <button className="btn btn-outline-primary btn-sm">View</button>
+                <button className="btn-modern-secondary btn-sm">View</button>
               </div>
             </div>
           </div>
@@ -194,7 +194,7 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
         <p className="text-muted">No recommendations available at the moment.</p>
       )}
       <div className="mt-3">
-        <button className="btn btn-secondary" onClick={onHide}>Close</button>
+        <button className="btn-modern-secondary" onClick={onHide}>Close</button>
       </div>
     </div>
   );
@@ -214,7 +214,7 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
               <span className="text-muted ms-2">{product.category}</span>
             </div>
             <button
-              className="btn btn-outline-primary btn-sm"
+              className="btn-modern-secondary btn-sm"
               onClick={() => onSearch(product.name)}
             >
               Search Similar
@@ -225,7 +225,7 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
         <p className="text-muted">No trending items available at the moment.</p>
       )}
       <div className="mt-3">
-        <button className="btn btn-secondary" onClick={onHide}>Close</button>
+        <button className="btn-modern-secondary" onClick={onHide}>Close</button>
       </div>
     </div>
   );
@@ -283,12 +283,12 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
       </div>
       <div className="mt-3">
         <button
-          className="btn btn-primary me-2"
+          className="btn-modern-primary me-2"
           onClick={() => onSearch('Show me the best deals today')}
         >
           Find Best Deals
         </button>
-        <button className="btn btn-secondary" onClick={onHide}>Close</button>
+        <button className="btn-modern-secondary" onClick={onHide}>Close</button>
       </div>
     </div>
   );

@@ -128,9 +128,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <div className="form-check">
                   <input className="form-check-input" type="checkbox" id="rememberMe" />
-                  <label className="form-check-label" htmlFor="rememberMe" style={{ color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Remember me</label>
+                  <label className="form-check-label text-primary font-primary" htmlFor="rememberMe">Remember me</label>
                 </div>
-                <a href="#" className="text-decoration-none" style={{ color: '#00d4ff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>Forgot password?</a>
+                <a href="#" className="link-primary">Forgot password?</a>
               </div>
               <button
                 type="submit"
@@ -154,7 +154,7 @@ style={{ width: '100%', marginBottom: '16px' }}
             <div className="text-center mb-3">
               <div className="d-flex align-items-center">
                 <hr className="flex-grow-1" style={{ borderColor: 'rgba(255,255,255,0.2)' }} />
-                <span className="px-3" style={{ color: '#b8b8b8', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>OR</span>
+                <span className="px-3 text-secondary font-primary">OR</span>
                 <hr className="flex-grow-1" style={{ borderColor: 'rgba(255,255,255,0.2)' }} />
               </div>
             </div>
@@ -181,7 +181,7 @@ style={{ width: '100%', justifyContent: 'center', marginBottom: '24px' }}
             </button>
 
             <div className="text-center">
-              <small style={{ color: '#b8b8b8', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
+              <small className="text-secondary font-primary">
                 By signing in, you agree to our terms of service and privacy policy.
               </small>
             </div>

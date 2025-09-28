@@ -20,14 +20,14 @@
   /* Accent Colors */
   --accent-primary: #10b981;
   --accent-secondary: #06d6a0;
-  --accent-tertiary: #00d4ff;
-  --accent-gradient: linear-gradient(135deg, #10b981 0%, #06d6a0 50%, #00d4ff 100%);
+  --accent-tertiary: #06d6a0;
+  --accent-gradient: linear-gradient(135deg, #10b981 0%, #06d6a0 50%, #047857 100%);
 
   /* Status Colors */
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
-  --info: #3b82f6;
+  --info: #10b981;
 
   /* Border Colors */
   --border-primary: rgba(255, 255, 255, 0.08);
@@ -160,6 +160,60 @@ body {
   background-clip: text;
 }
 
+/* Theme Utility Classes */
+.text-primary {
+  color: var(--text-primary) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.text-tertiary {
+  color: var(--text-tertiary) !important;
+}
+
+.text-accent {
+  color: var(--accent-primary) !important;
+}
+
+.text-muted {
+  color: var(--text-tertiary) !important;
+}
+
+.font-primary {
+  font-family: var(--font-family-primary) !important;
+}
+
+.font-mono {
+  font-family: var(--font-family-mono) !important;
+}
+
+/* Link Styles */
+.link-primary {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-family: var(--font-family-primary);
+  transition: color var(--transition-base);
+}
+
+.link-primary:hover {
+  color: var(--accent-secondary);
+  text-decoration: none;
+}
+
+.link-secondary {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-family: var(--font-family-primary);
+  transition: color var(--transition-base);
+}
+
+.link-secondary:hover {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
 /* Navigation Styles */
 .navbar {
   background: rgba(0, 0, 0, 0.8) !important;
@@ -188,7 +242,7 @@ body {
   background: linear-gradient(135deg, #10b981 0%, #047857 100%);
   border: none;
   color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: var(--font-family-primary);
   font-weight: 500;
   font-size: 14px;
   padding: 12px 24px;
@@ -217,7 +271,7 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #10b981;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: var(--font-family-primary);
   font-weight: 500;
   font-size: 14px;
   padding: 12px 24px;
@@ -247,7 +301,7 @@ body {
   border: 1px solid #333;
   border-radius: 8px;
   color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: var(--font-family-primary);
   font-size: 16px;
   font-weight: 400;
   padding: 12px 16px;
@@ -310,6 +364,45 @@ input.input-modern:read-only {
   border-color: var(--border-secondary);
   transform: translateY(-4px);
   box-shadow: var(--shadow-xl);
+}
+
+.card-modern:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  background: var(--bg-glass-hover);
+  border-color: var(--border-secondary);
+}
+
+.card-modern:active {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--accent-primary);
+  transform: translateY(-2px) scale(0.98);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Disable browser tap highlighting for interactive cards */
+.card-modern {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Button styling for interactive cards */
+button.card-modern {
+  border: 1px solid var(--border-primary);
+  background: var(--bg-glass);
+  color: inherit;
+  text-align: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  width: 100%;
+  cursor: pointer;
 }
 
 /* Modal System */
@@ -846,6 +939,112 @@ input.input-modern:read-only {
 :focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+/* Bootstrap Button Overrides - Force Green Theme */
+.btn-primary {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-family-primary) !important;
+  font-weight: var(--font-medium) !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+.btn-primary:active,
+.btn-primary.active {
+  background: rgba(16, 185, 129, 0.8) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-family-primary) !important;
+  font-weight: var(--font-medium) !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: var(--text-primary) !important;
+}
+
+.btn-secondary:active,
+.btn-secondary.active {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  color: var(--text-primary) !important;
+  transform: translateY(1px);
+}
+
+.btn-outline-primary {
+  background: transparent !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+  font-family: var(--font-family-primary) !important;
+  font-weight: var(--font-medium) !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+.btn-outline-primary:active,
+.btn-outline-primary.active {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+  transform: translateY(1px);
+}
+
+.btn-link {
+  color: var(--accent-primary) !important;
+  text-decoration: none !important;
+  font-family: var(--font-family-primary) !important;
+  font-weight: var(--font-medium) !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-link:hover,
+.btn-link:focus {
+  color: var(--accent-secondary) !important;
+  text-decoration: underline !important;
+}
+
+.btn-link:active,
+.btn-link.active {
+  color: var(--accent-tertiary) !important;
+  transform: translateY(1px);
+}
+
+/* Universal button tap highlight removal */
+button,
+.btn {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 /* Print Styles */

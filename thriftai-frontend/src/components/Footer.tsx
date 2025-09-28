@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
         <div className="row">
           <div className="col-md-6">
             <h5>
-              <i className="fas fa-robot me-2" style={{ color: '#00d4ff' }}></i>
+              <i className="fas fa-robot me-2" style={{ color: 'var(--accent-primary)' }}></i>
               <span className="text-gradient-primary fw-bold">Thrift</span>
               <span style={{ color: 'var(--text-primary)', fontWeight: 300 }}>AI</span>
             </h5>

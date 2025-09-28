@@ -305,37 +305,38 @@
         });
 
         function initializeAllCharts(insights) {
-            // 1. AI Score Bar Chart
-            if (insights.graphs && insights.graphs.length > 0) {
-                const aiScoreGraph = insights.graphs.find(g => g.type === 'bar' && g.title.includes('AI'));
-                if (aiScoreGraph) {
-                    createChart('aiScoreChart', aiScoreGraph);
-                }
+            console.log('Initializing charts with insights:', insights);
 
-                // 2. Price vs Quality Scatter Plot
-                const scatterGraph = insights.graphs.find(g => g.type === 'scatter');
-                if (scatterGraph) {
-                    createChart('priceQualityChart', scatterGraph);
-                }
+            // Extract our new graph data structure
+            const graphs = insights.graphs || {};
 
-                // 3. Radar Chart
-                const radarGraph = insights.graphs.find(g => g.type === 'radar');
-                if (radarGraph) {
-                    createChart('brandRadarChart', radarGraph);
-                }
-
-                // 4. Quality Pie Chart
-                const pieGraph = insights.graphs.find(g => g.type === 'pie');
-                if (pieGraph) {
-                    createChart('qualityChart', pieGraph);
-                }
-
-                // 5. Savings Chart
-                const savingsGraph = insights.graphs.find(g => g.type === 'horizontalBar');
-                if (savingsGraph) {
-                    createChart('savingsChart', savingsGraph);
-                }
+            // 1. Price Comparison Chart
+            if (graphs.priceComparison) {
+                createPriceComparisonChart(graphs.priceComparison);
             }
+
+            // 2. Quality vs Price Scatter Plot
+            if (graphs.qualityVsPrice) {
+                createQualityVsPriceChart(graphs.qualityVsPrice);
+            }
+
+            // 3. Brand Analysis Radar Chart
+            if (graphs.brandAnalysis) {
+                createBrandRadarChart(graphs.brandAnalysis);
+            }
+
+            // 4. Savings Breakdown Chart
+            if (graphs.savingsBreakdown) {
+                createSavingsChart(graphs.savingsBreakdown);
+            }
+
+            // 5. Quality Distribution Chart
+            if (graphs.conditionComparison) {
+                createQualityDistributionChart(graphs.conditionComparison);
+            }
+
+            // 6. Category Chart - fallback for now
+            createCategoryChart(graphs.priceComparison || []);
         }
 
         function createChart(canvasId, graphData) {
@@ -375,117 +376,258 @@
             new Chart(ctx, config);
         }
 
-        function initializeDemoCharts() {
-            // Demo AI Score Chart
-            new Chart(document.getElementById('aiScoreChart'), {
+        // Dynamic chart creation functions
+        function createPriceComparisonChart(priceData) {
+            const ctx = document.getElementById('aiScoreChart');
+            if (!ctx || !priceData || priceData.length === 0) return;
+
+            new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['Product A', 'Product B', 'Product C', 'Product D'],
-                    datasets: [{
-                        label: 'AI Score',
-                        data: [85, 78, 92, 67],
-                        backgroundColor: ['rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 99, 132, 0.8)', 'rgba(255, 206, 86, 0.8)']
-                    }]
+                    labels: priceData.map(item => item.name),
+                    datasets: [
+                        {
+                            label: 'Current Price ($)',
+                            data: priceData.map(item => item.price),
+                            backgroundColor: priceData.map(item => item.color),
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Original Price ($)',
+                            data: priceData.map(item => item.originalPrice),
+                            backgroundColor: 'rgba(128, 128, 128, 0.3)',
+                            borderColor: 'rgba(128, 128, 128, 0.8)',
+                            borderWidth: 1
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100 }}
+                    plugins: {
+                        title: { display: true, text: 'Price Comparison: Current vs Original' },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const item = priceData[context.dataIndex];
+                                    return `Savings: $${item.savings} (${item.savingsPercentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Price ($)' }}
+                    }
                 }
             });
+        }
 
-            // Demo Price vs Quality Scatter
-            new Chart(document.getElementById('priceQualityChart'), {
+        function createQualityVsPriceChart(qualityData) {
+            const ctx = document.getElementById('priceQualityChart');
+            if (!ctx || !qualityData || qualityData.length === 0) return;
+
+            new Chart(ctx, {
                 type: 'scatter',
                 data: {
                     datasets: [{
                         label: 'Products',
-                        data: [
-                            {x: 25, y: 85}, {x: 45, y: 78}, {x: 65, y: 92}, {x: 35, y: 67}
-                        ],
-                        backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                        data: qualityData.map(item => ({
+                            x: item.price,
+                            y: item.qualityScore,
+                            label: item.name,
+                            brand: item.brand,
+                            condition: item.condition,
+                            valueRating: item.valueRating
+                        })),
+                        backgroundColor: qualityData.map(item =>
+                            item.valueRating === 'Excellent' ? '#4CAF50' :
+                            item.valueRating === 'Great' ? '#2196F3' :
+                            item.valueRating === 'Good' ? '#FF9800' : '#FFC107'
+                        ),
+                        pointRadius: 8,
+                        pointHoverRadius: 12
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Quality vs Price Analysis' },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].raw.label;
+                                },
+                                label: function(context) {
+                                    const data = context.raw;
+                                    return [
+                                        `Price: $${data.x}`,
+                                        `Quality: ${data.y}/100`,
+                                        `Brand: ${data.brand}`,
+                                        `Condition: ${data.condition}`,
+                                        `Value: ${data.valueRating}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
                     scales: {
                         x: { title: { display: true, text: 'Price ($)' }},
-                        y: { title: { display: true, text: 'Quality Score' }}
+                        y: { title: { display: true, text: 'Quality Score' }, beginAtZero: true, max: 100 }
                     }
                 }
             });
+        }
 
-            // Demo Radar Chart
-            new Chart(document.getElementById('brandRadarChart'), {
+        function createBrandRadarChart(brandData) {
+            const ctx = document.getElementById('brandRadarChart');
+            if (!ctx || !brandData || brandData.length === 0) return;
+
+            const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+
+            new Chart(ctx, {
                 type: 'radar',
                 data: {
-                    labels: ['Price Match', 'Quality', 'Brand Score', 'Value', 'Keyword Match', 'Condition'],
-                    datasets: [{
-                        label: 'Top Product',
-                        data: [85, 90, 75, 80, 95, 88],
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        borderColor: 'rgba(255, 99, 132, 1)'
-                    }]
+                    labels: ['Average Price', 'Quality Score', 'Product Count', 'Total Savings', 'Brand Reputation'],
+                    datasets: brandData.map((brand, index) => ({
+                        label: brand.brand,
+                        data: [
+                            Math.min(brand.averagePrice / 10, 100), // Normalize price
+                            brand.averageQuality,
+                            brand.productCount * 20, // Scale product count
+                            Math.min(brand.totalSavings / 50, 100), // Normalize savings
+                            brand.reputation === 'Premium' ? 100 : brand.reputation === 'Designer' ? 80 : brand.reputation === 'Quality' ? 60 : 40
+                        ],
+                        backgroundColor: colors[index % colors.length] + '40',
+                        borderColor: colors[index % colors.length],
+                        borderWidth: 2
+                    }))
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Brand Comparison Analysis' }
+                    },
                     scales: {
                         r: { beginAtZero: true, max: 100 }
                     }
                 }
             });
+        }
 
-            // Demo Quality Distribution
-            new Chart(document.getElementById('qualityChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Excellent', 'Good', 'Fair', 'Poor'],
-                    datasets: [{
-                        data: [45, 35, 15, 5],
-                        backgroundColor: ['#4CAF50', '#2196F3', '#FF9800', '#F44336']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+        function createSavingsChart(savingsData) {
+            const ctx = document.getElementById('savingsChart');
+            if (!ctx || !savingsData || savingsData.length === 0) return;
 
-            // Demo Savings Chart
-            new Chart(document.getElementById('savingsChart'), {
+            new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['Product A', 'Product B', 'Product C'],
+                    labels: savingsData.map(item => item.name),
                     datasets: [{
-                        label: 'Savings %',
-                        data: [25, 40, 15],
-                        backgroundColor: 'rgba(75, 192, 192, 0.8)'
+                        label: 'Savings Percentage',
+                        data: savingsData.map(item => item.percentOff),
+                        backgroundColor: savingsData.map(item =>
+                            item.dealQuality === 'Amazing Deal' ? '#4CAF50' :
+                            item.dealQuality === 'Great Deal' ? '#2196F3' :
+                            item.dealQuality === 'Good Deal' ? '#FF9800' : '#FFC107'
+                        ),
+                        borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    indexAxis: 'y'
+                    indexAxis: 'y',
+                    plugins: {
+                        title: { display: true, text: 'Savings Breakdown by Product' },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const item = savingsData[context.dataIndex];
+                                    return `Deal Quality: ${item.dealQuality}\nDollars Off: $${item.dollarsOff}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Savings (%)' }, beginAtZero: true }
+                    }
                 }
             });
+        }
 
-            // Demo Category Chart
-            new Chart(document.getElementById('categoryChart'), {
-                type: 'pie',
+        function createQualityDistributionChart(conditionData) {
+            const ctx = document.getElementById('qualityChart');
+            if (!ctx || !conditionData || conditionData.length === 0) return;
+
+            new Chart(ctx, {
+                type: 'doughnut',
                 data: {
-                    labels: ['Electronics', 'Clothing', 'Books', 'Home'],
+                    labels: conditionData.map(item => item.condition),
                     datasets: [{
-                        data: [30, 25, 20, 25],
-                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                        data: conditionData.map(item => item.count),
+                        backgroundColor: conditionData.map(item =>
+                            item.recommendation === 'Buy Now' ? '#4CAF50' :
+                            item.recommendation === 'Great Choice' ? '#2196F3' :
+                            item.recommendation === 'Consider' ? '#FF9800' : '#F44336'
+                        )
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Product Condition Distribution' },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const item = conditionData[context.dataIndex];
+                                    return `Avg Price: $${item.averagePrice}\nRecommendation: ${item.recommendation}`;
+                                }
+                            }
+                        }
+                    }
                 }
             });
+        }
+
+        function createCategoryChart(priceData) {
+            const ctx = document.getElementById('categoryChart');
+            if (!ctx) return;
+
+            // Extract brands as categories
+            const brands = [...new Set(priceData.map(item => item.brand || 'Other'))];
+            const brandCounts = brands.map(brand =>
+                priceData.filter(item => (item.brand || 'Other') === brand).length
+            );
+
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: brands,
+                    datasets: [{
+                        data: brandCounts,
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Brand Distribution' }
+                    }
+                }
+            });
+        }
+
+        function initializeDemoCharts() {
+            console.log('Initializing demo charts...');
+            // Keep existing demo charts as fallback
+            createPriceComparisonChart([
+                { name: 'Demo Product A', price: 50, originalPrice: 100, savings: 50, savingsPercentage: 50, brand: 'Demo Brand', color: '#22c55e' },
+                { name: 'Demo Product B', price: 75, originalPrice: 120, savings: 45, savingsPercentage: 37.5, brand: 'Demo Brand', color: '#3b82f6' }
+            ]);
         }
     </script>
 </body>

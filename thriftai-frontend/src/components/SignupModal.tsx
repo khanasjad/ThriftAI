@@ -272,11 +272,8 @@ style={{ width: '100%', marginBottom: '16px' }}
               <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-family-primary)' }}>Already have an account? </span>
               <button
                 type="button"
-                className="btn btn-link p-0"
+                className="link-primary"
                 style={{
-                  color: 'var(--accent-primary)',
-                  fontFamily: 'var(--font-family-primary)',
-                  textDecoration: 'none',
                   border: 'none',
                   background: 'transparent',
                   padding: 0
