@@ -60,43 +60,77 @@ export class MockAmazonService {
     offset: number = 0
   ): Promise<MockAmazonProduct[]> {
     try {
-      // Build the where clause for Prisma
+      // For backward compatibility, also check if we have structured search data
+      let structuredSearch = null
+      if (typeof optimizedQuery === 'object' && optimizedQuery.primaryTerms) {
+        structuredSearch = optimizedQuery
+        optimizedQuery = structuredSearch.primaryTerms.join(' ')
+      }
+
       const where: any = {}
+      const orConditions: any[] = []
 
-      // Text search across multiple fields
-      if (optimizedQuery) {
-        const searchTerms = optimizedQuery.toLowerCase().split(' ')
-        where.OR = [
-          {
-            name: {
-              contains: optimizedQuery,
-              mode: 'insensitive'
-            }
-          },
-          {
-            description: {
-              contains: optimizedQuery,
-              mode: 'insensitive'
-            }
-          },
-          {
-            brand: {
-              contains: optimizedQuery,
-              mode: 'insensitive'
-            }
-          }
-        ]
+      // Build search conditions based on structured data or fallback to string parsing
+      if (structuredSearch) {
+        // Use structured search for better accuracy
+        const { primaryTerms, secondaryTerms, searchFilters } = structuredSearch
 
-        // Add individual term searches for better matching
-        searchTerms.forEach(term => {
-          if (term.length > 2) {
-            where.OR.push(
+        // Primary terms must match (higher priority)
+        if (primaryTerms.length > 0) {
+          primaryTerms.forEach(term => {
+            orConditions.push(
               { name: { contains: term, mode: 'insensitive' } },
               { description: { contains: term, mode: 'insensitive' } },
               { brand: { contains: term, mode: 'insensitive' } }
             )
-          }
-        })
+          })
+        }
+
+        // Secondary terms for broader matching
+        if (secondaryTerms.length > 0) {
+          secondaryTerms.forEach(term => {
+            orConditions.push(
+              { name: { contains: term, mode: 'insensitive' } },
+              { description: { contains: term, mode: 'insensitive' } }
+            )
+          })
+        }
+
+        // Apply structured filters
+        if (searchFilters.brands?.length > 0) {
+          where.brand = { in: searchFilters.brands, mode: 'insensitive' }
+        }
+        if (searchFilters.categories?.length > 0) {
+          where.category = { in: searchFilters.categories }
+        }
+        if (searchFilters.sizes?.length > 0) {
+          where.size = { in: searchFilters.sizes }
+        }
+        if (searchFilters.colors?.length > 0) {
+          orConditions.push(
+            ...searchFilters.colors.map(color => ({
+              description: { contains: color, mode: 'insensitive' }
+            }))
+          )
+        }
+      } else {
+        // Fallback to the improved tokenized search
+        const searchTerms = optimizedQuery.toLowerCase().split(' ').filter(term => term.length > 2)
+
+        if (searchTerms.length > 0) {
+          searchTerms.forEach(term => {
+            orConditions.push(
+              { name: { contains: term, mode: 'insensitive' } },
+              { description: { contains: term, mode: 'insensitive' } },
+              { brand: { contains: term, mode: 'insensitive' } }
+            )
+          })
+        }
+      }
+
+      // Only add OR conditions if we have any
+      if (orConditions.length > 0) {
+        where.OR = orConditions
       }
 
       // Apply filters
@@ -124,6 +158,12 @@ export class MockAmazonService {
         // In a real system, this would filter by inventory levels
       }
 
+      // If no search conditions, return empty result
+      if (Object.keys(where).length === 0) {
+        console.log('No search conditions found, returning empty results')
+        return []
+      }
+
       // Fetch products from database
       const products = await prisma.product.findMany({
         where,
@@ -142,6 +182,8 @@ export class MockAmazonService {
         ]
       })
 
+      console.log(`Found ${products.length} products matching search criteria`)
+
       // Convert each product to MockAmazonProduct format
       const amazonProducts = products.map(product =>
         this.convertToAmazonFormat(product)
@@ -152,6 +194,137 @@ export class MockAmazonService {
     } catch (error) {
       console.error('Error searching products:', error)
       throw new Error('Failed to search products in mock Amazon API')
+    }
+  }
+
+  // New method for structured search queries
+  async searchProductsStructured(
+    queryOptimization: QueryOptimization,
+    filters?: SearchFilters,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<MockAmazonProduct[]> {
+    try {
+      console.log(`🔥 STRUCTURED SEARCH CALLED!`)
+      console.log(`Query optimization:`, JSON.stringify(queryOptimization, null, 2))
+
+      const where: any = {}
+      const orConditions: any[] = []
+
+      // Handle both old and new query optimization formats
+      const primaryTerms = queryOptimization.primaryTerms || queryOptimization.optimizedQuery?.split(' ') || []
+      const secondaryTerms = queryOptimization.secondaryTerms || queryOptimization.enhancements?.synonyms || []
+      const searchFilters = queryOptimization.searchFilters || {
+        brands: queryOptimization.enhancements?.brandNormalization || [],
+        categories: queryOptimization.enhancements?.categoryInference || [],
+        sizes: queryOptimization.enhancements?.sizeExtraction || [],
+        colors: queryOptimization.enhancements?.colorExtraction || [],
+        styles: queryOptimization.enhancements?.styleInference || [],
+        priceRange: queryOptimization.enhancements?.budgetInference ? { max: queryOptimization.enhancements.budgetInference } : null
+      }
+
+      console.log(`Structured search - Primary: [${primaryTerms.join(', ')}], Secondary: [${secondaryTerms.join(', ')}]`)
+      console.log(`Applied filters:`, JSON.stringify(searchFilters, null, 2))
+
+      // Primary terms get priority (these should appear in results)
+      if (primaryTerms.length > 0) {
+        primaryTerms.forEach(term => {
+          orConditions.push(
+            { name: { contains: term, mode: 'insensitive' } },
+            { description: { contains: term, mode: 'insensitive' } },
+            { brand: { contains: term, mode: 'insensitive' } }
+          )
+        })
+      }
+
+      // Secondary terms for broader matching (optional)
+      if (secondaryTerms.length > 0) {
+        secondaryTerms.forEach(term => {
+          orConditions.push(
+            { name: { contains: term, mode: 'insensitive' } },
+            { description: { contains: term, mode: 'insensitive' } }
+          )
+        })
+      }
+
+      // Apply extracted filters from Claude
+      if (searchFilters.brands?.length > 0) {
+        // Try exact match first, then fallback to contains
+        where.brand = { in: searchFilters.brands }
+      }
+
+      if (searchFilters.categories?.length > 0) {
+        where.category = { in: searchFilters.categories }
+      }
+
+      if (searchFilters.sizes?.length > 0) {
+        where.size = { in: searchFilters.sizes }
+      }
+
+      // Colors are often in descriptions
+      if (searchFilters.colors?.length > 0) {
+        orConditions.push(
+          ...searchFilters.colors.map(color => ({
+            description: { contains: color, mode: 'insensitive' }
+          }))
+        )
+      }
+
+      // Apply additional filters passed in
+      if (filters?.priceRange) {
+        where.price = {
+          gte: filters.priceRange.min,
+          lte: filters.priceRange.max
+        }
+      }
+
+      if (filters?.condition?.length) {
+        where.condition = { in: filters.condition }
+      }
+
+      // Only add OR conditions if we have any
+      if (orConditions.length > 0) {
+        where.OR = orConditions
+      }
+
+      // If no search conditions, return empty result
+      if (Object.keys(where).length === 0) {
+        console.log('No structured search conditions found, returning empty results')
+        return []
+      }
+
+      console.log('Structured search where clause:', JSON.stringify(where, null, 2))
+
+      // Fetch products from database
+      const products = await prisma.product.findMany({
+        where,
+        include: {
+          seller: {
+            include: {
+              user: true
+            }
+          }
+        },
+        skip: offset,
+        take: limit,
+        orderBy: [
+          { createdAt: 'desc' },
+          { name: 'asc' }
+        ]
+      })
+
+      console.log(`Structured search found ${products.length} products`)
+
+      // Convert each product to MockAmazonProduct format
+      const amazonProducts = products.map(product =>
+        this.convertToAmazonFormat(product)
+      )
+
+      return amazonProducts
+
+    } catch (error) {
+      console.error('Error in structured product search:', error)
+      throw new Error('Failed to search products with structured query')
     }
   }
 

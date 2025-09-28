@@ -146,38 +146,50 @@ export class SearchOptimizer {
 
     prompt += `
 **Your Task:**
-Analyze the query and provide an optimized version that will improve product discovery. Return your response in the following JSON format:
+Analyze the user's query "${query}" and provide optimized search parameters specifically for this query. Extract information directly from the user's input and generate appropriate search terms and filters.
 
+Return your response in the following JSON format:
 {
-  "optimizedQuery": "enhanced search query with synonyms and clarifications",
+  "primaryTerms": ["extract", "most", "important", "terms"],
+  "secondaryTerms": ["add", "relevant", "synonyms"],
+  "searchFilters": {
+    "brands": ["extract_brand_if_mentioned"],
+    "categories": ["map_to_CLOTHING_SHOES_ACCESSORIES_ELECTRONICS"],
+    "sizes": ["extract_if_mentioned"],
+    "colors": ["extract_if_mentioned"],
+    "styles": ["extract_style_keywords"],
+    "priceRange": null
+  },
   "enhancements": {
-    "synonyms": ["alternative terms that mean the same thing"],
-    "brandNormalization": ["corrected or expanded brand names"],
-    "sizeExtraction": ["extracted size information"],
-    "colorExtraction": ["extracted color information"],
+    "synonyms": ["relevant_synonyms_for_this_query"],
+    "brandNormalization": ["normalized_brand_names"],
+    "sizeExtraction": ["sizes_from_query"],
+    "colorExtraction": ["colors_from_query"],
     "intentClassification": "browse|buy|compare|research|gift|replace",
-    "budgetInference": null or estimated budget number,
-    "styleInference": ["inferred style preferences"],
-    "categoryInference": ["likely product categories"]
+    "budgetInference": null,
+    "styleInference": ["style_terms_from_query"],
+    "categoryInference": ["categories_from_query"]
   },
   "confidence": 85,
-  "reasoning": "Brief explanation of optimizations made and why they improve search results"
+  "reasoning": "Explain what you extracted from THIS specific query and why"
 }
 
-**Optimization Guidelines:**
-1. Add relevant synonyms and alternative terms
-2. Correct any misspellings or brand name variations
-3. Extract and clarify size, color, or other attributes
-4. Infer the user's shopping intent (browse, buy, compare, research, gift, replace)
-5. Consider sustainability and thrift shopping context
-6. Enhance for better product matching in a second-hand marketplace
-7. Keep the optimized query natural and searchable
-8. Focus on terms that will help find quality thrift items
+**Optimization Guidelines for "${query}":**
+1. **primaryTerms**: Extract the core words from "${query}" that products MUST contain
+2. **secondaryTerms**: Add synonyms only for the terms found in "${query}"
+3. **searchFilters**: Extract ONLY what is explicitly mentioned in "${query}":
+   - brands: Only if brand name appears in "${query}" (Nike, Apple, Adidas, etc.)
+   - categories: Map product type to: CLOTHING, SHOES, ACCESSORIES, ELECTRONICS
+   - sizes: Only if size is mentioned in "${query}" (XL, 10, medium, etc.)
+   - colors: Only if color is mentioned in "${query}" (red, blue, black, etc.)
+   - styles: Only style words from "${query}" (vintage, modern, casual, etc.)
+   - priceRange: Only if budget words in "${query}" (cheap, expensive, under $X)
+4. DO NOT add filters that aren't in the user's query
+5. Focus on what the user actually said, not assumptions
+6. Be precise and specific to this query
 
-**Example transformations:**
-- "nike shoes" → "Nike athletic footwear sneakers running shoes sports"
-- "vintage jacket women" → "vintage womens jacket coat outerwear retro classic"
-- "iphone cheap" → "iPhone smartphone mobile phone affordable budget-friendly"
+**Critical Rule:**
+ONLY extract what is explicitly mentioned in "${query}". Do not add brands, categories, or attributes that the user didn't mention.
 
 Respond with only the JSON object, no additional text.`
 
@@ -199,7 +211,7 @@ Respond with only the JSON object, no additional text.`
       const parsed = JSON.parse(jsonStr)
 
       // Validate the response structure
-      if (!parsed.optimizedQuery || !parsed.enhancements || !parsed.confidence) {
+      if (!parsed.primaryTerms || !parsed.searchFilters || !parsed.enhancements || !parsed.confidence) {
         throw new Error('Invalid response structure from Claude')
       }
 
@@ -210,8 +222,18 @@ Respond with only the JSON object, no additional text.`
       console.log('Raw response:', responseText)
 
       // Return a basic fallback structure
+      const basicTerms = responseText.slice(0, 50).split(' ').filter(t => t.length > 2).slice(0, 3)
       return {
-        optimizedQuery: responseText.slice(0, 100), // Use first part as fallback
+        primaryTerms: basicTerms,
+        secondaryTerms: [],
+        searchFilters: {
+          brands: [],
+          categories: [],
+          sizes: [],
+          colors: [],
+          styles: [],
+          priceRange: null
+        },
         enhancements: {
           synonyms: [],
           brandNormalization: [],
@@ -261,14 +283,48 @@ Respond with only the JSON object, no additional text.`
       ])]
     }
 
+    // Combine search filters with fallbacks from basic analysis
+    const combinedFilters = {
+      brands: [...new Set([
+        ...claudeResponse.searchFilters.brands,
+        ...basicAttributes.brands
+      ])],
+      categories: [...new Set([
+        ...claudeResponse.searchFilters.categories,
+        ...basicAttributes.categories
+      ])],
+      sizes: [...new Set([
+        ...claudeResponse.searchFilters.sizes,
+        ...basicAttributes.sizes
+      ])],
+      colors: [...new Set([
+        ...claudeResponse.searchFilters.colors,
+        ...basicAttributes.colors
+      ])],
+      styles: [...new Set([
+        ...claudeResponse.searchFilters.styles,
+        ...basicAttributes.styles
+      ])],
+      priceRange: claudeResponse.searchFilters.priceRange
+    }
+
     // Calculate combined confidence
     const confidence = Math.min(100, Math.max(50, claudeResponse.confidence))
 
     // Enhanced reasoning
     const reasoning = claudeResponse.reasoning || 'Query optimized with AI assistance for better product discovery'
 
+    // Generate backward-compatible optimizedQuery for existing code
+    const optimizedQuery = [
+      ...claudeResponse.primaryTerms,
+      ...claudeResponse.secondaryTerms.slice(0, 3) // Limit to avoid overly long strings
+    ].join(' ')
+
     return {
-      optimizedQuery: claudeResponse.optimizedQuery || originalQuery,
+      primaryTerms: claudeResponse.primaryTerms || originalQuery.split(' '),
+      secondaryTerms: claudeResponse.secondaryTerms || [],
+      searchFilters: combinedFilters,
+      optimizedQuery, // Backward compatibility
       enhancements: combinedEnhancements,
       confidence,
       reasoning
@@ -481,7 +537,10 @@ Respond with only the JSON object, no additional text.`
     const synonyms = this.expandSynonyms(originalQuery)
     const brands = this.normalizeBrands(originalQuery)
 
-    // Simple query enhancement
+    // Extract primary terms from original query
+    const primaryTerms = originalQuery.toLowerCase().split(' ').filter(term => term.length > 2)
+
+    // Simple query enhancement for backward compatibility
     const enhancedTerms = [
       originalQuery,
       ...synonyms.slice(0, 3), // Limit synonyms
@@ -490,7 +549,17 @@ Respond with only the JSON object, no additional text.`
 
     return {
       originalQuery,
-      optimizedQuery: enhancedTerms,
+      primaryTerms,
+      secondaryTerms: synonyms.slice(0, 5),
+      searchFilters: {
+        brands,
+        categories: basicAttributes.categories,
+        sizes: basicAttributes.sizes,
+        colors: basicAttributes.colors,
+        styles: basicAttributes.styles,
+        priceRange: null
+      },
+      optimizedQuery: enhancedTerms, // Backward compatibility
       enhancements: {
         synonyms: synonyms.slice(0, 5),
         brandNormalization: brands,

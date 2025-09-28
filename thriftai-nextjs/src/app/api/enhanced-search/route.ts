@@ -186,8 +186,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Query optimized: "${queryOptimization.optimizedQuery}" (confidence: ${queryOptimization.confidence}%)`)
 
-    // Step 2: Product search with enhanced filtering
-    console.log('🛒 Searching products...')
+    // Step 2: Product search with enhanced filtering using structured search
+    console.log('🛒 Searching products with structured query...')
     const searchFilters = {
       ...filters,
       ...searchOptimizer.extractSearchFilters(queryOptimization)
@@ -195,8 +195,8 @@ export async function POST(request: NextRequest) {
 
     const searchLimit = config.ui.resultsPerPage || pagination.limit
     const products = await withRetry(
-      () => mockAmazonService.searchProducts(
-        queryOptimization.optimizedQuery,
+      () => mockAmazonService.searchProductsStructured(
+        queryOptimization,
         searchFilters,
         searchLimit * 2, // Get more for better ranking
         pagination.offset
@@ -207,9 +207,13 @@ export async function POST(request: NextRequest) {
 
     console.log(`📦 Found ${products.length} products`)
 
-    // Early return for no results with suggestions
+    // Early return for no results with clear messaging
     if (products.length === 0) {
       checkpoint(perf, 'no_results_response')
+
+      console.log(`❌ No products found for query: "${query}"`)
+      console.log(`Primary terms: [${queryOptimization.primaryTerms?.join(', ') || 'none'}]`)
+      console.log(`Search filters: ${JSON.stringify(queryOptimization.searchFilters || {})}`)
 
       return NextResponse.json({
         query: {
@@ -227,6 +231,16 @@ export async function POST(request: NextRequest) {
           requestId,
           performanceMetrics: perf.checkpoints,
           configUsed: config,
+          noResultsReason: 'No matching products found in our database',
+          searchAnalysis: {
+            primaryTerms: queryOptimization.primaryTerms || [],
+            appliedFilters: queryOptimization.searchFilters || {},
+            possibleReasons: [
+              'Products with these specifications may not be available',
+              'Try broader search terms or remove specific filters',
+              'Check spelling of brand names or product types'
+            ]
+          },
           paginationInfo: {
             currentPage: pagination.page,
             totalPages: 0,

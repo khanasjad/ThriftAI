@@ -318,7 +318,17 @@ export interface ContextHints {
 
 export interface QueryOptimization {
   originalQuery: string
-  optimizedQuery: string
+  optimizedQuery: string // Kept for backward compatibility
+  primaryTerms: string[] // Exact search terms
+  secondaryTerms: string[] // Synonyms for OR conditions
+  searchFilters: {
+    brands: string[]
+    categories: string[]
+    sizes: string[]
+    colors: string[]
+    styles: string[]
+    priceRange?: { min: number; max: number }
+  }
   enhancements: {
     synonyms: string[]
     brandNormalization: string[]
