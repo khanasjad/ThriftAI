@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AIService } from '@/lib/services/aiService'
 import { prisma } from '@/lib/prisma'
+import { rateLimit, rateLimitConfigs } from '@/lib/middleware/rateLimit'
+import { validateSearchParams } from '@/lib/validations/search'
+import { ZodError } from 'zod'
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const query = searchParams.get('q') || ''
-    const category = searchParams.get('category')
-    const minPrice = searchParams.get('minPrice')
-    const maxPrice = searchParams.get('maxPrice')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+  // Apply rate limiting
+  return rateLimit(rateLimitConfigs.search)(request, async () => {
+    try {
+      const { searchParams } = new URL(request.url)
+
+      // Validate input parameters
+      const validatedParams = validateSearchParams(searchParams)
+      const { q: query, category, minPrice, maxPrice, page, limit } = validatedParams
 
     console.log(`🔍 Search API called with query: "${query}"`)
 
@@ -90,11 +93,22 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit)
       }
     })
-  } catch (error) {
-    console.error('Search error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          {
+            error: 'Invalid input parameters',
+            details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+          },
+          { status: 400 }
+        )
+      }
+
+      console.error('Search error:', error)
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
+    }
+  })
 }

@@ -2,8 +2,45 @@ import '@testing-library/jest-dom'
 
 // Mock Web APIs for tests
 global.Request = global.Request || class Request {}
-global.Response = global.Response || class Response {}
+global.Response = global.Response || class Response {
+  static json(data, init) {
+    const response = new Response(JSON.stringify(data), {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) }
+    })
+    response.json = async () => data
+    return response
+  }
+}
 global.Headers = global.Headers || class Headers {}
+
+// Mock NextResponse
+jest.mock('next/server', () => ({
+  NextResponse: class MockNextResponse {
+    constructor(body, init) {
+      this.status = init?.status || 200
+      this.headers = new Map()
+      this.body = body
+      if (init?.headers) {
+        Object.entries(init.headers).forEach(([key, value]) => {
+          this.headers.set(key, value)
+        })
+      }
+    }
+
+    static json(data, init) {
+      const response = new MockNextResponse(JSON.stringify(data), init)
+      response.json = async () => data
+      response.headers = new Map()
+      if (init?.headers) {
+        Object.entries(init.headers).forEach(([key, value]) => {
+          response.headers.set(key, value)
+        })
+      }
+      return response
+    }
+  }
+}))
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({

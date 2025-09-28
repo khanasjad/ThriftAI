@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AIService } from '@/lib/services/aiService'
+import { rateLimit, rateLimitConfigs } from '@/lib/middleware/rateLimit'
+import { ClaudeSearchSchema } from '@/lib/validations/search'
+import { ZodError } from 'zod'
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { query, budget, preferences = {} } = body
+  // Apply rate limiting for AI search
+  return rateLimit(rateLimitConfigs.aiSearch)(request, async () => {
+    try {
+      const body = await request.json()
 
-    if (!query) {
-      return NextResponse.json(
-        { error: 'Query is required' },
-        { status: 400 }
-      )
-    }
+      // Validate input with Zod schema
+      const validatedData = ClaudeSearchSchema.parse(body)
+      const { query, maxPrice: budget, category } = validatedData
 
     // Check if Claude AI is available
     if (!AIService.isClaudeAvailable()) {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       }, { status: 503 })
     }
 
-    const result = await AIService.claudeSearch(query, budget, preferences)
+    const result = await AIService.claudeSearch(query, budget, { category })
 
     // Add API status to response
     const enhancedResult = {
@@ -36,29 +37,40 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(enhancedResult)
 
-  } catch (error: any) {
-    console.error('Claude search error:', error)
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          {
+            error: 'Invalid input parameters',
+            details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+          },
+          { status: 400 }
+        )
+      }
 
-    // Provide specific error messages
-    if (error?.status === 401) {
-      return NextResponse.json({
-        error: 'Invalid Claude API key',
-        message: 'Please check your ANTHROPIC_API_KEY in the environment variables'
-      }, { status: 401 })
+      console.error('Claude search error:', error)
+
+      // Provide specific error messages
+      if (error?.status === 401) {
+        return NextResponse.json({
+          error: 'Invalid Claude API key',
+          message: 'Please check your ANTHROPIC_API_KEY in the environment variables'
+        }, { status: 401 })
+      }
+
+      if (error?.status === 429) {
+        return NextResponse.json({
+          error: 'Rate limit exceeded',
+          message: 'Claude API rate limit reached. Please try again later.'
+        }, { status: 429 })
+      }
+
+      return NextResponse.json(
+        { error: 'Internal server error', message: error?.message || 'Unknown error' },
+        { status: 500 }
+      )
     }
-
-    if (error?.status === 429) {
-      return NextResponse.json({
-        error: 'Rate limit exceeded',
-        message: 'Claude API rate limit reached. Please try again later.'
-      }, { status: 429 })
-    }
-
-    return NextResponse.json(
-      { error: 'Internal server error', message: error?.message || 'Unknown error' },
-      { status: 500 }
-    )
-  }
+  })
 }
 
 // Add a GET endpoint to check API status

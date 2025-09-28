@@ -1,6 +1,8 @@
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
 import { prisma } from '../prisma'
+import { logger } from '@/lib/logger'
+import { isOpenAIAvailable, isAnthropicAvailable, getAiConfig } from '@/config/api.config'
 
 export interface SearchResult {
   id: string
@@ -44,24 +46,42 @@ export class AIService {
   private static anthropic: Anthropic | null = null
 
   static {
-    // Initialize OpenAI if API key is available
-    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key') {
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY
-      })
-      console.log('✅ OpenAI initialized successfully')
-    } else {
-      console.warn('⚠️ OpenAI API key not configured')
-    }
+    try {
+      const aiConfig = getAiConfig()
 
-    // Initialize Claude/Anthropic if API key is available
-    if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your-anthropic-api-key') {
-      this.anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY
-      })
-      console.log('✅ Claude AI initialized successfully')
-    } else {
-      console.warn('⚠️ Claude API key not configured')
+      // Initialize OpenAI if API key is available
+      if (isOpenAIAvailable()) {
+        this.openai = new OpenAI({
+          apiKey: aiConfig.openai.apiKey!,
+          baseURL: aiConfig.openai.baseUrl,
+          timeout: aiConfig.openai.timeout,
+          maxRetries: aiConfig.openai.retries,
+        })
+        logger.info('OpenAI client initialized successfully', {
+          component: 'AIService',
+          metadata: { model: aiConfig.openai.model }
+        })
+      } else {
+        logger.warn('OpenAI API key not configured', { component: 'AIService' })
+      }
+
+      // Initialize Claude/Anthropic if API key is available
+      if (isAnthropicAvailable()) {
+        this.anthropic = new Anthropic({
+          apiKey: aiConfig.anthropic.apiKey!,
+          baseURL: aiConfig.anthropic.baseUrl,
+          timeout: aiConfig.anthropic.timeout,
+          maxRetries: aiConfig.anthropic.retries,
+        })
+        logger.info('Anthropic client initialized successfully', {
+          component: 'AIService',
+          metadata: { model: aiConfig.anthropic.model }
+        })
+      } else {
+        logger.warn('Anthropic API key not configured', { component: 'AIService' })
+      }
+    } catch (error) {
+      logger.error('Failed to initialize AI services', error, { component: 'AIService' })
     }
   }
 

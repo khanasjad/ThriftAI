@@ -1,17 +1,15 @@
-// Mock Prisma first
-const prismaMock = {
-  $queryRawUnsafe: jest.fn(),
-  product: {
-    findMany: jest.fn(),
-    count: jest.fn(),
-  },
-  seller: {
-    findUnique: jest.fn(),
-  },
-}
-
+// Mock Prisma with a factory function to avoid circular dependency
 jest.mock('@/lib/prisma', () => ({
-  prisma: prismaMock,
+  prisma: {
+    $queryRawUnsafe: jest.fn(),
+    product: {
+      findMany: jest.fn(),
+      count: jest.fn(),
+    },
+    seller: {
+      findUnique: jest.fn(),
+    },
+  },
 }))
 
 // Mock Anthropic and OpenAI
@@ -19,6 +17,10 @@ jest.mock('@anthropic-ai/sdk')
 jest.mock('openai')
 
 import { AIService } from '@/lib/services/aiService'
+import { prisma } from '@/lib/prisma'
+
+// Get the mocked prisma instance for type assertion
+const prismaMock = prisma as jest.Mocked<typeof prisma>
 
 describe('AIService', () => {
   beforeEach(() => {

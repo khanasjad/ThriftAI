@@ -1,6 +1,12 @@
-import { createMocks } from 'node-mocks-http'
-import { GET } from '@/app/api/buyers/search/route'
-import { prismaMock } from '../../mocks/prisma'
+// Mock Prisma with a factory function to avoid circular dependency
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    product: {
+      findMany: jest.fn(),
+      count: jest.fn(),
+    },
+  },
+}))
 
 // Mock the AIService
 jest.mock('@/lib/services/aiService', () => ({
@@ -9,7 +15,13 @@ jest.mock('@/lib/services/aiService', () => ({
   },
 }))
 
+import { GET } from '@/app/api/buyers/search/route'
+import { NextRequest } from 'next/server'
 import { AIService } from '@/lib/services/aiService'
+import { prisma } from '@/lib/prisma'
+
+// Get the mocked prisma instance for type assertion
+const prismaMock = prisma as jest.Mocked<typeof prisma>
 
 describe('/api/buyers/search', () => {
   beforeEach(() => {
@@ -51,12 +63,12 @@ describe('/api/buyers/search', () => {
     const mockedSearchProducts = AIService.searchProducts as jest.MockedFunction<typeof AIService.searchProducts>
     mockedSearchProducts.mockResolvedValue(mockSearchResults)
 
-    const { req } = createMocks({
-      method: 'GET',
-      url: '/api/buyers/search?q=car',
-    })
+    const mockRequest = {
+      url: 'http://localhost:3000/api/buyers/search?q=car',
+      method: 'GET'
+    } as NextRequest
 
-    const response = await GET(req as any)
+    const response = await GET(mockRequest)
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -72,12 +84,12 @@ describe('/api/buyers/search', () => {
     const mockedSearchProducts = AIService.searchProducts as jest.MockedFunction<typeof AIService.searchProducts>
     mockedSearchProducts.mockResolvedValue(filteredResults)
 
-    const { req } = createMocks({
-      method: 'GET',
-      url: '/api/buyers/search?q=car&maxPrice=10',
-    })
+    const mockRequest = {
+      url: 'http://localhost:3000/api/buyers/search?q=car&maxPrice=10',
+      method: 'GET'
+    } as NextRequest
 
-    const response = await GET(req as any)
+    const response = await GET(mockRequest)
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -91,12 +103,12 @@ describe('/api/buyers/search', () => {
     const mockedSearchProducts = AIService.searchProducts as jest.MockedFunction<typeof AIService.searchProducts>
     mockedSearchProducts.mockResolvedValue(electronicsResults)
 
-    const { req } = createMocks({
-      method: 'GET',
-      url: '/api/buyers/search?q=car&category=ELECTRONICS',
-    })
+    const mockRequest = {
+      url: 'http://localhost:3000/api/buyers/search?q=car&category=ELECTRONICS',
+      method: 'GET'
+    } as NextRequest
 
-    const response = await GET(req as any)
+    const response = await GET(mockRequest)
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -108,12 +120,12 @@ describe('/api/buyers/search', () => {
     const mockedSearchProducts = AIService.searchProducts as jest.MockedFunction<typeof AIService.searchProducts>
     mockedSearchProducts.mockResolvedValue(mockSearchResults)
 
-    const { req } = createMocks({
-      method: 'GET',
-      url: '/api/buyers/search?q=car&page=1&limit=1',
-    })
+    const mockRequest = {
+      url: 'http://localhost:3000/api/buyers/search?q=car&page=1&limit=1',
+      method: 'GET'
+    } as NextRequest
 
-    const response = await GET(req as any)
+    const response = await GET(mockRequest)
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -152,12 +164,12 @@ describe('/api/buyers/search', () => {
     prismaMock.product.findMany.mockResolvedValue(mockPrismaResults)
     prismaMock.product.count.mockResolvedValue(1)
 
-    const { req } = createMocks({
-      method: 'GET',
-      url: '/api/buyers/search',
-    })
+    const mockRequest = {
+      url: 'http://localhost:3000/api/buyers/search',
+      method: 'GET'
+    } as NextRequest
 
-    const response = await GET(req as any)
+    const response = await GET(mockRequest)
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -170,12 +182,12 @@ describe('/api/buyers/search', () => {
     const mockedSearchProducts = AIService.searchProducts as jest.MockedFunction<typeof AIService.searchProducts>
     mockedSearchProducts.mockRejectedValue(new Error('Search failed'))
 
-    const { req } = createMocks({
-      method: 'GET',
-      url: '/api/buyers/search?q=car',
-    })
+    const mockRequest = {
+      url: 'http://localhost:3000/api/buyers/search?q=car',
+      method: 'GET'
+    } as NextRequest
 
-    const response = await GET(req as any)
+    const response = await GET(mockRequest)
     const data = await response.json()
 
     expect(response.status).toBe(500)
@@ -187,12 +199,12 @@ describe('/api/buyers/search', () => {
     const mockedSearchProducts = AIService.searchProducts as jest.MockedFunction<typeof AIService.searchProducts>
     mockedSearchProducts.mockResolvedValue(mockSearchResults) // Should not include Silk Scarf
 
-    const { req } = createMocks({
-      method: 'GET',
-      url: '/api/buyers/search?q=car',
-    })
+    const mockRequest = {
+      url: 'http://localhost:3000/api/buyers/search?q=car',
+      method: 'GET'
+    } as NextRequest
 
-    const response = await GET(req as any)
+    const response = await GET(mockRequest)
     const data = await response.json()
 
     expect(response.status).toBe(200)
