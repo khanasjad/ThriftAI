@@ -275,7 +275,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
     const escapedQuery = query.replace(/'/g, "''") // Escape single quotes for SQL
     const wordBoundarySQL = `
       SELECT "id", "name", "price", "originalPrice", "brand", "category", "condition", "imageUrl", "sellerId", "isAvailable"
-      FROM "Product"
+      FROM "products"
       WHERE "isAvailable" = true
       AND (
         "name" ~* '\\m${escapedQuery}\\M' OR

@@ -324,15 +324,74 @@ export type { ApiConfig }
 // Export the class for testing
 export { ApiConfigManager }
 
-// Helper functions for common config access
-export const getApiConfig = () => apiConfig.getConfig()
-export const getAiConfig = () => apiConfig.getAiConfig()
-export const isOpenAIAvailable = () => apiConfig.isOpenAIAvailable()
-export const isAnthropicAvailable = () => apiConfig.isAnthropicAvailable()
-export const getExternalConfig = () => apiConfig.getExternalConfig()
-export const getShippingConfig = () => apiConfig.getShippingConfig()
-export const getEndpointsConfig = () => apiConfig.getEndpointsConfig()
-export const getMonitoringConfig = () => apiConfig.getMonitoringConfig()
+// Safe helper functions for common config access with fallbacks
+export const getApiConfig = () => {
+  try {
+    return apiConfig.getConfig()
+  } catch (error) {
+    // Return safe defaults if config not initialized
+    return getApiConfigFromEnv()
+  }
+}
+
+export const getAiConfig = () => {
+  try {
+    return apiConfig.getAiConfig()
+  } catch (error) {
+    // Return safe AI defaults if config not initialized
+    return getApiConfigFromEnv().ai
+  }
+}
+
+export const isOpenAIAvailable = () => {
+  try {
+    return apiConfig.isOpenAIAvailable()
+  } catch (error) {
+    // Check directly from environment
+    return !!process.env.OPENAI_API_KEY
+  }
+}
+
+export const isAnthropicAvailable = () => {
+  try {
+    return apiConfig.isAnthropicAvailable()
+  } catch (error) {
+    // Check directly from environment
+    return !!process.env.ANTHROPIC_API_KEY
+  }
+}
+
+export const getExternalConfig = () => {
+  try {
+    return apiConfig.getExternalConfig()
+  } catch (error) {
+    return getApiConfigFromEnv().external
+  }
+}
+
+export const getShippingConfig = () => {
+  try {
+    return apiConfig.getShippingConfig()
+  } catch (error) {
+    return getApiConfigFromEnv().shipping
+  }
+}
+
+export const getEndpointsConfig = () => {
+  try {
+    return apiConfig.getEndpointsConfig()
+  } catch (error) {
+    return getApiConfigFromEnv().endpoints
+  }
+}
+
+export const getMonitoringConfig = () => {
+  try {
+    return apiConfig.getMonitoringConfig()
+  } catch (error) {
+    return getApiConfigFromEnv().monitoring
+  }
+}
 
 // Default export
 export default apiConfig

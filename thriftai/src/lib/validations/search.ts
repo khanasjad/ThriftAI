@@ -1,9 +1,31 @@
 import { z } from 'zod'
-import { getValidationConfig } from '@/config/security.config'
+import { securityConfig } from '@/config/security.config'
+
+// Safe validation defaults that work without initialization
+const getValidationLimits = () => {
+  try {
+    // Try to get configured values
+    const validation = securityConfig.getValidationConfig()
+    return {
+      maxQueryLength: validation.maxQueryLength || 200,
+      maxPrice: validation.maxPrice || 10000,
+      maxPage: validation.maxPage || 100,
+      maxPageSize: validation.maxPageSize || 50,
+    }
+  } catch (error) {
+    // Fallback to safe defaults if config not initialized
+    return {
+      maxQueryLength: 200,
+      maxPrice: 10000,
+      maxPage: 100,
+      maxPageSize: 50,
+    }
+  }
+}
 
 // Create dynamic validation schema
 const createSearchQuerySchema = () => {
-  const validation = getValidationConfig()
+  const validation = getValidationLimits()
 
   return z.object({
     q: z.string()
@@ -44,7 +66,7 @@ export function validateSearchParams(searchParams: URLSearchParams): SearchQuery
 
 // Claude search validation schema
 const createClaudeSearchSchema = () => {
-  const validation = getValidationConfig()
+  const validation = getValidationLimits()
 
   return z.object({
     query: z.string()

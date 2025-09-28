@@ -260,13 +260,48 @@ export type { SecurityConfig }
 // Export the class for testing
 export { SecurityConfigManager }
 
-// Helper functions for common config access
-export const getSecurityConfig = () => securityConfig.getConfig()
-export const getRateLimitConfig = (type: keyof SecurityConfig['rateLimit']) =>
-  securityConfig.getRateLimitConfig(type)
-export const getValidationConfig = () => securityConfig.getValidationConfig()
-export const getCsrfConfig = () => securityConfig.getCsrfConfig()
-export const getHeadersConfig = () => securityConfig.getHeadersConfig()
+// Safe helper functions for common config access with fallbacks
+export const getSecurityConfig = () => {
+  try {
+    return securityConfig.getConfig()
+  } catch (error) {
+    return getSecurityConfigFromEnv()
+  }
+}
+
+export const getRateLimitConfig = (type: keyof SecurityConfig['rateLimit']) => {
+  try {
+    return securityConfig.getRateLimitConfig(type)
+  } catch (error) {
+    // Return safe defaults if config not initialized
+    const envConfig = getSecurityConfigFromEnv()
+    return envConfig.rateLimit[type]
+  }
+}
+
+export const getValidationConfig = () => {
+  try {
+    return securityConfig.getValidationConfig()
+  } catch (error) {
+    return getSecurityConfigFromEnv().validation
+  }
+}
+
+export const getCsrfConfig = () => {
+  try {
+    return securityConfig.getCsrfConfig()
+  } catch (error) {
+    return getSecurityConfigFromEnv().csrf
+  }
+}
+
+export const getHeadersConfig = () => {
+  try {
+    return securityConfig.getHeadersConfig()
+  } catch (error) {
+    return getSecurityConfigFromEnv().headers
+  }
+}
 
 // Default export
 export default securityConfig

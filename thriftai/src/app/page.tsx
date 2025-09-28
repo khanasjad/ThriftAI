@@ -25,16 +25,13 @@ export default function Home() {
 
   const handleSearch = async (query: string) => {
     try {
-      // Use enhanced Claude AI search for better results
-      const response = await fetch('/api/buyers/claude-search', {
+      // Use chat search (which we know works) as primary method
+      const response = await fetch('/api/buyers/chat-search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          query,
-          userId: session?.user?.id || 'anonymous'
-        }),
+        body: JSON.stringify({ query }),
       })
 
       if (response.ok) {
@@ -42,7 +39,7 @@ export default function Home() {
         if (data.error) {
           throw new Error(data.error)
         }
-        // Store enhanced search results and navigate
+        // Store search results and navigate
         sessionStorage.setItem('searchResults', JSON.stringify(data))
         sessionStorage.setItem('searchQuery', query)
         // Navigate to search results page
@@ -51,24 +48,9 @@ export default function Home() {
         throw new Error('Search failed')
       }
     } catch (error) {
-      console.error('Enhanced search error:', error)
-      // Fallback to basic search if Claude AI search fails
-      try {
-        const fallbackResponse = await fetch('/api/buyers/chat-search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query }),
-        })
-        const fallbackData = await fallbackResponse.json()
-        sessionStorage.setItem('searchResults', JSON.stringify(fallbackData))
-        sessionStorage.setItem('searchQuery', query)
-        router.push(`/buyers/search?q=${encodeURIComponent(query)}`)
-      } catch (fallbackError) {
-        console.error('Fallback search error:', fallbackError)
-        router.push(`/buyers/search?q=${encodeURIComponent(query)}`)
-      }
+      console.error('Search error:', error)
+      // If all else fails, navigate to search page which will handle the query
+      router.push(`/buyers/search?q=${encodeURIComponent(query)}`)
     }
   }
 
