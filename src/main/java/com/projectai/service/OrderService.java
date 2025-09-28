@@ -316,16 +316,16 @@ public class OrderService {
         
         orders.add(Map.of(
             "orderId", "ORD_1699123456789",
-            "productName", "Nike Air Max Sneakers",
+            "productName", "Sample Athletic Footwear",
             "productPrice", 65.00,
             "orderDate", LocalDateTime.now().minusDays(5),
             "status", "DELIVERED",
             "total", 77.99
         ));
-        
+
         orders.add(Map.of(
             "orderId", "ORD_1699023456789",
-            "productName", "Vintage Levi's 501 Jeans",
+            "productName", "Sample Denim Clothing",
             "productPrice", 45.99,
             "orderDate", LocalDateTime.now().minusDays(12),
             "status", "DELIVERED",

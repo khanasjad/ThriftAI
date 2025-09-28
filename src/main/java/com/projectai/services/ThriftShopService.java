@@ -3,96 +3,98 @@ package com.projectai.services;
 import com.projectai.models.*;
 import com.projectai.ai.DealScorer;
 import java.util.*;
+import com.projectai.service.ConfigurationService;
 import java.util.stream.Collectors;
 
 public class ThriftShopService {
     private Map<String, Product> products;
+    private ConfigurationService configurationService;
     private Map<String, Store> stores;
     private Map<String, Deal> deals;
     private DealScorer dealScorer;
     
     public ThriftShopService() {
+        this(null);
+    }
+
+    public ThriftShopService(ConfigurationService configurationService) {
         this.products = new HashMap<>();
         this.stores = new HashMap<>();
         this.deals = new HashMap<>();
         this.dealScorer = new DealScorer();
+        this.configurationService = configurationService;
         initializeSampleData();
     }
     
     private void initializeSampleData() {
-        // Create sample stores
-        Store store1 = new Store("store1", "Vintage Vibes", "THRIFT_STORE");
-        store1.setLocation("Downtown");
-        store1.setRating(4.5);
-        store1.setOnline(true);
-        store1.addCategory("CLOTHING");
-        store1.addCategory("ACCESSORIES");
-        stores.put(store1.getId(), store1);
-        
-        Store store2 = new Store("store2", "Second Chance Electronics", "ELECTRONICS");
-        store2.setLocation("Tech District");
-        store2.setRating(4.2);
-        store2.setOnline(true);
-        store2.addCategory("ELECTRONICS");
-        store2.addCategory("COMPUTERS");
-        stores.put(store2.getId(), store2);
-        
-        Store store3 = new Store("store3", "Fashion Forward Finds", "CONSIGNMENT");
-        store3.setLocation("Fashion Quarter");
-        store3.setRating(4.7);
-        store3.setOnline(false);
-        store3.addCategory("CLOTHING");
-        store3.addCategory("SHOES");
-        stores.put(store3.getId(), store3);
-        
-        // Create sample products
-        createSampleProducts();
+        // Initialize empty collections - actual data should be loaded from database
+        // This method is preserved for backward compatibility but should be replaced
+        // with proper data loading mechanisms in production
+
+        // Sample data creation is now conditional based on environment
+        String environment = System.getProperty("app.environment", "development");
+        boolean createSampleData = "development".equals(environment) || "test".equals(environment);
+
+        if (createSampleData) {
+            createMinimalSampleData();
+        }
     }
     
+    private void createMinimalSampleData() {
+        // Create basic sample stores for development/testing
+        createSampleStores();
+        // Create generic sample products for development/testing
+        createSampleProducts();
+    }
+
+    private void createSampleStores() {
+        Store store1 = new Store("store1", "Downtown Thrift", "PHYSICAL");
+        Store store2 = new Store("store2", "Vintage Finds", "PHYSICAL");
+        Store store3 = new Store("store3", "Second Hand Shop", "ONLINE");
+
+        stores.put(store1.getId(), store1);
+        stores.put(store2.getId(), store2);
+        stores.put(store3.getId(), store3);
+    }
+
     private void createSampleProducts() {
-        // Sample clothing products
-        Product product1 = new Product("p1", "Vintage Levi's 501 Jeans", "CLOTHING", 45.99);
-        product1.setBrand("LEVI'S");
-        product1.setOriginalPrice(120.00);
-        product1.setCondition("EXCELLENT");
-        product1.setSize("M");
-        product1.setStoreId("store1");
-        product1.setDescription("Classic vintage Levi's 501 jeans in excellent condition");
-        products.put(product1.getId(), product1);
-        
-        Product product2 = new Product("p2", "Nike Air Max Sneakers", "SHOES", 65.00);
-        product2.setBrand("NIKE");
-        product2.setOriginalPrice(150.00);
-        product2.setCondition("VERY_GOOD");
-        product2.setSize("10");
-        product2.setStoreId("store3");
-        product2.setDescription("Gently used Nike Air Max sneakers");
-        products.put(product2.getId(), product2);
-        
-        Product product3 = new Product("p3", "MacBook Air 2019", "ELECTRONICS", 599.99);
-        product3.setBrand("APPLE");
-        product3.setOriginalPrice(999.99);
-        product3.setCondition("GOOD");
-        product3.setStoreId("store2");
-        product3.setDescription("MacBook Air 2019, 13-inch, some signs of use but fully functional");
-        products.put(product3.getId(), product3);
-        
-        Product product4 = new Product("p4", "Zara Wool Coat", "CLOTHING", 89.99);
-        product4.setBrand("ZARA");
-        product4.setOriginalPrice(199.99);
-        product4.setCondition("LIKE_NEW");
-        product4.setSize("L");
-        product4.setStoreId("store1");
-        product4.setDescription("Beautiful wool coat from Zara, barely worn");
-        products.put(product4.getId(), product4);
-        
-        Product product5 = new Product("p5", "Samsung Galaxy Watch", "ELECTRONICS", 149.99);
-        product5.setBrand("SAMSUNG");
-        product5.setOriginalPrice(299.99);
-        product5.setCondition("EXCELLENT");
-        product5.setStoreId("store2");
-        product5.setDescription("Samsung Galaxy Watch in excellent condition with original box");
-        products.put(product5.getId(), product5);
+        // Generic sample products for development/testing only
+        // Note: In production, products should be loaded from database
+
+        // Use configuration service for categories instead of hardcoded values
+        List<String> categoryList = configurationService != null ?
+            configurationService.getAllActiveCategories() :
+            Arrays.asList("CLOTHING", "SHOES", "ELECTRONICS", "ACCESSORIES", "HOME");
+        String[] categories = categoryList.toArray(new String[0]);
+        String[] conditions = {"EXCELLENT", "VERY_GOOD", "GOOD", "FAIR"};
+        String[] sizes = {"XS", "S", "M", "L", "XL", "XXL", "6", "7", "8", "9", "10", "11", "12"};
+        String[] storeIds = {"store1", "store2", "store3"};
+
+        // Create 5 generic sample products
+        for (int i = 1; i <= 5; i++) {
+            String productId = "sample_product_" + i;
+            String category = categories[(i - 1) % categories.length];
+            String condition = conditions[(i - 1) % conditions.length];
+            String size = sizes[(i - 1) % sizes.length];
+            String storeId = storeIds[(i - 1) % storeIds.length];
+
+            double basePrice = 25.0 + (i * 15.0); // Price range: $25-$100
+            double originalPrice = basePrice * (1.5 + (i * 0.2)); // Original price 1.5x to 2.5x current
+
+            Product product = new Product(productId,
+                "Sample " + category.toLowerCase() + " item " + i,
+                category,
+                basePrice);
+
+            product.setBrand("Generic Brand " + i);
+            product.setOriginalPrice(originalPrice);
+            product.setCondition(condition);
+            product.setSize(size);
+            product.setStoreId(storeId);
+            product.setDescription("Sample " + category.toLowerCase() + " item for development/testing purposes");
+
+            products.put(product.getId(), product);
+        }
     }
     
     public List<Deal> findBestDeals(UserPreferences preferences, int limit) {

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import com.projectai.service.ConfigurationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,6 +31,9 @@ public class AffiliateProductController {
 
     @Autowired
     private AffiliateProductService affiliateProductService;
+
+    @Autowired
+    private ConfigurationService configurationService;
 
     @Autowired
     private ProductComparisonService productComparisonService;
@@ -361,7 +365,13 @@ public class AffiliateProductController {
         logger.info("🔍 Loading advanced search page");
 
         // Get available filters
-        model.addAttribute("categories", Arrays.asList("clothing", "accessories", "shoes", "bags"));
+        // Use configuration service for categories instead of hardcoded values
+        try {
+            model.addAttribute("categories", configurationService.getAllActiveCategories());
+        } catch (Exception e) {
+            // Fallback to hardcoded values if configuration service fails
+            model.addAttribute("categories", Arrays.asList("clothing", "accessories", "shoes", "bags"));
+        }
         model.addAttribute("brands", Arrays.asList("Amazon Essentials", "Nike", "Adidas", "H&M", "Zara", "Uniqlo"));
         model.addAttribute("sources", AffiliateProduct.AffiliateSource.values());
         model.addAttribute("genders", AffiliateProduct.Gender.values());

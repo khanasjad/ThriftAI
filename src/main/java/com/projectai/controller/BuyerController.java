@@ -21,6 +21,7 @@ import com.projectai.service.DynamicProductService;
 import com.projectai.service.IntelligentSearchService;
 import com.projectai.service.OpenSourceProductService;
 import com.projectai.service.AdvancedAIOrchestrationService;
+import com.projectai.service.ConfigurationService;
 import com.projectai.dto.AIInsights;
 import com.projectai.models.ClaudeSearchAnalytics;
 import com.projectai.models.SearchFilters;
@@ -101,6 +102,9 @@ public class BuyerController {
 
     @Autowired
     private ClaudeEnhancedService claudeEnhancedService;
+
+    @Autowired
+    private ConfigurationService configurationService;
 
     @Autowired
     private DynamicProductService dynamicProductService;
@@ -2039,10 +2043,10 @@ public class BuyerController {
     private SearchIntent analyzeSearchIntent(String query) {
         SearchIntent intent = new SearchIntent();
 
-        // Initialize with base defaults
+        // Initialize with base defaults from configuration
         intent.style = "general";
-        intent.relevantCategories = new ArrayList<>(Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES"));
-        intent.excludedCategories = new ArrayList<>();
+        intent.relevantCategories = new ArrayList<>(configurationService.getRelevantCategoriesForIntent(query));
+        intent.excludedCategories = new ArrayList<>(configurationService.getExcludedCategoriesForIntent(query));
         intent.keywords = new ArrayList<>();
 
         // 🎯 CUMULATIVE PATTERN MATCHING - Check all patterns, not just first match
@@ -2058,7 +2062,8 @@ public class BuyerController {
             matchedVintage = true;
             intent.style = intent.style.equals("general") ? "vintage" : intent.style + "+vintage";
             intent.keywords.addAll(Arrays.asList("vintage", "retro", "classic", "antique"));
-            intent.excludedCategories.addAll(Arrays.asList("ELECTRONICS", "HOME", "BOOKS"));
+            // Use configuration-based exclusions instead of hardcoded
+            intent.excludedCategories.addAll(configurationService.getExcludedCategoriesForIntent("vintage_search"));
         }
 
         // Check for designer/luxury patterns
@@ -2067,7 +2072,8 @@ public class BuyerController {
             matchedDesigner = true;
             intent.style = intent.style.equals("general") ? "designer" : intent.style + "+designer";
             intent.keywords.addAll(Arrays.asList("designer", "luxury", "premium", "high-end", "branded"));
-            intent.excludedCategories.addAll(Arrays.asList("ELECTRONICS", "HOME", "BOOKS"));
+            // Use configuration-based exclusions instead of hardcoded
+            intent.excludedCategories.addAll(configurationService.getExcludedCategoriesForIntent("designer_search"));
         }
 
         // Check for technology patterns
@@ -2078,8 +2084,8 @@ public class BuyerController {
             logger.debug("🔍 INTENT: Detected technology pattern");
             matchedTech = true;
             intent.style = intent.style.equals("general") ? "technology" : intent.style + "+tech";
-            intent.relevantCategories = Arrays.asList("ELECTRONICS");
-            intent.excludedCategories.addAll(Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES", "HOME", "BOOKS"));
+            intent.relevantCategories = configurationService.getRelevantCategoriesForIntent("electronics");
+            intent.excludedCategories.addAll(configurationService.getExcludedCategoriesForIntent("electronics_search"));
             intent.keywords.addAll(Arrays.asList("electronic", "digital", "tech", "gadget"));
         }
 
@@ -2092,8 +2098,8 @@ public class BuyerController {
             matchedAutomotive = true;
             intent.style = intent.style.equals("general") ? "automotive" : intent.style + "+automotive";
             // Note: Since this is thrift/fashion, automotive items might be accessories/parts
-            intent.relevantCategories = Arrays.asList("ACCESSORIES", "ELECTRONICS");
-            intent.excludedCategories.addAll(Arrays.asList("CLOTHING", "SHOES", "HOME", "BOOKS"));
+            intent.relevantCategories = configurationService.getRelevantCategoriesForIntent("automotive");
+            intent.excludedCategories.addAll(configurationService.getExcludedCategoriesForIntent("automotive_search"));
             intent.keywords.addAll(Arrays.asList("car", "auto", "vehicle", "automotive", "gear"));
         }
 
@@ -2104,7 +2110,7 @@ public class BuyerController {
             matchedFashion = true;
             intent.style = intent.style.equals("general") ? "fashion" : intent.style + "+fashion";
             intent.keywords.addAll(Arrays.asList("fashion", "clothing", "apparel", "wear"));
-            intent.excludedCategories.addAll(Arrays.asList("ELECTRONICS", "HOME", "BOOKS"));
+            intent.excludedCategories.addAll(configurationService.getExcludedCategoriesForIntent("fashion_search"));
         }
 
         // Check for footwear patterns
@@ -2114,7 +2120,7 @@ public class BuyerController {
             matchedFootwear = true;
             intent.style = intent.style.equals("general") ? "footwear" : intent.style + "+footwear";
             intent.keywords.addAll(Arrays.asList("footwear", "shoes", "sneakers"));
-            intent.excludedCategories.addAll(Arrays.asList("ELECTRONICS", "HOME", "BOOKS"));
+            intent.excludedCategories.addAll(configurationService.getExcludedCategoriesForIntent("footwear_search"));
         }
 
         // Check for bag/handbag/purse patterns - CRITICAL for proper category filtering
@@ -2124,8 +2130,8 @@ public class BuyerController {
             logger.debug("🔍 INTENT: Detected bag/accessory pattern");
             matchedBag = true;
             intent.style = intent.style.equals("general") ? "bags" : intent.style + "+bags";
-            intent.relevantCategories = Arrays.asList("ACCESSORIES");
-            intent.excludedCategories.addAll(Arrays.asList("CLOTHING", "SHOES", "ELECTRONICS", "HOME", "BOOKS"));
+            intent.relevantCategories = configurationService.getRelevantCategoriesForIntent("bags");
+            intent.excludedCategories.addAll(configurationService.getExcludedCategoriesForIntent("bag_search"));
             intent.keywords.addAll(Arrays.asList("bag", "handbag", "purse", "tote", "accessory"));
             logger.info("🎯 BAG PATTERN MATCHED: Excluding CLOTHING category from search results");
         }
@@ -2135,8 +2141,8 @@ public class BuyerController {
         if (matchedVintage && matchedDesigner && !matchedBag) {
             logger.info("🎯 CRITICAL PATTERN: vintage+designer detected - applying strictest filtering");
             intent.style = "vintage+designer";
-            intent.relevantCategories = Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES");
-            intent.excludedCategories = Arrays.asList("ELECTRONICS", "HOME", "BOOKS", "SPORTS", "BEAUTY");
+            intent.relevantCategories = configurationService.getRelevantCategoriesForIntent("vintage_designer");
+            intent.excludedCategories = configurationService.getExcludedCategoriesForIntent("vintage_designer_search");
         } else if (matchedVintage && matchedDesigner && matchedBag) {
             logger.info("🎯 CRITICAL PATTERN: vintage+designer+bags detected - prioritizing bag filtering");
             intent.style = "vintage+designer+bags";
@@ -2147,7 +2153,7 @@ public class BuyerController {
         // If no specific patterns matched, use general search
         if (!matchedVintage && !matchedDesigner && !matchedTech && !matchedFashion && !matchedFootwear && !matchedAutomotive && !matchedBag) {
             intent.style = "general";
-            intent.relevantCategories = Arrays.asList("CLOTHING", "SHOES", "ACCESSORIES", "ELECTRONICS");
+            intent.relevantCategories = configurationService.getAllActiveCategories();
             intent.excludedCategories = new ArrayList<>();
             intent.keywords = Arrays.asList(query.split("\\s+"));
         }
@@ -2270,23 +2276,35 @@ public class BuyerController {
         if (intent.style != null && intent.style.contains("bags")) {
             String productTextLower = (product.getName() + " " + product.getDescription()).toLowerCase();
 
-            // Strong bonus for actual bag products
+            // STRICT BAG VALIDATION: Immediately exclude non-bag accessories
+            if (productTextLower.contains("cap") || productTextLower.contains("hat") ||
+                productTextLower.contains("phone mount") || productTextLower.contains("charger") ||
+                productTextLower.contains("watch") || productTextLower.contains("jewelry") ||
+                productTextLower.contains("sunglasses") || productTextLower.contains("belt") ||
+                productTextLower.contains("scarf") || productTextLower.contains("gloves") ||
+                productTextLower.contains("keychain") || productTextLower.contains("wallet") ||
+                productTextLower.contains("card holder") || productTextLower.contains("phone case")) {
+                logger.debug("👜 STRICT EXCLUSION: Returning 0.0 score for non-bag accessory in bag search: '{}'", product.getName());
+                return 0.0; // Completely exclude non-bag accessories from bag searches
+            }
+
+            // Strong bonus for actual bag products (expanded keywords)
             if (productTextLower.contains("bag") || productTextLower.contains("handbag") ||
                 productTextLower.contains("purse") || productTextLower.contains("tote") ||
                 productTextLower.contains("clutch") || productTextLower.contains("satchel") ||
                 productTextLower.contains("messenger") || productTextLower.contains("backpack") ||
-                productTextLower.contains("shoulder bag") || productTextLower.contains("crossbody")) {
-                score += 25.0;
-                logger.debug("👜 BAG BONUS: +25 for actual bag product");
+                productTextLower.contains("shoulder bag") || productTextLower.contains("crossbody") ||
+                productTextLower.contains("duffel") || productTextLower.contains("briefcase") ||
+                productTextLower.contains("laptop bag") || productTextLower.contains("gym bag") ||
+                productTextLower.contains("travel bag") || productTextLower.contains("shopping bag")) {
+                score += 30.0; // Increased bonus for actual bags
+                logger.debug("👜 BAG BONUS: +30 for actual bag product: '{}'", product.getName());
             }
 
-            // Penalty for non-bag accessories in bag searches
-            else if (productTextLower.contains("cap") || productTextLower.contains("hat") ||
-                     productTextLower.contains("phone mount") || productTextLower.contains("charger") ||
-                     productTextLower.contains("watch") || productTextLower.contains("jewelry") ||
-                     productTextLower.contains("sunglasses") || productTextLower.contains("belt")) {
-                score -= 15.0;
-                logger.debug("👜 NON-BAG PENALTY: -15 for non-bag accessory in bag search");
+            // For accessories that aren't clearly bags or non-bags, apply moderate penalty
+            else {
+                score -= 20.0;
+                logger.debug("👜 UNCLEAR ACCESSORY PENALTY: -20 for unclear accessory in bag search: '{}'", product.getName());
             }
         }
 

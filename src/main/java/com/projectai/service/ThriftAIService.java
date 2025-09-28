@@ -381,10 +381,14 @@ public class ThriftAIService {
                 .collect(Collectors.toList());
     }
 
-    // Data initialization for demo
+    // Data initialization for demo - environment conditional
     @Transactional
     public void initializeSampleData() {
-        if (productRepository.count() == 0) {
+        // Only create sample data in development/test environments
+        String environment = System.getProperty("app.environment", "development");
+        boolean createSampleData = "development".equals(environment) || "test".equals(environment);
+
+        if (createSampleData && productRepository.count() == 0) {
             List<Product> sampleProducts = createSampleProducts();
             productRepository.saveAll(sampleProducts);
         }

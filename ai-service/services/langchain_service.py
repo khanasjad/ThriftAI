@@ -11,20 +11,20 @@ import time
 from dataclasses import dataclass
 
 from langchain_anthropic import ChatAnthropic
-from langchain_community.embeddings import HuggingFaceEmbeddings
+# from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from langchain.chains import LLMChain, SequentialChain
-from langchain.schema import Document
-from langchain_community.vectorstores import Chroma
-from langchain.memory import ConversationBufferMemory
-from langchain_core.callbacks import AsyncCallbackHandler
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
+# from langchain.schema import Document
+# from langchain_community.vectorstores import Chroma
+# from langchain.memory import ConversationBufferMemory
+# from langchain_core.callbacks import AsyncCallbackHandler
+# from langchain_core.runnables import RunnablePassthrough
+# from langchain_core.output_parsers import StrOutputParser
 
 from loguru import logger
-from sentence_transformers import SentenceTransformer
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+# from sentence_transformers import SentenceTransformer
+# import numpy as np
+# from sklearn.metrics.pairwise import cosine_similarity
 
 from models.product_models import Product, UserPreferences
 
@@ -53,6 +53,7 @@ class LangChainService:
         self.comparison_chain = None
         self.intent_classification_chain = None
         self.reasoning_chain = None
+        self.automotive_relevance_chain = None
 
         # Performance tracking
         self.chain_performance = {}
@@ -70,23 +71,23 @@ class LangChainService:
                 temperature=float(os.getenv("TEMPERATURE", 0.1))
             )
 
-            # Initialize embeddings
-            self.embeddings_model = HuggingFaceEmbeddings(
-                model_name=os.getenv("EMBEDDINGS_MODEL", "all-MiniLM-L6-v2"),
-                model_kwargs={'device': 'cpu'}
-            )
+            # Initialize embeddings (disabled for now due to dependencies)
+            # self.embeddings_model = HuggingFaceEmbeddings(
+            #     model_name=os.getenv("EMBEDDINGS_MODEL", "all-MiniLM-L6-v2"),
+            #     model_kwargs={'device': 'cpu'}
+            # )
 
-            # Initialize sentence transformer for semantic similarity
-            self.sentence_transformer = SentenceTransformer(
-                os.getenv("EMBEDDINGS_MODEL", "all-MiniLM-L6-v2")
-            )
+            # Initialize sentence transformer for semantic similarity (disabled for now)
+            # self.sentence_transformer = SentenceTransformer(
+            #     os.getenv("EMBEDDINGS_MODEL", "all-MiniLM-L6-v2")
+            # )
 
-            # Initialize vector store
-            persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./chroma_db")
-            self.vector_store = Chroma(
-                embedding_function=self.embeddings_model,
-                persist_directory=persist_directory
-            )
+            # Initialize vector store (disabled for now)
+            # persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./chroma_db")
+            # self.vector_store = Chroma(
+            #     embedding_function=self.embeddings_model,
+            #     persist_directory=persist_directory
+            # )
 
             # Initialize chains
             await self._initialize_chains()
@@ -215,6 +216,45 @@ class LangChainService:
             output_key="reasoning"
         )
 
+        # Automotive Relevance Analysis Chain
+        automotive_relevance_prompt = PromptTemplate(
+            input_variables=["query", "product_name", "product_description", "product_category", "product_brand"],
+            template="""
+            You are an expert automotive product specialist. Analyze whether this product is truly relevant for an automotive/car-related search.
+
+            Search Query: {query}
+            Product Name: {product_name}
+            Product Description: {product_description}
+            Product Category: {product_category}
+            Product Brand: {product_brand}
+
+            CRITICAL INSTRUCTIONS:
+            1. If the query contains automotive keywords ("car", "auto", "automotive", "vehicle", "driving", etc.), you must determine if this product is genuinely automotive-related.
+            2. Be EXTREMELY STRICT in your assessment. Many products might seem related but aren't truly automotive.
+            3. Wearable technology, smartwatches, fitness trackers = NOT automotive (score: 0.0)
+            4. General clothing, caps, regular electronics = NOT automotive (score: 0.0)
+            5. Vehicle-specific accessories (car mounts, car chargers, dashboard items) = IS automotive (score: 0.8+)
+            6. General accessories or electronics = NOT automotive unless explicitly mentioned for vehicle use (score: 0.0)
+
+            Provide your analysis in JSON format:
+            {{
+                "automotive_relevance_score": <float between 0.0 and 1.0>,
+                "reasoning": "<clear explanation of why this score was assigned>",
+                "is_automotive": <true/false>,
+                "category_match": "<how well the product category matches automotive intent>",
+                "exclude_from_automotive_search": <true if should be excluded, false if should be included>
+            }}
+
+            Remember: It's better to exclude a borderline product than to include a non-automotive product in car searches.
+            """
+        )
+
+        self.automotive_relevance_chain = LLMChain(
+            llm=self.claude_llm,
+            prompt=automotive_relevance_prompt,
+            output_key="automotive_analysis"
+        )
+
     async def analyze_query_intent(self, query: str, user_context: Dict[str, Any] = None) -> ChainResult:
         """Analyze user query to understand intent and preferences"""
         start_time = time.time()
@@ -305,6 +345,61 @@ class LangChainService:
                 confidence=0.0
             )
 
+    async def analyze_automotive_relevance(
+        self,
+        query: str,
+        product: Product
+    ) -> ChainResult:
+        """Analyze if a product is genuinely relevant for automotive searches"""
+        start_time = time.time()
+
+        try:
+            result = await self.automotive_relevance_chain.arun(
+                query=query,
+                product_name=product.name,
+                product_description=product.description or "No description",
+                product_category=product.category or "Unknown",
+                product_brand=product.brand or "Unknown"
+            )
+
+            processing_time = time.time() - start_time
+
+            # Parse JSON result
+            try:
+                parsed_result = json.loads(result)
+                confidence = 0.95  # High confidence in Claude's automotive analysis
+            except json.JSONDecodeError:
+                logger.warning(f"Failed to parse automotive analysis JSON: {result}")
+                # Fallback analysis
+                parsed_result = {
+                    "automotive_relevance_score": 0.0,
+                    "reasoning": "Failed to parse Claude response",
+                    "is_automotive": False,
+                    "exclude_from_automotive_search": True
+                }
+                confidence = 0.3
+
+            return ChainResult(
+                result=result,
+                metadata=parsed_result,
+                processing_time=processing_time,
+                confidence=confidence
+            )
+
+        except Exception as e:
+            logger.error(f"Error in automotive relevance analysis: {e}")
+            return ChainResult(
+                result=f"Error analyzing automotive relevance: {str(e)}",
+                metadata={
+                    "automotive_relevance_score": 0.0,
+                    "is_automotive": False,
+                    "exclude_from_automotive_search": True,
+                    "error": str(e)
+                },
+                processing_time=time.time() - start_time,
+                confidence=0.0
+            )
+
     async def generate_product_reasoning(
         self,
         query: str,
@@ -350,14 +445,9 @@ class LangChainService:
             )
 
     async def calculate_semantic_similarity(self, text1: str, text2: str) -> float:
-        """Calculate semantic similarity between two texts using embeddings"""
-        try:
-            embeddings = self.sentence_transformer.encode([text1, text2])
-            similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
-            return float(similarity)
-        except Exception as e:
-            logger.error(f"Error calculating semantic similarity: {e}")
-            return 0.0
+        """Calculate semantic similarity between two texts using embeddings (disabled for now)"""
+        # Disabled due to dependency issues
+        return 0.5  # Neutral similarity score
 
     async def batch_analyze_products(
         self,

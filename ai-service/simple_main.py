@@ -17,6 +17,9 @@ from loguru import logger
 from langchain_anthropic import ChatAnthropic
 from langchain.prompts import ChatPromptTemplate
 
+# Import the LangChain service
+from services.langchain_service import LangChainService
+
 # Load environment variables
 load_dotenv()
 
@@ -51,12 +54,13 @@ class AIInsights(BaseModel):
     topRecommendation: str
     chatResponse: str
 
-# Initialize Claude
+# Initialize Claude and LangChain Service
 claude_llm = None
+langchain_service = None
 
 @app.on_event("startup")
 async def startup_event():
-    global claude_llm
+    global claude_llm, langchain_service
     try:
         logger.info("🔧 Initializing Claude LLM...")
         claude_llm = ChatAnthropic(
@@ -66,8 +70,15 @@ async def startup_event():
             temperature=float(os.getenv("TEMPERATURE", 0.1))
         )
         logger.info("✅ Claude LLM initialized successfully")
+
+        # Initialize LangChain Service for professional semantic analysis
+        logger.info("🔧 Initializing LangChain Service...")
+        langchain_service = LangChainService()
+        await langchain_service.initialize()
+        logger.info("✅ LangChain Service initialized successfully")
+
     except Exception as e:
-        logger.error(f"❌ Failed to initialize Claude LLM: {e}")
+        logger.error(f"❌ Failed to initialize services: {e}")
 
 @app.get("/health")
 async def health_check():
@@ -182,13 +193,38 @@ Aim for 3-4 sentences that feel genuine and personal.""")
         # Generate AI scores for each product (enhanced semantic scoring)
         ai_scores = []
         for i, product in enumerate(request.products):
+            # 🔥 WORLD-CLASS CLAUDE AUTOMOTIVE FILTERING - Professional LLM Analysis
+            query_lower = request.query.lower()
+            is_automotive_query = any(term in query_lower for term in ['car', 'auto', 'automotive', 'vehicle', 'driving'])
+
+            if is_automotive_query and langchain_service:
+                try:
+                    logger.info(f"🔍 Analyzing automotive relevance for: {product.name}")
+                    automotive_analysis = await langchain_service.analyze_automotive_relevance(request.query, product)
+
+                    if automotive_analysis.metadata.get('exclude_from_automotive_search', False):
+                        logger.info(f"❌ CLAUDE EXCLUSION: '{product.name}' excluded from automotive search - {automotive_analysis.metadata.get('reasoning', 'No reason provided')}")
+                        ai_scores.append(0.0)  # Completely exclude this product
+                        continue
+
+                    automotive_relevance = automotive_analysis.metadata.get('automotive_relevance_score', 0.0)
+                    if automotive_relevance < 0.3:  # Strict threshold
+                        logger.info(f"📉 LOW AUTOMOTIVE RELEVANCE: '{product.name}' scored {automotive_relevance:.2f} - excluded")
+                        ai_scores.append(0.0)  # Exclude products with low automotive relevance
+                        continue
+
+                    logger.info(f"✅ AUTOMOTIVE APPROVED: '{product.name}' automotive score: {automotive_relevance:.2f}")
+
+                except Exception as e:
+                    logger.error(f"❌ Automotive analysis failed for {product.name}: {e}")
+                    # Fallback: exclude non-obvious automotive products for car searches
+                    if is_automotive_query and not any(auto_word in product.name.lower() for auto_word in ['car', 'mount', 'charger', 'dashboard']):
+                        ai_scores.append(0.0)
+                        continue
+
             # Enhanced semantic scoring algorithm
             base_score = 30.0
-
-            # Enhanced relevance scoring with semantic matching
-            query_lower = request.query.lower()
             product_text = f"{product.name} {product.description} {product.category}".lower()
-
             relevance_score = 0.0
 
             # 1. Direct keyword matching (high weight)

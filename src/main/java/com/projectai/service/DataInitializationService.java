@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-// @Service
+@Service
 public class DataInitializationService implements CommandLineRunner {
 
     @Autowired
@@ -24,8 +24,11 @@ public class DataInitializationService implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Only initialize data if the database is empty
-        if (sellerRepository.count() == 0 && productRepository.count() == 0) {
+        // Only initialize data if the database is empty AND in development/test environment
+        String environment = System.getProperty("app.environment", "development");
+        boolean createSampleData = "development".equals(environment) || "test".equals(environment);
+
+        if (createSampleData && sellerRepository.count() == 0 && productRepository.count() == 0) {
             initializeData();
         }
     }
