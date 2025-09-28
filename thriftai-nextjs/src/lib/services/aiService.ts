@@ -44,17 +44,39 @@ export class AIService {
   private static anthropic: Anthropic | null = null
 
   static {
-    if (process.env.OPENAI_API_KEY) {
+    // Initialize OpenAI if API key is available
+    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key') {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       })
+      console.log('✅ OpenAI initialized successfully')
+    } else {
+      console.warn('⚠️ OpenAI API key not configured')
     }
 
-    if (process.env.ANTHROPIC_API_KEY) {
+    // Initialize Claude/Anthropic if API key is available
+    if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'your-anthropic-api-key') {
       this.anthropic = new Anthropic({
         apiKey: process.env.ANTHROPIC_API_KEY
       })
+      console.log('✅ Claude AI initialized successfully')
+    } else {
+      console.warn('⚠️ Claude API key not configured')
     }
+  }
+
+  /**
+   * Check if Claude AI is available
+   */
+  static isClaudeAvailable(): boolean {
+    return !!this.anthropic
+  }
+
+  /**
+   * Check if OpenAI is available
+   */
+  static isOpenAIAvailable(): boolean {
+    return !!this.openai
   }
 
   /**
@@ -144,20 +166,23 @@ export class AIService {
 
           const message = await this.anthropic.messages.create({
             model: "claude-3-haiku-20240307",
-            max_tokens: 600,
+            max_tokens: 1000,
+            temperature: 0.7,
             messages: [{
               role: "user",
-              content: `As an expert thrift shopping advisor, analyze this search: "${query}" with budget: $${budget || 'unlimited'}.
+              content: `As an expert thrift shopping advisor specializing in sustainable fashion and secondhand finds, analyze this search: "${query}" with budget: $${budget || 'unlimited'}.
 
 Available products: ${JSON.stringify(productData, null, 2)}
 
-Please provide:
-1. Smart shopping advice for this search
-2. Sustainability benefits of buying these secondhand items
-3. Value assessment of the available options
-4. Tips for evaluating condition and seller reputation
+Please provide comprehensive guidance including:
 
-Keep response under 400 words and focus on actionable insights.`
+1. **Smart Shopping Analysis**: Which products offer the best value and why?
+2. **Sustainability Impact**: Environmental benefits of choosing these secondhand items over new
+3. **Quality Assessment**: Evaluation of condition, brand reputation, and longevity
+4. **Negotiation Tips**: Advice for getting the best deals
+5. **Style Recommendations**: How to style these pieces and current fashion trends
+
+Focus on actionable insights and personalized recommendations. Be enthusiastic about thrift shopping while providing practical advice.`
             }]
           })
 
@@ -166,8 +191,28 @@ Keep response under 400 words and focus on actionable insights.`
           // Generate sustainability insights
           sustainabilityInsights = this.generateSustainabilityInsights(products)
 
-        } catch (error) {
-          console.warn('Claude API error:', error)
+        } catch (error: any) {
+          console.warn('Claude API error:', error?.message || error)
+
+          // Retry logic for rate limiting
+          if (error?.status === 429) {
+            console.log('Rate limited, retrying in 2 seconds...')
+            await new Promise(resolve => setTimeout(resolve, 2000))
+
+            try {
+              const retryMessage = await this.anthropic.messages.create({
+                model: "claude-3-haiku-20240307", // Fallback to faster model
+                max_tokens: 600,
+                messages: [{
+                  role: "user",
+                  content: `Brief thrift shopping advice for "${query}" with budget: $${budget || 'unlimited'}. Available items: ${productData.slice(0, 2).map(p => `${p.name} - $${p.price}`).join(', ')}`
+                }]
+              })
+              aiResponse = retryMessage.content[0]?.text || ''
+            } catch (retryError) {
+              console.warn('Claude retry failed:', retryError)
+            }
+          }
         }
       }
 

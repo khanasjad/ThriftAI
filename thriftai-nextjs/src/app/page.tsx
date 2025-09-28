@@ -8,24 +8,43 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [searchType, setSearchType] = useState<'chatgpt' | 'claude'>('claude')
+  const [budget, setBudget] = useState<string>('')
 
-  const handleChatSearch = async () => {
+  const handleSearch = async (type: 'chatgpt' | 'claude') => {
     if (!searchQuery.trim()) return
 
     setLoading(true)
+    setSearchType(type)
+
     try {
-      const response = await fetch('/api/buyers/chat-search', {
+      const endpoint = type === 'claude' ? '/api/buyers/claude-search' : '/api/buyers/chat-search'
+      const body = type === 'claude'
+        ? { query: searchQuery, budget: budget ? parseFloat(budget) : undefined }
+        : { query: searchQuery }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: searchQuery }),
+        body: JSON.stringify(body),
       })
 
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Search failed')
+      }
+
       setSearchResults(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Search error:', error)
+      setSearchResults({
+        error: true,
+        message: error.message || 'Search failed',
+        query: searchQuery
+      })
     } finally {
       setLoading(false)
     }
@@ -75,23 +94,62 @@ export default function Home() {
           </p>
 
           {/* Search Bar */}
-          <div className="max-w-2xl mx-auto">
-            <div className="flex gap-4">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="What are you looking for? (e.g., vintage leather jacket, designer handbag)"
-                className="flex-1 px-6 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onKeyPress={(e) => e.key === 'Enter' && handleChatSearch()}
-              />
-              <button
-                onClick={handleChatSearch}
-                disabled={loading}
-                className="px-8 py-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Searching...' : '🔍 Search'}
-              </button>
+          <div className="max-w-3xl mx-auto">
+            <div className="space-y-4">
+              {/* Search Input */}
+              <div className="flex gap-4">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="What are you looking for? (e.g., vintage leather jacket, designer handbag)"
+                  className="flex-1 px-6 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch('claude')}
+                />
+                <input
+                  type="number"
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
+                  placeholder="Budget ($)"
+                  className="w-32 px-4 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* AI Search Buttons */}
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => handleSearch('claude')}
+                  disabled={loading}
+                  className="px-8 py-4 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading && searchType === 'claude' ? (
+                    <>⏳ Searching...</>
+                  ) : (
+                    <>🤖 Claude AI Search</>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSearch('chatgpt')}
+                  disabled={loading}
+                  className="px-8 py-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading && searchType === 'chatgpt' ? (
+                    <>⏳ Searching...</>
+                  ) : (
+                    <>💬 ChatGPT Search</>
+                  )}
+                </button>
+              </div>
+
+              {/* Search Type Indicator */}
+              <div className="text-center text-sm text-gray-600">
+                {searchType === 'claude' && !loading && (
+                  <p>🌱 Claude AI specializes in sustainable shopping advice</p>
+                )}
+                {searchType === 'chatgpt' && !loading && (
+                  <p>💡 ChatGPT provides intelligent product recommendations</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -99,14 +157,70 @@ export default function Home() {
         {/* Search Results */}
         {searchResults && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h3 className="text-2xl font-bold mb-4">Search Results</h3>
-
-            {/* AI Response */}
-            {searchResults.aiResponse && (
-              <div className="bg-blue-50 p-4 rounded-lg mb-6">
-                <h4 className="font-semibold text-blue-900 mb-2">🤖 AI Assistant</h4>
-                <p className="text-blue-800">{searchResults.aiResponse}</p>
+            {searchResults.error ? (
+              <div className="text-center">
+                <h3 className="text-2xl font-bold mb-4 text-red-600">⚠️ Search Error</h3>
+                <div className="bg-red-50 border border-red-200 p-4 rounded-lg mb-4">
+                  <p className="text-red-800 mb-2">{searchResults.message}</p>
+                  {searchResults.message.includes('API key') && (
+                    <div className="text-sm text-red-600">
+                      <p>To enable Claude AI:</p>
+                      <ol className="list-decimal list-inside mt-2 space-y-1">
+                        <li>Get an API key from <a href="https://console.anthropic.com/" target="_blank" className="underline">console.anthropic.com</a></li>
+                        <li>Add it to your .env.local file as ANTHROPIC_API_KEY</li>
+                        <li>Restart the development server</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
               </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-2xl font-bold">Search Results</h3>
+                  <div className="flex gap-2">
+                    {searchType === 'claude' && <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">🤖 Claude AI</span>}
+                    {searchType === 'chatgpt' && <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">💬 ChatGPT</span>}
+                  </div>
+                </div>
+
+                {/* AI Response */}
+                {searchResults.aiResponse && (
+                  <div className={`p-4 rounded-lg mb-6 ${searchType === 'claude' ? 'bg-purple-50' : 'bg-blue-50'}`}>
+                    <h4 className={`font-semibold mb-2 ${searchType === 'claude' ? 'text-purple-900' : 'text-blue-900'}`}>
+                      {searchType === 'claude' ? '🤖 Claude AI Advisor' : '💬 ChatGPT Assistant'}
+                    </h4>
+                    <div className={`${searchType === 'claude' ? 'text-purple-800' : 'text-blue-800'} whitespace-pre-wrap`}>
+                      {searchResults.aiResponse}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sustainability Insights for Claude */}
+                {searchResults.sustainabilityInsights && (
+                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
+                    <h4 className="font-semibold text-green-900 mb-3">🌱 Sustainability Impact</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-700">${searchResults.sustainabilityInsights.totalSavings}</div>
+                        <div className="text-green-600">Total Savings</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-700">{searchResults.sustainabilityInsights.estimatedCO2Saved}</div>
+                        <div className="text-green-600">CO2 Saved</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-700">{searchResults.sustainabilityInsights.waterSaved}</div>
+                        <div className="text-green-600">Water Saved</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-700">{searchResults.sustainabilityInsights.textileWasteReduced}</div>
+                        <div className="text-green-600">Waste Reduced</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Products */}
