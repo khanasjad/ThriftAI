@@ -19,12 +19,20 @@ interface Product {
   condition?: string
 }
 
+interface SearchResults {
+  products: Product[]
+  aiResponse?: string
+  recommendations?: any[]
+  totalFound?: number
+  sustainabilityInsights?: any
+}
+
 export default function SearchResults() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
 
-  const [products, setProducts] = useState<Product[]>([])
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -49,7 +57,13 @@ export default function SearchResults() {
         const cachedResults = sessionStorage.getItem('searchResults')
         if (cachedResults) {
           const parsedResults = JSON.parse(cachedResults)
-          setProducts(parsedResults.products || [])
+          setSearchResults({
+            products: parsedResults.products || [],
+            aiResponse: parsedResults.aiResponse,
+            recommendations: parsedResults.recommendations,
+            totalFound: parsedResults.totalFound,
+            sustainabilityInsights: parsedResults.sustainabilityInsights
+          })
           setLoading(false)
           return
         }
@@ -62,7 +76,13 @@ export default function SearchResults() {
           }
 
           const data = await response.json()
-          setProducts(data.products || [])
+          setSearchResults({
+            products: data.products || [],
+            aiResponse: data.aiResponse,
+            recommendations: data.recommendations,
+            totalFound: data.totalFound,
+            sustainabilityInsights: data.sustainabilityInsights
+          })
         }
       } catch (err) {
         console.error('Search error:', err)
@@ -139,14 +159,71 @@ export default function SearchResults() {
               Search Results for "{query}"
             </h1>
             <p className="text-secondary">
-              Found {products.length} products
+              Found {searchResults?.totalFound || searchResults?.products?.length || 0} products
             </p>
           </div>
         </div>
 
+        {/* Claude AI Response Section */}
+        {searchResults?.aiResponse && (
+          <div className="row mb-5">
+            <div className="col-12">
+              <div className="card-modern p-4" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <h4 className="text-primary mb-3">
+                  <i className="fas fa-robot me-2"></i>
+                  AI Shopping Assistant
+                </h4>
+                <div className="text-white" style={{ fontSize: '1.05rem', lineHeight: '1.7' }}>
+                  {searchResults.aiResponse}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sustainability Insights */}
+        {searchResults?.sustainabilityInsights && (
+          <div className="row mb-5">
+            <div className="col-12">
+              <div className="card-modern p-4" style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                <h5 className="text-success mb-3">
+                  <i className="fas fa-leaf me-2"></i>
+                  Sustainability Impact
+                </h5>
+                <div className="row">
+                  <div className="col-md-3">
+                    <div className="text-center">
+                      <div className="h4 text-warning">${searchResults.sustainabilityInsights.totalSavings}</div>
+                      <small className="text-muted">Money Saved</small>
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="text-center">
+                      <div className="h4 text-info">{searchResults.sustainabilityInsights.estimatedCO2Saved}</div>
+                      <small className="text-muted">CO2 Saved</small>
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="text-center">
+                      <div className="h4 text-primary">{searchResults.sustainabilityInsights.waterSaved}</div>
+                      <small className="text-muted">Water Saved</small>
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="text-center">
+                      <div className="h4 text-success">{searchResults.sustainabilityInsights.itemsKeptFromLandfill}</div>
+                      <small className="text-muted">Items from Landfill</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="row">
-          {products.length > 0 ? (
-            products.map((product) => (
+          {searchResults?.products && searchResults.products.length > 0 ? (
+            searchResults.products.map((product) => (
               <div key={product.id} className="col-lg-4 col-md-6 mb-4">
                 <div className="card-modern h-100">
                   {product.imageUrl && (
