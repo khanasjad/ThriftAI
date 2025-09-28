@@ -6,6 +6,80 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 const sampleProducts = [
+  // Car Accessories & Electronics
+  {
+    name: 'Car Phone Holder Mount',
+    category: 'ACCESSORIES',
+    brand: 'iOttie',
+    price: 15.99,
+    originalPrice: 29.99,
+    condition: 'Good',
+    description: 'Universal car phone holder with adjustable mount for dashboard or windshield. Compatible with most smartphones.',
+    imageUrl: 'https://images.unsplash.com/photo-1551008762-9f49817d1119?w=400',
+    size: 'Universal',
+    isAvailable: true
+  },
+  {
+    name: 'Car Bluetooth FM Transmitter',
+    category: 'ELECTRONICS',
+    brand: 'Anker',
+    price: 22.50,
+    originalPrice: 39.99,
+    condition: 'Excellent',
+    description: 'Bluetooth FM transmitter for car radio. Wireless music streaming and hands-free calling with USB charging port.',
+    imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+    size: 'Compact',
+    isAvailable: true
+  },
+  {
+    name: 'Car Charger Dual USB',
+    category: 'ELECTRONICS',
+    brand: 'Belkin',
+    price: 8.99,
+    originalPrice: 19.99,
+    condition: 'Good',
+    description: 'Dual USB car charger with fast charging capability. Compatible with iPhone, Android, and other devices.',
+    imageUrl: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=400',
+    size: 'Small',
+    isAvailable: true
+  },
+  {
+    name: 'Car Dash Camera',
+    category: 'ELECTRONICS',
+    brand: 'APEMAN',
+    price: 45.00,
+    originalPrice: 79.99,
+    condition: 'Good',
+    description: 'HD dash camera with loop recording and G-sensor. Records driving footage for security and insurance purposes.',
+    imageUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400',
+    size: 'Compact',
+    isAvailable: true
+  },
+  {
+    name: 'Car Steering Wheel Cover',
+    category: 'ACCESSORIES',
+    brand: 'Motor Trend',
+    price: 12.99,
+    originalPrice: 24.99,
+    condition: 'Good',
+    description: 'Leather-style steering wheel cover with comfortable grip. Universal fit for most standard steering wheels.',
+    imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400',
+    size: 'Universal',
+    isAvailable: true
+  },
+  {
+    name: 'Car Air Freshener Set',
+    category: 'ACCESSORIES',
+    brand: 'Chemical Guys',
+    price: 9.99,
+    originalPrice: 16.99,
+    condition: 'New',
+    description: 'Premium car air freshener set with multiple scents. Long-lasting fragrance for car interior.',
+    imageUrl: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400',
+    size: 'Set of 3',
+    isAvailable: true
+  },
+
   // Nike Shoes
   {
     name: 'Nike Air Force 1 Classic White',

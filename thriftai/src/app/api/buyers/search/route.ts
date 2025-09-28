@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { AIService } from '@/lib/services/aiService'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
@@ -11,48 +12,74 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    const skip = (page - 1) * limit
+    console.log(`🔍 Search API called with query: "${query}"`)
 
-    // Build where clause
-    const where: any = {
-      isAvailable: true,
-    }
+    let products: any[] = []
+    let total = 0
 
     if (query) {
-      where.OR = [
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { brand: { contains: query, mode: 'insensitive' } }
-      ]
-    }
+      // Use AIService for smart word boundary search when there's a query
+      const budget = maxPrice ? parseFloat(maxPrice) : undefined
+      const searchResults = await AIService.searchProducts(query, budget)
 
-    if (category) {
-      where.category = category
-    }
+      // Filter by category if specified
+      let filteredResults = searchResults
+      if (category) {
+        filteredResults = searchResults.filter(p => p.category === category)
+      }
 
-    if (minPrice || maxPrice) {
-      where.price = {}
-      if (minPrice) where.price.gte = parseFloat(minPrice)
-      if (maxPrice) where.price.lte = parseFloat(maxPrice)
-    }
+      // Filter by price range
+      if (minPrice) {
+        const minPriceValue = parseFloat(minPrice)
+        filteredResults = filteredResults.filter(p => p.price >= minPriceValue)
+      }
 
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: {
-          seller: {
-            select: {
-              businessName: true,
-              rating: true
+      // Apply pagination
+      const startIndex = (page - 1) * limit
+      const endIndex = startIndex + limit
+      products = filteredResults.slice(startIndex, endIndex)
+      total = filteredResults.length
+
+      console.log(`🔍 AI Search returned ${total} total products, showing ${products.length} on page ${page}`)
+    } else {
+      // Use traditional search when no query (for browsing)
+      const where: any = {
+        isAvailable: true,
+      }
+
+      if (category) {
+        where.category = category
+      }
+
+      if (minPrice || maxPrice) {
+        where.price = {}
+        if (minPrice) where.price.gte = parseFloat(minPrice)
+        if (maxPrice) where.price.lte = parseFloat(maxPrice)
+      }
+
+      const skip = (page - 1) * limit
+
+      const [productResults, totalCount] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          include: {
+            seller: {
+              select: {
+                businessName: true,
+                rating: true
+              }
             }
-          }
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' }
-      }),
-      prisma.product.count({ where })
-    ])
+          },
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' }
+        }),
+        prisma.product.count({ where })
+      ])
+
+      products = productResults
+      total = totalCount
+    }
 
     return NextResponse.json({
       products,

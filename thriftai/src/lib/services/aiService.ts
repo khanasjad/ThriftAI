@@ -164,25 +164,31 @@ export class AIService {
             category: p.category
           }))
 
+          console.log(`🔍 Claude Search: query="${query}", found ${products.length} products:`, productData)
+
           const message = await this.anthropic.messages.create({
             model: "claude-3-haiku-20240307",
             max_tokens: 1000,
             temperature: 0.7,
             messages: [{
               role: "user",
-              content: `As an expert thrift shopping advisor specializing in sustainable fashion and secondhand finds, analyze this search: "${query}" with budget: $${budget || 'unlimited'}.
+              content: `As an expert thrift shopping advisor, analyze this search: "${query}" with budget: $${budget || 'unlimited'}.
 
-Available products: ${JSON.stringify(productData, null, 2)}
+I found ${products.length} actual secondhand products in our store. Here are the available items:
 
-Please provide comprehensive guidance including:
+${JSON.stringify(productData, null, 2)}
 
-1. **Smart Shopping Analysis**: Which products offer the best value and why?
-2. **Sustainability Impact**: Environmental benefits of choosing these secondhand items over new
-3. **Quality Assessment**: Evaluation of condition, brand reputation, and longevity
-4. **Negotiation Tips**: Advice for getting the best deals
-5. **Style Recommendations**: How to style these pieces and current fashion trends
+IMPORTANT: Only discuss the products I've provided above. Do NOT mention any products that aren't in this list.
 
-Focus on actionable insights and personalized recommendations. Be enthusiastic about thrift shopping while providing practical advice.`
+Please provide guidance on:
+
+1. **Smart Shopping Analysis**: Which of these actual products offer the best value and why?
+2. **Sustainability Impact**: Environmental benefits of choosing these specific secondhand items
+3. **Quality Assessment**: Evaluation of condition, brand reputation, and longevity for these items
+4. **Negotiation Tips**: Advice for getting the best deals on these specific products
+5. **Style Recommendations**: How to style these actual pieces
+
+Focus only on the products I've provided. Be enthusiastic about thrift shopping while providing practical advice about these specific items.`
             }]
           })
 
@@ -242,7 +248,65 @@ Focus on actionable insights and personalized recommendations. Be enthusiastic a
   /**
    * Search products in database
    */
-  private static async searchProducts(query: string, budget?: number): Promise<SearchResult[]> {
+  static async searchProducts(query: string, budget?: number): Promise<SearchResult[]> {
+    console.log('🔍 Search query:', query)
+
+    // First try exact word boundary matches using PostgreSQL word boundary operators
+    const escapedQuery = query.replace(/'/g, "''") // Escape single quotes for SQL
+    const wordBoundarySQL = `
+      SELECT "id", "name", "price", "originalPrice", "brand", "category", "condition", "imageUrl", "sellerId", "isAvailable"
+      FROM "Product"
+      WHERE "isAvailable" = true
+      AND (
+        "name" ~* '\\m${escapedQuery}\\M' OR
+        "description" ~* '\\m${escapedQuery}\\M' OR
+        "brand" ~* '\\m${escapedQuery}\\M' OR
+        "category" ~* '\\m${escapedQuery}\\M'
+      )
+      ${budget ? `AND "price" <= ${budget}` : ''}
+      ORDER BY "price" ASC, "createdAt" DESC
+      LIMIT 20
+    `
+
+    try {
+      // Try word boundary search first
+      console.log(`🎯 Attempting word boundary search for: ${query}`)
+      const exactMatches = await prisma.$queryRawUnsafe(wordBoundarySQL) as any[]
+      console.log(`🎯 Word boundary search found ${exactMatches.length} exact matches`)
+
+      if (exactMatches.length > 0) {
+        // Get seller information for exact matches
+        const productsWithSellers = await Promise.all(
+          exactMatches.map(async (product) => {
+            const seller = await prisma.seller.findUnique({
+              where: { id: product.sellerId },
+              select: { businessName: true, rating: true }
+            })
+            return { ...product, seller }
+          })
+        )
+
+        console.log(`🎯 Returning ${productsWithSellers.length} word boundary matches`)
+        return productsWithSellers.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          originalPrice: p.originalPrice,
+          brand: p.brand || undefined,
+          category: p.category,
+          condition: p.condition || undefined,
+          imageUrl: p.imageUrl || undefined,
+          seller: p.seller ? {
+            businessName: p.seller.businessName,
+            rating: p.seller.rating
+          } : undefined
+        }))
+      }
+    } catch (error) {
+      console.warn('🎯 Word boundary search failed, falling back to contains:', error)
+    }
+
+    // Fallback to contains search if no exact matches or if word boundary search fails
     const where: any = {
       isAvailable: true,
       OR: [
@@ -274,7 +338,34 @@ Focus on actionable insights and personalized recommendations. Be enthusiastic a
       ]
     })
 
-    return products.map(p => ({
+    console.log(`🔍 Fallback search returned ${products.length} products:`, products.map(p => ({ id: p.id, name: p.name, brand: p.brand, category: p.category })))
+
+    // Filter out obvious false positives where the query is just a substring
+    const filteredProducts = products.filter(product => {
+      const queryLower = query.toLowerCase().trim()
+      const productName = product.name.toLowerCase()
+      const productDescription = (product.description || '').toLowerCase()
+      const productBrand = (product.brand || '').toLowerCase()
+      const productCategory = product.category.toLowerCase()
+
+      // Check if the query appears as a whole word in any field
+      const fields = [productName, productDescription, productBrand, productCategory]
+      const hasWordMatch = fields.some(field => {
+        // Use word boundary regex to check if query appears as complete word
+        const wordBoundaryRegex = new RegExp(`\\b${queryLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
+        return wordBoundaryRegex.test(field)
+      })
+
+      if (!hasWordMatch) {
+        console.log(`🚫 Filtering out "${product.name}" - no word boundary match for "${query}"`)
+      }
+
+      return hasWordMatch
+    })
+
+    console.log(`🔍 After filtering false positives: ${filteredProducts.length} products remain`)
+
+    return filteredProducts.map(p => ({
       id: p.id,
       name: p.name,
       price: p.price,
@@ -392,7 +483,13 @@ Focus on actionable insights and personalized recommendations. Be enthusiastic a
    */
   private static generateFallbackResponse(query: string, products: SearchResult[], budget?: number): string {
     if (products.length === 0) {
-      return `No items found for "${query}". Try broadening your search terms or check back later for new arrivals.`
+      // Suggest related searches based on the query
+      const suggestions = this.generateSearchSuggestions(query)
+      const suggestionText = suggestions.length > 0
+        ? ` Try searching for: ${suggestions.join(', ')}.`
+        : ' Try using broader terms or check back later for new arrivals.'
+
+      return `No items found for "${query}".${suggestionText} Our thrift store specializes in secondhand electronics, clothing, shoes, and accessories. Browse our categories to discover amazing sustainable finds!`
     }
 
     const avgPrice = products.reduce((sum, p) => sum + p.price, 0) / products.length
@@ -475,5 +572,40 @@ Focus on actionable insights and personalized recommendations. Be enthusiastic a
       default:
         return 0.7
     }
+  }
+
+  /**
+   * Generate search suggestions based on query
+   */
+  private static generateSearchSuggestions(query: string): string[] {
+    const lowerQuery = query.toLowerCase()
+    const suggestions: string[] = []
+
+    // Car-related suggestions
+    if (lowerQuery.includes('car') || lowerQuery.includes('auto') || lowerQuery.includes('vehicle')) {
+      suggestions.push('phone holder', 'charger', 'bluetooth', 'accessories')
+    }
+
+    // Electronics suggestions
+    if (lowerQuery.includes('phone') || lowerQuery.includes('computer') || lowerQuery.includes('laptop')) {
+      suggestions.push('iPhone', 'Samsung', 'MacBook', 'electronics')
+    }
+
+    // Clothing suggestions
+    if (lowerQuery.includes('clothing') || lowerQuery.includes('fashion') || lowerQuery.includes('style')) {
+      suggestions.push('jacket', 'hoodie', 't-shirt', 'jeans')
+    }
+
+    // Shoes suggestions
+    if (lowerQuery.includes('shoe') || lowerQuery.includes('sneaker') || lowerQuery.includes('boot')) {
+      suggestions.push('Nike', 'Adidas', 'sneakers', 'boots')
+    }
+
+    // Generic fallback suggestions
+    if (suggestions.length === 0) {
+      suggestions.push('Nike', 'iPhone', 'jacket', 'accessories')
+    }
+
+    return suggestions.slice(0, 4) // Limit to 4 suggestions
   }
 }
