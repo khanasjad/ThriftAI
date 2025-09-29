@@ -234,18 +234,26 @@ export default function ProductFilters({
           <span>Sort by</span>
         </div>
         <select
-          value={localFilters.sortBy}
-          onChange={(e) => handleFilterChange({
-            sortBy: e.target.value as ProductFiltersState['sortBy']
-          })}
+          value={`${localFilters.sortBy}:${localFilters.sortDirection}`}
+          onChange={(e) => {
+            const [field, direction] = e.target.value.split(':') as [ProductFiltersState['sortBy'], 'asc' | 'desc']
+            handleFilterChange({
+              sortBy: field,
+              sortDirection: direction
+            })
+          }}
           className="filter-dropdown"
           disabled={isLoading}
         >
-          <option value="relevance">Featured</option>
-          <option value="price">Price: Low to High</option>
-          <option value="name">Alphabetical</option>
-          <option value="createdAt">Newest</option>
-          <option value="brand">Brand</option>
+          <option value="relevance:desc">Featured</option>
+          <option value="price:asc">Price: Low to High</option>
+          <option value="price:desc">Price: High to Low</option>
+          <option value="name:asc">Name: A to Z</option>
+          <option value="name:desc">Name: Z to A</option>
+          <option value="createdAt:desc">Newest First</option>
+          <option value="createdAt:asc">Oldest First</option>
+          <option value="brand:asc">Brand: A to Z</option>
+          <option value="brand:desc">Brand: Z to A</option>
         </select>
       </div>
 

@@ -103,6 +103,16 @@ export default function SearchResults() {
 
   console.log('DEBUG: All useState hooks initialized successfully')
 
+  // Debug useEffect to track searchResults changes
+  useEffect(() => {
+    console.log('DEBUG: searchResults changed:', {
+      hasResults: !!searchResults,
+      productsCount: searchResults?.products?.length || 0,
+      totalResults: searchResults?.metadata?.total || 0,
+      loading: loading
+    })
+  }, [searchResults, loading])
+
   // Adapt the user object to match what Navigation expects
   const appUser = session?.user ? {
     id: session.user.id || '',
@@ -221,41 +231,48 @@ export default function SearchResults() {
     }
   }
 
-  console.log('DEBUG: About to try non-useEffect approach')
+  // Main search effect - only trigger when query changes or component mounts
+  useEffect(() => {
+    const currentQuery = searchParams.get('q')
 
-  // Since useEffect hooks aren't working, try a direct approach - but only once per query
-  if (typeof window !== 'undefined' && query && query.trim() && loading && !searchInProgress && !searchResults && !searchTriggeredRef.current) {
-    console.log('DEBUG: Component has query and is loading, attempting ONE-TIME direct search call')
-    searchTriggeredRef.current = true
+    if (!currentQuery?.trim()) {
+      setLoading(false)
+      setSearchResults(null)
+      searchTriggeredRef.current = false
+      return
+    }
 
-    // Use setTimeout to avoid blocking the render
-    setTimeout(() => {
-      console.log('DEBUG: Executing delayed search call')
-      performSearch(query, filters, currentPage, itemsPerPage)
+    // Reset search state when query changes
+    if (query !== currentQuery) {
+      setSearchResults(null)
+      setLoading(true)
+      searchTriggeredRef.current = false
+    }
+
+    // Only trigger search if not already in progress and not already triggered for this query
+    if (!searchInProgress && !searchTriggeredRef.current) {
+      searchTriggeredRef.current = true
+      performSearch(currentQuery, filters, currentPage, itemsPerPage)
         .catch(err => {
-          console.error('DEBUG: Direct search failed:', err)
+          console.error('Search failed:', err)
           setError('Search failed')
           setLoading(false)
           setSearchInProgress(false)
+          searchTriggeredRef.current = false
         })
-    }, 100)
-  } else if (!query || !query.trim()) {
-    console.log('DEBUG: No query provided, setting loading to false')
-    if (loading && typeof window !== 'undefined') {
-      setTimeout(() => setLoading(false), 50)
     }
-  } else if (searchResults && loading) {
-    console.log('DEBUG: Search results exist but loading is still true, setting loading to false')
-    if (typeof window !== 'undefined') {
-      setTimeout(() => setLoading(false), 50)
-    }
-  }
+  }, [query])
 
-  // Reset the search triggered flag when query changes
-  if (searchTriggeredRef.current && query !== searchParams.get('q')) {
-    console.log('DEBUG: Query changed, resetting search triggered flag')
-    searchTriggeredRef.current = false
-  }
+  // Separate effect for when user changes filters/pagination - only for existing searches
+  useEffect(() => {
+    if (query && searchResults && !searchInProgress) {
+      performSearch(query, filters, currentPage, itemsPerPage)
+        .catch(err => {
+          console.error('Filter search failed:', err)
+          setError('Search failed')
+        })
+    }
+  }, [filters.sortBy, filters.sortDirection, filters.categories, filters.brands, filters.conditions, filters.sizes, filters.priceRange.min, filters.priceRange.max, currentPage, itemsPerPage])
 
   const handleFiltersChange = (newFilters: ProductFiltersState) => {
     setFilters(newFilters)
@@ -458,7 +475,11 @@ export default function SearchResults() {
                 className={`btn-modern btn-modern-sm ${
                   viewMode === 'grid' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
-                onClick={() => setViewMode('grid')}
+                onClick={() => {
+                  console.log('DEBUG: Grid button clicked, current viewMode:', viewMode)
+                  setViewMode('grid')
+                  console.log('DEBUG: setViewMode(grid) called')
+                }}
               >
                 Grid
               </button>
@@ -466,7 +487,11 @@ export default function SearchResults() {
                 className={`btn-modern btn-modern-sm ${
                   viewMode === 'list' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
-                onClick={() => setViewMode('list')}
+                onClick={() => {
+                  console.log('DEBUG: List button clicked, current viewMode:', viewMode)
+                  setViewMode('list')
+                  console.log('DEBUG: setViewMode(list) called')
+                }}
               >
                 List
               </button>
@@ -523,6 +548,8 @@ export default function SearchResults() {
                     ? "products-grid-modern"
                     : "products-list-modern"
                 }>
+                  {/* Debug: Log current viewMode and className */}
+                  {console.log('DEBUG: Rendering products container with viewMode:', viewMode, 'className:', viewMode === 'grid' ? 'products-grid-modern' : 'products-list-modern')}
                   {searchResults.products.map((product, index) =>
                     renderProduct(product, index)
                   )}

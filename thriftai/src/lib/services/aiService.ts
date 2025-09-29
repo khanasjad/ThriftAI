@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { prisma } from '../prisma'
 import { logger } from '@/lib/logger'
 import { isOpenAIAvailable, isAnthropicAvailable, getAiConfig } from '@/config/api.config'
+import { ConfigurationService } from './configurationService'
 
 export interface SearchResult {
   id: string
@@ -104,8 +105,8 @@ export class AIService {
    */
   static async chatGPTSearch(query: string, preferences: any = {}): Promise<AISearchResponse> {
     try {
-      // Get products from database
-      const products = await this.searchProducts(query)
+      // Get products from database using enhanced search
+      const products = await this.searchProductsEnhanced(query)
 
       let aiResponse = ''
       let recommendations: Recommendation[] = []
@@ -167,8 +168,9 @@ export class AIService {
    */
   static async claudeSearch(query: string, budget?: number, preferences: any = {}): Promise<AISearchResponse & { sustainabilityInsights?: any }> {
     try {
-      // Enhanced product search with budget filtering
-      const products = await this.searchProducts(query, budget)
+      // Enhanced product search with budget filtering using configuration
+      const sorting = preferences.sorting || { field: 'relevance', direction: 'desc' }
+      const products = await this.searchProductsEnhanced(query, budget, sorting)
 
       let aiResponse = ''
       let sustainabilityInsights: any = null
@@ -386,6 +388,370 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
     console.log(`🔍 After filtering false positives: ${filteredProducts.length} products remain`)
 
     return filteredProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      brand: p.brand || undefined,
+      category: p.category,
+      condition: p.condition || undefined,
+      imageUrl: p.imageUrl || undefined,
+      seller: p.seller ? {
+        businessName: p.seller.businessName,
+        rating: p.seller.rating
+      } : undefined
+    }))
+  }
+
+  /**
+   * Enhanced search products using database-driven configuration
+   */
+  static async searchProductsEnhanced(
+    query: string,
+    budget?: number,
+    sorting?: { field: string; direction: string }
+  ): Promise<SearchResult[]> {
+    console.log('🔍 Enhanced search query:', query)
+
+    try {
+      // Get relevant categories and exclusions from configuration
+      const [relevantCategories, excludedCategories, keywordMapping] = await Promise.all([
+        ConfigurationService.getRelevantCategoriesForIntent(query),
+        ConfigurationService.getExcludedCategoriesForIntent(query),
+        ConfigurationService.getCategoryKeywordsMapping()
+      ])
+
+      console.log('🎯 Configuration-driven search:', {
+        query,
+        relevantCategories: relevantCategories.slice(0, 5),
+        excludedCategories,
+        keywordMappingSize: keywordMapping.size
+      })
+
+      // Enhanced search logic using configuration
+      const searchTerms = this.extractSearchTerms(query, keywordMapping)
+      console.log('🔑 Extracted search terms:', searchTerms)
+
+      // Build intelligent search query
+      const where: any = {
+        isAvailable: true,
+        AND: [
+          // Include products from relevant categories
+          relevantCategories.length > 0 ? {
+            category: { in: relevantCategories }
+          } : {},
+
+          // Exclude unwanted categories
+          excludedCategories.length > 0 ? {
+            category: { notIn: excludedCategories }
+          } : {},
+
+          // Apply budget filter if provided
+          budget ? { price: { lte: budget } } : {},
+
+          // Enhanced search across multiple fields with weighted scoring
+          {
+            OR: [
+              // High priority: Exact matches in product name
+              { name: { contains: query, mode: 'insensitive' } },
+
+              // Medium priority: Brand matches
+              { brand: { contains: query, mode: 'insensitive' } },
+
+              // Enhanced: Search using keyword mapping
+              ...this.buildKeywordSearchConditions(searchTerms, keywordMapping),
+
+              // Low priority: Description matches
+              { description: { contains: query, mode: 'insensitive' } },
+
+              // Category matches (with configuration weighting)
+              { category: { in: searchTerms.categories } }
+            ]
+          }
+        ].filter(condition => Object.keys(condition).length > 0)
+      }
+
+      console.log('🔍 Built search where clause:', JSON.stringify(where, null, 2))
+
+      // Execute search with enhanced ordering
+      const products = await prisma.product.findMany({
+        where,
+        include: {
+          seller: {
+            select: {
+              businessName: true,
+              rating: true
+            }
+          }
+        },
+        take: 30, // Increased to account for filtering
+        orderBy: this.buildOrderByClause(sorting)
+      })
+
+      console.log(`🎯 Configuration-enhanced search found ${products.length} initial products`)
+
+      // Apply intelligent filtering using configuration
+      const filteredProducts = await this.applyIntelligentFiltering(
+        products,
+        query,
+        searchTerms,
+        excludedCategories
+      )
+
+      console.log(`🔍 After intelligent filtering: ${filteredProducts.length} products remain`)
+
+      // Score and rank results
+      const scoredProducts = this.scoreSearchResults(filteredProducts, query, searchTerms)
+
+      // Return top 20 scored results
+      return scoredProducts.slice(0, 20).map(p => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        brand: p.brand || undefined,
+        category: p.category,
+        condition: p.condition || undefined,
+        imageUrl: p.imageUrl || undefined,
+        seller: p.seller ? {
+          businessName: p.seller.businessName,
+          rating: p.seller.rating
+        } : undefined
+      }))
+
+    } catch (error) {
+      console.error('🚫 Configuration-enhanced search failed, falling back to basic search:', error)
+      return this.fallbackBasicSearch(query, budget)
+    }
+  }
+
+  /**
+   * Extract search terms and identify relevant categories using configuration
+   */
+  private static extractSearchTerms(query: string, keywordMapping: Map<string, string[]>) {
+    const queryLower = query.toLowerCase().trim()
+    const words = queryLower.split(/\s+/)
+
+    const searchTerms = {
+      original: query,
+      words,
+      categories: new Set<string>(),
+      brands: new Set<string>(),
+      keywords: new Set<string>()
+    }
+
+    // Check each word against keyword mapping
+    words.forEach(word => {
+      const categories = keywordMapping.get(word)
+      if (categories) {
+        categories.forEach(cat => searchTerms.categories.add(cat))
+        searchTerms.keywords.add(word)
+      }
+    })
+
+    // Check full query against keyword mapping
+    const fullQueryCategories = keywordMapping.get(queryLower)
+    if (fullQueryCategories) {
+      fullQueryCategories.forEach(cat => searchTerms.categories.add(cat))
+      searchTerms.keywords.add(queryLower)
+    }
+
+    return {
+      ...searchTerms,
+      categories: Array.from(searchTerms.categories),
+      brands: Array.from(searchTerms.brands),
+      keywords: Array.from(searchTerms.keywords)
+    }
+  }
+
+  /**
+   * Build search conditions based on keyword mapping
+   */
+  private static buildKeywordSearchConditions(searchTerms: any, keywordMapping: Map<string, string[]>) {
+    const conditions: any[] = []
+
+    // Add conditions for identified keywords
+    searchTerms.keywords.forEach((keyword: string) => {
+      conditions.push(
+        { name: { contains: keyword, mode: 'insensitive' } },
+        { description: { contains: keyword, mode: 'insensitive' } }
+      )
+    })
+
+    return conditions
+  }
+
+  /**
+   * Apply intelligent filtering using configuration exclusions
+   */
+  private static async applyIntelligentFiltering(
+    products: any[],
+    query: string,
+    searchTerms: any,
+    excludedCategories: string[]
+  ) {
+    return products.filter(product => {
+      // Apply exclusion rules
+      if (excludedCategories.includes(product.category)) {
+        console.log(`🚫 Excluding ${product.name} - category ${product.category} is excluded`)
+        return false
+      }
+
+      // Apply word boundary filtering for better precision
+      const queryLower = query.toLowerCase().trim()
+      const productName = product.name.toLowerCase()
+      const productDescription = (product.description || '').toLowerCase()
+      const productBrand = (product.brand || '').toLowerCase()
+
+      // Check if the query appears as a meaningful match
+      const fields = [productName, productDescription, productBrand]
+      const hasRelevantMatch = fields.some(field => {
+        // More lenient matching for configured keywords
+        if (searchTerms.keywords.some((keyword: string) => field.includes(keyword))) {
+          return true
+        }
+
+        // Strict word boundary for other terms
+        const words = queryLower.split(/\s+/)
+        return words.some(word => {
+          if (word.length <= 2) return field.includes(word) // Allow short words
+          const wordBoundaryRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
+          return wordBoundaryRegex.test(field)
+        })
+      })
+
+      if (!hasRelevantMatch) {
+        console.log(`🚫 Filtering out "${product.name}" - no relevant match for "${query}"`)
+      }
+
+      return hasRelevantMatch
+    })
+  }
+
+  /**
+   * Score search results for better ranking
+   */
+  private static scoreSearchResults(products: any[], query: string, searchTerms: any) {
+    const queryLower = query.toLowerCase()
+
+    return products.map(product => {
+      let score = 0
+      const productName = product.name.toLowerCase()
+      const productBrand = (product.brand || '').toLowerCase()
+      const productCategory = product.category.toLowerCase()
+
+      // Exact name match gets highest score
+      if (productName.includes(queryLower)) {
+        score += 100
+      }
+
+      // Brand match gets high score
+      if (productBrand.includes(queryLower)) {
+        score += 80
+      }
+
+      // Category relevance from configuration
+      if (searchTerms.categories.includes(product.category)) {
+        score += 60
+      }
+
+      // Keyword matches from configuration
+      searchTerms.keywords.forEach((keyword: string) => {
+        if (productName.includes(keyword)) score += 40
+        if (productBrand.includes(keyword)) score += 30
+      })
+
+      // Boost for good condition
+      if (product.condition === 'Excellent') score += 10
+      if (product.condition === 'Good') score += 5
+
+      // Boost for verified sellers
+      if (product.seller) score += 5
+
+      return { ...product, searchScore: score }
+    }).sort((a, b) => b.searchScore - a.searchScore)
+  }
+
+  /**
+   * Build orderBy clause based on sorting parameters
+   */
+  private static buildOrderByClause(sorting?: { field: string; direction: string }) {
+    if (!sorting) {
+      // Default sorting: prioritize exact name matches, then by price, then by recency
+      return [
+        { name: 'asc' },
+        { price: 'asc' },
+        { createdAt: 'desc' }
+      ]
+    }
+
+    const { field, direction } = sorting
+    const sortDirection = direction === 'asc' ? 'asc' : 'desc'
+
+    switch (field) {
+      case 'price':
+        return direction === 'asc'
+          ? [{ price: 'asc' }, { createdAt: 'desc' }]
+          : [{ price: 'desc' }, { createdAt: 'desc' }]
+
+      case 'name':
+        return [{ name: sortDirection }, { price: 'asc' }]
+
+      case 'createdAt':
+        return [{ createdAt: sortDirection }, { price: 'asc' }]
+
+      case 'brand':
+        return [{ brand: sortDirection }, { name: 'asc' }, { price: 'asc' }]
+
+      case 'relevance':
+      default:
+        // For relevance, use default smart ordering
+        return [
+          { name: 'asc' },
+          { price: 'asc' },
+          { createdAt: 'desc' }
+        ]
+    }
+  }
+
+  /**
+   * Fallback to basic search if configuration-enhanced search fails
+   */
+  private static async fallbackBasicSearch(query: string, budget?: number): Promise<SearchResult[]> {
+    console.log('🔄 Using fallback basic search')
+
+    const where: any = {
+      isAvailable: true,
+      OR: [
+        { name: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { brand: { contains: query, mode: 'insensitive' } },
+        { category: { contains: query, mode: 'insensitive' } }
+      ]
+    }
+
+    if (budget) {
+      where.price = { lte: budget }
+    }
+
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        seller: {
+          select: {
+            businessName: true,
+            rating: true
+          }
+        }
+      },
+      take: 20,
+      orderBy: [
+        { price: 'asc' },
+        { createdAt: 'desc' }
+      ]
+    })
+
+    return products.map(p => ({
       id: p.id,
       name: p.name,
       price: p.price,
