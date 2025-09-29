@@ -105,19 +105,83 @@ export class MockAmazonService {
       const where: any = { isAvailable: true }
       const orConditions: any[] = []
 
-      // Text search
+      // Enhanced text search with smart product-first strategy
       if (query && query.trim()) {
         const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 1)
 
         if (searchTerms.length > 0) {
-          searchTerms.forEach(term => {
-            orConditions.push(
-              { name: { contains: term, mode: 'insensitive' } },
-              { description: { contains: term, mode: 'insensitive' } },
-              { brand: { contains: term, mode: 'insensitive' } },
-              { category: { contains: term, mode: 'insensitive' } }
-            )
-          })
+          // Identify product type keywords that should be prioritized
+          const productTypeKeywords = ['bag', 'bags', 'handbag', 'handbags', 'purse', 'purses', 'backpack', 'backpacks', 'tote', 'totes', 'clutch', 'clutches', 'wallet', 'wallets', 'crossbody', 'messenger', 'satchel', 'satchels', 'hobo', 'shoulder', 'pouch', 'pouches']
+          const brandKeywords = ['designer', 'luxury', 'premium']
+          const conditionKeywords = ['vintage', 'antique', 'classic', 'retro', 'new', 'used', 'excellent', 'good', 'fair']
+          const stopWords = ['find', 'search', 'get', 'buy', 'shop', 'looking', 'for', 'the', 'and', 'or', 'a', 'an', 'with', 'in', 'on']
+
+          // Find the most important product type term
+          const mainProductType = searchTerms.find(term => productTypeKeywords.includes(term))
+
+          if (mainProductType) {
+            // STRATEGY 1: Product-first search with smart plural/singular handling
+            const productVariations = []
+
+            // Handle common plural/singular variations
+            if (mainProductType.endsWith('s')) {
+              // If plural, add singular
+              const singular = mainProductType.slice(0, -1)
+              productVariations.push(
+                { name: { contains: mainProductType, mode: 'insensitive' } },
+                { name: { contains: singular, mode: 'insensitive' } }
+              )
+            } else {
+              // If singular, add plural
+              const plural = mainProductType + 's'
+              productVariations.push(
+                { name: { contains: mainProductType, mode: 'insensitive' } },
+                { name: { contains: plural, mode: 'insensitive' } }
+              )
+            }
+
+            const productCondition = { OR: productVariations }
+
+            // Build additional conditions for other meaningful terms (optional)
+            const additionalConditions: any[] = []
+            searchTerms.forEach(term => {
+              if (term !== mainProductType && !stopWords.includes(term)) {
+                additionalConditions.push(
+                  { name: { contains: term, mode: 'insensitive' } },
+                  { description: { contains: term, mode: 'insensitive' } },
+                  { brand: { contains: term, mode: 'insensitive' } }
+                )
+              }
+            })
+
+            // Prioritize products that match the main type, with bonus for additional matches
+            if (additionalConditions.length > 0) {
+              // Simple strategy: Products must match the main product type (bags)
+              // Additional terms are nice-to-have but not required
+              where.OR = productVariations
+            } else {
+              // If only product type, search with variations
+              where.OR = productVariations
+            }
+
+          } else {
+            // STRATEGY 2: General search - no specific product type found
+            // Use broader search with all meaningful terms
+            const meaningfulTerms = searchTerms.filter(term => !stopWords.includes(term))
+
+            meaningfulTerms.forEach(term => {
+              orConditions.push(
+                { name: { contains: term, mode: 'insensitive' } },
+                { description: { contains: term, mode: 'insensitive' } },
+                { brand: { contains: term, mode: 'insensitive' } },
+                { category: { contains: term, mode: 'insensitive' } }
+              )
+            })
+
+            if (orConditions.length > 0) {
+              where.OR = orConditions
+            }
+          }
         }
       }
 
@@ -145,10 +209,7 @@ export class MockAmazonService {
         where.size = { in: filters.sizes }
       }
 
-      // Only add OR conditions if we have any
-      if (orConditions.length > 0) {
-        where.OR = orConditions
-      }
+      // Note: Search conditions are now handled in the enhanced search logic above
 
       // Get total count for pagination
       const total = await prisma.product.count({ where })
