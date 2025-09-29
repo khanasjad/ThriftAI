@@ -115,9 +115,7 @@ export default function ProductFilters({
       localFilters.categories.length > 0 ||
       localFilters.brands.length > 0 ||
       localFilters.conditions.length > 0 ||
-      localFilters.sizes.length > 0 ||
-      localFilters.priceRange.min > (availableFilters?.priceRange.min || 0) ||
-      localFilters.priceRange.max < (availableFilters?.priceRange.max || 1000)
+      localFilters.sizes.length > 0
     )
   }
 
@@ -257,40 +255,6 @@ export default function ProductFilters({
         </select>
       </div>
 
-      {/* Price Range Section */}
-      <div className="filter-section">
-        <div className="filter-section-header" style={{marginBottom: 'var(--space-3)'}}>
-          <span>Price</span>
-        </div>
-        <div style={{marginBottom: 'var(--space-4)'}}>
-          <Slider
-            value={priceRange}
-            onValueChange={handlePriceRangeChange}
-            onValueCommit={handlePriceRangeCommit}
-            max={availableFilters?.priceRange.max || 1000}
-            min={availableFilters?.priceRange.min || 0}
-            step={5}
-            className="w-full"
-            disabled={isLoading}
-          />
-        </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: 'var(--text-sm)',
-          color: 'var(--text-secondary)'
-        }}>
-          <span>${availableFilters?.priceRange.min || 0}</span>
-          <span style={{
-            fontWeight: 'var(--font-medium)',
-            color: 'var(--text-primary)'
-          }}>
-            ${priceRange[0]} - ${priceRange[1]}
-          </span>
-          <span>${availableFilters?.priceRange.max || 1000}</span>
-        </div>
-      </div>
 
       {/* Active Filters */}
       {hasActiveFilters() && (
