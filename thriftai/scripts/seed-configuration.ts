@@ -197,8 +197,11 @@ const categoryKeywords = [
   // ACCESSORIES Keywords
   { categoryName: 'ACCESSORIES', keyword: 'accessories', weight: 1.0 },
   { categoryName: 'ACCESSORIES', keyword: 'bag', weight: 0.9 },
+  { categoryName: 'ACCESSORIES', keyword: 'bags', weight: 0.9 },
   { categoryName: 'ACCESSORIES', keyword: 'purse', weight: 0.9 },
   { categoryName: 'ACCESSORIES', keyword: 'handbag', weight: 0.9 },
+  { categoryName: 'ACCESSORIES', keyword: 'handbags', weight: 0.9 },
+  { categoryName: 'ACCESSORIES', keyword: 'designer', weight: 0.8 },
   { categoryName: 'ACCESSORIES', keyword: 'wallet', weight: 0.9 },
   { categoryName: 'ACCESSORIES', keyword: 'belt', weight: 0.9 },
   { categoryName: 'ACCESSORIES', keyword: 'jewelry', weight: 0.9 },

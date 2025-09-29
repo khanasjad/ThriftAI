@@ -542,6 +542,123 @@ export default function SearchResults() {
                   </div>
                 )}
 
+                {/* AI Shopping Advisor */}
+                {searchResults.aiResponse && (
+                  <div className="card-modern mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="ai-icon">🤖</div>
+                      <h2 style={{
+                        fontSize: 'var(--text-xl)',
+                        fontWeight: 'var(--font-semibold)',
+                        color: 'var(--text-primary)',
+                        fontFamily: 'var(--font-family-primary)',
+                        margin: 0
+                      }}>
+                        AI Shopping Advisor
+                      </h2>
+                      <div style={{
+                        padding: 'var(--space-1) var(--space-3)',
+                        backgroundColor: searchResults.claudeAvailable ? 'var(--success-light)' : 'var(--warning-light)',
+                        color: searchResults.claudeAvailable ? 'var(--success-dark)' : 'var(--warning-dark)',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 'var(--font-medium)',
+                        border: searchResults.claudeAvailable ? '1px solid var(--success)' : '1px solid var(--warning)'
+                      }}>
+                        {searchResults.claudeAvailable ? 'Claude AI' : 'Intelligent Fallback'}
+                      </div>
+                    </div>
+
+                    <div style={{
+                      fontSize: 'var(--text-sm)',
+                      lineHeight: 'var(--leading-relaxed)',
+                      color: 'var(--text-secondary)',
+                      fontFamily: 'var(--font-family-primary)',
+                      whiteSpace: 'pre-line'
+                    }}>
+                      {searchResults.aiResponse}
+                    </div>
+
+                    {searchResults.sustainabilityInsights && (
+                      <div className="mt-4 pt-4" style={{borderTop: '1px solid var(--border-primary)'}}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span style={{fontSize: 'var(--text-lg)'}}>🌱</span>
+                          <h3 style={{
+                            fontSize: 'var(--text-md)',
+                            fontWeight: 'var(--font-medium)',
+                            color: 'var(--text-primary)',
+                            margin: 0
+                          }}>
+                            Sustainability Impact
+                          </h3>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div className="sustainability-metric">
+                            <div style={{
+                              fontSize: 'var(--text-lg)',
+                              fontWeight: 'var(--font-bold)',
+                              color: 'var(--success)'
+                            }}>
+                              {searchResults.sustainabilityInsights.carbonFootprintReduced}
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--text-tertiary)'
+                            }}>
+                              CO₂ Saved
+                            </div>
+                          </div>
+                          <div className="sustainability-metric">
+                            <div style={{
+                              fontSize: 'var(--text-lg)',
+                              fontWeight: 'var(--font-bold)',
+                              color: 'var(--success)'
+                            }}>
+                              {searchResults.sustainabilityInsights.itemsGivenSecondLife}
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--text-tertiary)'
+                            }}>
+                              Items Rescued
+                            </div>
+                          </div>
+                          <div className="sustainability-metric">
+                            <div style={{
+                              fontSize: 'var(--text-lg)',
+                              fontWeight: 'var(--font-bold)',
+                              color: 'var(--success)'
+                            }}>
+                              {searchResults.sustainabilityInsights.sustainabilityScore}
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--text-tertiary)'
+                            }}>
+                              Eco Score
+                            </div>
+                          </div>
+                          <div className="sustainability-metric">
+                            <div style={{
+                              fontSize: 'var(--text-lg)',
+                              fontWeight: 'var(--font-bold)',
+                              color: 'var(--success)'
+                            }}>
+                              {searchResults.sustainabilityInsights.equivalentNewItemsAvoided}
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--text-tertiary)'
+                            }}>
+                              New Items Avoided
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Products */}
                 <div className={
                   viewMode === 'grid'

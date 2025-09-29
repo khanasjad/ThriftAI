@@ -6,6 +6,7 @@ import { searchOptimizer } from '@/lib/services/searchOptimizer'
 import { mockAmazonService } from '@/lib/services/mockAmazonService'
 import { productScoringEngine } from '@/lib/services/productScoringEngine'
 import { aiAnalysisService } from '@/lib/services/aiAnalysisService'
+import { AIService } from '@/lib/services/aiService'
 import type {
   SearchResponse,
   EnhancedSearchResult,
@@ -186,26 +187,105 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Query optimized: "${queryOptimization.optimizedQuery}" (confidence: ${queryOptimization.confidence}%)`)
 
-    // Step 2: Product search with enhanced filtering using structured search
-    console.log('🛒 Searching products with structured query...')
+    // Step 2: Database-driven product search with configuration intelligence
+    console.log('🛒 Searching products with database-driven configuration...')
     const searchFilters = {
       ...filters,
       ...searchOptimizer.extractSearchFilters(queryOptimization)
     }
 
+    // Extract budget from filters if provided
+    const budget = searchFilters.priceRange?.max || undefined
+    const sorting = sort ? { field: sort.field, direction: sort.direction } : undefined
+
     const searchLimit = config.ui.resultsPerPage || pagination.limit
-    const products = await withRetry(
-      () => mockAmazonService.searchProductsStructured(
-        queryOptimization,
-        searchFilters,
-        searchLimit * 2, // Get more for better ranking
-        pagination.offset
+    const rawProducts = await withRetry(
+      () => AIService.searchProductsEnhanced(
+        queryOptimization.optimizedQuery || query,
+        budget,
+        sorting
       ),
       config.features.maxRetries
     )
+
+    // Convert AIService SearchResult[] to expected product format
+    const products = rawProducts.map(p => ({
+      asin: p.id,
+      title: p.name,
+      brand: p.brand,
+      price: {
+        current: p.price,
+        original: p.originalPrice,
+        discountPercentage: p.originalPrice > 0 ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0
+      },
+      category: p.category,
+      condition: p.condition,
+      imageUrl: p.imageUrl,
+      seller: p.seller,
+      description: `${p.brand || ''} ${p.name}`.trim(),
+      sustainability: {
+        ecoFriendly: p.condition !== 'New', // Secondhand is eco-friendly
+        recyclable: true,
+        sustainabilityScore: p.condition === 'New' ? 60 : 85 // Secondhand gets higher score
+      }
+    }))
     checkpoint(perf, 'product_search_complete')
 
     console.log(`📦 Found ${products.length} products`)
+
+    // Step 2.5: Generate Claude AI shopping advice for found products
+    let claudeResponse = null
+    let sustainabilityInsights = null
+
+    if (products.length > 0 && AIService.isClaudeAvailable()) {
+      console.log('🤖 Generating Claude AI shopping advice...')
+      try {
+        const claudeSearchResult = await AIService.claudeSearch(query, budget, { sorting })
+        claudeResponse = claudeSearchResult.aiResponse
+        sustainabilityInsights = claudeSearchResult.sustainabilityInsights
+        console.log('✅ Claude AI response generated successfully')
+      } catch (error) {
+        console.warn('⚠️ Claude AI response failed, continuing without AI advice:', error)
+      }
+    } else if (products.length > 0) {
+      // Provide intelligent fallback when Claude AI is not available
+      console.log('🤖 Generating fallback AI shopping advice...')
+      const topProducts = products.slice(0, 3)
+      const avgPrice = topProducts.reduce((sum, p) => sum + p.price.current, 0) / topProducts.length
+      const brands = [...new Set(topProducts.map(p => p.brand))].join(', ')
+
+      claudeResponse = `🛍️ **Smart Shopping Analysis for "${query}"**
+
+**🎯 Best Value Finds:**
+I found ${products.length} great secondhand items matching your search. Here are the highlights:
+
+• **Top Picks**: ${topProducts.map(p => `${p.brand} ${p.title.split(' ').slice(0, 4).join(' ')} - $${p.price.current}`).join('\n• ')}
+
+**💰 Value Analysis:**
+- Average price: $${avgPrice.toFixed(2)}
+- Popular brands available: ${brands}
+- All items are pre-owned, offering significant savings over retail
+
+**🌱 Sustainability Impact:**
+- Buying secondhand reduces environmental impact by up to 80%
+- Each purchase diverts quality items from landfills
+- Supports circular fashion and sustainable consumption
+
+**💡 Shopping Tips:**
+- Check item conditions carefully - most items are in excellent condition
+- Compare prices across different conditions (New, Like New, Excellent, Good)
+- Consider bundling multiple items for better value
+
+*💭 For personalized AI shopping advice and detailed product analysis, add your ANTHROPIC_API_KEY to enable Claude AI integration.*`
+
+      sustainabilityInsights = {
+        co2Saved: "15-25kg per item",
+        wasteReduction: `${products.length} items diverted from waste`,
+        circularEconomy: "Supporting sustainable fashion choices"
+      }
+    }
+
+    checkpoint(perf, 'claude_ai_complete')
 
     // Early return for no results with clear messaging
     if (products.length === 0) {
@@ -366,7 +446,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Enhanced search [${requestId}] completed in ${totalProcessingTime.toFixed(2)}ms`)
 
-    // Construct comprehensive response
+    // Construct comprehensive response with Claude AI integration
     const response: SearchResponse = {
       query: {
         original: query,
@@ -390,7 +470,12 @@ export async function POST(request: NextRequest) {
           hasPrevious: pagination.page > 1
         }
       },
-      suggestions
+      suggestions,
+      // Add Claude AI shopping advice
+      aiResponse: claudeResponse,
+      sustainabilityInsights: sustainabilityInsights,
+      // Add flag indicating Claude AI availability
+      claudeAvailable: AIService.isClaudeAvailable()
     }
 
     return NextResponse.json(response)

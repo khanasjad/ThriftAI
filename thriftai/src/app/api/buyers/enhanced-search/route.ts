@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { mockAmazonService } from '@/lib/services/mockAmazonService'
+import { AIService } from '@/lib/services/aiService'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
@@ -10,7 +11,8 @@ export async function POST(request: NextRequest) {
       filters = {},
       pagination = { page: 1, limit: 20 },
       sorting = { field: 'relevance', direction: 'desc' },
-      includeMetadata = true
+      includeMetadata = true,
+      budget = null
     } = body
 
     logger.info('Enhanced search request', {
@@ -35,7 +37,67 @@ export async function POST(request: NextRequest) {
       resultsReturned: searchResults.products.length
     })
 
-    return NextResponse.json(searchResults)
+    // Add Claude AI integration
+    let claudeResponse = ''
+    let sustainabilityInsights = null
+
+    if (searchResults.products.length > 0 && AIService.isClaudeAvailable()) {
+      try {
+        logger.info('Generating Claude AI response for query:', query)
+        const claudeSearchResult = await AIService.claudeSearch(query, budget, { sorting })
+        claudeResponse = claudeSearchResult.aiResponse || ''
+        sustainabilityInsights = claudeSearchResult.sustainabilityInsights || null
+      } catch (error) {
+        logger.error('Claude AI generation failed', { error: error.message })
+      }
+    } else if (searchResults.products.length > 0) {
+      // Fallback AI response when Claude is unavailable
+      const avgPrice = searchResults.products.reduce((sum, p) => sum + p.price.current, 0) / searchResults.products.length
+      const topBrands = [...new Set(searchResults.products.slice(0, 5).map(p => p.brand))].join(', ')
+
+      claudeResponse = `🛍️ **Smart Shopping Analysis for "${query}"**
+
+📊 **Product Highlights:**
+• Found ${searchResults.products.length} relevant items
+• Average price: $${avgPrice.toFixed(2)}
+• Top brands: ${topBrands}
+• Best deals: Up to ${Math.max(...searchResults.products.map(p => p.price.discountPercentage || 0))}% off
+
+💡 **Value Analysis:**
+These thrift finds offer incredible value compared to retail prices. You're shopping sustainably while saving money on quality pre-owned items.
+
+🌱 **Sustainability Impact:**
+By choosing thrift shopping, you're:
+• Reducing textile waste
+• Supporting circular economy
+• Lowering your carbon footprint
+• Giving items a second life
+
+💰 **Shopping Tips:**
+• Check item conditions carefully
+• Compare prices across similar items
+• Look for items with authenticity guarantees
+• Consider shipping costs in your budget
+
+*Note: Add your ANTHROPIC_API_KEY to .env to unlock full Claude AI-powered shopping advice and personalized recommendations.*`
+
+      sustainabilityInsights = {
+        carbonFootprintReduced: Math.round(searchResults.products.length * 2.5) + " kg",
+        itemsGivenSecondLife: searchResults.products.length,
+        equivalentNewItemsAvoided: searchResults.products.length,
+        sustainabilityScore: 85
+      }
+    }
+
+    // Enhanced response with AI fields
+    const enhancedResponse = {
+      ...searchResults,
+      aiResponse: claudeResponse,
+      sustainabilityInsights: sustainabilityInsights,
+      claudeAvailable: AIService.isClaudeAvailable()
+    }
+
+    return NextResponse.json(enhancedResponse)
 
   } catch (error) {
     logger.error('Enhanced search API error', { error: error.message, stack: error.stack })
