@@ -23,6 +23,16 @@ export class MockAmazonService {
     'apple': { reputation: 98, premium: true, warranty: '1 year' },
     'samsung': { reputation: 90, premium: true, warranty: '1 year' },
     'sony': { reputation: 89, premium: true, warranty: '1 year' },
+    'gucci': { reputation: 98, premium: true, warranty: '2 years' },
+    'chanel': { reputation: 99, premium: true, warranty: '2 years' },
+    'louis vuitton': { reputation: 98, premium: true, warranty: '2 years' },
+    'prada': { reputation: 96, premium: true, warranty: '2 years' },
+    'hermès': { reputation: 99, premium: true, warranty: '2 years' },
+    'calvin klein': { reputation: 85, premium: false, warranty: '6 months' },
+    'ralph lauren': { reputation: 87, premium: false, warranty: '6 months' },
+    'tommy hilfiger': { reputation: 82, premium: false, warranty: '6 months' },
+    'coach': { reputation: 90, premium: true, warranty: '1 year' },
+    'michael kors': { reputation: 80, premium: false, warranty: '6 months' },
     'default': { reputation: 70, premium: false, warranty: '30 days' }
   }
 
@@ -50,6 +60,212 @@ export class MockAmazonService {
       subcategories: ['Phones', 'Laptops', 'Audio', 'Gaming', 'Smart Home'],
       avgShippingDays: 1,
       returnWindow: 15
+    }
+  }
+
+  // Enhanced search with comprehensive pagination and filtering
+  async searchProductsEnhanced(
+    query: string,
+    options: {
+      filters?: SearchFilters
+      pagination?: {
+        page: number
+        limit: number
+      }
+      sorting?: {
+        field: 'price' | 'name' | 'createdAt' | 'brand' | 'relevance'
+        direction: 'asc' | 'desc'
+      }
+      includeMetadata?: boolean
+    } = {}
+  ): Promise<{
+    products: MockAmazonProduct[]
+    metadata: {
+      total: number
+      page: number
+      limit: number
+      totalPages: number
+      hasNextPage: boolean
+      hasPreviousPage: boolean
+      filters: {
+        availableCategories: string[]
+        availableBrands: string[]
+        priceRange: { min: number; max: number }
+        availableConditions: string[]
+        availableSizes: string[]
+      }
+    }
+  }> {
+    try {
+      const { filters = {}, pagination = { page: 1, limit: 20 }, sorting = { field: 'relevance', direction: 'desc' } } = options
+      const { page, limit } = pagination
+      const offset = (page - 1) * limit
+
+      // Build search conditions
+      const where: any = { isAvailable: true }
+      const orConditions: any[] = []
+
+      // Text search
+      if (query && query.trim()) {
+        const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 1)
+
+        if (searchTerms.length > 0) {
+          searchTerms.forEach(term => {
+            orConditions.push(
+              { name: { contains: term, mode: 'insensitive' } },
+              { description: { contains: term, mode: 'insensitive' } },
+              { brand: { contains: term, mode: 'insensitive' } },
+              { category: { contains: term, mode: 'insensitive' } }
+            )
+          })
+        }
+      }
+
+      // Apply filters
+      if (filters.categories?.length) {
+        where.category = { in: filters.categories }
+      }
+
+      if (filters.brands?.length) {
+        where.brand = { in: filters.brands }
+      }
+
+      if (filters.priceRange) {
+        where.price = {
+          gte: filters.priceRange.min,
+          lte: filters.priceRange.max
+        }
+      }
+
+      if (filters.condition?.length) {
+        where.condition = { in: filters.condition }
+      }
+
+      if (filters.sizes?.length) {
+        where.size = { in: filters.sizes }
+      }
+
+      // Only add OR conditions if we have any
+      if (orConditions.length > 0) {
+        where.OR = orConditions
+      }
+
+      // Get total count for pagination
+      const total = await prisma.product.count({ where })
+
+      // Build order by clause
+      let orderBy: any[] = []
+
+      switch (sorting.field) {
+        case 'price':
+          orderBy = [{ price: sorting.direction }]
+          break
+        case 'name':
+          orderBy = [{ name: sorting.direction }]
+          break
+        case 'createdAt':
+          orderBy = [{ createdAt: sorting.direction }]
+          break
+        case 'brand':
+          orderBy = [{ brand: sorting.direction }, { name: 'asc' }]
+          break
+        case 'relevance':
+        default:
+          // For relevance, prioritize by name match, then recent, then price
+          orderBy = [
+            { name: 'asc' },
+            { createdAt: 'desc' },
+            { price: 'asc' }
+          ]
+          break
+      }
+
+      // Fetch products
+      const products = await prisma.product.findMany({
+        where,
+        include: {
+          seller: {
+            include: {
+              user: true
+            }
+          }
+        },
+        skip: offset,
+        take: limit,
+        orderBy
+      })
+
+      // Get filter metadata if requested
+      let filterMetadata = {
+        availableCategories: [] as string[],
+        availableBrands: [] as string[],
+        priceRange: { min: 0, max: 0 },
+        availableConditions: [] as string[],
+        availableSizes: [] as string[]
+      }
+
+      if (options.includeMetadata) {
+        const [categories, brands, priceStats, conditions, sizes] = await Promise.all([
+          prisma.product.findMany({
+            where: orConditions.length > 0 ? { OR: orConditions, isAvailable: true } : { isAvailable: true },
+            select: { category: true },
+            distinct: ['category']
+          }),
+          prisma.product.findMany({
+            where: orConditions.length > 0 ? { OR: orConditions, isAvailable: true } : { isAvailable: true },
+            select: { brand: true },
+            distinct: ['brand']
+          }),
+          prisma.product.aggregate({
+            where: orConditions.length > 0 ? { OR: orConditions, isAvailable: true } : { isAvailable: true },
+            _min: { price: true },
+            _max: { price: true }
+          }),
+          prisma.product.findMany({
+            where: orConditions.length > 0 ? { OR: orConditions, isAvailable: true } : { isAvailable: true },
+            select: { condition: true },
+            distinct: ['condition']
+          }),
+          prisma.product.findMany({
+            where: orConditions.length > 0 ? { OR: orConditions, isAvailable: true } : { isAvailable: true },
+            select: { size: true },
+            distinct: ['size']
+          })
+        ])
+
+        filterMetadata = {
+          availableCategories: categories.map(c => c.category).filter(Boolean).sort(),
+          availableBrands: brands.map(b => b.brand).filter(Boolean).sort(),
+          priceRange: {
+            min: priceStats._min.price || 0,
+            max: priceStats._max.price || 1000
+          },
+          availableConditions: conditions.map(c => c.condition).filter(Boolean).sort(),
+          availableSizes: sizes.map(s => s.size).filter(Boolean).sort()
+        }
+      }
+
+      // Convert to Amazon format
+      const amazonProducts = products.map(product => this.convertToAmazonFormat(product))
+
+      const totalPages = Math.ceil(total / limit)
+
+      return {
+        products: amazonProducts,
+        metadata: {
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+          filters: filterMetadata
+        }
+      }
+
+    } catch (error) {
+      console.error('Error in enhanced product search:', error)
+      throw new Error('Failed to search products with enhanced filters')
     }
   }
 
@@ -366,6 +582,7 @@ export class MockAmazonService {
         subcategory: this.getRandomSubcategory(categoryInfo.subcategories),
         size: product.size || undefined,
         color: product.color || this.getRandomColor(),
+        condition: product.condition || undefined,
         material: this.inferMaterial(product.category, product.description),
         weight: this.estimateWeight(product.category),
         dimensions: this.estimateDimensions(product.category),
@@ -394,13 +611,21 @@ export class MockAmazonService {
     }
   }
 
-  private generateASIN(productId: number): string {
+  private generateASIN(productId: string): string {
     // Generate a realistic looking ASIN
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     let asin = 'B0'
 
-    // Use product ID to ensure consistency
-    const seed = productId.toString().padStart(8, '0')
+    // Convert string ID to a hash for consistency
+    let hash = 0
+    for (let i = 0; i < productId.length; i++) {
+      const char = productId.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32bit integer
+    }
+
+    // Use hash to generate ASIN
+    const seed = Math.abs(hash).toString().padStart(8, '0')
     for (let i = 0; i < 8; i++) {
       const index = (parseInt(seed[i]) + i) % chars.length
       asin += chars[index]
@@ -668,6 +893,97 @@ export class MockAmazonService {
   }
 
   // Additional utility methods for advanced features
+
+  // Get all available filter options for dynamic UI
+  async getAvailableFilters(): Promise<{
+    categories: Array<{ value: string; label: string; count: number }>
+    brands: Array<{ value: string; label: string; count: number }>
+    conditions: Array<{ value: string; label: string; count: number }>
+    sizes: Array<{ value: string; label: string; count: number }>
+    priceRange: { min: number; max: number }
+  }> {
+    try {
+      const [categoryData, brandData, conditionData, sizeData, priceData] = await Promise.all([
+        prisma.product.groupBy({
+          by: ['category'],
+          where: { isAvailable: true },
+          _count: { category: true },
+          orderBy: { _count: { category: 'desc' } }
+        }),
+        prisma.product.groupBy({
+          by: ['brand'],
+          where: { isAvailable: true, brand: { not: null } },
+          _count: { brand: true },
+          orderBy: { _count: { brand: 'desc' } }
+        }),
+        prisma.product.groupBy({
+          by: ['condition'],
+          where: { isAvailable: true, condition: { not: null } },
+          _count: { condition: true },
+          orderBy: { _count: { condition: 'desc' } }
+        }),
+        prisma.product.groupBy({
+          by: ['size'],
+          where: { isAvailable: true, size: { not: null } },
+          _count: { size: true },
+          orderBy: { _count: { size: 'desc' } }
+        }),
+        prisma.product.aggregate({
+          where: { isAvailable: true },
+          _min: { price: true },
+          _max: { price: true }
+        })
+      ])
+
+      return {
+        categories: categoryData.map(item => ({
+          value: item.category,
+          label: this.formatCategoryLabel(item.category),
+          count: item._count.category
+        })),
+        brands: brandData.slice(0, 50).map(item => ({ // Limit to top 50 brands
+          value: item.brand!,
+          label: item.brand!,
+          count: item._count.brand
+        })),
+        conditions: conditionData.map(item => ({
+          value: item.condition!,
+          label: item.condition!,
+          count: item._count.condition
+        })),
+        sizes: sizeData.slice(0, 30).map(item => ({ // Limit to top 30 sizes
+          value: item.size!,
+          label: item.size!,
+          count: item._count.size
+        })),
+        priceRange: {
+          min: Math.floor(priceData._min.price || 0),
+          max: Math.ceil(priceData._max.price || 1000)
+        }
+      }
+    } catch (error) {
+      console.error('Error getting available filters:', error)
+      throw new Error('Failed to get available filters')
+    }
+  }
+
+  private formatCategoryLabel(category: string): string {
+    // Convert category to a more readable format
+    const labelMap: { [key: string]: string } = {
+      'CLOTHING': 'Clothing & Fashion',
+      'SHOES': 'Shoes & Footwear',
+      'ACCESSORIES': 'Accessories & Jewelry',
+      'ELECTRONICS': 'Electronics & Gadgets',
+      'HOME': 'Home & Decor',
+      'BOOKS': 'Books & Media',
+      'SPORTS': 'Sports & Outdoors',
+      'FURNITURE': 'Furniture',
+      'BEAUTY': 'Beauty & Personal Care',
+      'TOYS': 'Toys & Collectibles',
+      'AUTOMOTIVE': 'Automotive & Tools'
+    }
+    return labelMap[category] || category
+  }
 
   async getProductsByCategory(category: string, limit: number = 10): Promise<MockAmazonProduct[]> {
     return this.searchProducts('', { categories: [category] }, limit)

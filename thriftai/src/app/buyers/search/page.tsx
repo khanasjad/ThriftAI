@@ -1,42 +1,107 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import LoginModal from '@/components/LoginModal'
 import SignupModal from '@/components/SignupModal'
+import ProductFilters, { ProductFiltersState } from '@/components/ProductFilters'
+import Pagination, { QuickJumpPagination } from '@/components/Pagination'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 interface Product {
-  id: string
-  name: string
-  price: number
+  asin: string
+  title: string
+  brand: string
+  category: string
+  price: {
+    current: number
+    original: number
+    currency: string
+    discountPercentage: number
+  }
+  availability: {
+    inStock: boolean
+    quantity: number
+    shippingDays: number
+    shippingCost: number
+  }
+  reviews: {
+    rating: number
+    count: number
+    verified: boolean
+  }
+  images: string[]
   description: string
-  imageUrl?: string
-  category?: string
-  brand?: string
-  condition?: string
+  seller: {
+    name: string
+    rating: number
+    verified: boolean
+  }
+  specifications: {
+    category: string
+    size?: string
+    color?: string
+    condition?: string
+  }
 }
 
-interface SearchResults {
+interface SearchResponse {
   products: Product[]
-  aiResponse?: string
-  recommendations?: any[]
-  totalFound?: number
-  sustainabilityInsights?: any
+  metadata: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+    filters: {
+      availableCategories: Array<{ value: string; label: string; count: number }>
+      availableBrands: Array<{ value: string; label: string; count: number }>
+      priceRange: { min: number; max: number }
+      availableConditions: Array<{ value: string; label: string; count: number }>
+      availableSizes: Array<{ value: string; label: string; count: number }>
+    }
+  }
+}
+
+const DEFAULT_FILTERS: ProductFiltersState = {
+  categories: [],
+  brands: [],
+  conditions: [],
+  sizes: [],
+  priceRange: { min: 0, max: 1000 },
+  sortBy: 'relevance',
+  sortDirection: 'desc'
 }
 
 export default function SearchResults() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const query = searchParams.get('q') || ''
 
-  const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
+  console.log('DEBUG: SearchResults component rendered!')
+  console.log('DEBUG: Initial query from URL:', query)
+
+  const [searchResults, setSearchResults] = useState<SearchResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showSignupModal, setShowSignupModal] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
+  const [filters, setFilters] = useState<ProductFiltersState>(DEFAULT_FILTERS)
+  const [availableFilters, setAvailableFilters] = useState<any>(null)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [searchInProgress, setSearchInProgress] = useState(false)
+  const searchTriggeredRef = useRef(false)
+
+  console.log('DEBUG: All useState hooks initialized successfully')
 
   // Adapt the user object to match what Navigation expects
   const appUser = session?.user ? {
@@ -47,53 +112,165 @@ export default function SearchResults() {
     userType: 'buyer' as const
   } : null
 
-  useEffect(() => {
-    const loadSearchResults = async () => {
-      setLoading(true)
-      setError(null)
+  // Simplified search function without useCallback to avoid stale closures
+  const performSearch = async (
+    searchQuery: string,
+    currentFilters: ProductFiltersState,
+    page: number,
+    limit: number
+  ) => {
+    console.log('DEBUG: performSearch called with:', { searchQuery, page, limit })
 
-      try {
-        // First check session storage for cached results
-        const cachedResults = sessionStorage.getItem('searchResults')
-        if (cachedResults) {
-          const parsedResults = JSON.parse(cachedResults)
-          setSearchResults({
-            products: parsedResults.products || [],
-            aiResponse: parsedResults.aiResponse,
-            recommendations: parsedResults.recommendations,
-            totalFound: parsedResults.totalFound,
-            sustainabilityInsights: parsedResults.sustainabilityInsights
-          })
-          setLoading(false)
-          return
-        }
-
-        // If no cached results, fetch from API
-        if (query) {
-          const response = await fetch(`/api/buyers/search?q=${encodeURIComponent(query)}`)
-          if (!response.ok) {
-            throw new Error('Failed to fetch search results')
-          }
-
-          const data = await response.json()
-          setSearchResults({
-            products: data.products || [],
-            aiResponse: data.aiResponse,
-            recommendations: data.recommendations,
-            totalFound: data.totalFound,
-            sustainabilityInsights: data.sustainabilityInsights
-          })
-        }
-      } catch (err) {
-        console.error('Search error:', err)
-        setError('Failed to load search results')
-      } finally {
-        setLoading(false)
-      }
+    // Prevent multiple simultaneous searches
+    if (searchInProgress) {
+      console.log('DEBUG: Search already in progress, skipping')
+      return
     }
 
-    loadSearchResults()
-  }, [query])
+    setSearchInProgress(true)
+    setLoading(true)
+    setError(null)
+
+    try {
+      const searchBody = {
+        query: searchQuery,
+        filters: {
+          categories: currentFilters.categories,
+          brands: currentFilters.brands,
+          conditions: currentFilters.conditions,
+          sizes: currentFilters.sizes,
+          priceRange: currentFilters.priceRange
+        },
+        pagination: { page, limit },
+        sorting: {
+          field: currentFilters.sortBy,
+          direction: currentFilters.sortDirection
+        },
+        includeMetadata: true
+      }
+
+      console.log('DEBUG: Making API call with body:', searchBody)
+
+      // Fix URL parsing issue - use simple relative path
+      const apiUrl = '/api/buyers/enhanced-search'
+      console.log('DEBUG: Using API URL:', apiUrl)
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(searchBody)
+      })
+
+      console.log('DEBUG: API response:', response.ok, response.status)
+      if (!response.ok) {
+        throw new Error('Failed to fetch search results')
+      }
+
+      const data = await response.json()
+      console.log('DEBUG: Search data received:', data?.products?.length || 0, 'products')
+      console.log('DEBUG: Setting search results...')
+
+      // Use functional update to ensure we have the latest state
+      console.log('DEBUG: About to set search results')
+      console.log('DEBUG: Raw API data:', JSON.stringify(data, null, 2))
+      console.log('DEBUG: Data type:', typeof data)
+      console.log('DEBUG: Data has products?', !!data?.products)
+      console.log('DEBUG: Products array length:', data?.products?.length || 'N/A')
+
+      setSearchResults((prevResults) => {
+        console.log('DEBUG: Inside setSearchResults callback')
+        console.log('DEBUG: Previous results:', prevResults)
+        console.log('DEBUG: New data structure check:', {
+          hasProducts: !!data?.products,
+          isArray: Array.isArray(data?.products),
+          productsLength: data?.products?.length,
+          hasMetadata: !!data?.metadata
+        })
+
+        // Ensure we're returning a valid SearchResponse object
+        if (!data || typeof data !== 'object' || !data.products) {
+          console.error('DEBUG: Invalid SearchResponse received:', data)
+          return null
+        }
+
+        return data
+      })
+
+      // Set available filters from search metadata
+      if (data?.metadata?.filters) {
+        setAvailableFilters(data.metadata.filters)
+        console.log('DEBUG: Available filters set:', data.metadata.filters)
+      }
+
+      // Add a slight delay to check if state was updated
+      setTimeout(() => {
+        console.log('DEBUG: State after setTimeout check - searchResults should be updated now')
+      }, 50)
+
+      console.log('DEBUG: Search results set successfully')
+
+    } catch (err) {
+      console.error('DEBUG: Search error:', err)
+      setError('Failed to load search results. Please try again.')
+    } finally {
+      console.log('DEBUG: Setting loading to false and search not in progress')
+      setLoading(false)
+      setSearchInProgress(false)
+    }
+  }
+
+  console.log('DEBUG: About to try non-useEffect approach')
+
+  // Since useEffect hooks aren't working, try a direct approach - but only once per query
+  if (typeof window !== 'undefined' && query && query.trim() && loading && !searchInProgress && !searchResults && !searchTriggeredRef.current) {
+    console.log('DEBUG: Component has query and is loading, attempting ONE-TIME direct search call')
+    searchTriggeredRef.current = true
+
+    // Use setTimeout to avoid blocking the render
+    setTimeout(() => {
+      console.log('DEBUG: Executing delayed search call')
+      performSearch(query, filters, currentPage, itemsPerPage)
+        .catch(err => {
+          console.error('DEBUG: Direct search failed:', err)
+          setError('Search failed')
+          setLoading(false)
+          setSearchInProgress(false)
+        })
+    }, 100)
+  } else if (!query || !query.trim()) {
+    console.log('DEBUG: No query provided, setting loading to false')
+    if (loading && typeof window !== 'undefined') {
+      setTimeout(() => setLoading(false), 50)
+    }
+  } else if (searchResults && loading) {
+    console.log('DEBUG: Search results exist but loading is still true, setting loading to false')
+    if (typeof window !== 'undefined') {
+      setTimeout(() => setLoading(false), 50)
+    }
+  }
+
+  // Reset the search triggered flag when query changes
+  if (searchTriggeredRef.current && query !== searchParams.get('q')) {
+    console.log('DEBUG: Query changed, resetting search triggered flag')
+    searchTriggeredRef.current = false
+  }
+
+  const handleFiltersChange = (newFilters: ProductFiltersState) => {
+    setFilters(newFilters)
+    setCurrentPage(1) // Reset to first page when filters change
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1)
+  }
 
   // Simple auth service for signup compatibility
   const authService = {
@@ -102,7 +279,104 @@ export default function SearchResults() {
     }
   }
 
-  if (loading) {
+  const renderProduct = (product: Product, index: number) => {
+    const discount = product.price.discountPercentage
+    const savings = product.price.original - product.price.current
+
+    return (
+      <div key={product.asin} className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
+        {/* Product Image */}
+        <div className="product-image-container">
+          <img
+            src={product.images[0] || '/placeholder-image.jpg'}
+            alt={product.title}
+            className="product-image"
+          />
+          {discount > 0 && (
+            <div className="product-discount-badge">
+              -{discount}%
+            </div>
+          )}
+          {!product.availability.inStock && (
+            <div className="product-out-of-stock">
+              <span>Out of Stock</span>
+            </div>
+          )}
+        </div>
+
+        {/* Product Info */}
+        <div className="product-info-container">
+          {/* Brand and Rating */}
+          <div className="product-brand-rating">
+            <span className="product-brand">
+              {product.brand}
+            </span>
+            <div className="product-rating">
+              <span className="product-star">★</span>
+              <span>{product.reviews.rating}</span>
+            </div>
+          </div>
+
+          {/* Product Title */}
+          <h3 className="product-title">
+            {product.title}
+          </h3>
+
+          {/* Specifications */}
+          <div className="product-specs">
+            {product.specifications.size && (
+              <span className="product-spec-badge">
+                {product.specifications.size}
+              </span>
+            )}
+            {product.specifications.condition && (
+              <span className="product-spec-badge">
+                {product.specifications.condition}
+              </span>
+            )}
+          </div>
+
+          {/* Price Section */}
+          <div className="product-pricing">
+            <div className="product-price-row">
+              <span className="product-current-price">
+                ${product.price.current.toFixed(2)}
+              </span>
+              {discount > 0 && (
+                <span className="product-original-price">
+                  ${product.price.original.toFixed(2)}
+                </span>
+              )}
+            </div>
+
+            {/* Add to Cart Button */}
+            <button
+              className="product-add-to-cart"
+              disabled={!product.availability.inStock}
+            >
+              {product.availability.inStock ? 'Add to Cart' : 'Out of Stock'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+
+  // Debug logging - Fixed to show actual state
+  console.log('DEBUG: Component state:', {
+    loading,
+    searchInProgress,
+    hasSearchResults: searchResults !== null,
+    searchResultsType: typeof searchResults,
+    searchResultsLength: searchResults?.products?.length,
+    error,
+    query,
+    isInitialized,
+    searchTriggered: searchTriggeredRef.current
+  })
+
+  if (loading && !searchResults) {
     return (
       <div className="App">
         <Navigation
@@ -111,12 +385,13 @@ export default function SearchResults() {
           onShowSignup={() => setShowSignupModal(true)}
           onLogout={() => {}}
         />
-        <div className="container my-5">
+        <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-            <h3 className="mt-3 text-primary">Searching for "{query}"...</h3>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto" style={{borderColor: 'transparent transparent var(--accent-primary) transparent'}}></div>
+            <h3 className="mt-4 text-xl" style={{color: 'var(--text-secondary)'}}>Searching for "{query}"...</h3>
+            <p className="text-sm mt-2" style={{color: 'var(--text-tertiary)'}}>
+              DEBUG: loading={loading.toString()}, hasResults={!!searchResults}, error={error || 'none'}
+            </p>
           </div>
         </div>
         <Footer />
@@ -133,9 +408,16 @@ export default function SearchResults() {
           onShowSignup={() => setShowSignupModal(true)}
           onLogout={() => {}}
         />
-        <div className="container my-5">
-          <div className="alert alert-danger" role="alert">
-            {error}
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
+            <h3 className="font-semibold" style={{color: 'var(--error)'}}>Error</h3>
+            <p style={{color: 'var(--error)'}}>{error}</p>
+            <Button
+              onClick={() => performSearch(query, filters, currentPage, itemsPerPage)}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
           </div>
         </div>
         <Footer />
@@ -152,124 +434,126 @@ export default function SearchResults() {
         onLogout={() => {}}
       />
 
-      <main className="container my-5">
-        <div className="row">
-          <div className="col-12 mb-4">
-            <h1 className="text-primary fw-bold">
-              Search Results for "{query}"
-            </h1>
-            <p className="text-secondary">
-              Found {searchResults?.totalFound || searchResults?.products?.length || 0} products
+      <main className="container mx-auto px-4 py-8 min-h-screen">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-light mb-4" style={{
+            color: 'var(--text-primary)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+            letterSpacing: '-0.02em'
+          }}>
+            Search Results for "{query}"
+          </h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <p className="text-lg" style={{
+              color: 'var(--text-secondary)',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
+              fontWeight: '400'
+            }}>
+              {searchResults?.metadata.total || 0} products found
             </p>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium" style={{color: 'var(--text-secondary)'}}>View:</span>
+              <button
+                className={`btn-modern btn-modern-sm ${
+                  viewMode === 'grid' ? 'btn-modern-default' : 'btn-modern-outline'
+                }`}
+                onClick={() => setViewMode('grid')}
+              >
+                Grid
+              </button>
+              <button
+                className={`btn-modern btn-modern-sm ${
+                  viewMode === 'list' ? 'btn-modern-default' : 'btn-modern-outline'
+                }`}
+                onClick={() => setViewMode('list')}
+              >
+                List
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Claude AI Response Section */}
-        {searchResults?.aiResponse && (
-          <div className="row mb-5">
-            <div className="col-12">
-              <div className="card-modern p-4" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                <h4 className="text-primary mb-3">
-                  <i className="fas fa-robot me-2"></i>
-                  AI Shopping Assistant
-                </h4>
-                <div className="text-white" style={{ fontSize: '1.05rem', lineHeight: '1.7' }}>
-                  {searchResults.aiResponse}
-                </div>
-              </div>
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Filters Sidebar */}
+          <div className="lg:w-1/5">
+            <div className="sticky top-4">
+              <ProductFilters
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                availableFilters={availableFilters}
+                isLoading={loading}
+                showCounts={true}
+              />
             </div>
           </div>
-        )}
 
-        {/* Sustainability Insights */}
-        {searchResults?.sustainabilityInsights && (
-          <div className="row mb-5">
-            <div className="col-12">
-              <div className="card-modern p-4" style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
-                <h5 className="text-success mb-3">
-                  <i className="fas fa-leaf me-2"></i>
-                  Sustainability Impact
-                </h5>
-                <div className="row">
-                  <div className="col-md-3">
-                    <div className="text-center">
-                      <div className="h4 text-warning">${searchResults.sustainabilityInsights.totalSavings}</div>
-                      <small className="text-muted">Money Saved</small>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="text-center">
-                      <div className="h4 text-info">{searchResults.sustainabilityInsights.estimatedCO2Saved}</div>
-                      <small className="text-muted">CO2 Saved</small>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="text-center">
-                      <div className="h4 text-primary">{searchResults.sustainabilityInsights.waterSaved}</div>
-                      <small className="text-muted">Water Saved</small>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="text-center">
-                      <div className="h4 text-success">{searchResults.sustainabilityInsights.itemsKeptFromLandfill}</div>
-                      <small className="text-muted">Items from Landfill</small>
-                    </div>
-                  </div>
+          {/* Main Content */}
+          <div className="lg:w-3/4">
+            {searchResults?.products && searchResults.products.length > 0 ? (
+              <>
+                {/* Top Pagination */}
+                <div className="mb-6">
+                  <Pagination
+                    currentPage={searchResults.metadata.page}
+                    totalPages={searchResults.metadata.totalPages}
+                    totalItems={searchResults.metadata.total}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                    onItemsPerPageChange={handleItemsPerPageChange}
+                    isLoading={loading}
+                  />
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        <div className="row">
-          {searchResults?.products && searchResults.products.length > 0 ? (
-            searchResults.products.map((product) => (
-              <div key={product.id} className="col-lg-4 col-md-6 mb-4">
-                <div className="card-modern h-100">
-                  {product.imageUrl && (
-                    <img
-                      src={product.imageUrl}
-                      className="card-img-top"
-                      alt={product.name}
-                      style={{ height: '200px', objectFit: 'cover' }}
+                {/* Quick Jump for large datasets */}
+                {searchResults.metadata.totalPages > 10 && (
+                  <div className="mb-4 flex justify-center">
+                    <QuickJumpPagination
+                      currentPage={searchResults.metadata.page}
+                      totalPages={searchResults.metadata.totalPages}
+                      onPageChange={handlePageChange}
+                      isLoading={loading}
                     />
-                  )}
-                  <div className="card-body d-flex flex-column">
-                    <h6 className="card-title fw-bold text-primary">{product.name}</h6>
-                    <p className="card-text text-secondary small flex-grow-1">
-                      {product.description}
-                    </p>
-                    <div className="mt-auto">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="h5 text-success fw-bold mb-0">
-                          ${product.price.toFixed(2)}
-                        </span>
-                      </div>
-                      {product.condition && (
-                        <small className="text-muted">
-                          Condition: {product.condition}
-                        </small>
-                      )}
-                      <div className="mt-2">
-                        <button className="btn btn-primary w-100">
-                          View Details
-                        </button>
-                      </div>
-                    </div>
                   </div>
+                )}
+
+                {/* Products */}
+                <div className={
+                  viewMode === 'grid'
+                    ? "products-grid-modern"
+                    : "products-list-modern"
+                }>
+                  {searchResults.products.map((product, index) =>
+                    renderProduct(product, index)
+                  )}
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="col-12">
-              <div className="text-center py-5">
-                <h3 className="text-secondary">No products found</h3>
-                <p className="text-muted">
+
+                {/* Bottom Pagination */}
+                <div className="mt-8">
+                  <Pagination
+                    currentPage={searchResults.metadata.page}
+                    totalPages={searchResults.metadata.totalPages}
+                    totalItems={searchResults.metadata.total}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                    onItemsPerPageChange={handleItemsPerPageChange}
+                    isLoading={loading}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4" style={{color: 'var(--text-tertiary)'}}>🔍</div>
+                <h3 className="text-xl mb-2" style={{color: 'var(--text-secondary)'}}>No products found</h3>
+                <p className="mb-4" style={{color: 'var(--text-tertiary)'}}>
                   Try adjusting your search filters or search for different terms.
                 </p>
+                <Button onClick={() => setFilters(DEFAULT_FILTERS)}>
+                  Clear All Filters
+                </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </main>
 
