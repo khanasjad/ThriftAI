@@ -135,20 +135,36 @@ export class MockAmazonService {
 
           } else {
             // STRATEGY 2: General search - no specific product type found
-            // Use broader search with all meaningful terms
-            const meaningfulTerms = searchTerms.filter(term => !stopWords.includes(term))
+            // Check if query matches category keywords
+            const categoryKeywordMapping = await ConfigurationService.getCategoryKeywordsMapping()
+            const matchedCategories = new Set<string>()
 
-            meaningfulTerms.forEach(term => {
-              orConditions.push(
-                { name: { contains: term, mode: 'insensitive' } },
-                { description: { contains: term, mode: 'insensitive' } },
-                { brand: { contains: term, mode: 'insensitive' } },
-                { category: { contains: term, mode: 'insensitive' } }
-              )
+            searchTerms.forEach(term => {
+              const categories = categoryKeywordMapping.get(term)
+              if (categories) {
+                categories.forEach(cat => matchedCategories.add(cat))
+              }
             })
 
-            if (orConditions.length > 0) {
-              where.OR = orConditions
+            // If query matches categories (like "fashion" -> CLOTHING), search by category
+            if (matchedCategories.size > 0) {
+              where.category = { in: Array.from(matchedCategories) }
+            } else {
+              // Use broader search with all meaningful terms
+              const meaningfulTerms = searchTerms.filter(term => !stopWords.includes(term))
+
+              meaningfulTerms.forEach(term => {
+                orConditions.push(
+                  { name: { contains: term, mode: 'insensitive' } },
+                  { description: { contains: term, mode: 'insensitive' } },
+                  { brand: { contains: term, mode: 'insensitive' } },
+                  { category: { contains: term, mode: 'insensitive' } }
+                )
+              })
+
+              if (orConditions.length > 0) {
+                where.OR = orConditions
+              }
             }
           }
         }

@@ -597,23 +597,45 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
         return false
       }
 
+      // Get configuration stop words
+      const stopWords = ['find', 'search', 'get', 'buy', 'shop', 'looking', 'for', 'the', 'and', 'or', 'a', 'an', 'with', 'in', 'on', 'options', 'items']
+
       // Apply word boundary filtering for better precision
       const queryLower = query.toLowerCase().trim()
       const productName = product.name.toLowerCase()
       const productDescription = (product.description || '').toLowerCase()
       const productBrand = (product.brand || '').toLowerCase()
+      const productCategory = product.category
+
+      // If product is already in a relevant category from the search, be more lenient
+      if (searchTerms.categories.length > 0 && searchTerms.categories.includes(productCategory)) {
+        // Product is in a relevant category, so it's a valid match
+        return true
+      }
 
       // Check if the query appears as a meaningful match
       const fields = [productName, productDescription, productBrand]
+
+      // Filter out stop words from query for matching
+      const meaningfulWords = queryLower.split(/\s+/).filter(word =>
+        word.length > 2 && !stopWords.includes(word)
+      )
+
       const hasRelevantMatch = fields.some(field => {
         // More lenient matching for configured keywords
-        if (searchTerms.keywords.some((keyword: string) => field.includes(keyword))) {
+        if (searchTerms.keywords.length > 0) {
+          if (searchTerms.keywords.some((keyword: string) => field.includes(keyword))) {
+            return true
+          }
+        }
+
+        // Check if any meaningful word matches
+        if (meaningfulWords.length === 0) {
+          // No meaningful words, accept based on category match
           return true
         }
 
-        // Strict word boundary for other terms
-        const words = queryLower.split(/\s+/)
-        return words.some(word => {
+        return meaningfulWords.some(word => {
           if (word.length <= 2) return field.includes(word) // Allow short words
           const wordBoundaryRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
           return wordBoundaryRegex.test(field)
