@@ -354,6 +354,308 @@ export class ConfigurationService {
   }
 
   /**
+   * Get search keywords by type - replaces hardcoded keyword arrays
+   */
+  static async getSearchKeywordsByType(keywordType: string): Promise<string[]> {
+    const cacheKey = `search_keywords_${keywordType}`
+
+    try {
+      const cached = this.keywordCache.get(cacheKey)
+      if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+        return cached.data
+      }
+
+      const keywords = await prisma.searchKeywordConfiguration.findMany({
+        where: {
+          keywordType: keywordType as any,
+          isActive: true
+        },
+        select: { keyword: true, synonyms: true },
+        orderBy: { weight: 'desc' }
+      })
+
+      // Combine main keywords with their synonyms
+      const allKeywords = []
+      keywords.forEach(k => {
+        allKeywords.push(k.keyword.toLowerCase())
+        if (k.synonyms && k.synonyms.length > 0) {
+          allKeywords.push(...k.synonyms.map(s => s.toLowerCase()))
+        }
+      })
+
+      const uniqueKeywords = [...new Set(allKeywords)]
+
+      this.keywordCache.set(cacheKey, {
+        data: uniqueKeywords,
+        timestamp: Date.now()
+      })
+
+      return uniqueKeywords
+    } catch (error) {
+      console.error(`Failed to load search keywords for type ${keywordType}`, error)
+      return this.getDefaultKeywordsByType(keywordType)
+    }
+  }
+
+  /**
+   * Get all search keywords grouped by type
+   */
+  static async getAllSearchKeywords(): Promise<Map<string, string[]>> {
+    const cacheKey = 'all_search_keywords'
+
+    try {
+      const cached = this.keywordCache.get(cacheKey)
+      if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+        return cached.data
+      }
+
+      const keywords = await prisma.searchKeywordConfiguration.findMany({
+        where: { isActive: true },
+        select: { keywordType: true, keyword: true, synonyms: true },
+        orderBy: { weight: 'desc' }
+      })
+
+      const keywordMap = new Map<string, string[]>()
+      keywords.forEach(k => {
+        const type = k.keywordType.toString()
+        const existing = keywordMap.get(type) || []
+
+        existing.push(k.keyword.toLowerCase())
+        if (k.synonyms && k.synonyms.length > 0) {
+          existing.push(...k.synonyms.map(s => s.toLowerCase()))
+        }
+
+        keywordMap.set(type, [...new Set(existing)])
+      })
+
+      this.keywordCache.set(cacheKey, {
+        data: keywordMap,
+        timestamp: Date.now()
+      })
+
+      return keywordMap
+    } catch (error) {
+      console.error('Failed to load all search keywords', error)
+      return this.getDefaultAllKeywords()
+    }
+  }
+
+  /**
+   * Get brand configuration data - replaces hardcoded brand mappings
+   */
+  static async getBrandConfiguration(): Promise<Map<string, any>> {
+    const cacheKey = 'brand_configuration'
+
+    try {
+      const cached = this.keywordCache.get(cacheKey)
+      if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+        return cached.data
+      }
+
+      const brands = await prisma.brandConfiguration.findMany({
+        where: { isActive: true },
+        include: {
+          keywords: {
+            where: { isActive: true }
+          }
+        }
+      })
+
+      const brandMap = new Map<string, any>()
+      brands.forEach(brand => {
+        const brandKey = brand.normalizedName.toLowerCase()
+        brandMap.set(brandKey, {
+          reputation: brand.reputation,
+          premium: brand.isPremium,
+          warranty: brand.warranty,
+          category: brand.category,
+          keywords: brand.keywords.map(k => k.keyword.toLowerCase()),
+          metadata: brand.metadata
+        })
+
+        // Also map by brand name for direct lookups
+        brandMap.set(brand.brandName.toLowerCase(), {
+          reputation: brand.reputation,
+          premium: brand.isPremium,
+          warranty: brand.warranty,
+          category: brand.category,
+          keywords: brand.keywords.map(k => k.keyword.toLowerCase()),
+          metadata: brand.metadata
+        })
+      })
+
+      this.keywordCache.set(cacheKey, {
+        data: brandMap,
+        timestamp: Date.now()
+      })
+
+      return brandMap
+    } catch (error) {
+      console.error('Failed to load brand configuration', error)
+      return this.getDefaultBrandConfiguration()
+    }
+  }
+
+  /**
+   * Get category mapping configuration - replaces hardcoded category mappings
+   */
+  static async getCategoryMappings(): Promise<Map<string, any>> {
+    const cacheKey = 'category_mappings'
+
+    try {
+      const cached = this.categoryCache.get(cacheKey)
+      if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+        return cached.data
+      }
+
+      const mappings = await prisma.categoryMappingConfiguration.findMany({
+        where: { isActive: true }
+      })
+
+      const mappingMap = new Map<string, any>()
+      mappings.forEach(mapping => {
+        mappingMap.set(mapping.categoryName, {
+          amazonCategory: mapping.amazonCategory,
+          subcategories: mapping.subcategories,
+          avgShippingDays: mapping.avgShippingDays,
+          returnWindow: mapping.returnWindow,
+          metadata: mapping.metadata
+        })
+      })
+
+      this.categoryCache.set(cacheKey, {
+        data: mappingMap,
+        timestamp: Date.now()
+      })
+
+      return mappingMap
+    } catch (error) {
+      console.error('Failed to load category mappings', error)
+      return this.getDefaultCategoryMappings()
+    }
+  }
+
+  /**
+   * Check if a keyword is a stop word
+   */
+  static async isStopWord(keyword: string): Promise<boolean> {
+    const stopWords = await this.getSearchKeywordsByType('STOP_WORD')
+    return stopWords.includes(keyword.toLowerCase())
+  }
+
+  /**
+   * Get product type keywords
+   */
+  static async getProductTypeKeywords(): Promise<string[]> {
+    return this.getSearchKeywordsByType('PRODUCT_TYPE')
+  }
+
+  /**
+   * Get brand descriptor keywords
+   */
+  static async getBrandDescriptors(): Promise<string[]> {
+    return this.getSearchKeywordsByType('BRAND_DESCRIPTOR')
+  }
+
+  /**
+   * Get condition descriptor keywords
+   */
+  static async getConditionDescriptors(): Promise<string[]> {
+    return this.getSearchKeywordsByType('CONDITION_DESCRIPTOR')
+  }
+
+  /**
+   * Fallback methods for when database fails
+   */
+  private static getDefaultKeywordsByType(keywordType: string): string[] {
+    switch (keywordType) {
+      case 'PRODUCT_TYPE':
+        return ['bag', 'bags', 'handbag', 'handbags', 'purse', 'purses', 'backpack', 'backpacks', 'tote', 'totes', 'clutch', 'clutches', 'wallet', 'wallets', 'crossbody', 'messenger', 'satchel', 'satchels', 'hobo', 'shoulder', 'pouch', 'pouches']
+      case 'BRAND_DESCRIPTOR':
+        return ['designer', 'luxury', 'premium']
+      case 'CONDITION_DESCRIPTOR':
+        return ['vintage', 'antique', 'classic', 'retro', 'new', 'used', 'excellent', 'good', 'fair']
+      case 'STOP_WORD':
+        return ['find', 'search', 'get', 'buy', 'shop', 'looking', 'for', 'the', 'and', 'or', 'a', 'an', 'with', 'in', 'on']
+      default:
+        return []
+    }
+  }
+
+  private static getDefaultAllKeywords(): Map<string, string[]> {
+    const map = new Map<string, string[]>()
+    map.set('PRODUCT_TYPE', this.getDefaultKeywordsByType('PRODUCT_TYPE'))
+    map.set('BRAND_DESCRIPTOR', this.getDefaultKeywordsByType('BRAND_DESCRIPTOR'))
+    map.set('CONDITION_DESCRIPTOR', this.getDefaultKeywordsByType('CONDITION_DESCRIPTOR'))
+    map.set('STOP_WORD', this.getDefaultKeywordsByType('STOP_WORD'))
+    return map
+  }
+
+  private static getDefaultBrandConfiguration(): Map<string, any> {
+    const brands = new Map<string, any>()
+
+    // Add some default brand configurations
+    const defaultBrands = [
+      { name: 'nike', reputation: 95, premium: true, warranty: '1 year' },
+      { name: 'adidas', reputation: 92, premium: true, warranty: '1 year' },
+      { name: 'gucci', reputation: 98, premium: true, warranty: '2 years' },
+      { name: 'chanel', reputation: 99, premium: true, warranty: '2 years' },
+      { name: 'coach', reputation: 90, premium: true, warranty: '1 year' },
+      { name: 'calvin klein', reputation: 85, premium: false, warranty: '6 months' },
+      { name: 'michael kors', reputation: 80, premium: false, warranty: '6 months' }
+    ]
+
+    defaultBrands.forEach(brand => {
+      brands.set(brand.name, {
+        reputation: brand.reputation,
+        premium: brand.premium,
+        warranty: brand.warranty,
+        keywords: [brand.name],
+        metadata: null
+      })
+    })
+
+    // Default fallback
+    brands.set('default', { reputation: 70, premium: false, warranty: '30 days' })
+
+    return brands
+  }
+
+  private static getDefaultCategoryMappings(): Map<string, any> {
+    const mappings = new Map<string, any>()
+
+    mappings.set('CLOTHING', {
+      amazonCategory: 'Fashion',
+      subcategories: ['Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Activewear'],
+      avgShippingDays: 3,
+      returnWindow: 30
+    })
+
+    mappings.set('SHOES', {
+      amazonCategory: 'Shoes & Handbags',
+      subcategories: ['Athletic', 'Casual', 'Dress', 'Boots', 'Sandals'],
+      avgShippingDays: 2,
+      returnWindow: 30
+    })
+
+    mappings.set('ACCESSORIES', {
+      amazonCategory: 'Accessories',
+      subcategories: ['Jewelry', 'Watches', 'Bags', 'Belts', 'Sunglasses'],
+      avgShippingDays: 2,
+      returnWindow: 15
+    })
+
+    mappings.set('ELECTRONICS', {
+      amazonCategory: 'Electronics',
+      subcategories: ['Phones', 'Laptops', 'Audio', 'Gaming', 'Smart Home'],
+      avgShippingDays: 1,
+      returnWindow: 15
+    })
+
+    return mappings
+  }
+
+  /**
    * Clear caches (useful for testing or manual cache invalidation)
    */
   static clearCache(): void {

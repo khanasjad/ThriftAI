@@ -489,6 +489,106 @@ model SearchExclusionConfiguration {
   @@map("search_exclusion_configuration")
 }
 
+model SearchKeywordConfiguration {
+  id              BigInt                @id @default(autoincrement())
+  keywordType     SearchKeywordType
+  keyword         String                @db.VarChar(100)
+  category        String?               @db.VarChar(100)
+  synonyms        String[]
+  weight          Decimal               @default(1.0) @db.Decimal(3,2)
+  isActive        Boolean               @default(true)
+  metadata        Json?
+
+  // Timestamps
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([keywordType, keyword])
+  @@index([keywordType, isActive])
+  @@map("search_keyword_configuration")
+}
+
+enum SearchKeywordType {
+  PRODUCT_TYPE
+  BRAND_DESCRIPTOR
+  CONDITION_DESCRIPTOR
+  STOP_WORD
+  MATERIAL
+  COLOR
+  STYLE
+  SEASONAL
+}
+
+model BrandConfiguration {
+  id              BigInt   @id @default(autoincrement())
+  brandName       String   @unique @db.VarChar(100)
+  normalizedName  String   @db.VarChar(100)
+  reputation      Int      @default(70)
+  isPremium       Boolean  @default(false)
+  warranty        String?  @db.VarChar(50)
+  category        String?  @db.VarChar(100)
+  isActive        Boolean  @default(true)
+  metadata        Json?
+
+  // Relations
+  keywords        BrandKeyword[]
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([normalizedName])
+  @@index([isPremium])
+  @@index([reputation])
+  @@map("brand_configuration")
+}
+
+model BrandKeyword {
+  id                    BigInt              @id @default(autoincrement())
+  brandId               BigInt
+  keyword               String              @db.VarChar(100)
+  keywordType           BrandKeywordType
+  weight                Decimal             @default(1.0) @db.Decimal(3,2)
+  isActive              Boolean             @default(true)
+
+  // Relations
+  brandConfiguration   BrandConfiguration  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt            DateTime            @default(now())
+
+  @@index([keyword])
+  @@index([brandId, keyword])
+  @@index([keywordType])
+  @@map("brand_keywords")
+}
+
+enum BrandKeywordType {
+  BRAND_NAME
+  VARIANT
+  DESIGNER_INDICATOR
+  LUXURY_INDICATOR
+  QUALITY_INDICATOR
+}
+
+model CategoryMappingConfiguration {
+  id                BigInt   @id @default(autoincrement())
+  categoryName      String   @unique @db.VarChar(100)
+  amazonCategory    String   @db.VarChar(100)
+  subcategories     String[]
+  avgShippingDays   Int      @default(3)
+  returnWindow      Int      @default(30)
+  isActive          Boolean  @default(true)
+  metadata          Json?
+
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([categoryName])
+  @@map("category_mapping_configuration")
+}
+
 // ========================================
 // AFFILIATE PRODUCTS
 // ========================================

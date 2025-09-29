@@ -7,60 +7,27 @@ import type {
   SearchFilters,
   QueryOptimization
 } from '../types/scoring'
+import { ConfigurationService } from './configurationService'
 
 const prisma = new PrismaClient()
 
 export class MockAmazonService {
-  private readonly BRAND_MAPPINGS = {
-    // Map common brands to their reputation levels
-    'nike': { reputation: 95, premium: true, warranty: '1 year' },
-    'adidas': { reputation: 92, premium: true, warranty: '1 year' },
-    'levi\'s': { reputation: 88, premium: false, warranty: '6 months' },
-    'gap': { reputation: 75, premium: false, warranty: '3 months' },
-    'h&m': { reputation: 65, premium: false, warranty: '30 days' },
-    'zara': { reputation: 78, premium: false, warranty: '30 days' },
-    'uniqlo': { reputation: 82, premium: false, warranty: '6 months' },
-    'apple': { reputation: 98, premium: true, warranty: '1 year' },
-    'samsung': { reputation: 90, premium: true, warranty: '1 year' },
-    'sony': { reputation: 89, premium: true, warranty: '1 year' },
-    'gucci': { reputation: 98, premium: true, warranty: '2 years' },
-    'chanel': { reputation: 99, premium: true, warranty: '2 years' },
-    'louis vuitton': { reputation: 98, premium: true, warranty: '2 years' },
-    'prada': { reputation: 96, premium: true, warranty: '2 years' },
-    'hermès': { reputation: 99, premium: true, warranty: '2 years' },
-    'calvin klein': { reputation: 85, premium: false, warranty: '6 months' },
-    'ralph lauren': { reputation: 87, premium: false, warranty: '6 months' },
-    'tommy hilfiger': { reputation: 82, premium: false, warranty: '6 months' },
-    'coach': { reputation: 90, premium: true, warranty: '1 year' },
-    'michael kors': { reputation: 80, premium: false, warranty: '6 months' },
-    'default': { reputation: 70, premium: false, warranty: '30 days' }
+  // Cache for configuration data (loaded once per instance)
+  private brandConfigCache: Map<string, any> | null = null
+  private categoryMappingCache: Map<string, any> | null = null
+
+  private async getBrandConfiguration(): Promise<Map<string, any>> {
+    if (!this.brandConfigCache) {
+      this.brandConfigCache = await ConfigurationService.getBrandConfiguration()
+    }
+    return this.brandConfigCache
   }
 
-  private readonly CATEGORY_MAPPINGS = {
-    'CLOTHING': {
-      amazonCategory: 'Fashion',
-      subcategories: ['Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Activewear'],
-      avgShippingDays: 3,
-      returnWindow: 30
-    },
-    'SHOES': {
-      amazonCategory: 'Shoes & Handbags',
-      subcategories: ['Athletic', 'Casual', 'Dress', 'Boots', 'Sandals'],
-      avgShippingDays: 2,
-      returnWindow: 30
-    },
-    'ACCESSORIES': {
-      amazonCategory: 'Accessories',
-      subcategories: ['Jewelry', 'Watches', 'Bags', 'Belts', 'Sunglasses'],
-      avgShippingDays: 2,
-      returnWindow: 15
-    },
-    'ELECTRONICS': {
-      amazonCategory: 'Electronics',
-      subcategories: ['Phones', 'Laptops', 'Audio', 'Gaming', 'Smart Home'],
-      avgShippingDays: 1,
-      returnWindow: 15
+  private async getCategoryMappings(): Promise<Map<string, any>> {
+    if (!this.categoryMappingCache) {
+      this.categoryMappingCache = await ConfigurationService.getCategoryMappings()
     }
+    return this.categoryMappingCache
   }
 
   // Enhanced search with comprehensive pagination and filtering
@@ -110,11 +77,13 @@ export class MockAmazonService {
         const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 1)
 
         if (searchTerms.length > 0) {
-          // Identify product type keywords that should be prioritized
-          const productTypeKeywords = ['bag', 'bags', 'handbag', 'handbags', 'purse', 'purses', 'backpack', 'backpacks', 'tote', 'totes', 'clutch', 'clutches', 'wallet', 'wallets', 'crossbody', 'messenger', 'satchel', 'satchels', 'hobo', 'shoulder', 'pouch', 'pouches']
-          const brandKeywords = ['designer', 'luxury', 'premium']
-          const conditionKeywords = ['vintage', 'antique', 'classic', 'retro', 'new', 'used', 'excellent', 'good', 'fair']
-          const stopWords = ['find', 'search', 'get', 'buy', 'shop', 'looking', 'for', 'the', 'and', 'or', 'a', 'an', 'with', 'in', 'on']
+          // Get configuration data from database
+          const [productTypeKeywords, brandKeywords, conditionKeywords, stopWords] = await Promise.all([
+            ConfigurationService.getProductTypeKeywords(),
+            ConfigurationService.getBrandDescriptors(),
+            ConfigurationService.getConditionDescriptors(),
+            ConfigurationService.getSearchKeywordsByType('STOP_WORD')
+          ])
 
           // Find the most important product type term
           const mainProductType = searchTerms.find(term => productTypeKeywords.includes(term))
@@ -307,7 +276,7 @@ export class MockAmazonService {
       }
 
       // Convert to Amazon format
-      const amazonProducts = products.map(product => this.convertToAmazonFormat(product))
+      const amazonProducts = await Promise.all(products.map(product => this.convertToAmazonFormat(product)))
 
       const totalPages = Math.ceil(total / limit)
 
@@ -462,9 +431,9 @@ export class MockAmazonService {
       console.log(`Found ${products.length} products matching search criteria`)
 
       // Convert each product to MockAmazonProduct format
-      const amazonProducts = products.map(product =>
+      const amazonProducts = await Promise.all(products.map(product =>
         this.convertToAmazonFormat(product)
-      )
+      ))
 
       return amazonProducts
 
@@ -593,9 +562,9 @@ export class MockAmazonService {
       console.log(`Structured search found ${products.length} products`)
 
       // Convert each product to MockAmazonProduct format
-      const amazonProducts = products.map(product =>
+      const amazonProducts = await Promise.all(products.map(product =>
         this.convertToAmazonFormat(product)
-      )
+      ))
 
       return amazonProducts
 
@@ -605,16 +574,23 @@ export class MockAmazonService {
     }
   }
 
-  private convertToAmazonFormat(product: any): MockAmazonProduct {
+  private async convertToAmazonFormat(product: any): Promise<MockAmazonProduct> {
     // Generate realistic ASIN (Amazon Standard Identification Number)
     const asin = this.generateASIN(product.id)
 
-    // Get brand information
+    // Get brand information from database configuration
+    const brandConfiguration = await this.getBrandConfiguration()
     const brandKey = product.brand?.toLowerCase() || 'default'
-    const brandInfo = this.BRAND_MAPPINGS[brandKey] || this.BRAND_MAPPINGS.default
+    const brandInfo = brandConfiguration.get(brandKey) || brandConfiguration.get('default') || { reputation: 70, premium: false, warranty: '30 days' }
 
-    // Get category information
-    const categoryInfo = this.CATEGORY_MAPPINGS[product.category] || this.CATEGORY_MAPPINGS.CLOTHING
+    // Get category information from database configuration
+    const categoryMappings = await this.getCategoryMappings()
+    const categoryInfo = categoryMappings.get(product.category) || {
+      amazonCategory: 'Fashion',
+      subcategories: ['General'],
+      avgShippingDays: 3,
+      returnWindow: 30
+    }
 
     // Calculate pricing with realistic variations
     const pricing = this.calculatePricing(product.price, brandInfo.premium)
@@ -1087,7 +1063,7 @@ export class MockAmazonService {
       take: 50 // Get a larger pool to filter from
     })
 
-    const allAmazonProducts = products.map(product => this.convertToAmazonFormat(product))
+    const allAmazonProducts = await Promise.all(products.map(product => this.convertToAmazonFormat(product)))
     const targetProduct = allAmazonProducts.find(p => p.asin === asin)
 
     if (!targetProduct) {
