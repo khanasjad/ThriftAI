@@ -31,66 +31,88 @@ export interface StructuredQueryFilters {
   needsClarification?: string  // If query is ambiguous, ask this
 }
 
-const QUERY_GENERATION_SYSTEM_PROMPT = `You are an expert at converting natural language shopping queries into structured database filters for an e-commerce marketplace.
+const QUERY_GENERATION_SYSTEM_PROMPT = `You are an advanced AI shopping assistant that understands natural language queries and converts them into optimal database search parameters.
 
-Your task: Generate intelligent JSON filters that maximize relevant product matches.
+CORE PRINCIPLE: NO HARDCODING - Understand ANY product query dynamically using your knowledge.
 
-INTELLIGENT SEARCH TERM GENERATION:
-1. Return ONLY valid JSON - no other text
-2. Generate 2-4 STRATEGIC search terms that balance precision and recall
-3. Understand product name patterns in databases:
-   - "bags" → try "handbag", "purse", or "bag" (product names vary)
-   - "phone" → try "phone", "smartphone", or brand names
-   - "shoes" → try "shoe", "sneaker", "boot" based on context
-   - "clothes" → extract specific type: "shirt", "pants", "dress"
+YOUR TASK:
+Analyze the user's search query and generate intelligent, flexible search parameters that will find the most relevant products.
 
-SMART MAPPING STRATEGIES:
-- "designer/luxury" → Include "luxury", "premium", or brand names (Coach, Gucci, Prada)
-- "vintage/retro" → Keep "vintage" as primary term
-- "cheap/affordable" → Set low maxPrice (< $100) instead of search term
-- "expensive/premium" → Set high minPrice (> $500) or add "luxury"
-- "eco/sustainable" → Add "sustainable", "eco", "recycled", "organic"
-- "gaming" → Add relevant specs: "gaming", "rgb", "high-performance"
+INTELLIGENT QUERY UNDERSTANDING:
+1. Extract the PRIMARY product type (what they're actually looking for)
+   - "Find vintage designer bags" → Primary: bags/handbag/purse
+   - "red nike shoes" → Primary: shoe/sneaker
+   - "gaming laptop under 1000" → Primary: laptop/computer
+
+2. Extract MODIFIERS (attributes they care about)
+   - Style: vintage, modern, classic, retro
+   - Quality: designer, luxury, premium, cheap, affordable
+   - Brand: Nike, Gucci, Apple, etc.
+   - Color, size, material, features
+
+3. Extract CONSTRAINTS
+   - Price: "under $X", "cheap", "expensive"
+   - Condition: new, used, like-new
+   - Urgency: need, want, looking for
+
+SMART SEARCH TERM GENERATION:
+- Generate 1-3 core terms for the PRODUCT TYPE (with synonyms)
+  Example: "bags" → ["bag", "handbag", "purse", "backpack", "tote"]
+- Include modifiers as SEPARATE terms only if they're critical for matching
+  Example: "vintage designer bags" → ["bag", "handbag", "vintage", "designer"]
+- Use your knowledge of products to include relevant synonyms
+- DON'T include filler words (find, looking, for, the, a, an, some)
+
+CATEGORY DETECTION:
+Intelligently map to ONE of these categories based on product type:
+- ELECTRONICS (phones, laptops, tablets, cameras, headphones, gaming, tech)
+- CLOTHING (shirts, pants, jackets, dresses, sweaters, hoodies, tops)
+- SHOES (sneakers, boots, sandals, heels, loafers, athletic)
+- ACCESSORIES (bags, purses, wallets, watches, jewelry, sunglasses, belts, hats)
+- HOME (furniture, decor, kitchen, bedding, appliances)
+- BOOKS (novels, textbooks, ebooks, magazines)
+- SPORTS (fitness, gym, athletic, outdoor, exercise equipment)
+- TOYS (games, puzzles, action figures, dolls)
+- BEAUTY (makeup, skincare, perfume, cosmetics)
+- AUTOMOTIVE (car parts, accessories, tools)
+
+If unsure, omit category - let database search all categories.
+
+PRICE INTELLIGENCE:
+- "cheap" / "affordable" / "budget" → maxPrice: 100
+- "under $X" → maxPrice: X
+- "expensive" / "premium" / "luxury" → minPrice: 200
+- Specific price mentioned → Use that as constraint
+
+BRAND DETECTION:
+Extract any brand names mentioned (Nike, Apple, Gucci, etc.) into brands array.
 
 CONFIDENCE SCORING:
-- 0.9+: Clear product type + specific requirements
-- 0.7-0.9: Clear intent but some ambiguity
-- 0.5-0.7: Vague but workable query
-- <0.5: Too vague, needs clarification
+- 0.9+: Crystal clear what they want (product type + details)
+- 0.7-0.9: Clear product type, some ambiguity in details
+- 0.5-0.7: Vague product type but workable
+- <0.5: Too vague, request clarification
 
-SEARCH TERM RULES:
-- Products must match ALL terms (AND logic)
-- Balance specificity with database reality
-- Consider synonyms but don't overload
-- 2-4 terms maximum for best results
+SORT INTELLIGENCE:
+- Default: "relevance"
+- If price constraint: "price" (asc if budget, desc if premium)
+- If "best" / "top rated": "rating" desc
+- If "new" / "latest": "date" desc
+- If "popular" / "trending": "popularity" desc
 
-CATEGORIES (use exact values):
-- ELECTRONICS (laptops, phones, tablets, cameras, etc.)
-- CLOTHING (shirts, pants, jackets, etc.)
-- SHOES (sneakers, boots, sandals, etc.)
-- ACCESSORIES (bags, watches, jewelry, etc.)
-- HOME (furniture, decor, kitchenware, etc.)
-- BOOKS
-
-CONDITIONS:
-- new, like-new, excellent, good, fair
-
-SORT OPTIONS:
-- price, relevance, rating, date, popularity
-
-Response format:
+RESPONSE FORMAT (JSON only, no other text):
 {
-  "searchTerms": ["laptop", "gaming"],
-  "category": "ELECTRONICS",
-  "minPrice": 500,
-  "maxPrice": 1000,
-  "brands": ["Dell", "HP"],
-  "condition": ["new", "like-new"],
-  "sortBy": "price",
-  "sortDirection": "asc",
+  "searchTerms": ["bag", "handbag", "purse", "vintage", "designer"],
+  "category": "ACCESSORIES",
+  "minPrice": null,
+  "maxPrice": null,
+  "brands": [],
+  "condition": [],
+  "sortBy": "relevance",
+  "sortDirection": "desc",
   "limit": 20,
-  "intent": "User wants a gaming laptop under $1000",
-  "confidence": 0.9
+  "intent": "User wants vintage designer bags",
+  "confidence": 0.95
 }
 
 If query is too vague or ambiguous:
@@ -225,15 +247,53 @@ export class StructuredQueryGenerator {
   }
 
   /**
-   * Fallback query generation using regex when Claude is unavailable
+   * Fallback query generation using smart pattern matching when Claude is unavailable
+   * Mimics Claude's intelligence with basic NLP
    */
   private async fallbackGeneration(message: string): Promise<StructuredQueryFilters> {
     const normalized = message.toLowerCase().trim()
     const searchTerms: string[] = []
 
+    logger.warn('⚠️ Using fallback query generation (Claude API not configured)', { query: message })
+
     // Remove filler words
-    const fillerWords = ['find', 'looking', 'for', 'show', 'me', 'i', 'want', 'need', 'the', 'a', 'an', 'some']
+    const fillerWords = ['find', 'looking', 'for', 'show', 'me', 'i', 'want', 'need', 'the', 'a', 'an', 'some', 'get', 'buy']
     const words = normalized.split(/\s+/).filter(w => w.length > 2 && !fillerWords.includes(w))
+
+    // Product type detection (basic patterns)
+    const productTypePatterns: Record<string, { keywords: string[]; category: string; synonyms: string[] }> = {
+      'bag': { keywords: ['bag', 'bags', 'handbag', 'handbags', 'purse', 'purses', 'backpack', 'tote'], category: 'ACCESSORIES', synonyms: ['bag', 'handbag', 'purse'] },
+      'shoe': { keywords: ['shoe', 'shoes', 'sneaker', 'sneakers', 'boot', 'boots'], category: 'SHOES', synonyms: ['shoe', 'sneaker'] },
+      'shirt': { keywords: ['shirt', 'shirts', 'tshirt', 't-shirt', 'top'], category: 'CLOTHING', synonyms: ['shirt'] },
+      'jeans': { keywords: ['jeans', 'denim'], category: 'CLOTHING', synonyms: ['jeans'] },
+      'phone': { keywords: ['phone', 'phones', 'iphone', 'smartphone'], category: 'ELECTRONICS', synonyms: ['phone'] },
+      'laptop': { keywords: ['laptop', 'laptops', 'computer', 'macbook'], category: 'ELECTRONICS', synonyms: ['laptop'] },
+      'watch': { keywords: ['watch', 'watches'], category: 'ACCESSORIES', synonyms: ['watch'] },
+      'car': { keywords: ['car', 'cars', 'vehicle', 'auto'], category: 'AUTOMOTIVE', synonyms: ['car'] },
+    }
+
+    // Detect product type
+    let detectedProduct: { category: string; synonyms: string[] } | null = null
+    for (const [, pattern] of Object.entries(productTypePatterns)) {
+      if (pattern.keywords.some(kw => normalized.includes(kw))) {
+        detectedProduct = pattern
+        // Add product type synonyms to search terms
+        searchTerms.push(...pattern.synonyms)
+        break
+      }
+    }
+
+    // Extract modifiers (quality, style, etc.) - add as additional search terms
+    const modifiers: string[] = []
+    const modifierPatterns = ['vintage', 'designer', 'luxury', 'premium', 'cheap', 'affordable', 'new', 'used', 'classic', 'modern']
+    for (const modifier of modifierPatterns) {
+      if (normalized.includes(modifier)) {
+        modifiers.push(modifier)
+      }
+    }
+
+    // Add modifiers to search terms
+    searchTerms.push(...modifiers)
 
     // Extract price
     let maxPrice: number | undefined
@@ -242,12 +302,19 @@ export class StructuredQueryGenerator {
       maxPrice = parseInt(priceMatch[1] || priceMatch[2] || priceMatch[3])
     }
 
-    // Extract category dynamically from configuration
-    let category: string | undefined
-    try {
-      category = await productConfig.findCategoryByKeyword(normalized)
-    } catch (error) {
-      logger.warn('Failed to load categories for fallback', { error })
+    // Cheap/affordable → maxPrice
+    if (normalized.match(/\b(cheap|affordable|budget)\b/)) {
+      maxPrice = 100
+    }
+
+    // Category from detected product or try config
+    let category: string | undefined = detectedProduct?.category
+    if (!category) {
+      try {
+        category = await productConfig.findCategoryByKeyword(normalized)
+      } catch (error) {
+        logger.warn('Failed to load categories for fallback', { error })
+      }
     }
 
     // Extract brands dynamically from configuration
@@ -263,13 +330,23 @@ export class StructuredQueryGenerator {
       logger.warn('Failed to load brands for fallback', { error })
     }
 
-    // Use remaining words as search terms
-    searchTerms.push(...words.slice(0, 5))
+    // If no search terms yet, use all meaningful words
+    if (searchTerms.length === 0) {
+      searchTerms.push(...words.slice(0, 5))
+    }
 
-    const confidence = searchTerms.length > 0 || category ? 0.6 : 0.3
+    const confidence = (detectedProduct && searchTerms.length > 0) ? 0.7 : 0.4
     const needsClarification = confidence < 0.5
       ? "Could you be more specific about what you're looking for?"
       : undefined
+
+    logger.info('📝 Fallback generated query', {
+      searchTerms,
+      category,
+      modifiers,
+      maxPrice,
+      confidence
+    })
 
     return {
       searchTerms,

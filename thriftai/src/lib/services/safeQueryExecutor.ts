@@ -17,6 +17,12 @@ export interface QueryResult {
  */
 export class SafeQueryExecutor {
   /**
+   * ⚠️ NO HARDCODING PRINCIPLE ⚠️
+   * All query understanding is now handled by Claude AI in structuredQueryGenerator
+   * This class only executes safe database queries from Claude's structured output
+   */
+
+  /**
    * Normalize search term to fix common typos and variations
    */
   private normalizeSearchTerm(term: string): string {
@@ -61,19 +67,24 @@ export class SafeQueryExecutor {
         AND: []
       }
 
-      // Search terms - Each term must appear in at least one field (name, description, or brand)
-      // This ensures ALL search terms are relevant to the product
+      // Search terms - Claude AI has already generated optimal search terms
+      // We just apply them to the database with simple, flexible matching
       if (filters.searchTerms && filters.searchTerms.length > 0) {
-        // Normalize search terms to fix typos (jaans → jeans, shose → shoes, etc.)
+        // Normalize terms to fix common typos (lightweight, general-purpose)
         const normalizedTerms = filters.searchTerms.map(term => this.normalizeSearchTerm(term))
 
-        logger.info('🔍 Search terms normalized', {
+        logger.info('🤖 Using Claude AI-generated search terms', {
           original: filters.searchTerms,
-          normalized: normalizedTerms
+          normalized: normalizedTerms,
+          category: filters.category || 'all'
         })
 
+        // Build flexible search: term matches name OR description OR brand
+        // Use OR logic between terms (any term can match)
+        const searchConditions: Prisma.ProductWhereInput[] = []
+
         normalizedTerms.forEach(term => {
-          whereClause.AND!.push({
+          searchConditions.push({
             OR: [
               { name: { contains: term, mode: 'insensitive' } },
               { description: { contains: term, mode: 'insensitive' } },
@@ -81,19 +92,33 @@ export class SafeQueryExecutor {
             ]
           })
         })
+
+        // Combine with OR: Show products matching ANY search term
+        if (searchConditions.length > 0) {
+          whereClause.AND!.push({
+            OR: searchConditions
+          })
+        }
       }
 
-      // Category filter
+      // Category filter (Claude determined the best category)
       if (filters.category) {
         whereClause.AND!.push({ category: filters.category })
       }
 
       // Price range filter
-      if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+      if ((filters.minPrice !== undefined && filters.minPrice !== null) ||
+          (filters.maxPrice !== undefined && filters.maxPrice !== null)) {
         const priceCondition: any = {}
-        if (filters.minPrice !== undefined) priceCondition.gte = filters.minPrice
-        if (filters.maxPrice !== undefined) priceCondition.lte = filters.maxPrice
-        whereClause.AND!.push({ price: priceCondition })
+        if (filters.minPrice !== undefined && filters.minPrice !== null) {
+          priceCondition.gte = filters.minPrice
+        }
+        if (filters.maxPrice !== undefined && filters.maxPrice !== null) {
+          priceCondition.lte = filters.maxPrice
+        }
+        if (Object.keys(priceCondition).length > 0) {
+          whereClause.AND!.push({ price: priceCondition })
+        }
       }
 
       // Brands filter
@@ -225,6 +250,7 @@ export class SafeQueryExecutor {
     } catch (error) {
       logger.error('❌ Query execution failed', {
         error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
         filters
       })
 
