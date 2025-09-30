@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { logger } from '@/lib/logger'
+import { productConfig } from '@/lib/config/productConfig'
 
 export interface StructuredIntent {
   // IMPORTANT: Corrected and normalized query (fixes typos, variations)
@@ -258,44 +259,37 @@ export class ClaudeIntentExtractor {
       }
     }
 
-    // Extract category
-    const categoryPatterns = {
-      'ELECTRONICS': ['tech', 'laptop', 'computer', 'phone', 'smartphone', 'tablet', 'electronics', 'gadget', 'charger', 'cable', 'device'],
-      'CLOTHING': ['shirt', 'pants', 'jeans', 'dress', 'jacket', 'clothing', 'apparel', 'clothes'],
-      'SHOES': ['shoe', 'sneaker', 'boot', 'sandal', 'footwear'],
-      'ACCESSORIES': ['bag', 'purse', 'wallet', 'watch', 'jewelry', 'accessory', 'belt', 'hat'],
-      'HOME': ['furniture', 'decor', 'home', 'kitchen', 'appliance']
-    }
-
-    for (const [category, keywords] of Object.entries(categoryPatterns)) {
-      if (keywords.some(kw => allText.includes(kw))) {
-        intent.hardFilters.category = category
-        intent.keywords.push(...keywords.filter(kw => allText.includes(kw)))
-        break
+    // Extract category dynamically from configuration
+    try {
+      const categories = await productConfig.getCategories()
+      for (const categoryConfig of categories) {
+        if (categoryConfig.keywords.some(kw => allText.includes(kw))) {
+          intent.hardFilters.category = categoryConfig.name
+          intent.keywords.push(...categoryConfig.keywords.filter(kw => allText.includes(kw)))
+          break
+        }
       }
+    } catch (error) {
+      logger.warn('Failed to load categories in fallback extraction', { error })
     }
 
-    // Extract brands
-    const brandPatterns = {
-      'Apple': ['apple', 'macbook', 'iphone', 'ipad', 'airpods'],
-      'Samsung': ['samsung', 'galaxy'],
-      'Dell': ['dell', 'xps', 'inspiron'],
-      'HP': ['hp', 'hewlett'],
-      'Lenovo': ['lenovo', 'thinkpad'],
-      'Nike': ['nike'],
-      'Adidas': ['adidas'],
-      'Anker': ['anker'],
-      'Belkin': ['belkin']
-    }
+    // Extract brands dynamically from configuration
+    try {
+      const brands = await productConfig.getBrands()
+      const detectedBrands: string[] = []
 
-    const detectedBrands: string[] = []
-    for (const [brand, patterns] of Object.entries(brandPatterns)) {
-      if (patterns.some(p => allText.includes(p))) {
-        detectedBrands.push(brand)
+      for (const brand of brands) {
+        const patterns = [brand.name.toLowerCase(), ...(brand.alternateNames || [])]
+        if (patterns.some(p => allText.includes(p))) {
+          detectedBrands.push(brand.name)
+        }
       }
-    }
-    if (detectedBrands.length > 0) {
-      intent.softPreferences.brands = detectedBrands
+
+      if (detectedBrands.length > 0) {
+        intent.softPreferences.brands = detectedBrands
+      }
+    } catch (error) {
+      logger.warn('Failed to load brands in fallback extraction', { error })
     }
 
     // Extract quality tier

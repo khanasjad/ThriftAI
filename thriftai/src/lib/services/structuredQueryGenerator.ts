@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { logger } from '@/lib/logger'
+import { productConfig } from '@/lib/config/productConfig'
 
 /**
  * Structured query filters that Claude generates
@@ -9,12 +10,12 @@ export interface StructuredQueryFilters {
   // Text search
   searchTerms: string[]  // Keywords to search for
 
-  // Filters
-  category?: 'ELECTRONICS' | 'CLOTHING' | 'SHOES' | 'ACCESSORIES' | 'HOME' | 'BOOKS'
+  // Filters - dynamically typed based on database configuration
+  category?: string  // Dynamic categories from configuration
   minPrice?: number
   maxPrice?: number
   brands?: string[]
-  condition?: Array<'new' | 'like-new' | 'excellent' | 'good' | 'fair'>
+  condition?: string[]  // Dynamic conditions from configuration
 
   // Sorting
   sortBy?: 'price' | 'relevance' | 'rating' | 'date' | 'popularity'
@@ -30,25 +31,38 @@ export interface StructuredQueryFilters {
   needsClarification?: string  // If query is ambiguous, ask this
 }
 
-const QUERY_GENERATION_SYSTEM_PROMPT = `You are an expert at converting natural language shopping queries into structured database filters.
+const QUERY_GENERATION_SYSTEM_PROMPT = `You are an expert at converting natural language shopping queries into structured database filters for an e-commerce marketplace.
 
-Your task: Given a user's message, generate JSON filters that can be used to safely query a product database.
+Your task: Generate intelligent JSON filters that maximize relevant product matches.
 
-IMPORTANT RULES:
+INTELLIGENT SEARCH TERM GENERATION:
 1. Return ONLY valid JSON - no other text
-2. Extract 2-4 KEY search terms (don't include too many synonyms)
-3. For product types, choose the MOST RELEVANT variation:
-   - "bags" query → use "handbag" OR "purse" (common in product names)
-   - "watch" query → use "watch"
-   - "laptop" query → use "laptop" OR "notebook"
-   - "shirt" query → use "shirt" OR "tshirt"
-4. For descriptive terms map to searchable words:
-   - "designer" → "luxury" or specific brands like "Coach", "Gucci"
-   - "vintage" → "vintage"
-   - "cheap" → low maxPrice filter instead
-5. Keep searchTerms array SHORT (2-4 terms max) - products must match ALL terms
-6. Be conservative - if unsure, set confidence < 0.7 and ask for clarification
-7. NEVER generate SQL - only JSON filters
+2. Generate 2-4 STRATEGIC search terms that balance precision and recall
+3. Understand product name patterns in databases:
+   - "bags" → try "handbag", "purse", or "bag" (product names vary)
+   - "phone" → try "phone", "smartphone", or brand names
+   - "shoes" → try "shoe", "sneaker", "boot" based on context
+   - "clothes" → extract specific type: "shirt", "pants", "dress"
+
+SMART MAPPING STRATEGIES:
+- "designer/luxury" → Include "luxury", "premium", or brand names (Coach, Gucci, Prada)
+- "vintage/retro" → Keep "vintage" as primary term
+- "cheap/affordable" → Set low maxPrice (< $100) instead of search term
+- "expensive/premium" → Set high minPrice (> $500) or add "luxury"
+- "eco/sustainable" → Add "sustainable", "eco", "recycled", "organic"
+- "gaming" → Add relevant specs: "gaming", "rgb", "high-performance"
+
+CONFIDENCE SCORING:
+- 0.9+: Clear product type + specific requirements
+- 0.7-0.9: Clear intent but some ambiguity
+- 0.5-0.7: Vague but workable query
+- <0.5: Too vague, needs clarification
+
+SEARCH TERM RULES:
+- Products must match ALL terms (AND logic)
+- Balance specificity with database reality
+- Consider synonyms but don't overload
+- 2-4 terms maximum for best results
 
 CATEGORIES (use exact values):
 - ELECTRONICS (laptops, phones, tablets, cameras, etc.)
@@ -152,7 +166,7 @@ export class StructuredQueryGenerator {
   ): Promise<StructuredQueryFilters> {
     if (!this.isAvailable || !this.anthropic) {
       logger.info('🔄 Using fallback query generation (no Claude API)')
-      return this.fallbackGeneration(userMessage)
+      return await this.fallbackGeneration(userMessage)
     }
 
     try {
@@ -190,7 +204,7 @@ export class StructuredQueryGenerator {
       const jsonMatch = content.text.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
         logger.warn('⚠️ No JSON found in Claude response, using fallback')
-        return this.fallbackGeneration(userMessage)
+        return await this.fallbackGeneration(userMessage)
       }
 
       const filters = JSON.parse(jsonMatch[0]) as StructuredQueryFilters
@@ -213,7 +227,7 @@ export class StructuredQueryGenerator {
   /**
    * Fallback query generation using regex when Claude is unavailable
    */
-  private fallbackGeneration(message: string): StructuredQueryFilters {
+  private async fallbackGeneration(message: string): Promise<StructuredQueryFilters> {
     const normalized = message.toLowerCase().trim()
     const searchTerms: string[] = []
 
@@ -228,22 +242,26 @@ export class StructuredQueryGenerator {
       maxPrice = parseInt(priceMatch[1] || priceMatch[2] || priceMatch[3])
     }
 
-    // Extract category
-    let category: StructuredQueryFilters['category'] | undefined
-    if (/laptop|computer|phone|tablet|electronics/i.test(normalized)) category = 'ELECTRONICS'
-    else if (/shirt|pants|jacket|clothing|dress/i.test(normalized)) category = 'CLOTHING'
-    else if (/shoe|sneaker|boot/i.test(normalized)) category = 'SHOES'
-    else if (/bag|watch|jewelry|accessory/i.test(normalized)) category = 'ACCESSORIES'
-    else if (/furniture|home|decor/i.test(normalized)) category = 'HOME'
+    // Extract category dynamically from configuration
+    let category: string | undefined
+    try {
+      category = await productConfig.findCategoryByKeyword(normalized)
+    } catch (error) {
+      logger.warn('Failed to load categories for fallback', { error })
+    }
 
-    // Extract brands
+    // Extract brands dynamically from configuration
     const brands: string[] = []
-    const brandPatterns = ['apple', 'samsung', 'dell', 'hp', 'lenovo', 'nike', 'adidas']
-    brandPatterns.forEach(brand => {
-      if (normalized.includes(brand)) {
-        brands.push(brand.charAt(0).toUpperCase() + brand.slice(1))
-      }
-    })
+    try {
+      const brandList = await productConfig.getBrandNames()
+      brandList.forEach(brandName => {
+        if (normalized.includes(brandName.toLowerCase())) {
+          brands.push(brandName)
+        }
+      })
+    } catch (error) {
+      logger.warn('Failed to load brands for fallback', { error })
+    }
 
     // Use remaining words as search terms
     searchTerms.push(...words.slice(0, 5))
