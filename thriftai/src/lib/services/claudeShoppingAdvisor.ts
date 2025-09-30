@@ -80,23 +80,29 @@ export class ClaudeShoppingAdvisorService {
    */
   async chat(request: ShoppingAdvisorRequest): Promise<ShoppingAdvisorResponse> {
     try {
-      // 1. Search for relevant products based on conversation
-      const products = await conversationalSearch.searchBasedOnConversation(
+      // 1. Search for relevant products based on conversation using new pipeline
+      const searchResult = await conversationalSearch.searchBasedOnConversation(
         request.conversationHistory,
         request.message
       )
 
-      logger.info('Found products for conversation', { count: products.length })
+      const products = searchResult.products
+      const intent = searchResult.intent
+      const queryMetadata = searchResult.queryMetadata
+
+      logger.info('Found products for conversation', {
+        count: products.length,
+        intentConfidence: intent.confidence || 'legacy',
+        queryComplexity: queryMetadata.queryComplexity || 'unknown'
+      })
 
       // 2. If no Claude API, return fallback
       if (!this.anthropic) {
         return this.generateFallbackResponse(request, products)
       }
 
-      // 3. Build conversation summary
-      const conversationSummary = conversationalSearch.summarizeConversation(
-        request.conversationHistory
-      )
+      // 3. Build conversation summary with intent context
+      const conversationSummary = this.buildEnhancedSummary(request, intent)
 
       // 4. Format products for Claude
       const productsContext = this.formatProductsForClaude(products)
@@ -163,13 +169,64 @@ Reference products as [Product 1], [Product 2], etc. in your response.`
       })
 
       // Fallback to simple response
-      const products = await conversationalSearch.searchBasedOnConversation(
-        request.conversationHistory,
-        request.message
-      )
-
-      return this.generateFallbackResponse(request, products)
+      try {
+        const searchResult = await conversationalSearch.searchBasedOnConversation(
+          request.conversationHistory,
+          request.message
+        )
+        return this.generateFallbackResponse(request, searchResult.products)
+      } catch (fallbackError) {
+        return this.generateFallbackResponse(request, [])
+      }
     }
+  }
+
+  /**
+   * Build enhanced conversation summary with structured intent
+   */
+  private buildEnhancedSummary(request: ShoppingAdvisorRequest, intent: any): string {
+    const parts: string[] = []
+
+    // Add intent if available
+    if (intent && intent.intent) {
+      parts.push(`User wants: ${intent.intent}`)
+    }
+
+    // Add budget constraints
+    if (intent && intent.hardFilters) {
+      if (intent.hardFilters.maxPrice) {
+        parts.push(`Budget: Under $${intent.hardFilters.maxPrice}`)
+      } else if (intent.hardFilters.minPrice) {
+        parts.push(`Budget: At least $${intent.hardFilters.minPrice}`)
+      }
+
+      // Add category
+      if (intent.hardFilters.category) {
+        parts.push(`Category: ${intent.hardFilters.category}`)
+      }
+
+      // Add condition
+      if (intent.hardFilters.condition && intent.hardFilters.condition.length > 0) {
+        parts.push(`Condition: ${intent.hardFilters.condition.join(', ')}`)
+      }
+    }
+
+    // Add soft preferences
+    if (intent && intent.softPreferences) {
+      if (intent.softPreferences.brands && intent.softPreferences.brands.length > 0) {
+        parts.push(`Preferred brands: ${intent.softPreferences.brands.join(', ')}`)
+      }
+      if (intent.softPreferences.quality) {
+        parts.push(`Quality preference: ${intent.softPreferences.quality}`)
+      }
+    }
+
+    // Fallback to old summary if no intent
+    if (parts.length === 0) {
+      return conversationalSearch.summarizeConversation(request.conversationHistory)
+    }
+
+    return parts.join(' | ')
   }
 
   /**

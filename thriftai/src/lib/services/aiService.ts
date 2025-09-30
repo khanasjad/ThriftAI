@@ -404,6 +404,29 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
   }
 
   /**
+   * Normalize search query to handle common variations
+   * Converts "tshirt" → "shirt", "smartphone" → "phone", etc.
+   */
+  private static normalizeQuery(query: string): string {
+    let normalized = query.toLowerCase().trim()
+
+    // Common product name variations
+    const substitutions: [RegExp, string][] = [
+      [/\btshirts?\b/gi, 'shirt'],  // tshirt/tshirts → shirt
+      [/\bsmartphones?\b/gi, 'phone'],
+      [/\bcellphones?\b/gi, 'phone'],
+      [/\bmobilephones?\b/gi, 'phone'],
+    ]
+
+    // Apply substitutions
+    for (const [pattern, replacement] of substitutions) {
+      normalized = normalized.replace(pattern, replacement)
+    }
+
+    return normalized
+  }
+
+  /**
    * Enhanced search products using database-driven configuration
    */
   static async searchProductsEnhanced(
@@ -413,23 +436,29 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
   ): Promise<SearchResult[]> {
     console.log('🔍 Enhanced search query:', query)
 
+    // Normalize query to handle common variations (tshirt → t-shirt)
+    const normalizedQuery = this.normalizeQuery(query)
+    if (normalizedQuery !== query.toLowerCase()) {
+      console.log('🔄 Normalized query:', query, '→', normalizedQuery)
+    }
+
     try {
       // Get relevant categories and exclusions from configuration
       const [relevantCategories, excludedCategories, keywordMapping] = await Promise.all([
-        ConfigurationService.getRelevantCategoriesForIntent(query),
-        ConfigurationService.getExcludedCategoriesForIntent(query),
+        ConfigurationService.getRelevantCategoriesForIntent(normalizedQuery),
+        ConfigurationService.getExcludedCategoriesForIntent(normalizedQuery),
         ConfigurationService.getCategoryKeywordsMapping()
       ])
 
       console.log('🎯 Configuration-driven search:', {
-        query,
+        query: normalizedQuery,
         relevantCategories: relevantCategories.slice(0, 5),
         excludedCategories,
         keywordMappingSize: keywordMapping.size
       })
 
       // Enhanced search logic using configuration
-      const searchTerms = this.extractSearchTerms(query, keywordMapping)
+      const searchTerms = this.extractSearchTerms(normalizedQuery, keywordMapping)
       console.log('🔑 Extracted search terms:', searchTerms)
 
       // Build intelligent search query
@@ -453,16 +482,16 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
           {
             OR: [
               // High priority: Exact matches in product name
-              { name: { contains: query, mode: 'insensitive' } },
+              { name: { contains: normalizedQuery, mode: 'insensitive' } },
 
               // Medium priority: Brand matches
-              { brand: { contains: query, mode: 'insensitive' } },
+              { brand: { contains: normalizedQuery, mode: 'insensitive' } },
 
               // Enhanced: Search using keyword mapping
               ...this.buildKeywordSearchConditions(searchTerms, keywordMapping),
 
               // Low priority: Description matches
-              { description: { contains: query, mode: 'insensitive' } },
+              { description: { contains: normalizedQuery, mode: 'insensitive' } },
 
               // Category matches (with configuration weighting)
               { category: { in: searchTerms.categories } }
@@ -493,7 +522,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
       // Apply intelligent filtering using configuration
       const filteredProducts = await this.applyIntelligentFiltering(
         products,
-        query,
+        normalizedQuery,
         searchTerms,
         excludedCategories
       )
@@ -501,7 +530,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
       console.log(`🔍 After intelligent filtering: ${filteredProducts.length} products remain`)
 
       // Score and rank results
-      const scoredProducts = this.scoreSearchResults(filteredProducts, query, searchTerms)
+      const scoredProducts = this.scoreSearchResults(filteredProducts, normalizedQuery, searchTerms)
 
       // Return top 20 scored results
       return scoredProducts.slice(0, 20).map(p => ({

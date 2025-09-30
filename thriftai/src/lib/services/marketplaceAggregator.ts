@@ -55,8 +55,9 @@ export class MarketplaceAggregator {
     this.brandAdapter = new BrandAdapter()
   }
 
-  async searchAllMarketplaces(params: AggregatedSearchParams): Promise<AggregatedResults> {
+  async searchAllMarketplaces(params: AggregatedSearchParams & { limit?: number }): Promise<AggregatedResults> {
     const sources = params.sources || ['thriftai', 'amazon', 'ebay']
+    const perSourceLimit = params.limit || 20 // Default to 20 per source
 
     // Check cache first
     const cacheKey = `search:${JSON.stringify(params)}`
@@ -66,9 +67,15 @@ export class MarketplaceAggregator {
       return cached.data
     }
 
-    // Search all sources in parallel with error handling
+    console.log(`Searching ${sources.length} marketplaces with limit ${perSourceLimit} per source`, {
+      query: params.query,
+      maxPrice: params.maxPrice,
+      minPrice: params.minPrice
+    })
+
+    // Search all sources in parallel with error handling and per-source limits
     const searchPromises = sources.map(source =>
-      this.searchSource(source, params).catch(err => {
+      this.searchSource(source, { ...params, limit: perSourceLimit }).catch(err => {
         console.error(`${source} search failed:`, err)
         return []
       })
@@ -77,20 +84,31 @@ export class MarketplaceAggregator {
     const results = await Promise.all(searchPromises)
     const allProducts = results.flat()
 
+    console.log(`Total products from all sources: ${allProducts.length}`)
+
+    // Apply hard filters at aggregation level (belt and suspenders)
+    const hardFiltered = this.applyHardFilters(allProducts, params)
+    console.log(`After hard filtering: ${hardFiltered.length} products`)
+
     // Deduplicate similar products
-    const deduplicated = this.deduplicateProducts(allProducts)
+    const deduplicated = this.deduplicateProducts(hardFiltered)
+    console.log(`After deduplication: ${deduplicated.length} products`)
 
     // Sort by total cost (price + shipping)
     deduplicated.sort((a, b) => a.totalCost - b.totalCost)
 
+    // Limit total results
+    const maxTotalResults = perSourceLimit * sources.length
+    const limited = deduplicated.slice(0, maxTotalResults)
+
     // Find best deal
-    const bestDeal = deduplicated[0] || null
+    const bestDeal = limited[0] || null
 
     // Calculate insights
-    const insights = this.calculateInsights(deduplicated)
+    const insights = this.calculateInsights(limited)
 
     const response: AggregatedResults = {
-      results: deduplicated,
+      results: limited,
       bestDeal,
       insights
     }
@@ -102,6 +120,31 @@ export class MarketplaceAggregator {
     })
 
     return response
+  }
+
+  /**
+   * Apply hard filters at aggregation level to ensure nothing slips through
+   */
+  private applyHardFilters(
+    products: AggregatedProduct[],
+    params: AggregatedSearchParams
+  ): AggregatedProduct[] {
+    return products.filter(product => {
+      // Price filters
+      if (params.minPrice !== undefined && product.price < params.minPrice) {
+        return false
+      }
+      if (params.maxPrice !== undefined && product.price > params.maxPrice) {
+        return false
+      }
+
+      // Availability filter (always require available)
+      if (!product.availability) {
+        return false
+      }
+
+      return true
+    })
   }
 
   private async searchSource(

@@ -1,5 +1,7 @@
 import { MarketplaceAggregator } from './marketplaceAggregator'
 import { ProductScoringService, ScoredProduct } from './productScoringService'
+import { claudeIntentExtractor, StructuredIntent } from './claudeIntentExtractor'
+import { intelligentQueryOptimizer } from './intelligentQueryOptimizer'
 import { logger } from '@/lib/logger'
 
 export interface ConversationMessage {
@@ -199,68 +201,243 @@ export class ConversationalSearchService {
   }
 
   /**
-   * Search products based on conversation context
+   * Search products based on conversation context using intelligent 5-phase pipeline
    */
   async searchBasedOnConversation(
     conversation: ConversationMessage[],
     currentMessage: string
-  ): Promise<ScoredProduct[]> {
+  ): Promise<{
+    products: ScoredProduct[]
+    intent: StructuredIntent
+    queryMetadata: any
+  }> {
     try {
-      logger.info('Starting conversational search', {
+      logger.info('🚀 Starting intelligent conversational search', {
         messageCount: conversation.length,
         currentMessage: currentMessage.substring(0, 50)
       })
 
-      // 1. Extract intent from conversation
-      const intent = this.extractIntent(conversation, currentMessage)
-      logger.info('Extracted intent', { intent })
+      // PHASE 1: Extract structured intent with Claude API
+      const structuredIntent = await claudeIntentExtractor.extractIntent({
+        messages: conversation.map(m => ({ role: m.role, content: m.content })),
+        currentQuery: currentMessage
+      })
 
-      // 2. Build search query
-      const query = this.buildSearchQuery(intent)
-      if (!query) {
-        logger.warn('No search query could be built from intent')
-        return []
+      logger.info('✅ Phase 1: Structured intent extracted', {
+        hardFilters: structuredIntent.hardFilters,
+        keywords: structuredIntent.keywords,
+        confidence: structuredIntent.confidence
+      })
+
+      // PHASE 2: Optimize query from structured intent
+      const optimizedQuery = intelligentQueryOptimizer.optimizeQuery(structuredIntent)
+
+      // Validate query
+      const validation = intelligentQueryOptimizer.validateQuery(optimizedQuery)
+      if (!validation.valid) {
+        logger.warn('Query validation failed', { reason: validation.reason })
+        return { products: [], intent: structuredIntent, queryMetadata: {} }
       }
 
-      logger.info('Built search query', { query })
+      logger.info('✅ Phase 2: Query optimized', {
+        hasHardFilters: optimizedQuery.metadata.hasHardFilters,
+        estimatedResults: optimizedQuery.metadata.estimatedResults,
+        perSourceLimit: optimizedQuery.limits.perSource
+      })
 
-      // 3. Search across marketplaces
+      // PHASE 3: Search across marketplaces with hard filters
+      const searchParams = {
+        ...optimizedQuery.searchParams,
+        sources: ['thriftai', 'amazon', 'ebay'] as const,
+        limit: optimizedQuery.limits.perSource
+      }
+
+      let results = await this.aggregator.searchAllMarketplaces(searchParams)
+
+      logger.info('✅ Phase 3: Multi-source search completed', {
+        totalResults: results.results.length,
+        sources: Object.keys(results.insights.sourceBreakdown)
+      })
+
+      // If no results, try relaxing filters progressively
+      let relaxIteration = 0
+      while (results.results.length === 0 && relaxIteration < 3) {
+        relaxIteration++
+        logger.info(`🔄 No results found, relaxing filters (iteration ${relaxIteration})`)
+
+        const relaxedIntent = intelligentQueryOptimizer.relaxFilters(structuredIntent, relaxIteration)
+        const relaxedQuery = intelligentQueryOptimizer.optimizeQuery(relaxedIntent)
+
+        results = await this.aggregator.searchAllMarketplaces({
+          ...relaxedQuery.searchParams,
+          sources: ['thriftai', 'amazon', 'ebay'] as const,
+          limit: relaxedQuery.limits.perSource
+        })
+
+        if (results.results.length > 0) {
+          logger.info(`✅ Found results after relaxing filters (${results.results.length} products)`)
+          break
+        }
+      }
+
+      if (results.results.length === 0) {
+        logger.warn('No products found even after filter relaxation')
+        return { products: [], intent: structuredIntent, queryMetadata: optimizedQuery.metadata }
+      }
+
+      // PHASE 4: Score products with context boosts
+      const scored = this.scoreWithStructuredContext(results.results, structuredIntent)
+
+      logger.info('✅ Phase 4: Products scored with context', {
+        totalScored: scored.length,
+        topScore: scored[0]?.score.total,
+        avgScore: (scored.reduce((sum, p) => sum + p.score.total, 0) / scored.length).toFixed(1)
+      })
+
+      // PHASE 5: Return top products (Claude will explain these)
+      const topProducts = scored.slice(0, 5)
+
+      logger.info('✅ Phase 5: Pipeline complete - returning top products', {
+        count: topProducts.length,
+        priceRange: topProducts.length > 0 ? {
+          min: Math.min(...topProducts.map(p => p.price)),
+          max: Math.max(...topProducts.map(p => p.price))
+        } : null
+      })
+
+      return {
+        products: topProducts,
+        intent: structuredIntent,
+        queryMetadata: optimizedQuery.metadata
+      }
+    } catch (error) {
+      logger.error('❌ Conversational search pipeline failed', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      })
+
+      // Fallback to legacy search
+      logger.info('Falling back to legacy search method')
+      return this.legacySearch(conversation, currentMessage)
+    }
+  }
+
+  /**
+   * Legacy search method (fallback)
+   */
+  private async legacySearch(
+    conversation: ConversationMessage[],
+    currentMessage: string
+  ): Promise<{ products: ScoredProduct[]; intent: any; queryMetadata: any }> {
+    try {
+      const intent = this.extractIntent(conversation, currentMessage)
+      const query = this.buildSearchQuery(intent)
+
+      if (!query) {
+        return { products: [], intent: {}, queryMetadata: {} }
+      }
+
       const searchParams = {
         query,
         category: intent.category,
         minPrice: intent.budget?.min,
         maxPrice: intent.budget?.max,
-        sources: ['thriftai', 'amazon', 'ebay'] as const
+        sources: ['thriftai', 'amazon', 'ebay'] as const,
+        limit: 20
       }
 
       const results = await this.aggregator.searchAllMarketplaces(searchParams)
-      logger.info('Search completed', {
-        totalResults: results.results.length,
-        sources: results.metadata.sourceStats
-      })
-
-      if (results.results.length === 0) {
-        return []
-      }
-
-      // 4. Score products with conversation context
       const scored = this.scoreWithContext(results.results, intent)
-
-      // 5. Return top 5
       const topProducts = scored.slice(0, 5)
-      logger.info('Returning top products', { count: topProducts.length })
 
-      return topProducts
+      return {
+        products: topProducts,
+        intent,
+        queryMetadata: { fallback: true }
+      }
     } catch (error) {
-      logger.error('Conversational search failed', {
-        error: error instanceof Error ? error.message : String(error)
-      })
-      return []
+      logger.error('Legacy search also failed', { error })
+      return { products: [], intent: {}, queryMetadata: { fallback: true, error: true } }
     }
   }
 
   /**
-   * Score products with conversation context
+   * Score products with structured context (new method)
+   */
+  private scoreWithStructuredContext(
+    products: any[],
+    intent: StructuredIntent
+  ): ScoredProduct[] {
+    // Use existing scoring service
+    const scored = ProductScoringService.scoreAll(products)
+
+    // Boost scores based on structured context
+    return scored.map(product => {
+      let contextBoost = 0
+
+      // Hard filter compliance bonuses
+      if (intent.hardFilters.maxPrice && product.totalCost <= intent.hardFilters.maxPrice) {
+        contextBoost += 10 // Strong bonus for staying within budget
+      }
+
+      if (intent.hardFilters.category && product.source === 'thriftai') {
+        // Bonus for matching category from ThriftAI (we know the mapping is accurate)
+        contextBoost += 5
+      }
+
+      // Soft preference bonuses
+      if (intent.softPreferences.brands && product.brand) {
+        const brandLower = product.brand.toLowerCase()
+        if (intent.softPreferences.brands.some(b => brandLower.includes(b.toLowerCase()))) {
+          contextBoost += 10 // Brand match bonus
+        }
+      }
+
+      // Quality tier bonuses
+      if (intent.softPreferences.quality === 'premium') {
+        if (product.score.breakdown.brand >= 25 && product.score.breakdown.condition >= 17) {
+          contextBoost += 8
+        }
+      } else if (intent.softPreferences.quality === 'budget') {
+        if (product.score.breakdown.price > 25) {
+          contextBoost += 8 // Reward lowest prices for budget shoppers
+        }
+      }
+
+      // Shipping speed priority
+      if (intent.softPreferences.shippingSpeed === 'fast') {
+        if (product.shippingCost === 0) {
+          contextBoost += 5 // Free shipping bonus for fast shipping preference
+        }
+      }
+
+      // Priority factor bonuses
+      const priorities = intent.softPreferences.priorityFactors || []
+      if (priorities.includes('price') && product.score.breakdown.price > 20) {
+        contextBoost += 5
+      }
+      if (priorities.includes('quality') && product.score.breakdown.condition > 15) {
+        contextBoost += 5
+      }
+      if (priorities.includes('brand') && product.score.breakdown.brand > 20) {
+        contextBoost += 5
+      }
+      if (priorities.includes('shipping') && product.score.breakdown.shipping > 8) {
+        contextBoost += 5
+      }
+
+      return {
+        ...product,
+        score: {
+          ...product.score,
+          total: Math.min(100, product.score.total + contextBoost)
+        }
+      }
+    }).sort((a, b) => b.score.total - a.score.total)
+  }
+
+  /**
+   * Score products with conversation context (legacy method)
    */
   private scoreWithContext(
     products: any[],

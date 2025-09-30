@@ -3,6 +3,8 @@ import { mockAmazonService } from '@/lib/services/mockAmazonService'
 import { AIService } from '@/lib/services/aiService'
 import { MarketplaceAggregator } from '@/lib/services/marketplaceAggregator'
 import { ProductScoringService } from '@/lib/services/productScoringService'
+import { claudeIntentExtractor } from '@/lib/services/claudeIntentExtractor'
+import { intelligentQueryOptimizer } from '@/lib/services/intelligentQueryOptimizer'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
@@ -17,38 +19,76 @@ export async function POST(request: NextRequest) {
       budget = null
     } = body
 
-    logger.info('Enhanced search request', {
+    logger.info('🔍 Enhanced search request', {
       query,
       filters,
+      pagination
+    })
+
+    // ✨ INTELLIGENT INTENT EXTRACTION: Parse budget and constraints from query text
+    logger.info('🎯 Starting intent extraction for query:', query)
+    const intent = await claudeIntentExtractor.extractIntent({
+      messages: [],
+      currentQuery: query
+    })
+    logger.info('🎯 Intent extraction completed')
+
+    logger.info('✅ Intent extracted from query', {
+      originalQuery: query,
+      normalizedQuery: intent.normalizedQuery,
+      maxPrice: intent.hardFilters.maxPrice,
+      minPrice: intent.hardFilters.minPrice,
+      category: intent.hardFilters.category,
+      keywords: intent.keywords
+    })
+
+    // Use normalized query if available (fixes typos and variations)
+    const searchQuery = intent.normalizedQuery || query
+
+    if (intent.normalizedQuery && intent.normalizedQuery !== query.toLowerCase()) {
+      logger.info('🔄 Using normalized query', {
+        original: query,
+        normalized: intent.normalizedQuery
+      })
+    }
+
+    // Merge extracted intent with explicit filters (explicit filters take precedence)
+    const mergedFilters = {
+      ...filters,
+      priceRange: {
+        min: filters.minPrice || intent.hardFilters.minPrice || filters.priceRange?.min,
+        max: filters.maxPrice || intent.hardFilters.maxPrice || filters.priceRange?.max
+      },
+      categories: filters.categories || (intent.hardFilters.category ? [intent.hardFilters.category] : undefined),
+      brands: filters.brands || intent.softPreferences.brands,
+      condition: filters.condition || intent.hardFilters.condition
+    }
+
+    // Use the enhanced search method with NORMALIZED query and merged filters
+    const searchResults = await mockAmazonService.searchProductsEnhanced(searchQuery, {
+      filters: mergedFilters,
       pagination,
       sorting,
       includeMetadata
     })
 
-    // Use the enhanced search method
-    const searchResults = await mockAmazonService.searchProductsEnhanced(query, {
-      filters,
-      pagination,
-      sorting,
-      includeMetadata
-    })
-
-    logger.info('Enhanced search completed', {
+    logger.info('✅ Enhanced search completed', {
       totalResults: searchResults.metadata.total,
       page: searchResults.metadata.page,
       resultsReturned: searchResults.products.length
     })
 
-    // MARKETPLACE COMPARISON: Aggregate products from all sources
+    // MARKETPLACE COMPARISON: Aggregate products from all sources with HARD FILTERS
     let comparisonData = null
     try {
       const aggregator = new MarketplaceAggregator()
       const aggregatedResults = await aggregator.searchAllMarketplaces({
-        query,
-        category: filters.category,
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-        sources: ['thriftai', 'amazon', 'ebay']  // Can be made configurable
+        query: searchQuery,  // Use normalized query
+        category: mergedFilters.categories?.[0],
+        minPrice: mergedFilters.priceRange?.min,
+        maxPrice: mergedFilters.priceRange?.max,
+        sources: ['thriftai', 'amazon', 'ebay'],
+        limit: 20  // Limit per source
       })
 
       // Score all products and get top 5
@@ -57,16 +97,25 @@ export async function POST(request: NextRequest) {
 
       comparisonData = {
         topProducts,
-        insights
+        insights,
+        intentUsed: {
+          maxPrice: mergedFilters.priceRange?.max,
+          minPrice: mergedFilters.priceRange?.min,
+          category: mergedFilters.categories?.[0]
+        }
       }
 
-      logger.info('Marketplace comparison completed', {
+      logger.info('✅ Marketplace comparison completed', {
         totalCompared: aggregatedResults.results.length,
         topScore: topProducts[0]?.score.total,
-        sources: Object.keys(insights.sourceBreakdown)
+        sources: Object.keys(insights.sourceBreakdown),
+        appliedFilters: {
+          maxPrice: mergedFilters.priceRange?.max,
+          minPrice: mergedFilters.priceRange?.min
+        }
       })
     } catch (error) {
-      logger.error('Marketplace comparison failed', { error: error.message })
+      logger.error('❌ Marketplace comparison failed', { error: error.message })
       // Continue without comparison data - it's optional
     }
 
@@ -76,8 +125,8 @@ export async function POST(request: NextRequest) {
 
     if (searchResults.products.length > 0 && AIService.isClaudeAvailable()) {
       try {
-        logger.info('Generating Claude AI response for query:', query)
-        const claudeSearchResult = await AIService.claudeSearch(query, budget, { sorting })
+        logger.info('Generating Claude AI response for query:', searchQuery)
+        const claudeSearchResult = await AIService.claudeSearch(searchQuery, budget, { sorting })
         claudeResponse = claudeSearchResult.aiResponse || ''
         sustainabilityInsights = claudeSearchResult.sustainabilityInsights || null
       } catch (error) {

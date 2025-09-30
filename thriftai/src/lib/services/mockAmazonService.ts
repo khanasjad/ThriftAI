@@ -30,6 +30,29 @@ export class MockAmazonService {
     return this.categoryMappingCache
   }
 
+  /**
+   * Normalize search query to handle common variations
+   * Converts "tshirt" → "shirt", "smartphone" → "phone", etc.
+   */
+  private normalizeQuery(query: string): string {
+    let normalized = query.toLowerCase().trim()
+
+    // Common product name variations
+    const substitutions: [RegExp, string][] = [
+      [/\btshirts?\b/gi, 'shirt'],  // tshirt/tshirts → shirt
+      [/\bsmartphones?\b/gi, 'phone'],
+      [/\bcellphones?\b/gi, 'phone'],
+      [/\bmobilephones?\b/gi, 'phone'],
+    ]
+
+    // Apply substitutions
+    for (const [pattern, replacement] of substitutions) {
+      normalized = normalized.replace(pattern, replacement)
+    }
+
+    return normalized
+  }
+
   // Enhanced search with comprehensive pagination and filtering
   async searchProductsEnhanced(
     query: string,
@@ -74,7 +97,12 @@ export class MockAmazonService {
 
       // Enhanced text search with smart product-first strategy
       if (query && query.trim()) {
-        const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 1)
+        // Normalize query to handle common variations (tshirt → t-shirt)
+        const normalizedQuery = this.normalizeQuery(query)
+        if (normalizedQuery !== query.toLowerCase()) {
+          console.log('🔄 MockAmazon: Normalized query:', query, '→', normalizedQuery)
+        }
+        const searchTerms = normalizedQuery.toLowerCase().split(' ').filter(term => term.length > 1)
 
         if (searchTerms.length > 0) {
           // Get configuration data from database
@@ -85,8 +113,12 @@ export class MockAmazonService {
             ConfigurationService.getSearchKeywordsByType('STOP_WORD')
           ])
 
+          console.log('🔑 Search terms after normalization:', searchTerms)
+          console.log('🔑 Product type keywords from config:', productTypeKeywords.slice(0, 20))
+
           // Find the most important product type term
           const mainProductType = searchTerms.find(term => productTypeKeywords.includes(term))
+          console.log('🔑 Main product type found:', mainProductType)
 
           if (mainProductType) {
             // STRATEGY 1: Product-first search with smart plural/singular handling
@@ -135,24 +167,45 @@ export class MockAmazonService {
 
           } else {
             // STRATEGY 2: General search - no specific product type found
+            console.log('📁 STRATEGY 2: No product type found, checking category keywords')
             // Check if query matches category keywords
             const categoryKeywordMapping = await ConfigurationService.getCategoryKeywordsMapping()
             const matchedCategories = new Set<string>()
 
             searchTerms.forEach(term => {
               const categories = categoryKeywordMapping.get(term)
+              console.log(`📁 Checking term "${term}":`, categories ? `Found categories: ${Array.from(categories).join(', ')}` : 'No match')
               if (categories) {
                 categories.forEach(cat => matchedCategories.add(cat))
               }
             })
 
-            // If query matches categories (like "fashion" -> CLOTHING), search by category
-            if (matchedCategories.size > 0) {
-              where.category = { in: Array.from(matchedCategories) }
-            } else {
-              // Use broader search with all meaningful terms
-              const meaningfulTerms = searchTerms.filter(term => !stopWords.includes(term))
+            console.log('📁 Matched categories:', Array.from(matchedCategories))
 
+            // Filter by meaningful search terms (not stop words)
+            const meaningfulTerms = searchTerms.filter(term => !stopWords.includes(term))
+
+            // If query matches categories (like "shirt" -> CLOTHING), search by category + term
+            if (matchedCategories.size > 0) {
+              console.log('📁 Searching in matched categories:', Array.from(matchedCategories))
+              where.category = { in: Array.from(matchedCategories) }
+
+              // IMPORTANT: Also filter by the search term within the category
+              // This prevents returning ALL items in the category
+              if (meaningfulTerms.length > 0) {
+                meaningfulTerms.forEach(term => {
+                  orConditions.push(
+                    { name: { contains: term, mode: 'insensitive' } },
+                    { description: { contains: term, mode: 'insensitive' } },
+                    { brand: { contains: term, mode: 'insensitive' } }
+                  )
+                })
+                where.OR = orConditions
+                console.log(`📁 Also filtering by search terms: ${meaningfulTerms.join(', ')}`)
+              }
+            } else {
+              console.log('📁 No category matches, using broader search')
+              // Use broader search with all meaningful terms
               meaningfulTerms.forEach(term => {
                 orConditions.push(
                   { name: { contains: term, mode: 'insensitive' } },
@@ -180,9 +233,16 @@ export class MockAmazonService {
       }
 
       if (filters.priceRange) {
-        where.price = {
-          gte: filters.priceRange.min,
-          lte: filters.priceRange.max
+        where.price = {}
+        if (filters.priceRange.min !== undefined && filters.priceRange.min !== null) {
+          where.price.gte = filters.priceRange.min
+        }
+        if (filters.priceRange.max !== undefined && filters.priceRange.max !== null) {
+          where.price.lte = filters.priceRange.max
+        }
+        // Only apply if at least one constraint exists
+        if (Object.keys(where.price).length === 0) {
+          delete where.price
         }
       }
 
@@ -240,6 +300,11 @@ export class MockAmazonService {
         take: limit,
         orderBy
       })
+
+      console.log(`✅ MockAmazon: Found ${products.length} products (total: ${await prisma.product.count({ where })})`)
+      if (products.length > 0) {
+        console.log('✅ Products:', products.map(p => ({ name: p.name, category: p.category })))
+      }
 
       // Get filter metadata if requested
       let filterMetadata = {

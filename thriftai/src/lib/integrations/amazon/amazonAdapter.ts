@@ -48,7 +48,7 @@ export class AmazonAdapter {
     // Check if real API keys are configured
     if (!this.config.accessKey || !this.config.secretKey || this.config.accessKey.includes('demo')) {
       console.log('Amazon API: Using mock data (no real API keys configured)')
-      return this.getMockProducts(params)
+      return await this.getMockProducts(params)
     }
 
     try {
@@ -62,7 +62,7 @@ export class AmazonAdapter {
     } catch (error) {
       console.error('Amazon API error:', error)
       // Fallback to mock data on error
-      return this.getMockProducts(params)
+      return await this.getMockProducts(params)
     }
   }
 
@@ -170,39 +170,60 @@ export class AmazonAdapter {
     return category ? mapping[category] || 'All' : 'All'
   }
 
-  private getMockProducts(params: AmazonSearchParams): AmazonProduct[] {
-    // Mock data for testing without real API
-    const keywords = params.keywords.toLowerCase()
+  private async getMockProducts(params: AmazonSearchParams): Promise<AmazonProduct[]> {
+    // Use MockAmazonService for realistic product search with proper filtering
+    try {
+      const { mockAmazonService } = await import('@/lib/services/mockAmazonService')
 
-    const mockProducts: AmazonProduct[] = [
-      {
-        asin: 'B08N5WRWNW',
-        title: `Amazon Choice - ${params.keywords}`,
-        brand: 'Amazon Essentials',
-        price: 29.99,
-        originalPrice: 39.99,
-        imageUrl: 'https://via.placeholder.com/500x500?text=Amazon+Product',
-        productUrl: 'https://www.amazon.com/dp/B08N5WRWNW',
-        affiliateUrl: `https://www.amazon.com/dp/B08N5WRWNW?tag=${this.config.partnerTag}`,
-        rating: 4.5,
-        reviewCount: 1250,
-        availability: true
-      },
-      {
-        asin: 'B07ZPKN6YR',
-        title: `Premium ${params.keywords} - Best Seller`,
-        brand: 'Top Brand',
-        price: 49.99,
-        originalPrice: 79.99,
-        imageUrl: 'https://via.placeholder.com/500x500?text=Premium+Product',
-        productUrl: 'https://www.amazon.com/dp/B07ZPKN6YR',
-        affiliateUrl: `https://www.amazon.com/dp/B07ZPKN6YR?tag=${this.config.partnerTag}`,
-        rating: 4.7,
-        reviewCount: 2340,
-        availability: true
+      // Build filters for MockAmazonService
+      const filters: any = {}
+
+      if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+        filters.priceRange = {
+          min: params.minPrice || 0,
+          max: params.maxPrice || 999999
+        }
       }
-    ]
 
-    return mockProducts.slice(0, params.limit || 10)
+      if (params.category) {
+        // Map Amazon category to our categories
+        const categoryMap: Record<string, string> = {
+          'Electronics': 'ELECTRONICS',
+          'Fashion': 'CLOTHING',
+          'Shoes': 'SHOES',
+          'Jewelry': 'ACCESSORIES',
+          'HomeAndKitchen': 'HOME'
+        }
+        const mappedCategory = categoryMap[params.category] || params.category
+        filters.categories = [mappedCategory]
+      }
+
+      // Search with proper filtering
+      const results = await mockAmazonService.searchProducts(
+        params.keywords,
+        filters,
+        params.limit || 20,
+        0
+      )
+
+      // Convert to AmazonProduct format
+      return results.map(product => ({
+        asin: product.asin,
+        title: product.title,
+        brand: product.brand,
+        price: product.price.current,
+        originalPrice: product.price.original,
+        imageUrl: product.images[0],
+        productUrl: `https://www.amazon.com/dp/${product.asin}`,
+        affiliateUrl: `https://www.amazon.com/dp/${product.asin}?tag=${this.config.partnerTag}`,
+        rating: product.reviews.rating,
+        reviewCount: product.reviews.count,
+        availability: product.availability.inStock
+      }))
+    } catch (error) {
+      console.error('Mock Amazon Service error:', error)
+      // Fallback to empty array instead of returning hardcoded products
+      return []
+    }
   }
 }
