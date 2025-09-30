@@ -5,10 +5,32 @@ import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ChevronDown, ChevronUp, ExternalLink, Award, TrendingUp, Package } from 'lucide-react'
-import { ScoredProduct } from '@/lib/services/productScoringService'
+
+// Generic interface to support both old and new scoring systems
+interface ComparisonProduct {
+  id?: string
+  asin?: string
+  name?: string
+  title?: string
+  brand?: string
+  price?: number
+  totalCost?: number
+  condition?: string
+  rating?: number
+  source?: string
+  score?: {
+    total?: number
+    [key: string]: any
+  }
+  totalScore?: number
+  recommendation?: string
+  insights?: string[]
+  confidence?: number
+  [key: string]: any
+}
 
 interface ComparisonTableWidgetProps {
-  topProducts: ScoredProduct[]
+  topProducts: ComparisonProduct[]
   insights?: {
     totalCompared: number
     avgScore: number
@@ -16,7 +38,7 @@ interface ComparisonTableWidgetProps {
     bestSource: string
     sourceBreakdown: Record<string, number>
   }
-  onProductClick?: (product: ScoredProduct) => void
+  onProductClick?: (product: ComparisonProduct) => void
 }
 
 export default function ComparisonTableWidget({
@@ -354,31 +376,76 @@ export default function ComparisonTableWidget({
 
                     {/* AI Score */}
                     <td style={{ padding: '0.625rem 0.75rem', textAlign: 'center' }}>
-                      <div className="flex items-center justify-center gap-2">
-                        <span style={{
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          color: 'var(--accent-primary)',
-                          fontFamily: 'var(--font-family-primary)'
-                        }}>
-                          {product.score.total}
-                        </span>
-                        <div style={{
-                          width: '40px',
-                          height: '4px',
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          borderRadius: '2px',
-                          overflow: 'hidden'
-                        }}>
-                          <div
-                            style={{
-                              width: `${product.score.total}%`,
-                              height: '100%',
-                              background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',
-                              borderRadius: '2px'
-                            }}
-                          />
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center justify-center gap-2">
+                          <span style={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            color: 'var(--accent-primary)',
+                            fontFamily: 'var(--font-family-primary)'
+                          }}>
+                            {(() => {
+                              // Get the score from either score.total or totalScore field
+                              let scoreValue = 0;
+                              if (product.score && typeof product.score === 'object' && 'total' in product.score) {
+                                scoreValue = product.score.total;
+                              } else if ('totalScore' in product) {
+                                scoreValue = product.totalScore;
+                              }
+
+                              // aiProductScorer returns scores in 0-100 range with decimals (e.g., 83.5)
+                              const numScore = parseFloat(String(scoreValue)) || 0;
+
+                              // Ensure it's in 0-100 range
+                              const validScore = Math.min(100, Math.max(0, numScore));
+
+                              // Display as X.XXX out of 10
+                              return (validScore / 10).toFixed(3);
+                            })()}
+                          </span>
+                          <div style={{
+                            width: '40px',
+                            height: '4px',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '2px',
+                            overflow: 'hidden'
+                          }}>
+                            <div
+                              style={{
+                                width: `${(() => {
+                                  let scoreValue = 0;
+                                  if (product.score && typeof product.score === 'object' && 'total' in product.score) {
+                                    scoreValue = product.score.total;
+                                  } else if ('totalScore' in product) {
+                                    scoreValue = product.totalScore;
+                                  }
+
+                                  // aiProductScorer returns scores in 0-100 range
+                                  const numScore = parseFloat(String(scoreValue)) || 0;
+                                  return Math.min(100, Math.max(0, numScore));
+                                })()}%`,
+                                height: '100%',
+                                background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',
+                                borderRadius: '2px'
+                              }}
+                            />
+                          </div>
                         </div>
+                        {product.recommendation && (
+                          <span style={{
+                            fontSize: '0.625rem',
+                            fontWeight: '500',
+                            color: product.recommendation === 'strong-buy' ? '#10b981' :
+                                   product.recommendation === 'buy' ? '#3b82f6' :
+                                   product.recommendation === 'consider' ? '#f59e0b' :
+                                   '#ef4444',
+                            fontFamily: 'var(--font-family-primary)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
+                          }}>
+                            {product.recommendation.replace('-', ' ')}
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -423,6 +490,54 @@ export default function ComparisonTableWidget({
             </table>
           </div>
 
+          {/* AI Insights Section */}
+          {topProducts[0]?.insights && topProducts[0].insights.length > 0 && (
+            <div style={{
+              padding: '0.75rem 1rem',
+              background: 'rgba(255, 255, 255, 0.02)',
+              borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+            }}>
+              <h4 style={{
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-family-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                margin: '0 0 0.5rem 0'
+              }}>
+                AI Insights
+              </h4>
+              <div className="space-y-2">
+                {topProducts.slice(0, 3).map((product, index) => (
+                  product.insights && product.insights.length > 0 && (
+                    <div key={`${product.source}-${product.id}-insights`} className="flex flex-col gap-1">
+                      <div style={{
+                        fontSize: '0.6875rem',
+                        fontWeight: '500',
+                        color: 'var(--text-tertiary)',
+                        fontFamily: 'var(--font-family-primary)'
+                      }}>
+                        #{index + 1} {product.name || product.title}:
+                      </div>
+                      <ul style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-secondary)',
+                        fontFamily: 'var(--font-family-primary)',
+                        paddingLeft: '1rem',
+                        margin: '0'
+                      }}>
+                        {product.insights.slice(0, 2).map((insight, i) => (
+                          <li key={i} style={{ marginBottom: '0.125rem' }}>{insight}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Footer with Insights */}
           {insights && (
             <div style={{
@@ -437,11 +552,13 @@ export default function ComparisonTableWidget({
               }}>
                 <span className="flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" />
-                  Avg: <span style={{ fontWeight: '500', color: 'var(--text-secondary)' }}>{insights.avgScore}</span>
+                  Avg: <span style={{ fontWeight: '500', color: 'var(--text-secondary)' }}>
+                    {((Number(insights.avgScore || 0)) / 10).toFixed(3)}
+                  </span>
                 </span>
                 <span>·</span>
                 <span>
-                  Range: {insights.scoreRange.min}-{insights.scoreRange.max}
+                  Range: {((Number(insights.scoreRange?.min || 0)) / 10).toFixed(3)}-{((Number(insights.scoreRange?.max || 0)) / 10).toFixed(3)}
                 </span>
                 <span>·</span>
                 <span className="flex items-center gap-1">
