@@ -9,6 +9,8 @@ import LoginModal from '@/components/LoginModal'
 import SignupModal from '@/components/SignupModal'
 import ProductFilters, { ProductFiltersState } from '@/components/ProductFilters'
 import Pagination, { QuickJumpPagination } from '@/components/Pagination'
+import ComparisonTableWidget from '@/components/ComparisonTableWidget'
+import ChatSidebar from '@/components/ChatSidebar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -65,6 +67,10 @@ interface SearchResponse {
       availableConditions: Array<{ value: string; label: string; count: number }>
       availableSizes: Array<{ value: string; label: string; count: number }>
     }
+  }
+  comparisonData?: {
+    topProducts: any[]
+    insights: any
   }
 }
 
@@ -443,15 +449,20 @@ export default function SearchResults() {
   }
 
   return (
-    <div className="App">
-      <Navigation
-        user={appUser}
-        onShowLogin={() => setShowLoginModal(true)}
-        onShowSignup={() => setShowSignupModal(true)}
-        onLogout={() => {}}
-      />
+    <div className="App" style={{ display: 'flex' }}>
+      {/* AI Shopping Advisor Sidebar */}
+      <ChatSidebar />
 
-      <main className="container mx-auto px-4 py-8 min-h-screen">
+      {/* Main Content Area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Navigation
+          user={appUser}
+          onShowLogin={() => setShowLoginModal(true)}
+          onShowSignup={() => setShowSignupModal(true)}
+          onLogout={() => {}}
+        />
+
+        <main className="container mx-auto px-4 py-8 min-h-screen">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-light mb-4" style={{
@@ -517,6 +528,18 @@ export default function SearchResults() {
           <div className="lg:w-3/4">
             {searchResults?.products && searchResults.products.length > 0 ? (
               <>
+                {/* AI-Powered Marketplace Comparison - Top 5 Deals */}
+                {!loading && searchResults.comparisonData?.topProducts && searchResults.comparisonData.topProducts.length > 0 && (
+                  <ComparisonTableWidget
+                    topProducts={searchResults.comparisonData.topProducts}
+                    insights={searchResults.comparisonData.insights}
+                    onProductClick={(product) => {
+                      console.log('Product clicked:', product)
+                      // Track click for analytics
+                    }}
+                  />
+                )}
+
                 {/* Top Pagination */}
                 <div className="mb-6">
                   <Pagination
@@ -539,123 +562,6 @@ export default function SearchResults() {
                       onPageChange={handlePageChange}
                       isLoading={loading}
                     />
-                  </div>
-                )}
-
-                {/* AI Shopping Advisor */}
-                {searchResults.aiResponse && (
-                  <div className="card-modern mb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="ai-icon">🤖</div>
-                      <h2 style={{
-                        fontSize: 'var(--text-xl)',
-                        fontWeight: 'var(--font-semibold)',
-                        color: 'var(--text-primary)',
-                        fontFamily: 'var(--font-family-primary)',
-                        margin: 0
-                      }}>
-                        AI Shopping Advisor
-                      </h2>
-                      <div style={{
-                        padding: 'var(--space-1) var(--space-3)',
-                        backgroundColor: searchResults.claudeAvailable ? 'var(--success-light)' : 'var(--warning-light)',
-                        color: searchResults.claudeAvailable ? 'var(--success-dark)' : 'var(--warning-dark)',
-                        borderRadius: 'var(--radius-full)',
-                        fontSize: 'var(--text-xs)',
-                        fontWeight: 'var(--font-medium)',
-                        border: searchResults.claudeAvailable ? '1px solid var(--success)' : '1px solid var(--warning)'
-                      }}>
-                        {searchResults.claudeAvailable ? 'Claude AI' : 'Intelligent Fallback'}
-                      </div>
-                    </div>
-
-                    <div style={{
-                      fontSize: 'var(--text-sm)',
-                      lineHeight: 'var(--leading-relaxed)',
-                      color: 'var(--text-secondary)',
-                      fontFamily: 'var(--font-family-primary)',
-                      whiteSpace: 'pre-line'
-                    }}>
-                      {searchResults.aiResponse}
-                    </div>
-
-                    {searchResults.sustainabilityInsights && (
-                      <div className="mt-4 pt-4" style={{borderTop: '1px solid var(--border-primary)'}}>
-                        <div className="flex items-center gap-2 mb-3">
-                          <span style={{fontSize: 'var(--text-lg)'}}>🌱</span>
-                          <h3 style={{
-                            fontSize: 'var(--text-md)',
-                            fontWeight: 'var(--font-medium)',
-                            color: 'var(--text-primary)',
-                            margin: 0
-                          }}>
-                            Sustainability Impact
-                          </h3>
-                        </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="sustainability-metric">
-                            <div style={{
-                              fontSize: 'var(--text-lg)',
-                              fontWeight: 'var(--font-bold)',
-                              color: 'var(--success)'
-                            }}>
-                              {searchResults.sustainabilityInsights.carbonFootprintReduced}
-                            </div>
-                            <div style={{
-                              fontSize: 'var(--text-xs)',
-                              color: 'var(--text-tertiary)'
-                            }}>
-                              CO₂ Saved
-                            </div>
-                          </div>
-                          <div className="sustainability-metric">
-                            <div style={{
-                              fontSize: 'var(--text-lg)',
-                              fontWeight: 'var(--font-bold)',
-                              color: 'var(--success)'
-                            }}>
-                              {searchResults.sustainabilityInsights.itemsGivenSecondLife}
-                            </div>
-                            <div style={{
-                              fontSize: 'var(--text-xs)',
-                              color: 'var(--text-tertiary)'
-                            }}>
-                              Items Rescued
-                            </div>
-                          </div>
-                          <div className="sustainability-metric">
-                            <div style={{
-                              fontSize: 'var(--text-lg)',
-                              fontWeight: 'var(--font-bold)',
-                              color: 'var(--success)'
-                            }}>
-                              {searchResults.sustainabilityInsights.sustainabilityScore}
-                            </div>
-                            <div style={{
-                              fontSize: 'var(--text-xs)',
-                              color: 'var(--text-tertiary)'
-                            }}>
-                              Eco Score
-                            </div>
-                          </div>
-                          <div className="sustainability-metric">
-                            <div style={{
-                              fontSize: 'var(--text-lg)',
-                              fontWeight: 'var(--font-bold)',
-                              color: 'var(--success)'
-                            }}>
-                              {searchResults.sustainabilityInsights.equivalentNewItemsAvoided}
-                            </div>
-                            <div style={{
-                              fontSize: 'var(--text-xs)',
-                              color: 'var(--text-tertiary)'
-                            }}>
-                              New Items Avoided
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -701,22 +607,23 @@ export default function SearchResults() {
         </div>
       </main>
 
-      <Footer />
+        <Footer />
 
-      <LoginModal
-        show={showLoginModal}
-        onHide={() => setShowLoginModal(false)}
-      />
+        <LoginModal
+          show={showLoginModal}
+          onHide={() => setShowLoginModal(false)}
+        />
 
-      <SignupModal
-        show={showSignupModal}
-        onHide={() => setShowSignupModal(false)}
-        onShowLogin={() => {
-          setShowSignupModal(false)
-          setShowLoginModal(true)
-        }}
-        onSignup={authService.signup}
-      />
+        <SignupModal
+          show={showSignupModal}
+          onHide={() => setShowSignupModal(false)}
+          onShowLogin={() => {
+            setShowSignupModal(false)
+            setShowLoginModal(true)
+          }}
+          onSignup={authService.signup}
+        />
+      </div>
     </div>
   )
 }

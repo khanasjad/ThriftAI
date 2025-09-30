@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { mockAmazonService } from '@/lib/services/mockAmazonService'
 import { AIService } from '@/lib/services/aiService'
+import { MarketplaceAggregator } from '@/lib/services/marketplaceAggregator'
+import { ProductScoringService } from '@/lib/services/productScoringService'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
@@ -36,6 +38,37 @@ export async function POST(request: NextRequest) {
       page: searchResults.metadata.page,
       resultsReturned: searchResults.products.length
     })
+
+    // MARKETPLACE COMPARISON: Aggregate products from all sources
+    let comparisonData = null
+    try {
+      const aggregator = new MarketplaceAggregator()
+      const aggregatedResults = await aggregator.searchAllMarketplaces({
+        query,
+        category: filters.category,
+        minPrice: filters.minPrice,
+        maxPrice: filters.maxPrice,
+        sources: ['thriftai', 'amazon', 'ebay']  // Can be made configurable
+      })
+
+      // Score all products and get top 5
+      const topProducts = ProductScoringService.getTopN(aggregatedResults.results, 5)
+      const insights = ProductScoringService.calculateInsights(topProducts)
+
+      comparisonData = {
+        topProducts,
+        insights
+      }
+
+      logger.info('Marketplace comparison completed', {
+        totalCompared: aggregatedResults.results.length,
+        topScore: topProducts[0]?.score.total,
+        sources: Object.keys(insights.sourceBreakdown)
+      })
+    } catch (error) {
+      logger.error('Marketplace comparison failed', { error: error.message })
+      // Continue without comparison data - it's optional
+    }
 
     // Add Claude AI integration
     let claudeResponse = ''
@@ -89,12 +122,13 @@ By choosing thrift shopping, you're:
       }
     }
 
-    // Enhanced response with AI fields
+    // Enhanced response with AI fields AND comparison data
     const enhancedResponse = {
       ...searchResults,
       aiResponse: claudeResponse,
       sustainabilityInsights: sustainabilityInsights,
-      claudeAvailable: AIService.isClaudeAvailable()
+      claudeAvailable: AIService.isClaudeAvailable(),
+      comparisonData: comparisonData  // Add marketplace comparison data
     }
 
     return NextResponse.json(enhancedResponse)

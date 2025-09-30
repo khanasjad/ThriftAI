@@ -31,6 +31,10 @@ model User {
   buyer  Buyer?
   seller Seller?
 
+  // Relations
+  productComparisons ProductComparison[]
+  affiliateClicks    AffiliateClick[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -225,6 +229,7 @@ model Product {
   cartItems        CartItem[]
   reviews          Review[]
   embedding        ProductEmbedding?
+  comparisons      ProductComparison[]
 
   // Timestamps
   createdAt        DateTime  @default(now())
@@ -685,4 +690,134 @@ model AffiliateProduct {
   dataExpiresAt        DateTime
 
   @@map("affiliate_products")
+}
+
+// ========================================
+// EXTERNAL MARKETPLACE INTEGRATION
+// ========================================
+
+enum ExternalSource {
+  AMAZON
+  EBAY
+  NIKE
+  ADIDAS
+  WALMART
+  TARGET
+  SHOPIFY
+}
+
+// External marketplace products (cached)
+model ExternalProduct {
+  id              String   @id @default(cuid())
+  source          ExternalSource
+  externalId      String   // Amazon ASIN, eBay Item ID, etc.
+
+  // Product details
+  title           String
+  description     String?  @db.Text
+  brand           String?
+  category        String
+
+  // Pricing
+  price           Float
+  originalPrice   Float?
+  currency        String   @default("USD")
+  shippingCost    Float?
+
+  // Links
+  productUrl      String
+  affiliateUrl    String?
+  imageUrl        String?
+
+  // Metadata
+  condition       String?
+  rating          Float?
+  reviewCount     Int      @default(0)
+  availability    Boolean  @default(true)
+
+  // Caching
+  cachedAt        DateTime @default(now())
+  expiresAt       DateTime
+
+  // Relations
+  amazonComparisons     ProductComparison[] @relation("AmazonProduct")
+  ebayComparisons       ProductComparison[] @relation("EbayProduct")
+
+  @@unique([source, externalId])
+  @@index([source, externalId])
+  @@index([brand, category])
+  @@index([cachedAt])
+  @@map("external_products")
+}
+
+// Price comparisons
+model ProductComparison {
+  id                  String   @id @default(cuid())
+  searchQuery         String
+  userId              String?
+
+  // ThriftAI product (if exists)
+  thriftaiProductId   String?
+  thriftaiProduct     Product? @relation(fields: [thriftaiProductId], references: [id])
+
+  // External matches
+  amazonProductId     String?
+  amazonProduct       ExternalProduct? @relation("AmazonProduct", fields: [amazonProductId], references: [id])
+
+  ebayProductId       String?
+  ebayProduct         ExternalProduct? @relation("EbayProduct", fields: [ebayProductId], references: [id])
+
+  // Best deal analysis
+  bestDealSource      String   // 'thriftai', 'amazon', 'ebay', etc.
+  bestDealPrice       Float
+  estimatedSavings    Float
+
+  // Analytics
+  userClicked         Boolean  @default(false)
+  clickedSource       String?
+
+  createdAt           DateTime @default(now())
+
+  user                User?    @relation(fields: [userId], references: [id])
+
+  @@index([searchQuery])
+  @@index([userId])
+  @@map("product_comparisons")
+}
+
+// Affiliate tracking
+model AffiliateClick {
+  id                String          @id @default(cuid())
+  userId            String?
+  sessionId         String
+
+  // Product info
+  source            ExternalSource
+  externalProductId String
+  productTitle      String
+
+  // Affiliate details
+  affiliateUrl      String
+  referralCode      String
+
+  // Financial
+  estimatedPrice    Float
+  expectedCommission Float?
+
+  // Status
+  clicked           Boolean         @default(false)
+  clickedAt         DateTime?
+
+  converted         Boolean         @default(false)
+  convertedAt       DateTime?
+  commissionEarned  Float?
+
+  createdAt         DateTime        @default(now())
+
+  user              User?           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([source])
+  @@index([clicked, converted])
+  @@map("affiliate_clicks")
 }
