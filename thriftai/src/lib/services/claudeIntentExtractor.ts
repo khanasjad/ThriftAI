@@ -135,7 +135,7 @@ export class ClaudeIntentExtractor {
         : `User: ${context.currentQuery}`
 
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-haiku-20240307', // Using Haiku for fast, cost-effective intent extraction
         max_tokens: 1024,
         temperature: 0.1, // Low temperature for consistent extraction
         system: INTENT_EXTRACTION_PROMPT,
@@ -170,7 +170,10 @@ export class ClaudeIntentExtractor {
       return intent
     } catch (error) {
       logger.error('Claude intent extraction failed, using fallback', {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorStack: error instanceof Error ? error.stack : undefined,
+        apiKeyConfigured: !!this.anthropic
       })
       return this.fallbackExtraction(context)
     }

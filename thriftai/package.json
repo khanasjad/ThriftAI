@@ -17,6 +17,8 @@
     "db:reset": "npx prisma db push && npm run db:seed"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.22",
+    "@ai-sdk/react": "^2.0.59",
     "@anthropic-ai/sdk": "^0.64.0",
     "@auth/prisma-adapter": "^2.10.0",
     "@prisma/client": "^6.16.2",
@@ -31,6 +33,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@types/bcryptjs": "^2.4.6",
     "@types/uuid": "^10.0.0",
+    "ai": "^5.0.59",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "bootstrap": "^5.3.8",

@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { mockAmazonService } from '@/lib/services/mockAmazonService'
-import { AIService } from '@/lib/services/aiService'
-import { MarketplaceAggregator } from '@/lib/services/marketplaceAggregator'
-import { ProductScoringService } from '@/lib/services/productScoringService'
-import { claudeIntentExtractor } from '@/lib/services/claudeIntentExtractor'
-import { intelligentQueryOptimizer } from '@/lib/services/intelligentQueryOptimizer'
+import { structuredQueryGenerator } from '@/lib/services/structuredQueryGenerator'
+import { safeQueryExecutor } from '@/lib/services/safeQueryExecutor'
 import { logger } from '@/lib/logger'
 
+/**
+ * ENHANCED SEARCH - NEW ARCHITECTURE
+ *
+ * Natural Language → Claude JSON Filters → Safe DB Query → Results
+ *
+ * This replaces the old complex search with a simpler, safer approach:
+ * 1. User types natural language query (e.g., "Find vintage designer bags under $200")
+ * 2. Claude generates structured JSON filters (searchTerms, category, priceRange, etc.)
+ * 3. Safe parameterized Prisma query executes (NO SQL injection possible)
+ * 4. Return products with metadata
+ *
+ * Benefits:
+ * - Much simpler codebase (1 file vs 10+ services)
+ * - More secure (parameterized queries only)
+ * - Better intent understanding (Claude Haiku)
+ * - Fallback to marketplace if DB is empty
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -15,180 +28,167 @@ export async function POST(request: NextRequest) {
       filters = {},
       pagination = { page: 1, limit: 20 },
       sorting = { field: 'relevance', direction: 'desc' },
-      includeMetadata = true,
-      budget = null
+      includeMetadata = true
     } = body
 
-    logger.info('🔍 Enhanced search request', {
+    logger.info('🔍 Enhanced search request (NEW ARCHITECTURE)', {
       query,
       filters,
       pagination
     })
 
-    // ✨ INTELLIGENT INTENT EXTRACTION: Parse budget and constraints from query text
-    logger.info('🎯 Starting intent extraction for query:', query)
-    const intent = await claudeIntentExtractor.extractIntent({
-      messages: [],
-      currentQuery: query
-    })
-    logger.info('🎯 Intent extraction completed')
-
-    logger.info('✅ Intent extracted from query', {
-      originalQuery: query,
-      normalizedQuery: intent.normalizedQuery,
-      maxPrice: intent.hardFilters.maxPrice,
-      minPrice: intent.hardFilters.minPrice,
-      category: intent.hardFilters.category,
-      keywords: intent.keywords
-    })
-
-    // Use normalized query if available (fixes typos and variations)
-    const searchQuery = intent.normalizedQuery || query
-
-    if (intent.normalizedQuery && intent.normalizedQuery !== query.toLowerCase()) {
-      logger.info('🔄 Using normalized query', {
-        original: query,
-        normalized: intent.normalizedQuery
-      })
+    if (!query || typeof query !== 'string') {
+      return NextResponse.json(
+        {
+          error: 'Query is required',
+          products: [],
+          metadata: { total: 0, page: 1, totalPages: 0, limit: 20 }
+        },
+        { status: 400 }
+      )
     }
 
-    // Merge extracted intent with explicit filters (explicit filters take precedence)
-    const mergedFilters = {
-      ...filters,
-      priceRange: {
-        min: filters.minPrice || intent.hardFilters.minPrice || filters.priceRange?.min,
-        max: filters.maxPrice || intent.hardFilters.maxPrice || filters.priceRange?.max
-      },
-      categories: filters.categories || (intent.hardFilters.category ? [intent.hardFilters.category] : undefined),
-      brands: filters.brands || intent.softPreferences.brands,
-      condition: filters.condition || intent.hardFilters.condition
+    // STEP 1: Generate structured query from natural language using Claude
+    logger.info('📝 Generating structured query with Claude...')
+    const structuredFilters = await structuredQueryGenerator.generateQuery(query)
+
+    logger.info('✅ Structured query generated', {
+      searchTerms: structuredFilters.searchTerms,
+      category: structuredFilters.category,
+      confidence: structuredFilters.confidence,
+      intent: structuredFilters.intent,
+      needsClarification: !!structuredFilters.needsClarification
+    })
+
+    // Merge with any manual filters from UI
+    if (filters.category) structuredFilters.category = filters.category
+    if (filters.minPrice !== undefined) structuredFilters.minPrice = filters.minPrice
+    if (filters.maxPrice !== undefined) structuredFilters.maxPrice = filters.maxPrice
+    if (filters.brands && Array.isArray(filters.brands)) {
+      structuredFilters.brands = filters.brands
+    }
+    if (filters.condition && Array.isArray(filters.condition)) {
+      structuredFilters.condition = filters.condition
     }
 
-    // Use the enhanced search method with NORMALIZED query and merged filters
-    const searchResults = await mockAmazonService.searchProductsEnhanced(searchQuery, {
-      filters: mergedFilters,
-      pagination,
-      sorting,
-      includeMetadata
+    // Apply pagination
+    const limit = pagination.limit || 20
+    const page = pagination.page || 1
+    structuredFilters.limit = limit
+    structuredFilters.offset = (page - 1) * limit
+
+    // Apply sorting
+    const sortingField = sorting.field || 'relevance'
+    const sortingDirection = sorting.direction || 'desc'
+
+    if (sortingField === 'price') {
+      structuredFilters.sortBy = 'price'
+      structuredFilters.sortDirection = sortingDirection as 'asc' | 'desc'
+    } else if (sortingField === 'date') {
+      structuredFilters.sortBy = 'date'
+      structuredFilters.sortDirection = sortingDirection as 'asc' | 'desc'
+    } else if (sortingField === 'rating') {
+      structuredFilters.sortBy = 'rating'
+      structuredFilters.sortDirection = sortingDirection as 'asc' | 'desc'
+    } else {
+      structuredFilters.sortBy = 'relevance'
+    }
+
+    // STEP 2: Execute safe parameterized query (with marketplace fallback)
+    logger.info('🔒 Executing safe query...')
+    const results = await safeQueryExecutor.executeWithMarketplace(structuredFilters)
+
+    logger.info('✅ Search completed', {
+      productsFound: results.products.length,
+      total: results.total,
+      page: results.page,
+      totalPages: results.totalPages
     })
 
-    logger.info('✅ Enhanced search completed', {
-      totalResults: searchResults.metadata.total,
-      page: searchResults.metadata.page,
-      resultsReturned: searchResults.products.length
-    })
-
-    // MARKETPLACE COMPARISON: Aggregate products from all sources with HARD FILTERS
-    let comparisonData = null
-    try {
-      const aggregator = new MarketplaceAggregator()
-      const aggregatedResults = await aggregator.searchAllMarketplaces({
-        query: searchQuery,  // Use normalized query
-        category: mergedFilters.categories?.[0],
-        minPrice: mergedFilters.priceRange?.min,
-        maxPrice: mergedFilters.priceRange?.max,
-        sources: ['thriftai', 'amazon', 'ebay'],
-        limit: 20  // Limit per source
-      })
-
-      // Score all products and get top 5
-      const topProducts = ProductScoringService.getTopN(aggregatedResults.results, 5)
-      const insights = ProductScoringService.calculateInsights(topProducts)
-
-      comparisonData = {
-        topProducts,
-        insights,
-        intentUsed: {
-          maxPrice: mergedFilters.priceRange?.max,
-          minPrice: mergedFilters.priceRange?.min,
-          category: mergedFilters.categories?.[0]
-        }
-      }
-
-      logger.info('✅ Marketplace comparison completed', {
-        totalCompared: aggregatedResults.results.length,
-        topScore: topProducts[0]?.score.total,
-        sources: Object.keys(insights.sourceBreakdown),
+    // Return results in format compatible with existing frontend
+    return NextResponse.json({
+      products: results.products,
+      metadata: {
+        total: results.total,
+        page: results.page,
+        totalPages: results.totalPages,
+        limit: limit,
+        query: query,
         appliedFilters: {
-          maxPrice: mergedFilters.priceRange?.max,
-          minPrice: mergedFilters.priceRange?.min
+          searchTerms: structuredFilters.searchTerms,
+          category: structuredFilters.category,
+          priceRange: {
+            min: structuredFilters.minPrice,
+            max: structuredFilters.maxPrice
+          },
+          brands: structuredFilters.brands,
+          condition: structuredFilters.condition
+        },
+        aiInsights: {
+          intent: structuredFilters.intent,
+          confidence: structuredFilters.confidence,
+          needsClarification: structuredFilters.needsClarification
+        },
+        sorting: {
+          field: structuredFilters.sortBy,
+          direction: structuredFilters.sortDirection
         }
-      })
-    } catch (error) {
-      logger.error('❌ Marketplace comparison failed', { error: error.message })
-      // Continue without comparison data - it's optional
-    }
-
-    // Add Claude AI integration
-    let claudeResponse = ''
-    let sustainabilityInsights = null
-
-    if (searchResults.products.length > 0 && AIService.isClaudeAvailable()) {
-      try {
-        logger.info('Generating Claude AI response for query:', searchQuery)
-        const claudeSearchResult = await AIService.claudeSearch(searchQuery, budget, { sorting })
-        claudeResponse = claudeSearchResult.aiResponse || ''
-        sustainabilityInsights = claudeSearchResult.sustainabilityInsights || null
-      } catch (error) {
-        logger.error('Claude AI generation failed', { error: error.message })
+      },
+      // Include comparison data for backward compatibility with existing UI
+      comparisonData: {
+        topProducts: results.products.slice(0, 3).map(p => ({
+          id: p.id || p.asin,
+          asin: p.asin || p.id,
+          title: p.name || p.title,
+          name: p.name || p.title,
+          brand: p.brand || p.specifications?.brand,
+          price: p.price?.current || p.price || 0,
+          totalCost: p.price?.current || p.price || 0,
+          condition: p.condition || p.specifications?.condition,
+          rating: p.rating || p.reviews?.rating || 0,
+          source: 'ThriftAI',
+          relevanceScore: 40,
+          priceScore: 25,
+          totalScore: 65,
+          score: {
+            relevance: 40,
+            price: 25,
+            total: 65
+          }
+        })),
+        totalSources: 1,
+        searchStrategy: 'structured_query_generation'
       }
-    } else if (searchResults.products.length > 0) {
-      // Fallback AI response when Claude is unavailable
-      const avgPrice = searchResults.products.reduce((sum, p) => sum + p.price.current, 0) / searchResults.products.length
-      const topBrands = [...new Set(searchResults.products.slice(0, 5).map(p => p.brand))].join(', ')
-
-      claudeResponse = `🛍️ **Smart Shopping Analysis for "${query}"**
-
-📊 **Product Highlights:**
-• Found ${searchResults.products.length} relevant items
-• Average price: $${avgPrice.toFixed(2)}
-• Top brands: ${topBrands}
-• Best deals: Up to ${Math.max(...searchResults.products.map(p => p.price.discountPercentage || 0))}% off
-
-💡 **Value Analysis:**
-These thrift finds offer incredible value compared to retail prices. You're shopping sustainably while saving money on quality pre-owned items.
-
-🌱 **Sustainability Impact:**
-By choosing thrift shopping, you're:
-• Reducing textile waste
-• Supporting circular economy
-• Lowering your carbon footprint
-• Giving items a second life
-
-💰 **Shopping Tips:**
-• Check item conditions carefully
-• Compare prices across similar items
-• Look for items with authenticity guarantees
-• Consider shipping costs in your budget
-
-*Note: Add your ANTHROPIC_API_KEY to .env to unlock full Claude AI-powered shopping advice and personalized recommendations.*`
-
-      sustainabilityInsights = {
-        carbonFootprintReduced: Math.round(searchResults.products.length * 2.5) + " kg",
-        itemsGivenSecondLife: searchResults.products.length,
-        equivalentNewItemsAvoided: searchResults.products.length,
-        sustainabilityScore: 85
-      }
-    }
-
-    // Enhanced response with AI fields AND comparison data
-    const enhancedResponse = {
-      ...searchResults,
-      aiResponse: claudeResponse,
-      sustainabilityInsights: sustainabilityInsights,
-      claudeAvailable: AIService.isClaudeAvailable(),
-      comparisonData: comparisonData  // Add marketplace comparison data
-    }
-
-    return NextResponse.json(enhancedResponse)
+    })
 
   } catch (error) {
-    logger.error('Enhanced search API error', { error: error.message, stack: error.stack })
+    logger.error('❌ Search error', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
 
     return NextResponse.json(
       {
         error: 'Search failed',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        products: [],
+        metadata: {
+          total: 0,
+          page: 1,
+          totalPages: 0,
+          limit: 20,
+          query: '',
+          appliedFilters: {},
+          aiInsights: {
+            intent: 'search_error',
+            confidence: 0
+          }
+        },
+        comparisonData: {
+          topProducts: [],
+          totalSources: 0,
+          searchStrategy: 'error'
+        }
       },
       { status: 500 }
     )

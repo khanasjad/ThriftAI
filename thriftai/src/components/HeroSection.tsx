@@ -119,12 +119,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
 
             <div className="search-button-container">
               <button
-                className="search-btn-modern search-btn-secondary"
+                className="search-btn-modern search-btn-secondary file-input-container"
                 type="button"
                 onClick={() => document.getElementById('visual-search-input')?.click()}
                 disabled={isVisualLoading}
                 title="Search by image"
-                style={{ position: 'relative', overflow: 'hidden' }}
               >
                 {isVisualLoading ? (
                   <i className="fas fa-spinner fa-spin"></i>
@@ -137,15 +136,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                   accept="image/*"
                   onChange={handleImageUpload}
                   disabled={isVisualLoading}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer'
-                  }}
+                  className="file-input-hidden"
                 />
               </button>
 
@@ -172,14 +163,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                 key={index}
                 className="suggestion-chip"
                 onClick={() => askClaude(suggestion.text)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  border: 'none'
-                }}
               >
-                <i className={suggestion.icon} style={{ fontSize: 'var(--text-xs)' }}></i>
+                <i className={suggestion.icon}></i>
                 {suggestion.text}
               </button>
             ))}
@@ -191,46 +176,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
           <div className="row g-4 justify-content-center">
             <div className="col-lg-3 col-md-6">
               <button
-                className="card-modern text-center animate-scale-in"
+                className="card-modern text-center animate-scale-in animate-delay-100"
                 onClick={openAdvancedFilters}
-                style={{ animationDelay: '0.1s' }}
                 type="button"
                 aria-label="Open advanced filters"
               >
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: 'var(--radius-xl)',
-                    background: 'var(--accent-gradient)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto var(--space-4)',
-                    fontSize: 'var(--text-xl)',
-                    color: 'var(--text-primary)'
-                  }}
-                >
+                <div className="feature-card-icon">
                   <i className="fas fa-sliders-h"></i>
                 </div>
-                <h3
-                  style={{
-                    fontSize: 'var(--text-lg)',
-                    fontWeight: 'var(--font-semibold)',
-                    color: 'var(--text-primary)',
-                    marginBottom: 'var(--space-2)'
-                  }}
-                >
+                <h3 className="feature-card-title">
                   Smart Filters
                 </h3>
-                <p
-                  style={{
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.5,
-                    margin: 0
-                  }}
-                >
+                <p className="feature-card-description">
                   Advanced filtering with AI-powered recommendations based on your style and budget
                 </p>
               </button>
@@ -238,46 +195,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
 
             <div className="col-lg-3 col-md-6">
               <button
-                className="card-modern text-center animate-scale-in"
+                className="card-modern text-center animate-scale-in animate-delay-200"
                 onClick={showRecommendations}
-                style={{ animationDelay: '0.2s' }}
                 type="button"
                 aria-label="Show personal recommendations"
               >
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: 'var(--radius-xl)',
-                    background: 'var(--accent-gradient)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto var(--space-4)',
-                    fontSize: 'var(--text-xl)',
-                    color: 'var(--text-primary)'
-                  }}
-                >
+                <div className="feature-card-icon">
                   <i className="fas fa-magic"></i>
                 </div>
-                <h3
-                  style={{
-                    fontSize: 'var(--text-lg)',
-                    fontWeight: 'var(--font-semibold)',
-                    color: 'var(--text-primary)',
-                    marginBottom: 'var(--space-2)'
-                  }}
-                >
+                <h3 className="feature-card-title">
                   Personal Curator
                 </h3>
-                <p
-                  style={{
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.5,
-                    margin: 0
-                  }}
-                >
+                <p className="feature-card-description">
                   Get personalized recommendations tailored to your taste and shopping history
                 </p>
               </button>
@@ -285,46 +214,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
 
             <div className="col-lg-3 col-md-6">
               <button
-                className="card-modern text-center animate-scale-in"
+                className="card-modern text-center animate-scale-in animate-delay-300"
                 onClick={showTrending}
-                style={{ animationDelay: '0.3s' }}
                 type="button"
                 aria-label="Show trending finds"
               >
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: 'var(--radius-xl)',
-                    background: 'var(--accent-gradient)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto var(--space-4)',
-                    fontSize: 'var(--text-xl)',
-                    color: 'var(--text-primary)'
-                  }}
-                >
+                <div className="feature-card-icon">
                   <i className="fas fa-fire"></i>
                 </div>
-                <h3
-                  style={{
-                    fontSize: 'var(--text-lg)',
-                    fontWeight: 'var(--font-semibold)',
-                    color: 'var(--text-primary)',
-                    marginBottom: 'var(--space-2)'
-                  }}
-                >
+                <h3 className="feature-card-title">
                   Trending Finds
                 </h3>
-                <p
-                  style={{
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.5,
-                    margin: 0
-                  }}
-                >
+                <p className="feature-card-description">
                   Discover what's hot right now and find trending items before they're gone
                 </p>
               </button>
@@ -332,46 +233,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
 
             <div className="col-lg-3 col-md-6">
               <button
-                className="card-modern text-center animate-scale-in"
+                className="card-modern text-center animate-scale-in animate-delay-400"
                 onClick={showPriceComparison}
-                style={{ animationDelay: '0.4s' }}
                 type="button"
                 aria-label="Show price intelligence"
               >
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: 'var(--radius-xl)',
-                    background: 'var(--accent-gradient)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto var(--space-4)',
-                    fontSize: 'var(--text-xl)',
-                    color: 'var(--text-primary)'
-                  }}
-                >
+                <div className="feature-card-icon">
                   <i className="fas fa-chart-line"></i>
                 </div>
-                <h3
-                  style={{
-                    fontSize: 'var(--text-lg)',
-                    fontWeight: 'var(--font-semibold)',
-                    color: 'var(--text-primary)',
-                    marginBottom: 'var(--space-2)'
-                  }}
-                >
+                <h3 className="feature-card-title">
                   Price Intelligence
                 </h3>
-                <p
-                  style={{
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.5,
-                    margin: 0
-                  }}
-                >
+                <p className="feature-card-description">
                   Compare prices across platforms and get alerts for the best deals and savings
                 </p>
               </button>

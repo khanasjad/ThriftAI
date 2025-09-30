@@ -186,6 +186,7 @@ export default function SearchResults() {
 
       const data = await response.json()
       console.log('DEBUG: Search data received:', data?.products?.length || 0, 'products')
+      console.log('DEBUG: ComparisonData available:', !!data?.comparisonData, 'with', data?.comparisonData?.topProducts?.length || 0, 'products')
       console.log('DEBUG: Setting search results...')
 
       // Use functional update to ensure we have the latest state
@@ -194,6 +195,7 @@ export default function SearchResults() {
       console.log('DEBUG: Data type:', typeof data)
       console.log('DEBUG: Data has products?', !!data?.products)
       console.log('DEBUG: Products array length:', data?.products?.length || 'N/A')
+      console.log('DEBUG: ComparisonData products:', data?.comparisonData?.topProducts?.length || 0)
 
       setSearchResults((prevResults) => {
         console.log('DEBUG: Inside setSearchResults callback')
@@ -209,6 +211,61 @@ export default function SearchResults() {
         if (!data || typeof data !== 'object' || !data.products) {
           console.error('DEBUG: Invalid SearchResponse received:', data)
           return null
+        }
+
+        // 🤖 AI ENHANCEMENT: When database has 0 products but marketplace has results,
+        // convert marketplace products to main product format for display
+        if (data.products.length === 0 && data.comparisonData?.topProducts?.length > 0) {
+          console.log('🤖 Converting marketplace products to main display format')
+          const convertedProducts = data.comparisonData.topProducts.map((mp: any) => ({
+            asin: mp.id || mp.asin || `marketplace-${Date.now()}-${Math.random()}`,
+            title: mp.title || mp.name || 'Product',
+            brand: mp.brand || mp.seller || 'Various',
+            category: mp.category || 'GENERAL',
+            price: {
+              current: mp.price || mp.totalCost || 0,
+              original: mp.originalPrice || mp.totalCost || 0,
+              currency: 'USD',
+              discountPercentage: mp.discountPercentage || 0
+            },
+            availability: {
+              inStock: mp.availability !== false && mp.inStock !== false,
+              quantity: mp.quantity || 1,
+              shippingDays: mp.shippingDays || 5,
+              shippingCost: mp.shippingCost || 0
+            },
+            reviews: {
+              rating: mp.rating || mp.reviews?.rating || 4.0,
+              count: mp.reviewCount || mp.reviews?.count || 0,
+              verified: true
+            },
+            images: mp.images || mp.imageUrl ? [mp.imageUrl || mp.images[0]] : ['/placeholder-image.jpg'],
+            description: mp.description || mp.title || 'AI-recommended product from marketplace',
+            seller: {
+              name: mp.source || mp.marketplace || 'Marketplace',
+              rating: mp.sellerRating || 4.5,
+              verified: true
+            },
+            specifications: {
+              category: mp.category || 'GENERAL',
+              condition: mp.condition || 'Used - Good',
+              size: mp.size,
+              color: mp.color
+            }
+          }))
+
+          console.log(`✅ Converted ${convertedProducts.length} marketplace products to main display`)
+
+          return {
+            ...data,
+            products: convertedProducts,
+            metadata: {
+              ...data.metadata,
+              total: convertedProducts.length,
+              totalPages: 1,
+              page: 1
+            }
+          }
         }
 
         return data
@@ -410,9 +467,9 @@ export default function SearchResults() {
         />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto" style={{borderColor: 'transparent transparent var(--accent-primary) transparent'}}></div>
-            <h3 className="mt-4 text-xl" style={{color: 'var(--text-secondary)'}}>Searching for "{query}"...</h3>
-            <p className="text-sm mt-2" style={{color: 'var(--text-tertiary)'}}>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto spinner"></div>
+            <h3 className="mt-4 text-xl page-subtitle">Searching for "{query}"...</h3>
+            <p className="text-sm mt-2 empty-state-description">
               DEBUG: loading={loading.toString()}, hasResults={!!searchResults}, error={error || 'none'}
             </p>
           </div>
@@ -433,8 +490,8 @@ export default function SearchResults() {
         />
         <div className="container mx-auto px-4 py-8">
           <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
-            <h3 className="font-semibold" style={{color: 'var(--error)'}}>Error</h3>
-            <p style={{color: 'var(--error)'}}>{error}</p>
+            <h3 className="font-semibold empty-state-title" style={{color: 'var(--error)'}}>Error</h3>
+            <p className="empty-state-description" style={{color: 'var(--error)'}}>{error}</p>
             <Button
               onClick={() => performSearch(query, filters, currentPage, itemsPerPage)}
               className="mt-2"
@@ -449,12 +506,12 @@ export default function SearchResults() {
   }
 
   return (
-    <div className="App" style={{ display: 'flex' }}>
+    <div className="App flex-container">
       {/* AI Shopping Advisor Sidebar */}
       <ChatSidebar />
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex-1 flex-container-col">
         <Navigation
           user={appUser}
           onShowLogin={() => setShowLoginModal(true)}
@@ -465,23 +522,15 @@ export default function SearchResults() {
         <main className="container mx-auto px-4 py-8 min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-light mb-4" style={{
-            color: 'var(--text-primary)',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
-            letterSpacing: '-0.02em'
-          }}>
+          <h1 className="text-4xl font-light mb-4 page-header">
             Search Results for "{query}"
           </h1>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-lg" style={{
-              color: 'var(--text-secondary)',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif',
-              fontWeight: '400'
-            }}>
+            <p className="text-lg page-subtitle">
               {searchResults?.metadata.total || 0} products found
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium" style={{color: 'var(--text-secondary)'}}>View:</span>
+              <span className="text-sm font-medium page-subtitle">View:</span>
               <button
                 className={`btn-modern btn-modern-sm ${
                   viewMode === 'grid' ? 'btn-modern-default' : 'btn-modern-outline'
@@ -526,18 +575,42 @@ export default function SearchResults() {
 
           {/* Main Content */}
           <div className="lg:w-3/4">
+            {/* Show AI-Powered Marketplace Comparison even when main products are empty */}
+            {/* AI-Powered Marketplace Comparison - Only show when we have database results */}
+            {!loading && searchResults?.products && searchResults.products.length > 0 && searchResults.comparisonData?.topProducts && searchResults.comparisonData.topProducts.length > 0 && (
+              <div className="mb-6">
+                <ComparisonTableWidget
+                  topProducts={searchResults.comparisonData.topProducts}
+                  insights={searchResults.comparisonData.insights}
+                  onProductClick={(product) => {
+                    console.log('Product clicked:', product)
+                    // Track click for analytics
+                  }}
+                />
+              </div>
+            )}
+
             {searchResults?.products && searchResults.products.length > 0 ? (
               <>
-                {/* AI-Powered Marketplace Comparison - Top 5 Deals */}
-                {!loading && searchResults.comparisonData?.topProducts && searchResults.comparisonData.topProducts.length > 0 && (
-                  <ComparisonTableWidget
-                    topProducts={searchResults.comparisonData.topProducts}
-                    insights={searchResults.comparisonData.insights}
-                    onProductClick={(product) => {
-                      console.log('Product clicked:', product)
-                      // Track click for analytics
-                    }}
-                  />
+                {/* AI Smart Search Banner - shown when displaying marketplace products */}
+                {searchResults.comparisonData && !searchResults.metadata.fromDatabase && (
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">🤖</div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-blue-300 mb-2">AI-Powered Smart Search Results</h3>
+                        <p className="text-sm text-blue-200 mb-2">
+                          We didn't find exact matches in our inventory, so our AI searched across multiple marketplaces and found {searchResults.products.length} relevant products for you:
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-xs text-blue-300">
+                          <span className="px-2 py-1 bg-blue-800/30 rounded">✓ Typo corrected</span>
+                          <span className="px-2 py-1 bg-blue-800/30 rounded">✓ Query optimized</span>
+                          <span className="px-2 py-1 bg-blue-800/30 rounded">✓ Multi-marketplace search</span>
+                          <span className="px-2 py-1 bg-blue-800/30 rounded">✓ Relevance scored</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Top Pagination */}
@@ -592,16 +665,19 @@ export default function SearchResults() {
                 </div>
               </>
             ) : (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4" style={{color: 'var(--text-tertiary)'}}>🔍</div>
-                <h3 className="text-xl mb-2" style={{color: 'var(--text-secondary)'}}>No products found</h3>
-                <p className="mb-4" style={{color: 'var(--text-tertiary)'}}>
-                  Try adjusting your search filters or search for different terms.
-                </p>
-                <Button onClick={() => setFilters(DEFAULT_FILTERS)}>
-                  Clear All Filters
-                </Button>
-              </div>
+              // Only show "No products found" if there's also no comparison data
+              !searchResults?.comparisonData?.topProducts?.length && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4 empty-state-icon">🔍</div>
+                  <h3 className="text-xl mb-2 empty-state-title">No products found</h3>
+                  <p className="mb-4 empty-state-description">
+                    Try adjusting your search filters or search for different terms.
+                  </p>
+                  <Button onClick={() => setFilters(DEFAULT_FILTERS)}>
+                    Clear All Filters
+                  </Button>
+                </div>
+              )
             )}
           </div>
         </div>

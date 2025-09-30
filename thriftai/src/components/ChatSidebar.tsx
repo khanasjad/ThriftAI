@@ -91,15 +91,21 @@ What are you shopping for today?`,
     setShowSuggestions(false)
 
     try {
-      const response = await fetch('/api/buyers/ai-shopping-advisor', {
+      // Use the new streaming chat API with structured queries
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: messageContent,
-          conversationHistory: messages.map(m => ({
-            role: m.role,
-            content: m.content
-          }))
+          messages: [
+            ...messages.map(m => ({
+              role: m.role,
+              content: m.content
+            })),
+            {
+              role: 'user',
+              content: messageContent
+            }
+          ]
         })
       })
 
@@ -107,13 +113,39 @@ What are you shopping for today?`,
         throw new Error('Failed to get response')
       }
 
-      const data = await response.json()
+      // Handle streaming response
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullResponse = ''
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (line.startsWith('0:')) {
+              try {
+                const json = JSON.parse(line.slice(2))
+                if (json && typeof json === 'string') {
+                  fullResponse += json
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        }
+      }
 
       const assistantMessage: ChatMessageData = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.message,
-        products: data.products || [],
+        content: fullResponse || 'I apologize, but I couldn\'t generate a response.',
+        products: [],
         timestamp: new Date()
       }
 

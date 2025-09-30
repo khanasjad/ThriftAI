@@ -19,35 +19,23 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
   return (
     <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
       <div className="container">
-        <a className="navbar-brand fw-bold" href="/" style={{ textDecoration: 'none' }}>
-          <span className="text-gradient-primary" style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--font-black)' }}>
+        <a className="navbar-brand fw-bold nav-logo-link" href="/">
+          <span className="text-gradient-primary nav-logo-thrift">
             Thrift
           </span>
-          <span style={{
-            color: 'var(--text-primary)',
-            fontWeight: 'var(--font-light)',
-            fontSize: 'var(--text-2xl)',
-            marginLeft: '2px'
-          }}>
+          <span className="nav-logo-ai">
             AI
           </span>
         </a>
 
         <button
-          className="navbar-toggler"
+          className="navbar-toggler nav-toggler"
           type="button"
           data-bs-toggle="collapse"
           data-bs-target="#navbarNav"
           aria-controls="navbarNav"
           aria-expanded="false"
           aria-label="Toggle navigation"
-          style={{
-            border: '1px solid var(--border-secondary)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-2) var(--space-3)',
-            background: 'var(--bg-glass)',
-            backdropFilter: 'var(--backdrop-blur-md)'
-          }}
         >
           <span className="navbar-toggler-icon"></span>
         </button>
@@ -58,37 +46,19 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
 
           {/* Login/Signup Buttons - shown when user is not logged in */}
           {!user && (
-            <div className="navbar-nav ms-auto d-flex align-items-center" style={{ gap: 'var(--space-3)' }}>
+            <div className="navbar-nav ms-auto d-flex align-items-center nav-actions">
               <button
-                className="btn-modern-secondary"
+                className="btn-modern-secondary nav-btn"
                 onClick={onShowLogin}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--font-medium)',
-                  padding: 'var(--space-3) var(--space-5)',
-                  whiteSpace: 'nowrap'
-                }}
               >
-                <i className="fas fa-sign-in-alt" style={{ fontSize: 'var(--text-sm)' }}></i>
+                <i className="fas fa-sign-in-alt nav-btn-icon"></i>
                 Sign In
               </button>
               <button
-                className="btn-modern-primary"
+                className="btn-modern-primary nav-btn"
                 onClick={onShowSignup}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--font-medium)',
-                  padding: 'var(--space-3) var(--space-5)',
-                  whiteSpace: 'nowrap'
-                }}
               >
-                <i className="fas fa-user-plus" style={{ fontSize: 'var(--text-sm)' }}></i>
+                <i className="fas fa-user-plus nav-btn-icon"></i>
                 Get Started
               </button>
             </div>
@@ -99,143 +69,38 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
             <div className="navbar-nav ms-auto">
               <div className="nav-item dropdown">
                 <button
-                  className="btn-modern-secondary dropdown-toggle"
+                  className="btn-modern-secondary dropdown-toggle nav-user-btn"
                   type="button"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 'var(--font-medium)',
-                    padding: 'var(--space-3) var(--space-4)',
-                    border: 'none',
-                    background: 'var(--bg-glass)',
-                    backdropFilter: 'var(--backdrop-blur-md)'
-                  }}
                 >
-                  <div
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: 'var(--radius-full)',
-                      background: 'var(--accent-gradient)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 'var(--text-xs)',
-                      fontWeight: 'var(--font-bold)',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
+                  <div className="nav-user-avatar">
                     {user.firstName.charAt(0).toUpperCase()}
                   </div>
-                  <span style={{ color: 'var(--text-primary)' }}>
+                  <span className="nav-user-name">
                     {user.firstName}
                   </span>
                 </button>
-                <ul
-                  className="dropdown-menu"
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-secondary)',
-                    borderRadius: 'var(--radius-xl)',
-                    backdropFilter: 'var(--backdrop-blur-xl)',
-                    boxShadow: 'var(--shadow-xl)',
-                    padding: 'var(--space-2)',
-                    minWidth: '200px'
-                  }}
-                >
+                <ul className="dropdown-menu nav-dropdown">
                   <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      style={{
-                        color: 'var(--text-secondary)',
-                        fontSize: 'var(--text-sm)',
-                        fontWeight: 'var(--font-medium)',
-                        padding: 'var(--space-3) var(--space-4)',
-                        borderRadius: 'var(--radius-lg)',
-                        transition: 'all var(--transition-base)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        textDecoration: 'none'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'var(--bg-glass-hover)';
-                        e.currentTarget.style.color = 'var(--text-primary)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--text-secondary)';
-                      }}
-                    >
-                      <i className="fas fa-user" style={{ fontSize: 'var(--text-sm)', width: '16px' }}></i>
+                    <a className="nav-dropdown-item" href="#">
+                      <i className="fas fa-user nav-dropdown-item-icon"></i>
                       Profile
                     </a>
                   </li>
                   <li>
-                    <a
-                      className="dropdown-item"
-                      href="#"
-                      style={{
-                        color: 'var(--text-secondary)',
-                        fontSize: 'var(--text-sm)',
-                        fontWeight: 'var(--font-medium)',
-                        padding: 'var(--space-3) var(--space-4)',
-                        borderRadius: 'var(--radius-lg)',
-                        transition: 'all var(--transition-base)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        textDecoration: 'none'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'var(--bg-glass-hover)';
-                        e.currentTarget.style.color = 'var(--text-primary)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--text-secondary)';
-                      }}
-                    >
-                      <i className="fas fa-cog" style={{ fontSize: 'var(--text-sm)', width: '16px' }}></i>
+                    <a className="nav-dropdown-item" href="#">
+                      <i className="fas fa-cog nav-dropdown-item-icon"></i>
                       Settings
                     </a>
                   </li>
-                  <li><hr style={{ margin: 'var(--space-2) 0', border: 'none', borderTop: '1px solid var(--border-primary)' }} /></li>
+                  <li><hr className="nav-dropdown-divider" /></li>
                   <li>
                     <button
-                      className="dropdown-item"
+                      className="nav-dropdown-item danger"
                       onClick={onLogout}
-                      style={{
-                        color: 'var(--text-secondary)',
-                        fontSize: 'var(--text-sm)',
-                        fontWeight: 'var(--font-medium)',
-                        padding: 'var(--space-3) var(--space-4)',
-                        borderRadius: 'var(--radius-lg)',
-                        transition: 'all var(--transition-base)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        border: 'none',
-                        background: 'transparent',
-                        width: '100%',
-                        textAlign: 'left',
-                        cursor: 'pointer'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                        e.currentTarget.style.color = 'var(--error)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--text-secondary)';
-                      }}
                     >
-                      <i className="fas fa-sign-out-alt" style={{ fontSize: 'var(--text-sm)', width: '16px' }}></i>
+                      <i className="fas fa-sign-out-alt nav-dropdown-item-icon"></i>
                       Sign Out
                     </button>
                   </li>
