@@ -17,6 +17,34 @@ export interface QueryResult {
  */
 export class SafeQueryExecutor {
   /**
+   * Normalize search term to fix common typos and variations
+   */
+  private normalizeSearchTerm(term: string): string {
+    let normalized = term.toLowerCase().trim()
+
+    // Common typos and misspellings
+    const typoCorrections: [RegExp, string][] = [
+      [/\bjaans?\b/gi, 'jeans'],         // jaan/jaans → jeans
+      [/\bjeens?\b/gi, 'jeans'],         // jeen/jeens → jeans
+      [/\bshose?\b/gi, 'shoes'],         // shose → shoes
+      [/\bsnikers?\b/gi, 'sneakers'],    // sniker/snikers → sneakers
+      [/\blaptap?\b/gi, 'laptop'],       // laptap → laptop
+      [/\blaptob?\b/gi, 'laptop'],       // laptob → laptop
+      [/\biphoen?\b/gi, 'iphone'],       // iphoen → iphone
+      [/\bbagg?s?\b/gi, 'bag'],          // bagg/baggs → bag
+      [/\bwach\b/gi, 'watch'],           // wach → watch
+      [/\btshirts?\b/gi, 'shirt'],       // tshirt → shirt
+    ]
+
+    // Apply typo corrections
+    for (const [pattern, replacement] of typoCorrections) {
+      normalized = normalized.replace(pattern, replacement)
+    }
+
+    return normalized
+  }
+
+  /**
    * Execute a safe parameterized query from structured filters
    */
   async executeQuery(filters: StructuredQueryFilters): Promise<QueryResult> {
@@ -36,7 +64,15 @@ export class SafeQueryExecutor {
       // Search terms - Each term must appear in at least one field (name, description, or brand)
       // This ensures ALL search terms are relevant to the product
       if (filters.searchTerms && filters.searchTerms.length > 0) {
-        filters.searchTerms.forEach(term => {
+        // Normalize search terms to fix typos (jaans → jeans, shose → shoes, etc.)
+        const normalizedTerms = filters.searchTerms.map(term => this.normalizeSearchTerm(term))
+
+        logger.info('🔍 Search terms normalized', {
+          original: filters.searchTerms,
+          normalized: normalizedTerms
+        })
+
+        normalizedTerms.forEach(term => {
           whereClause.AND!.push({
             OR: [
               { name: { contains: term, mode: 'insensitive' } },

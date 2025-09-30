@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/.ad16b8439f57461c771be6c12cb6d0149d261665-audit.json",
+    "files": [
+        {
+            "date": 1759237680655,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-09-30.log",
+            "hash": "ab23ca4fb27b236d33a67f2908c50242c89f113ad0ba1fac2e03eca103520699"
+        }
+    ],
+    "hashType": "sha256"
+}

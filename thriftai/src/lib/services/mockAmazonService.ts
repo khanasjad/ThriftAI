@@ -31,8 +31,8 @@ export class MockAmazonService {
   }
 
   /**
-   * Normalize search query to handle common variations
-   * Converts "tshirt" → "shirt", "smartphone" → "phone", etc.
+   * Normalize search query to handle common variations and typos
+   * Converts "tshirt" → "shirt", "smartphone" → "phone", "jaans" → "jeans", etc.
    */
   private normalizeQuery(query: string): string {
     let normalized = query.toLowerCase().trim()
@@ -45,8 +45,28 @@ export class MockAmazonService {
       [/\bmobilephones?\b/gi, 'phone'],
     ]
 
+    // Common typos and misspellings
+    const typoCorrections: [RegExp, string][] = [
+      [/\bjaans?\b/gi, 'jeans'],         // jaan/jaans → jeans
+      [/\bjeens?\b/gi, 'jeans'],         // jeen/jeens → jeans
+      [/\bshose?\b/gi, 'shoes'],         // shose → shoes
+      [/\bshose?s\b/gi, 'shoes'],        // shoses → shoes
+      [/\bsnikers?\b/gi, 'sneakers'],    // sniker/snikers → sneakers
+      [/\blaptap?\b/gi, 'laptop'],       // laptap → laptop
+      [/\blaptob?\b/gi, 'laptop'],       // laptob → laptop
+      [/\biphoen?\b/gi, 'iphone'],       // iphoen → iphone
+      [/\bbagg?s?\b/gi, 'bag'],          // bagg/baggs → bag
+      [/\bwach\b/gi, 'watch'],           // wach → watch
+      [/\bwatc?\b/gi, 'watch'],          // watc → watch
+    ]
+
     // Apply substitutions
     for (const [pattern, replacement] of substitutions) {
+      normalized = normalized.replace(pattern, replacement)
+    }
+
+    // Apply typo corrections
+    for (const [pattern, replacement] of typoCorrections) {
       normalized = normalized.replace(pattern, replacement)
     }
 

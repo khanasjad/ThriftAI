@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { structuredQueryGenerator } from '@/lib/services/structuredQueryGenerator'
 import { safeQueryExecutor } from '@/lib/services/safeQueryExecutor'
 import { aiProductScorer, type ProductData, type ScoreBreakdown } from '@/lib/services/aiProductScorer'
+import { generateOptimizedParams } from '@/lib/services/optimizedScoreParameters'
 import { logger } from '@/lib/logger'
 
 /**
@@ -109,58 +110,70 @@ export async function POST(request: NextRequest) {
     // Calculate AI scores for top products for comparison
     const topProducts = results.products.slice(0, 3)
     const scoredProducts = topProducts.map(p => {
-      // Convert product to scorer format
+      // Get product price and ID
+      const productPrice = p.price?.current || p.price || 0
+      const productId = p.id || p.asin || ''
+      const productCategory = p.category || structuredFilters.category || 'DEFAULT'
+
+      // Generate optimized parameters based on real database statistics
+      const optimizedParams = generateOptimizedParams(
+        productId,
+        productPrice,
+        productCategory,
+        p.price?.original || p.originalPrice
+      )
+
+      // Convert product to scorer format with optimized parameters
       const productData: ProductData = {
-        id: p.id || p.asin || '',
+        id: productId,
         name: p.name || p.title || '',
         description: p.description,
         brand: p.brand || p.specifications?.brand,
-        category: structuredFilters.category,
+        category: productCategory,
 
         // Pricing
-        price: p.price?.current || p.price || 0,
+        price: productPrice,
         originalPrice: p.price?.original || p.originalPrice,
         currency: p.price?.currency || 'USD',
 
-        // Seller info (vary based on product price to create differentiation)
-        sellerRating: p.sellerRating || (3.5 + (p.price?.current || p.price || 0) / 1000),
-        sellerTotalSales: p.sellerTotalSales || Math.floor((p.price?.current || p.price || 50) * 2),
-        sellerResponseTime: p.id ? (parseInt(p.id.slice(-1), 16) % 8) + 1 : 4,
+        // Seller info (from optimized params)
+        sellerRating: p.sellerRating || optimizedParams.sellerRating,
+        sellerTotalSales: p.sellerTotalSales || optimizedParams.sellerTotalSales,
+        sellerResponseTime: optimizedParams.sellerResponseTime,
 
-        // Product quality (vary based on price and other attributes)
+        // Product quality
         condition: p.condition || p.specifications?.condition || 'good',
-        hasWarranty: p.hasWarranty !== undefined ? p.hasWarranty : (p.price?.current || p.price || 0) > 100,
+        hasWarranty: p.hasWarranty !== undefined ? p.hasWarranty : optimizedParams.hasWarranty,
         isAuthentic: true,
         certifications: p.certifications || [],
 
-        // Reviews (create variation based on price and product attributes)
-        rating: p.rating || p.reviews?.rating || (3.0 + Math.min(2, (p.price?.current || p.price || 0) / 100)),
-        reviewCount: p.reviews?.count || p.reviewCount || Math.floor((p.price?.current || p.price || 0) / 5),
-        recentReviewCount: Math.min(10, p.reviews?.count || Math.floor((p.price?.current || p.price || 0) / 10)),
-        verifiedPurchaseRatio: 0.5 + Math.min(0.4, (p.price?.current || p.price || 0) / 500),
+        // Reviews (from optimized params based on price tier and category)
+        rating: p.rating || p.reviews?.rating || optimizedParams.rating,
+        reviewCount: p.reviews?.count || p.reviewCount || optimizedParams.reviewCount,
+        recentReviewCount: optimizedParams.recentReviewCount,
+        verifiedPurchaseRatio: optimizedParams.verifiedPurchaseRatio,
 
-        // Shipping (vary based on price and product ID)
-        shippingCost: p.shippingCost || ((p.price?.current || p.price || 0) < 50 ? 5 : 0),
-        estimatedDeliveryDays: p.estimatedDeliveryDays || (3 + (p.id ? parseInt(p.id.slice(-1), 16) % 5 : 2)),
-        hasFreeShipping: p.hasFreeShipping !== undefined ? p.hasFreeShipping : (p.price?.current || p.price || 0) > 50,
-        hasFastShipping: p.estimatedDeliveryDays ? p.estimatedDeliveryDays <= 2 : (p.price?.current || p.price || 0) > 100,
+        // Shipping (from optimized params)
+        shippingCost: p.shippingCost || optimizedParams.shippingCost,
+        estimatedDeliveryDays: p.estimatedDeliveryDays || optimizedParams.estimatedDeliveryDays,
+        hasFreeShipping: p.hasFreeShipping !== undefined ? p.hasFreeShipping : optimizedParams.hasFreeShipping,
+        hasFastShipping: optimizedParams.hasFastShipping,
         hasTracking: true,
-        returnPeriodDays: (p.price?.current || p.price || 0) > 75 ? 60 : 30,
-        hasFreeReturns: p.hasFreeReturns !== undefined ? p.hasFreeReturns : (p.price?.current || p.price || 0) > 75,
+        returnPeriodDays: optimizedParams.returnPeriodDays,
+        hasFreeReturns: p.hasFreeReturns !== undefined ? p.hasFreeReturns : optimizedParams.hasFreeReturns,
 
-        // Availability (create variation based on price and product attributes)
+        // Availability (from optimized params)
         inStock: p.availability?.inStock !== false,
-        stockLevel: p.availability?.quantity || (15 - (p.id ? parseInt(p.id.slice(-2), 16) % 12 : 5)),
-        // Use deterministic values based on product properties
-        viewsLast24h: Math.floor(50 + (p.price?.current || p.price || 0) * 0.5 + (p.id ? parseInt(p.id.slice(-1), 16) * 10 : 0)),
-        salesLast7Days: Math.floor(5 + (p.price?.current || p.price || 0) / 20),
-        cartAdditionsLast24h: Math.floor(3 + (p.price?.current || p.price || 0) / 30),
+        stockLevel: p.availability?.quantity || optimizedParams.stockLevel,
+        viewsLast24h: optimizedParams.viewsLast24h,
+        salesLast7Days: optimizedParams.salesLast7Days,
+        cartAdditionsLast24h: optimizedParams.cartAdditionsLast24h,
 
-        // Search relevance (vary based on product and price)
+        // Search relevance (from optimized params)
         searchQuery: query,
-        clickThroughRate: 0.02 + Math.min(0.08, (p.price?.current || p.price || 0) / 2000),
-        conversionRate: 0.01 + Math.min(0.04, (p.price?.current || p.price || 0) / 5000),
-        bounceRate: 0.5 - Math.min(0.3, (p.price?.current || p.price || 0) / 1000),
+        clickThroughRate: optimizedParams.clickThroughRate,
+        conversionRate: optimizedParams.conversionRate,
+        bounceRate: optimizedParams.bounceRate,
 
         // External factors
         hasExternalTraffic: false,
@@ -168,8 +181,8 @@ export async function POST(request: NextRequest) {
         sustainability: p.sustainability || false,
         madeInCountry: p.madeInCountry || undefined,
 
-        // Competition - use a stable market average based on the category/price range
-        marketAveragePrice: p.price?.current ? (p.price.current * 1.2) : (p.price ? p.price * 1.2 : 100)
+        // Competition (from optimized params - uses category averages)
+        marketAveragePrice: optimizedParams.marketAveragePrice
       }
 
       // Calculate AI score
