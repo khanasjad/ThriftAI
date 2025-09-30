@@ -150,10 +150,11 @@ model Buyer {
   lastOrderAt DateTime?
 
   // Relations
-  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders              Order[]
   cartItems           CartItem[]
   reviews             Review[]
+  swipeSessions       SwipeSession[]
   preferredCategories String[]
   preferredBrands     String[]
   preferredSizes      String[]
@@ -281,15 +282,17 @@ model Product {
   lastCartAddedAt DateTime?
 
   // Relations
-  sellerId    String?
-  seller      Seller?             @relation(fields: [sellerId], references: [id])
-  orderItems  OrderItem[]
-  cartItems   CartItem[]
-  reviews     Review[]
-  embedding   ProductEmbedding?
-  comparisons ProductComparison[]
-  analytics   ProductAnalytics[]
-  views       ProductView[]
+  sellerId      String?
+  seller        Seller?             @relation(fields: [sellerId], references: [id])
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+  reviews       Review[]
+  embedding     ProductEmbedding?
+  comparisons   ProductComparison[]
+  analytics     ProductAnalytics[]
+  views         ProductView[]
+  aiSummary     ProductAISummary?
+  swipeActions  SwipeAction[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -1046,4 +1049,117 @@ model UserSession {
   @@index([startedAt])
   @@index([convertedToSale])
   @@map("user_sessions")
+}
+
+// ========================================
+// SWIPE-TO-SHOP FEATURE
+// ========================================
+
+// AI-generated review summaries (cached for performance)
+model ProductAISummary {
+  id        String @id @default(cuid())
+  productId String @unique
+
+  // AI-generated summary (JSON format)
+  summary Json // { pros: string[], cons: string[], sentiment: string, aiScore: number, confidence: number }
+
+  // Metadata
+  reviewCount  Int     @default(0)
+  avgRating    Float?
+  cacheVersion String  @default("v1")
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([updatedAt])
+  @@map("product_ai_summaries")
+}
+
+// Swipe session tracking
+model SwipeSession {
+  id       String  @id @default(cuid())
+  userId   String?
+  buyerId  String?
+
+  // Session metadata
+  filters      Json // User preferences: { categories, priceRange, colors, styles, etc. }
+
+  // Engagement metrics
+  totalSwipes      Int @default(0)
+  totalLikes       Int @default(0)
+  totalSkips       Int @default(0)
+  totalViewDetails Int @default(0)
+
+  // Conversion
+  itemsAddedToCart Int     @default(0)
+  converted        Boolean @default(false)
+  totalSpent       Float   @default(0.0)
+
+  // Session timing
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  durationSeconds Int?
+
+  // Device info
+  deviceType String? // mobile, tablet, desktop
+  userAgent  String?
+
+  // Relations
+  buyer   Buyer?        @relation(fields: [buyerId], references: [id])
+  actions SwipeAction[]
+
+  @@index([userId])
+  @@index([buyerId])
+  @@index([startedAt])
+  @@index([converted])
+  @@map("swipe_sessions")
+}
+
+// Individual swipe actions for ML/personalization
+model SwipeAction {
+  id        String @id @default(cuid())
+  sessionId String
+  productId String
+
+  // Action details
+  action       SwipeActionType
+  cardPosition Int?            // Which card in the deck (1st, 2nd, etc.)
+  timeSpent    Int?            // Seconds spent viewing this card
+
+  // Context
+  swipeDirection String? // left, right, up (if used for other actions)
+  swipeVelocity  Float?  // Speed of swipe (for analytics)
+
+  // Engagement details
+  viewedDetails Boolean @default(false)
+  scrollDepth   Float?  // 0-1, how far user scrolled down
+
+  // Outcome
+  addedToCart Boolean @default(false)
+  purchased   Boolean @default(false)
+
+  // Relations
+  session SwipeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Timestamp
+  timestamp DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([productId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("swipe_actions")
+}
+
+enum SwipeActionType {
+  LIKE          // Swiped right
+  SKIP          // Swiped left
+  VIEW_DETAILS  // Scrolled down to see details
+  SUPER_LIKE    // Swiped up (potential future feature)
 }
