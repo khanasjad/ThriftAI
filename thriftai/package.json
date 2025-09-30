@@ -13,6 +13,7 @@
     "test:unit": "jest tests/unit",
     "test:integration": "jest tests/integration",
     "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:search": "npx tsx tests/run-search-validation.ts",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:reset": "npx prisma db push && npm run db:seed"
   },
