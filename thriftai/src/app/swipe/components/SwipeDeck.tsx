@@ -104,9 +104,11 @@ export function SwipeDeck({
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] lg:h-[876px] flex flex-col">
+    <div className="h-[calc(100vh-56px)] lg:h-[876px] flex flex-col" style={{
+      background: 'transparent'
+    }}>
       {/* Card Stack - Takes most space */}
-      <div className="flex-1 relative px-4 pt-2 pb-2">
+      <div className="flex-1 relative px-2 pt-2 pb-2">
         <AnimatePresence>
           {visibleCards.map((product, index) => {
             const isTop = index === 0

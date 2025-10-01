@@ -106,14 +106,16 @@ export function SwipeCard({
       )}
       flickOnSwipe={true}
     >
-      {/* Card - Instagram-Style Layout: Image Top, Content Below */}
+      {/* Card - Instagram-Style Layout with Floating Effect & Ambient Glow */}
       <div
         className="h-full w-full rounded-xl bg-white shadow-2xl overflow-hidden"
         style={{
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 10px rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 20px 60px rgba(102, 126, 234, 0.25), 0 8px 24px rgba(118, 75, 162, 0.15), 0 0 80px rgba(102, 126, 234, 0.1)',
           display: 'grid',
           gridTemplateRows: '450px 1fr',
-          position: 'relative'
+          position: 'relative',
+          transform: 'translateZ(0)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -136,10 +138,12 @@ export function SwipeCard({
         </div>
 
         {/* Image Section - Row 1 of grid (FIXED HEIGHT, NO ABSOLUTE POSITIONING) */}
-        <div className="w-full bg-white border-b-4 border-gray-300" style={{ gridRow: 1, height: '450px', overflow: 'hidden' }}>
+        <div className="w-full bg-white" style={{ gridRow: 1, height: '450px', overflow: 'hidden' }}>
           {/* Image frame with padding */}
-          <div className="w-full h-full p-3">
-            <div className="w-full h-full bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+          <div className="w-full h-full p-4">
+            <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl overflow-hidden flex items-center justify-center" style={{
+              boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.04)'
+            }}>
               <img
                 src={images[currentImageIndex]}
                 alt={product.name}
@@ -151,12 +155,14 @@ export function SwipeCard({
 
           {/* Discount Badge - Top Right (outside frame) */}
           {discount > 0 && (
-            <div className="absolute top-6 right-6 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg z-20">
+            <div className="absolute top-6 right-6 bg-gradient-to-br from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-2xl text-sm font-black shadow-2xl z-20 backdrop-blur-sm border border-white/20" style={{
+              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.35)'
+            }}>
               {discount}% OFF
             </div>
           )}
 
-          {/* Image Navigation Arrows (outside frame) */}
+          {/* Image Navigation Arrows (outside frame) - Modern 2025 Style */}
           {images.length > 1 && (
             <>
               {currentImageIndex > 0 && (
@@ -165,10 +171,21 @@ export function SwipeCard({
                     e.stopPropagation()
                     handlePrevImage()
                   }}
-                  className="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/90 transition-all z-20"
+                  className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-all z-20 border border-gray-200/50"
+                  style={{
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)'
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.16)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12)'
+                  }}
                   aria-label="Previous image"
                 >
-                  <ChevronLeft className="w-6 h-6 text-white" />
+                  <ChevronLeft className="w-6 h-6 text-gray-800" strokeWidth={2.5} />
                 </button>
               )}
 
@@ -178,10 +195,21 @@ export function SwipeCard({
                     e.stopPropagation()
                     handleNextImage()
                   }}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/90 transition-all z-20"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-all z-20 border border-gray-200/50"
+                  style={{
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)'
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.16)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12)'
+                  }}
                   aria-label="Next image"
                 >
-                  <ChevronRight className="w-6 h-6 text-white" />
+                  <ChevronRight className="w-6 h-6 text-gray-800" strokeWidth={2.5} />
                 </button>
               )}
             </>
@@ -222,25 +250,64 @@ export function SwipeCard({
               )}
             </div>
 
-            {/* Badges Row */}
+            {/* Badges Row - Modern 2025 Style */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
               {product.brand && (
-                <span style={{ padding: '6px 12px', backgroundColor: '#f3f4f6', fontSize: '0.875rem', fontWeight: '500', borderRadius: '8px', color: '#000000' }}>
+                <span style={{
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  borderRadius: '12px',
+                  color: '#000000',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                }}>
                   {product.brand}
                 </span>
               )}
               {product.condition && (
-                <span style={{ padding: '6px 12px', backgroundColor: '#eff6ff', fontSize: '0.875rem', fontWeight: '500', borderRadius: '8px', color: '#1e40af' }}>
+                <span style={{
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  borderRadius: '12px',
+                  color: '#1e40af',
+                  border: '1px solid #93c5fd',
+                  boxShadow: '0 2px 8px rgba(30, 64, 175, 0.1)'
+                }}>
                   {product.condition}
                 </span>
               )}
               {product.category && (
-                <span style={{ padding: '6px 12px', backgroundColor: '#f3f4f6', fontSize: '0.875rem', fontWeight: '500', borderRadius: '8px', color: '#000000' }}>
+                <span style={{
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  borderRadius: '12px',
+                  color: '#000000',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                }}>
                   {product.category}
                 </span>
               )}
               {product.rating && product.rating > 0 && (
-                <span style={{ padding: '6px 12px', backgroundColor: '#fef3c7', fontSize: '0.875rem', fontWeight: '500', borderRadius: '8px', color: '#b45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  borderRadius: '12px',
+                  color: '#b45309',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  border: '1px solid #fcd34d',
+                  boxShadow: '0 2px 8px rgba(180, 83, 9, 0.1)'
+                }}>
                   <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
                   {product.rating.toFixed(1)}
                 </span>

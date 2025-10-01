@@ -164,24 +164,63 @@ export default function SwipePage() {
   }
 
   return (
-    <div className="App">
-      <Navigation
-        user={appUser}
-        onShowLogin={() => setShowLoginModal(true)}
-        onShowSignup={() => setShowSignupModal(true)}
-        onLogout={handleSignOut}
-      />
+    <div className="App" style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Animated Gradient Mesh Background */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 0,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #667eea 100%)',
+        backgroundSize: '400% 400%',
+        animation: 'gradientShift 15s ease infinite',
+        opacity: 0.15
+      }} />
 
-      {/* Swipe Container */}
-      <div className="container py-5" style={{ minHeight: 'calc(100vh - 200px)' }}>
+      {/* Radial Gradient Overlay for Depth */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 0,
+        background: 'radial-gradient(ellipse at top, rgba(102, 126, 234, 0.1) 0%, rgba(255, 255, 255, 0) 50%)',
+        pointerEvents: 'none'
+      }} />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Navigation
+          user={appUser}
+          onShowLogin={() => setShowLoginModal(true)}
+          onShowSignup={() => setShowSignupModal(true)}
+          onLogout={handleSignOut}
+        />
+
+        {/* Swipe Container */}
+        <div className="container py-5" style={{ minHeight: 'calc(100vh - 200px)' }}>
         <div className="row justify-content-center">
           <div className="col-12 col-lg-8 col-xl-6">
-            {/* Header Section with Reset & Cart */}
+            {/* Header Section with Reset & Cart - Glass Morphism */}
             {!showWizard && (
-              <div className="d-flex align-items-center justify-content-between mb-4">
+              <div className="d-flex align-items-center justify-content-between mb-4" style={{
+                background: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '16px',
+                padding: '1.5rem',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                boxShadow: '0 8px 32px rgba(102, 126, 234, 0.1)'
+              }}>
                 <div>
                   <h1 className="mb-1" style={{fontSize: '2rem', fontWeight: 800}}>
-                    <span className="text-gradient-primary">Swipe</span> to Shop
+                    <span style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}>Swipe</span> to Shop
                   </h1>
                   <p className="text-secondary mb-0">Find your next treasure</p>
                 </div>
@@ -191,8 +230,26 @@ export default function SwipePage() {
                       resetSession()
                       setShowWizard(true)
                     }}
-                    className="btn btn-modern-secondary"
-                    style={{padding: '0.75rem 1rem'}}
+                    className="btn position-relative"
+                    style={{
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                      border: '1px solid #d1d5db',
+                      color: '#1f2937',
+                      fontWeight: '600',
+                      fontSize: '0.9rem',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)'
+                    }}
                     aria-label="Reset filters"
                   >
                     <RotateCcw className="w-4 h-4" style={{display: 'inline', marginRight: '0.5rem'}} />
@@ -200,14 +257,35 @@ export default function SwipePage() {
                   </button>
                   <button
                     onClick={toggleCart}
-                    className="btn btn-modern-primary position-relative"
-                    style={{padding: '0.75rem 1rem'}}
+                    className="btn position-relative"
+                    style={{
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontWeight: '600',
+                      fontSize: '0.9rem',
+                      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.4)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)'
+                    }}
                     aria-label="Liked items"
                   >
                     <ShoppingBag className="w-4 h-4" style={{display: 'inline', marginRight: '0.5rem'}} />
                     Likes
                     {likedProducts.length > 0 && (
-                      <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                      <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill" style={{
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                      }}>
                         {likedProducts.length}
                       </span>
                     )}
@@ -216,13 +294,12 @@ export default function SwipePage() {
               </div>
             )}
 
-            {/* Main Swipe Content - Tinder Style */}
+            {/* Main Swipe Content - Modern 2025 Style */}
             <div style={{
-              background: 'linear-gradient(180deg, #F5F7FA 0%, #C3CFE2 100%)',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              minHeight: '600px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+              background: 'transparent',
+              borderRadius: '0',
+              overflow: 'visible',
+              minHeight: '600px'
             }}>
           <AnimatePresence mode="wait">
             {/* Filter Wizard */}
@@ -299,20 +376,21 @@ export default function SwipePage() {
         </div>
       </div>
 
-      <Footer />
+        <Footer />
 
-      {/* Cart Drawer */}
-      <SwipeCart open={showCart} onClose={toggleCart} />
+        {/* Cart Drawer */}
+        <SwipeCart open={showCart} onClose={toggleCart} />
 
-      {/* Product Detail Modal */}
-      <ProductDetailModal
-        open={showProductDetail}
-        product={selectedProduct}
-        sessionId={sessionId}
-        onClose={closeProductDetail}
-        onLike={handleModalLike}
-        onSkip={handleModalSkip}
-      />
+        {/* Product Detail Modal */}
+        <ProductDetailModal
+          open={showProductDetail}
+          product={selectedProduct}
+          sessionId={sessionId}
+          onClose={closeProductDetail}
+          onLike={handleModalLike}
+          onSkip={handleModalSkip}
+        />
+      </div>
     </div>
   )
 }

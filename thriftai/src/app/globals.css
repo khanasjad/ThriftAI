@@ -2194,3 +2194,31 @@ button,
 .swipe-card-content * {
   color: inherit !important;
 }
+
+/* ============================================
+   Animated Gradient Background
+   ============================================ */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ============================================
+   FilterWizard Text Override
+   ============================================ */
+.filter-wizard-text-black {
+  color: #000000 !important;
+}
+
+.filter-wizard-text-black p,
+.filter-wizard-text-black div,
+.filter-wizard-text-black span {
+  color: #000000 !important;
+}
