@@ -149,7 +149,17 @@ Output: {
   "confidence": 0.9
 }
 
-IMPORTANT: For broad queries (tech, electronics, shoes, bags, clothing), include ALL relevant sub-categories from AVAILABLE_CATEGORIES. Don't arbitrarily exclude categories.
+Example 3 - Specific product type:
+Input: "mobile"
+Output: {
+  "searchTerms": ["phone", "smartphone", "mobile", "cell"],
+  "categories": ["SMARTPHONES"],  // ONLY smartphones, NOT laptops or other electronics
+  "sortBy": "relevance",
+  "intent": "User wants mobile phones/smartphones",
+  "confidence": 0.95
+}
+
+IMPORTANT: For broad queries (tech, electronics, shoes, bags, clothing), include ALL relevant sub-categories from AVAILABLE_CATEGORIES. For SPECIFIC product types (mobile, laptop, dress), be precise and only include the exact matching category. Don't arbitrarily exclude categories.
 
 Input: "cheap"
 Output: {

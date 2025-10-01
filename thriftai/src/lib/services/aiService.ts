@@ -273,8 +273,13 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
   static async searchProducts(query: string, budget?: number): Promise<SearchResult[]> {
     console.log('🔍 Search query:', query)
 
+    // Detect category-specific queries
+    const categoryFilter = this.detectCategoryFromQuery(query)
+    console.log('🎯 Category filter detected:', categoryFilter)
+
     // First try exact word boundary matches using PostgreSQL word boundary operators
     const escapedQuery = query.replace(/'/g, "''") // Escape single quotes for SQL
+    const categoryCondition = categoryFilter ? `AND "category" = '${categoryFilter}'` : ''
     const wordBoundarySQL = `
       SELECT "id", "name", "price", "originalPrice", "brand", "category", "condition", "imageUrl", "sellerId", "isAvailable"
       FROM "products"
@@ -285,6 +290,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
         "brand" ~* '\\m${escapedQuery}\\M' OR
         "category" ~* '\\m${escapedQuery}\\M'
       )
+      ${categoryCondition}
       ${budget ? `AND "price" <= ${budget}` : ''}
       ORDER BY "price" ASC, "createdAt" DESC
       LIMIT 20
@@ -337,6 +343,11 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
         { brand: { contains: query, mode: 'insensitive' } },
         { category: { contains: query, mode: 'insensitive' } }
       ]
+    }
+
+    // Apply category filter if detected
+    if (categoryFilter) {
+      where.category = categoryFilter
     }
 
     if (budget) {
@@ -401,6 +412,43 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
         rating: p.seller.rating
       } : undefined
     }))
+  }
+
+  /**
+   * Detect category from search query
+   * Maps query keywords to specific product categories
+   */
+  private static detectCategoryFromQuery(query: string): string | null {
+    const queryLower = query.toLowerCase().trim()
+
+    // Category keyword mappings
+    const categoryMappings: Record<string, string[]> = {
+      'SMARTPHONES': ['mobile', 'phone', 'smartphone', 'cellphone', 'mobile phone', 'cell phone', 'iphone', 'android phone'],
+      'LAPTOPS': ['laptop', 'notebook', 'macbook', 'chromebook'],
+      'TABLETS': ['tablet', 'ipad'],
+      'SMARTWATCHES': ['smartwatch', 'smart watch', 'apple watch', 'watch'],
+      'HEADPHONES': ['headphones', 'headset', 'earbuds', 'earphones', 'airpods'],
+      'CAMERAS': ['camera', 'dslr', 'mirrorless'],
+      'MENS_SHIRTS': ['mens shirt', 'men shirt', 'mens shirts'],
+      'MENS_JEANS': ['mens jeans', 'men jeans'],
+      'MENS_PANTS': ['mens pants', 'men pants'],
+      'WOMENS_TOPS': ['womens top', 'women top', 'womens tops'],
+      'WOMENS_JEANS': ['womens jeans', 'women jeans'],
+      'WOMENS_DRESSES': ['dress', 'womens dress', 'women dress', 'dresses'],
+      'BASKETBALL_SHOES': ['basketball shoes', 'basketball shoe', 'basketball sneakers'],
+      'RUNNING_SHOES': ['running shoes', 'running shoe', 'runners'],
+    }
+
+    // Check for exact matches or keyword matches
+    for (const [category, keywords] of Object.entries(categoryMappings)) {
+      for (const keyword of keywords) {
+        if (queryLower === keyword || queryLower.includes(keyword)) {
+          return category
+        }
+      }
+    }
+
+    return null
   }
 
   /**

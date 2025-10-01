@@ -9,7 +9,7 @@ import LoginModal from '@/components/LoginModal'
 import SignupModal from '@/components/SignupModal'
 import ProductFilters, { ProductFiltersState } from '@/components/ProductFilters'
 import Pagination, { QuickJumpPagination } from '@/components/Pagination'
-import ComparisonTableWidget from '@/components/ComparisonTableWidget'
+import EnhancedComparisonTable from '@/components/EnhancedComparisonTable'
 import ChatSidebar from '@/components/ChatSidebar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -614,7 +614,7 @@ export default function SearchResults() {
             {/* AI-Powered Marketplace Comparison - Only show when we have database results */}
             {!loading && searchResults?.products && searchResults.products.length > 0 && searchResults.comparisonData?.topProducts && searchResults.comparisonData.topProducts.length > 0 && (
               <div className="mb-6">
-                <ComparisonTableWidget
+                <EnhancedComparisonTable
                   topProducts={searchResults.comparisonData.topProducts}
                   insights={searchResults.comparisonData.insights}
                   onProductClick={(product) => {
