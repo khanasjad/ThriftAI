@@ -219,6 +219,14 @@ export class SafeQueryExecutor {
         const currentPrice = p.price?.current || p.price || 0
         const originalPrice = p.price?.original || p.originalPrice || currentPrice
 
+        // Parse AI scoring fields (use Prisma camelCase field names)
+        const aiScore = p.aiScore ? parseFloat(p.aiScore.toString()) : undefined
+        const aiConfidence = p.aiConfidence ? parseFloat(p.aiConfidence.toString()) : undefined
+        const isHighQuality = aiScore && aiScore >= 70 // Threshold for high quality
+        const globalRank = p.globalRank ? Number(p.globalRank) : undefined
+        const categoryRank = p.categoryRank ? Number(p.categoryRank) : undefined
+        const leaderboardRank = globalRank || categoryRank
+
         return {
           ...p,
           images: p.images || (p.imageUrl ? [p.imageUrl] : ['/placeholder-image.jpg']),
@@ -236,7 +244,15 @@ export class SafeQueryExecutor {
             current: currentPrice,
             original: originalPrice,
             currency: p.price?.currency || 'USD'
-          }
+          },
+          // AI Scoring fields for frontend
+          aiScore,
+          aiConfidence,
+          isHighQuality,
+          leaderboardRank,
+          aiScoreBreakdown: p.aiScoreBreakdown,
+          lastScoredAt: p.lastScoredAt,
+          leaderboardBadges: p.leaderboardBadges || []
         }
       })
 

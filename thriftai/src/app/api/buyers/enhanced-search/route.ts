@@ -107,7 +107,19 @@ export async function POST(request: NextRequest) {
       totalPages: results.totalPages
     })
 
-    // Calculate AI scores for top products for comparison
+    // Calculate AI insights from scored products in database
+    const productsWithAIScores = results.products.filter(p => p.aiScore !== undefined && p.aiScore !== null)
+    const averageScore = productsWithAIScores.length > 0
+      ? productsWithAIScores.reduce((sum, p) => sum + (p.aiScore || 0), 0) / productsWithAIScores.length
+      : undefined
+    const highQualityCount = productsWithAIScores.filter(p => p.isHighQuality).length
+    const priceIntentDetected = !!(structuredFilters.minPrice || structuredFilters.maxPrice)
+    const priceRange = priceIntentDetected ? {
+      min: structuredFilters.minPrice || 0,
+      max: structuredFilters.maxPrice || Infinity
+    } : undefined
+
+    // Calculate AI scores for top products for comparison (legacy compatibility)
     const topProducts = results.products.slice(0, 3)
     const scoredProducts = topProducts.map(p => {
       // Get product price and ID
@@ -225,7 +237,13 @@ export async function POST(request: NextRequest) {
         aiInsights: {
           intent: structuredFilters.intent,
           confidence: structuredFilters.confidence,
-          needsClarification: structuredFilters.needsClarification
+          needsClarification: structuredFilters.needsClarification,
+          // NEW: Add 96-parameter AI scoring insights
+          averageScore,
+          highQualityCount,
+          priceIntentDetected,
+          priceRange,
+          totalScored: productsWithAIScores.length
         },
         sorting: {
           field: structuredFilters.sortBy,

@@ -272,6 +272,67 @@ model Product {
   trendingScore   Float @default(0.0)
   relevanceScore  Float @default(0.0)
 
+  // ========================================
+  // 96-PARAMETER AI SCORING SYSTEM
+  // ========================================
+
+  // AI Score (0-100) - Calculated from 96 parameters
+  aiScore          Float?    @map("ai_score")
+  aiScoreBreakdown Json?     @map("ai_score_breakdown") // Detailed component scores
+  aiConfidence     Float?    @map("ai_confidence") // 0-1 confidence in score
+  lastScoredAt     DateTime? @map("last_scored_at")
+
+  // Vector Embedding for Semantic Search (1536 dimensions)
+  // Using Unsupported type for pgvector compatibility
+  embedding Unsupported("vector(1536)")?
+
+  // Company-Level Parameters (25 params) - Stored as JSON
+  companyMetrics Json? @map("company_metrics")
+  // Structure:
+  // {
+  //   stockPrice: number,
+  //   stockPerformance30d: number,
+  //   stockPerformance1y: number,
+  //   marketCap: number,
+  //   revenueGrowth: number,
+  //   profitMargin: number,
+  //   debtToEquity: number,
+  //   creditRating: string,
+  //   rdInvestment: number,
+  //   newProductLaunchRate: number,
+  //   patentCount: number,
+  //   marketShare: number,
+  //   industryAwards: number,
+  //   esgScore: number,
+  //   carbonFootprint: number,
+  //   renewableEnergy: number,
+  //   wasteDiversion: number,
+  //   waterEfficiency: number,
+  //   supplierSustainability: number,
+  //   circularEconomy: number,
+  //   fairLabor: number,
+  //   diversityInclusion: number,
+  //   communityInvestment: number,
+  //   legalViolations: number,
+  //   productRecallRate: number
+  // }
+
+  // Dynamic Product-Specific Parameters (25 params) - Stored as JSON
+  dynamicSpecs Json? @map("dynamic_specs")
+  // Structure varies by category:
+  // Electronics: { cpu, ram, storage, screen, battery, camera, connectivity, os, waterproof, gpu }
+  // Clothing: { fabric, sizeAccuracy, careInstructions, colorFastness }
+  // Shoes: { soleMaterial, cushioning, weight, breathability }
+  // Home: { materialSafety, capacity, insulation, dishwasherSafe }
+  // Sports: { durability, weatherResistance }
+  // Universal: { aiDetectedFeatures: string[] }
+
+  // Leaderboard Rankings (updated periodically)
+  globalRank     Int? @map("global_rank")
+  categoryRank   Int? @map("category_rank")
+  priceTierRank  Int? @map("price_tier_rank")
+  leaderboardBadges String[] @default([]) @map("leaderboard_badges") // ["Best Value", "Eco-Friendly", etc.]
+
   // Search Optimization
   searchKeywords String[] @default([])
   tags           String[] @default([])
@@ -280,6 +341,7 @@ model Product {
   lastViewedAt    DateTime?
   lastPurchasedAt DateTime?
   lastCartAddedAt DateTime?
+  embeddingUpdatedAt DateTime? @map("embedding_updated_at")
 
   // Relations
   sellerId      String?
@@ -287,7 +349,7 @@ model Product {
   orderItems    OrderItem[]
   cartItems     CartItem[]
   reviews       Review[]
-  embedding     ProductEmbedding?
+  legacyEmbedding ProductEmbedding? @relation("LegacyEmbedding")
   comparisons   ProductComparison[]
   analytics     ProductAnalytics[]
   views         ProductView[]
@@ -312,7 +374,7 @@ model Product {
   @@index([category, brand, isAvailable])
   @@index([name])
   @@index([sellerId])
-  // New indexes for performance
+  // Existing indexes
   @@index([popularityScore])
   @@index([trendingScore])
   @@index([qualityScore])
@@ -320,6 +382,12 @@ model Product {
   @@index([hasFreeShipping])
   @@index([lastViewedAt])
   @@index([viewCount])
+  // New 96-parameter system indexes
+  @@index([aiScore(sort: Desc)]) // For leaderboard
+  @@index([globalRank])
+  @@index([categoryRank])
+  @@index([category, aiScore(sort: Desc)]) // Category leaderboard
+  @@index([price, aiScore(sort: Desc)]) // Price tier leaderboard
   @@map("products")
 }
 
@@ -331,7 +399,7 @@ model ProductEmbedding {
   needsUpdate          Boolean @default(false)
 
   // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation("LegacyEmbedding", fields: [productId], references: [id], onDelete: Cascade)
 
   // Timestamps
   createdAt DateTime @default(now())

@@ -49,6 +49,11 @@ interface Product {
     color?: string
     condition?: string
   }
+  // NEW: AI Scoring fields
+  aiScore?: number
+  aiConfidence?: number
+  isHighQuality?: boolean
+  leaderboardRank?: number
 }
 
 interface SearchResponse {
@@ -71,6 +76,13 @@ interface SearchResponse {
   comparisonData?: {
     topProducts: any[]
     insights: any
+  }
+  // NEW: AI Scoring insights
+  aiInsights?: {
+    averageScore?: number
+    highQualityCount?: number
+    priceIntentDetected?: boolean
+    priceRange?: { min: number; max: number }
   }
 }
 
@@ -362,6 +374,7 @@ export default function SearchResults() {
   const renderProduct = (product: Product, index: number) => {
     const discount = product.price.discountPercentage
     const savings = product.price.original - product.price.current
+    const hasAIScore = product.aiScore !== undefined && product.aiScore !== null
 
     return (
       <div key={product.asin} className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
@@ -380,6 +393,28 @@ export default function SearchResults() {
           {!product.availability.inStock && (
             <div className="product-out-of-stock">
               <span>Out of Stock</span>
+            </div>
+          )}
+          {/* NEW: AI Score Badge */}
+          {hasAIScore && (
+            <div className="absolute top-2 left-2 flex flex-col gap-1">
+              <div className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                product.aiScore! >= 80 ? 'bg-green-600' :
+                product.aiScore! >= 60 ? 'bg-blue-600' :
+                product.aiScore! >= 40 ? 'bg-yellow-600' : 'bg-gray-600'
+              }`}>
+                AI Score: {product.aiScore!.toFixed(0)}
+              </div>
+              {product.isHighQuality && (
+                <div className="px-2 py-1 rounded-md text-xs font-semibold bg-purple-600">
+                  ⭐ Top Quality
+                </div>
+              )}
+              {product.leaderboardRank && product.leaderboardRank <= 100 && (
+                <div className="px-2 py-1 rounded-md text-xs font-semibold bg-orange-600">
+                  #{product.leaderboardRank} Global
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -592,6 +627,61 @@ export default function SearchResults() {
 
             {searchResults?.products && searchResults.products.length > 0 ? (
               <>
+                {/* AI Scoring Insights Banner - NEW 96-parameter system */}
+                {searchResults.metadata?.aiInsights?.totalScored && searchResults.metadata.aiInsights.totalScored > 0 && (
+                  <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-700 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">🎯</div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-purple-300 mb-2">AI Quality Insights (96-Parameter Scoring)</h3>
+                        <p className="text-sm text-purple-200 mb-3">
+                          {searchResults.metadata.aiInsights.totalScored} of {searchResults.metadata.total} products have been analyzed with our advanced AI scoring system:
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                          {searchResults.metadata.aiInsights.averageScore !== undefined && (
+                            <div className="bg-purple-800/20 rounded-lg p-3 border border-purple-700/50">
+                              <div className="text-xs text-purple-400 mb-1">Average Score</div>
+                              <div className="text-lg font-semibold text-purple-200">
+                                {searchResults.metadata.aiInsights.averageScore.toFixed(1)}/100
+                              </div>
+                            </div>
+                          )}
+                          {searchResults.metadata.aiInsights.highQualityCount !== undefined && (
+                            <div className="bg-purple-800/20 rounded-lg p-3 border border-purple-700/50">
+                              <div className="text-xs text-purple-400 mb-1">High Quality</div>
+                              <div className="text-lg font-semibold text-purple-200">
+                                {searchResults.metadata.aiInsights.highQualityCount} products
+                              </div>
+                            </div>
+                          )}
+                          {searchResults.metadata.aiInsights.priceIntentDetected && searchResults.metadata.aiInsights.priceRange && (
+                            <div className="bg-purple-800/20 rounded-lg p-3 border border-purple-700/50">
+                              <div className="text-xs text-purple-400 mb-1">Price Range</div>
+                              <div className="text-sm font-semibold text-purple-200">
+                                ${searchResults.metadata.aiInsights.priceRange.min.toFixed(0)} - ${searchResults.metadata.aiInsights.priceRange.max === Infinity ? '∞' : searchResults.metadata.aiInsights.priceRange.max.toFixed(0)}
+                              </div>
+                            </div>
+                          )}
+                          <div className="bg-purple-800/20 rounded-lg p-3 border border-purple-700/50">
+                            <div className="text-xs text-purple-400 mb-1">AI Analysis</div>
+                            <div className="text-xs font-semibold text-purple-200">
+                              96 parameters
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs text-purple-300">
+                          <span className="px-2 py-1 bg-purple-800/30 rounded">✓ Quality scored</span>
+                          <span className="px-2 py-1 bg-purple-800/30 rounded">✓ Company metrics</span>
+                          <span className="px-2 py-1 bg-purple-800/30 rounded">✓ Leaderboard ranked</span>
+                          {searchResults.metadata.aiInsights.priceIntentDetected && (
+                            <span className="px-2 py-1 bg-purple-800/30 rounded">✓ Price intent detected</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* AI Smart Search Banner - shown when displaying marketplace products */}
                 {searchResults.comparisonData && !searchResults.metadata.fromDatabase && (
                   <div className="mb-6 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700 rounded-lg">
