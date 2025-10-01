@@ -2163,3 +2163,34 @@ button,
 .empty-state-description {
   color: var(--text-tertiary);
 }
+
+/* ============================================
+   Tinder-style Swipe Indicators
+   ============================================ */
+.swipe-like-indicator {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.swipe-nope-indicator {
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Show indicators when swiping */
+[data-swipe-direction="right"] .swipe-like-indicator {
+  opacity: 1 !important;
+}
+
+[data-swipe-direction="left"] .swipe-nope-indicator {
+  opacity: 1 !important;
+}
+
+/* ============================================
+   Swipe Card Content Override
+   ============================================ */
+.swipe-card-content {
+  color: #000000 !important;
+}
+
+.swipe-card-content * {
+  color: inherit !important;
+}

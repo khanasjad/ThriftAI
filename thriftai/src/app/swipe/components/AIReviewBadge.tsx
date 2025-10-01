@@ -85,7 +85,7 @@ export function AIReviewBadge({ productId, className, onExpand }: AIReviewBadgeP
       {/* Collapsed Badge */}
       <motion.button
         onClick={handleExpand}
-        className="w-full flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full font-semibold transition-all shadow-lg"
+        className="w-full flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-full font-semibold transition-all shadow-lg"
         whileTap={{ scale: 0.95 }}
       >
         <Sparkles className="w-4 h-4" />
@@ -112,7 +112,7 @@ export function AIReviewBadge({ productId, className, onExpand }: AIReviewBadgeP
               {/* Loading State */}
               {isLoading && (
                 <div className="flex flex-col items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 text-purple-600 animate-spin mb-2" />
+                  <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-2" />
                   <p className="text-gray-600 text-sm">Analyzing reviews with AI...</p>
                 </div>
               )}
@@ -123,7 +123,7 @@ export function AIReviewBadge({ productId, className, onExpand }: AIReviewBadgeP
                   <p className="text-red-600 text-sm">{error}</p>
                   <button
                     onClick={fetchSummary}
-                    className="mt-2 text-purple-600 text-sm font-semibold hover:underline"
+                    className="mt-2 text-emerald-600 text-sm font-semibold hover:underline"
                   >
                     Try Again
                   </button>
@@ -162,8 +162,8 @@ export function AIReviewBadge({ productId, className, onExpand }: AIReviewBadgeP
                         />
                         <defs>
                           <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#9333ea" />
-                            <stop offset="100%" stopColor="#ec4899" />
+                            <stop offset="0%" stopColor="#10b981" />
+                            <stop offset="100%" stopColor="#06d6a0" />
                           </linearGradient>
                         </defs>
                       </svg>
@@ -205,7 +205,7 @@ export function AIReviewBadge({ productId, className, onExpand }: AIReviewBadgeP
                         </div>
                         <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
                           <motion.div
-                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400"
                             initial={{ width: 0 }}
                             animate={{ width: `${summary.confidence * 100}%` }}
                             transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -269,7 +269,7 @@ export function AIReviewBadge({ productId, className, onExpand }: AIReviewBadgeP
 
                   {/* AI Badge */}
                   <div className="flex items-center justify-center gap-2 pt-4 border-t border-gray-200">
-                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
                     <span className="text-xs text-gray-500">
                       Powered by Claude AI • Updated {new Date().toLocaleDateString()}
                     </span>

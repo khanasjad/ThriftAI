@@ -39,26 +39,26 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
   return (
     <Drawer.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col bg-white rounded-t-3xl max-h-[90vh]">
+        <Drawer.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40" />
+        <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col bg-gray-900 rounded-t-[2rem] max-h-[90vh] border-t border-gray-800/50 shadow-2xl">
           {/* Handle */}
           <div className="flex items-center justify-center py-4">
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+            <div className="w-14 h-1.5 bg-gray-700 rounded-full" />
           </div>
 
           {/* Header */}
-          <div className="px-6 pb-4 border-b border-gray-200">
+          <div className="px-6 pb-5 border-b border-gray-800/50">
             <Drawer.Title className="sr-only">
               Liked Items Cart - {likedProducts.length} {likedProducts.length === 1 ? 'item' : 'items'}
             </Drawer.Title>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                  <Heart className="w-6 h-6 text-white fill-white" />
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-emerald-500/30">
+                  <Heart className="w-7 h-7 text-white fill-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Liked Items</h2>
-                  <p className="text-sm text-gray-600">
+                  <h2 className="text-2xl font-black text-white tracking-tight">Liked Items</h2>
+                  <p className="text-sm text-gray-400 font-semibold">
                     {likedProducts.length} {likedProducts.length === 1 ? 'item' : 'items'}
                   </p>
                 </div>
@@ -66,10 +66,10 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
 
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-800/80 rounded-full transition-all hover:scale-110"
                 aria-label="Close"
               >
-                <X className="w-6 h-6 text-gray-600" />
+                <X className="w-6 h-6 text-gray-400" strokeWidth={2.5} />
               </button>
             </div>
           </div>
@@ -84,25 +84,25 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="flex flex-col items-center justify-center py-12 text-center"
+                  className="flex flex-col items-center justify-center py-16 text-center"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                    className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mb-6"
+                    className="w-28 h-28 bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-xl rounded-full flex items-center justify-center mb-8 border border-gray-700/30 shadow-2xl"
                   >
-                    <ShoppingCart className="w-12 h-12 text-purple-600" />
+                    <ShoppingCart className="w-14 h-14 text-emerald-500" strokeWidth={2} />
                   </motion.div>
 
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">No liked items yet</h3>
-                  <p className="text-gray-600 mb-6 max-w-sm">
+                  <h3 className="text-2xl font-black text-white mb-3 tracking-tight">No liked items yet</h3>
+                  <p className="text-gray-400 mb-8 max-w-sm font-medium">
                     Start swiping right on products you love to add them here!
                   </p>
 
                   <button
                     onClick={onClose}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
+                    className="px-10 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-2xl font-bold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-2xl shadow-emerald-500/40 hover:shadow-emerald-500/60"
                   >
                     Start Swiping
                   </button>
@@ -118,13 +118,13 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: -100 }}
                       transition={{ delay: index * 0.05 }}
-                      className="group relative bg-white border-2 border-gray-200 rounded-2xl p-4 hover:border-purple-300 hover:shadow-lg transition-all"
+                      className="group relative bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-[1.25rem] p-4 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all"
                     >
                       <div className="flex gap-4">
                         {/* Product Image */}
                         <button
                           onClick={() => handleViewProduct(product.id)}
-                          className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100"
+                          className="relative w-24 h-24 flex-shrink-0 rounded-2xl overflow-hidden bg-gray-900 shadow-lg"
                         >
                           <Image
                             src={product.images[0] || '/placeholder-image.jpg'}
@@ -136,7 +136,7 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
 
                           {/* Discount Badge */}
                           {product.originalPrice && product.originalPrice > product.price && (
-                            <div className="absolute top-1 right-1 bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            <div className="absolute top-1 right-1 bg-gradient-to-br from-orange-500 to-red-500 text-white text-xs font-black px-2 py-1 rounded-full shadow-lg">
                               {calculateDiscount(product.originalPrice, product.price)}% OFF
                             </div>
                           )}
@@ -148,22 +148,22 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
                             onClick={() => handleViewProduct(product.id)}
                             className="text-left w-full"
                           >
-                            <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-purple-600 transition-colors">
+                            <h3 className="font-bold text-white line-clamp-2 group-hover:text-emerald-400 transition-colors tracking-tight">
                               {product.name}
                             </h3>
 
                             {/* Brand */}
                             {product.brand && (
-                              <p className="text-sm text-gray-500 mt-1">{product.brand}</p>
+                              <p className="text-sm text-gray-400 mt-1 font-semibold">{product.brand}</p>
                             )}
 
                             {/* Price */}
                             <div className="flex items-baseline gap-2 mt-2">
-                              <span className="text-lg font-bold text-gray-900">
+                              <span className="text-xl font-black text-white tracking-tight">
                                 {formatPrice(product.price)}
                               </span>
                               {product.originalPrice && product.originalPrice > product.price && (
-                                <span className="text-sm text-gray-400 line-through">
+                                <span className="text-sm text-gray-500 line-through font-bold">
                                   {formatPrice(product.originalPrice)}
                                 </span>
                               )}
@@ -174,10 +174,10 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
                         {/* Remove Button */}
                         <button
                           onClick={() => removeFromLiked(product.id)}
-                          className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                          className="flex-shrink-0 p-2 text-gray-500 hover:text-red-500 hover:bg-red-950/50 rounded-full transition-all hover:scale-110"
                           aria-label="Remove from liked items"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-5 h-5" strokeWidth={2.5} />
                         </button>
                       </div>
                     </motion.div>
@@ -189,12 +189,12 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
 
           {/* Footer */}
           {likedProducts.length > 0 && (
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div className="px-6 py-5 bg-gray-900/95 backdrop-blur-xl border-t border-gray-800/50">
               {/* Summary */}
-              <div className="mb-4 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="font-semibold text-gray-900">
+              <div className="mb-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 font-semibold">Subtotal</span>
+                  <span className="font-black text-white text-lg tracking-tight">
                     {formatPrice(totalPrice)}
                   </span>
                 </div>
@@ -203,13 +203,13 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between text-sm"
+                    className="flex items-center justify-between"
                   >
-                    <span className="text-green-600 flex items-center gap-1">
+                    <span className="text-green-500 flex items-center gap-1.5 font-bold">
                       <Sparkles className="w-4 h-4" />
                       Total Savings
                     </span>
-                    <span className="font-semibold text-green-600">
+                    <span className="font-black text-green-500 text-lg tracking-tight">
                       -{formatPrice(totalSavings)}
                     </span>
                   </motion.div>
@@ -224,22 +224,22 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
                       clearLiked()
                     }
                   }}
-                  className="flex-shrink-0 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-100 transition-colors"
+                  className="flex-shrink-0 px-5 py-4 bg-gray-800/80 backdrop-blur-xl border border-gray-700/50 text-gray-300 rounded-2xl font-bold hover:bg-gray-700/80 transition-all shadow-lg"
                 >
                   Clear All
                 </button>
 
                 <button
                   onClick={handleCheckout}
-                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-2xl font-bold hover:from-emerald-600 hover:to-cyan-600 transition-all flex items-center justify-center gap-2 shadow-2xl shadow-emerald-500/40"
                 >
                   <span>Add to Cart</span>
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
                 </button>
               </div>
 
               {/* Additional Info */}
-              <p className="text-xs text-gray-500 text-center mt-3">
+              <p className="text-xs text-gray-500 text-center mt-4 font-semibold">
                 Items will be added to your cart for checkout
               </p>
             </div>

@@ -38,6 +38,8 @@ interface SwipeStore {
   isLoading: boolean
   showFilters: boolean
   showCart: boolean
+  showProductDetail: boolean
+  selectedProduct: SwipeProduct | null
 
   // Actions
   setSessionId: (id: string) => void
@@ -50,6 +52,8 @@ interface SwipeStore {
   toggleCart: () => void
   removeFromLiked: (productId: string) => void
   clearLiked: () => void
+  openProductDetail: (product: SwipeProduct) => void
+  closeProductDetail: () => void
 }
 
 export const useSwipeStore = create<SwipeStore>()(
@@ -64,6 +68,8 @@ export const useSwipeStore = create<SwipeStore>()(
       isLoading: false,
       showFilters: false,
       showCart: false,
+      showProductDetail: false,
+      selectedProduct: null,
 
       // Actions
       setSessionId: (id) => set({ sessionId: id }),
@@ -106,7 +112,9 @@ export const useSwipeStore = create<SwipeStore>()(
         currentIndex: 0,
         likedProducts: [],
         showFilters: false,
-        showCart: false
+        showCart: false,
+        showProductDetail: false,
+        selectedProduct: null
       }),
 
       toggleFilters: () => set((state) => ({ showFilters: !state.showFilters })),
@@ -117,7 +125,17 @@ export const useSwipeStore = create<SwipeStore>()(
         likedProducts: state.likedProducts.filter(p => p.id !== productId)
       })),
 
-      clearLiked: () => set({ likedProducts: [] })
+      clearLiked: () => set({ likedProducts: [] }),
+
+      openProductDetail: (product) => set({
+        showProductDetail: true,
+        selectedProduct: product
+      }),
+
+      closeProductDetail: () => set({
+        showProductDetail: false,
+        selectedProduct: null
+      })
     }),
     {
       name: 'swipe-storage', // Storage key

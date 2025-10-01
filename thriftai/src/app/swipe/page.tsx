@@ -2,15 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSession, signOut } from 'next-auth/react'
+import Navigation from '@/components/Navigation'
+import Footer from '@/components/Footer'
 import { FilterWizard } from './components/FilterWizard'
 import { SwipeDeck } from './components/SwipeDeck'
 import { SwipeCart } from './components/SwipeCart'
+import { ProductDetailModal } from './components/ProductDetailModal'
 import { useSwipeStore, SwipeFilters } from '@/lib/stores/swipeStore'
-import { ShoppingBag, RotateCcw } from 'lucide-react'
+import { ShoppingBag, RotateCcw, Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function SwipePage() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const {
     sessionId,
     filters,
@@ -20,6 +25,8 @@ export default function SwipePage() {
     isLoading,
     showFilters,
     showCart,
+    showProductDetail,
+    selectedProduct,
     setSessionId,
     setFilters,
     setProducts,
@@ -27,31 +34,27 @@ export default function SwipePage() {
     swipeRight,
     toggleFilters,
     toggleCart,
-    resetSession
+    resetSession,
+    openProductDetail,
+    closeProductDetail
   } = useSwipeStore()
 
   const [showWizard, setShowWizard] = useState(!sessionId)
   const [initError, setInitError] = useState<string | null>(null)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showSignupModal, setShowSignupModal] = useState(false)
 
-  // Override parent dark mode styles for swipe page
-  useEffect(() => {
-    const styleEl = document.createElement('style')
-    styleEl.id = 'swipe-page-styles'
-    styleEl.textContent = `
-      html, body {
-        background: #f9fafb !important;
-        color: #111827 !important;
-      }
-      h1, h2, h3, h4, h5, h6, p, div, span {
-        color: inherit !important;
-      }
-    `
-    document.head.appendChild(styleEl)
+  // Adapt the user object to match what Navigation expects
+  const appUser = session?.user ? {
+    id: session.user.id || '',
+    email: session.user.email || '',
+    firstName: session.user.firstName || session.user.name || '',
+    lastName: session.user.lastName || ''
+  } : null
 
-    return () => {
-      document.getElementById('swipe-page-styles')?.remove()
-    }
-  }, [])
+  const handleSignOut = () => {
+    signOut()
+  }
 
   // Initialize session with filters
   const initializeSession = async (selectedFilters: SwipeFilters) => {
@@ -127,7 +130,7 @@ export default function SwipePage() {
     swipeRight(product)
   }
 
-  // Handle view details
+  // Handle view details - Open modal instead of navigating
   const handleViewDetails = (product: any) => {
     if (!sessionId) return
 
@@ -143,128 +146,173 @@ export default function SwipePage() {
       })
     }).catch(console.error)
 
-    // Navigate to product details
-    router.push(`/products/${product.id}`)
+    // Open product detail modal
+    openProductDetail(product)
+  }
+
+  // Handle modal actions
+  const handleModalLike = (product: any) => {
+    recordSwipeAction(product.id, 'LIKE', currentIndex)
+    swipeRight(product)
+  }
+
+  const handleModalSkip = () => {
+    if (products[currentIndex]) {
+      recordSwipeAction(products[currentIndex].id, 'SKIP', currentIndex)
+      swipeLeft()
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center lg:p-8">
-      {/* Responsive Container: Full screen on mobile, phone mockup on desktop */}
-      <div className="w-full h-screen lg:w-[430px] lg:h-[932px] lg:max-h-[95vh] bg-white lg:rounded-[50px] shadow-none lg:shadow-2xl overflow-hidden relative flex flex-col">
+    <div className="App">
+      <Navigation
+        user={appUser}
+        onShowLogin={() => setShowLoginModal(true)}
+        onShowSignup={() => setShowSignupModal(true)}
+        onLogout={handleSignOut}
+      />
 
-        {/* Minimalist Top Bar - Fixed */}
-        <header className="absolute top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
-          <div className="flex items-center justify-between h-14 px-4">
-            {/* Left: Reset Button */}
+      {/* Swipe Container */}
+      <div className="container py-5" style={{ minHeight: 'calc(100vh - 200px)' }}>
+        <div className="row justify-content-center">
+          <div className="col-12 col-lg-8 col-xl-6">
+            {/* Header Section with Reset & Cart */}
             {!showWizard && (
-              <button
-                onClick={() => {
-                  resetSession()
-                  setShowWizard(true)
-                }}
-                className="p-2 hover:bg-gray-50 rounded-full transition-colors"
-                aria-label="Reset filters"
-              >
-                <RotateCcw className="w-5 h-5 text-gray-600" />
-              </button>
-            )}
-
-            {/* Center: Logo */}
-            <div className="absolute left-1/2 -translate-x-1/2">
-              <h1 className="text-lg font-bold bg-gradient-to-r from-pink-500 to-orange-500 bg-clip-text text-transparent">
-                Swipe
-              </h1>
-            </div>
-
-            {/* Right: Cart Button */}
-            {!showWizard && (
-              <button
-                onClick={toggleCart}
-                className="relative p-2 hover:bg-gray-50 rounded-full transition-colors"
-                aria-label="Liked items"
-              >
-                <ShoppingBag className="w-5 h-5 text-gray-600" />
-                {likedProducts.length > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center"
+              <div className="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                  <h1 className="mb-1" style={{fontSize: '2rem', fontWeight: 800}}>
+                    <span className="text-gradient-primary">Swipe</span> to Shop
+                  </h1>
+                  <p className="text-secondary mb-0">Find your next treasure</p>
+                </div>
+                <div className="d-flex gap-2">
+                  <button
+                    onClick={() => {
+                      resetSession()
+                      setShowWizard(true)
+                    }}
+                    className="btn btn-modern-secondary"
+                    style={{padding: '0.75rem 1rem'}}
+                    aria-label="Reset filters"
                   >
-                    {likedProducts.length}
-                  </motion.span>
-                )}
-              </button>
+                    <RotateCcw className="w-4 h-4" style={{display: 'inline', marginRight: '0.5rem'}} />
+                    Reset
+                  </button>
+                  <button
+                    onClick={toggleCart}
+                    className="btn btn-modern-primary position-relative"
+                    style={{padding: '0.75rem 1rem'}}
+                    aria-label="Liked items"
+                  >
+                    <ShoppingBag className="w-4 h-4" style={{display: 'inline', marginRight: '0.5rem'}} />
+                    Likes
+                    {likedProducts.length > 0 && (
+                      <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                        {likedProducts.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
             )}
-          </div>
-        </header>
 
-        {/* Main Content */}
-        <main className="pt-14">
+            {/* Main Swipe Content - Tinder Style */}
+            <div style={{
+              background: 'linear-gradient(180deg, #F5F7FA 0%, #C3CFE2 100%)',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              minHeight: '600px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+            }}>
           <AnimatePresence mode="wait">
             {/* Filter Wizard */}
             {showWizard && (
               <FilterWizard onComplete={initializeSession} onSkip={handleSkipWizard} />
             )}
 
-            {/* Loading State */}
-            {isLoading && !showWizard && (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center justify-center h-[calc(100vh-56px)] lg:h-[876px]"
-              >
-                <div className="text-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                    className="w-12 h-12 border-3 border-gray-200 border-t-pink-500 rounded-full mx-auto mb-4"
-                  />
-                  <p className="text-gray-500 text-sm font-medium">Loading...</p>
-                </div>
-              </motion.div>
-            )}
+              {/* Loading State */}
+              {isLoading && !showWizard && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="d-flex align-items-center justify-content-center"
+                  style={{minHeight: '600px'}}
+                >
+                  <div className="text-center">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                      style={{
+                        width: '64px',
+                        height: '64px',
+                        border: '4px solid rgba(255, 255, 255, 0.1)',
+                        borderTop: '4px solid var(--accent-primary)',
+                        borderRadius: '50%',
+                        margin: '0 auto 1.5rem'
+                      }}
+                    />
+                    <p className="text-accent" style={{fontSize: '1.125rem', fontWeight: 600}}>Loading amazing deals...</p>
+                  </div>
+                </motion.div>
+              )}
 
-            {/* Error State */}
-            {initError && !showWizard && (
-              <motion.div
-                key="error"
-                className="flex items-center justify-center h-[calc(100vh-56px)] lg:h-[876px] px-6"
-              >
-                <div className="text-center">
-                  <div className="text-4xl mb-4">😕</div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Oops!</h2>
-                  <p className="text-gray-600 text-sm mb-6">{initError}</p>
-                  <button
-                    onClick={() => {
-                      setInitError(null)
-                      setShowWizard(true)
-                    }}
-                    className="px-6 py-3 bg-gradient-to-r from-pink-500 to-orange-500 text-white rounded-full font-semibold transition-all active:scale-95 shadow-lg"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              </motion.div>
-            )}
+              {/* Error State */}
+              {initError && !showWizard && (
+                <motion.div
+                  key="error"
+                  className="d-flex align-items-center justify-content-center px-4"
+                  style={{minHeight: '600px'}}
+                >
+                  <div className="text-center">
+                    <div className="mb-4" style={{fontSize: '4rem'}}>😕</div>
+                    <h2 className="mb-3" style={{fontSize: '1.875rem', fontWeight: 800}}>Oops!</h2>
+                    <p className="text-secondary mb-4" style={{fontSize: '1.125rem', maxWidth: '400px'}}>{initError}</p>
+                    <button
+                      onClick={() => {
+                        setInitError(null)
+                        setShowWizard(true)
+                      }}
+                      className="btn btn-modern-primary"
+                      style={{padding: '1rem 2.5rem', fontSize: '1.125rem', fontWeight: 700}}
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </motion.div>
+              )}
 
-            {/* Swipe Deck */}
-            {!showWizard && !isLoading && !initError && products.length > 0 && (
-              <SwipeDeck
-                products={products}
-                currentIndex={currentIndex}
-                onSwipeLeft={handleSwipeLeft}
-                onSwipeRight={handleSwipeRight}
-                onViewDetails={handleViewDetails}
-              />
-            )}
-          </AnimatePresence>
-        </main>
-
-        {/* Cart Drawer */}
-        <SwipeCart open={showCart} onClose={toggleCart} />
+              {/* Swipe Deck */}
+              {!showWizard && !isLoading && !initError && products.length > 0 && (
+                <SwipeDeck
+                  products={products}
+                  currentIndex={currentIndex}
+                  onSwipeLeft={handleSwipeLeft}
+                  onSwipeRight={handleSwipeRight}
+                  onViewDetails={handleViewDetails}
+                />
+              )}
+            </AnimatePresence>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <Footer />
+
+      {/* Cart Drawer */}
+      <SwipeCart open={showCart} onClose={toggleCart} />
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        open={showProductDetail}
+        product={selectedProduct}
+        sessionId={sessionId}
+        onClose={closeProductDetail}
+        onLike={handleModalLike}
+        onSkip={handleModalSkip}
+      />
     </div>
   )
 }

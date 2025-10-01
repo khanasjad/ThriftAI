@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import DynamicContent from './DynamicContent';
 
 interface HeroSectionProps {
@@ -7,6 +8,7 @@ interface HeroSectionProps {
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) => {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isVisualLoading, setIsVisualLoading] = useState(false);
@@ -71,8 +73,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
   };
 
   const showTrending = () => {
-    setDynamicContentType('trending');
-    setShowDynamicContent(true);
+    router.push('/swipe');
   };
 
   const showPriceComparison = () => {

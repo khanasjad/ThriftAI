@@ -11,7 +11,7 @@ interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number | { current: number; original?: number; currency?: string };
   originalPrice?: number;
   category: string;
 }
@@ -27,6 +27,19 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
     brand: ''
   });
 
+  // Helper function to extract price value
+  const getPrice = (price: number | { current: number; original?: number; currency?: string }): number => {
+    return typeof price === 'number' ? price : price.current;
+  };
+
+  const getOriginalPrice = (product: Product): number | undefined => {
+    if (product.originalPrice) return product.originalPrice;
+    if (typeof product.price === 'object' && product.price.original) {
+      return product.price.original;
+    }
+    return undefined;
+  };
+
   useEffect(() => {
     if (type === 'recommendations' || type === 'trending') {
       loadData();
@@ -38,16 +51,20 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
     setLoading(true);
     try {
       let endpoint = '';
+      let queryData: any = {};
+
       if (type === 'recommendations') {
-        endpoint = '/buyers/api/recommendations';
+        endpoint = '/api/buyers/enhanced-search';
+        queryData = { query: 'popular items' };
       } else if (type === 'trending') {
-        endpoint = '/buyers/api/advanced-search?trending=true';
+        endpoint = '/api/buyers/enhanced-search';
+        queryData = { query: 'trending items' };
       }
 
-      const response = await axios.get(endpoint);
+      const response = await axios.post(endpoint, queryData);
       if (response.data) {
-        if (type === 'recommendations') {
-          setProducts(response.data);
+        if (type === 'recommendations' && response.data.products) {
+          setProducts(response.data.products);
         } else if (type === 'trending' && response.data.products) {
           setProducts(response.data.products);
         }
@@ -171,25 +188,29 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
       {loading ? (
         <p><i className="fas fa-spinner fa-spin me-2"></i>Loading recommendations...</p>
       ) : products.length > 0 ? (
-        products.slice(0, 6).map((product, index) => (
-          <div key={index} className="product-card-mini">
-            <div className="row align-items-center">
-              <div className="col-md-8">
-                <h6 className="text-light mb-1">{product.name}</h6>
-                <p className="text-muted small mb-1">{product.description}</p>
-                <span className="text-primary fw-bold">${product.price}</span>
-                {product.originalPrice && product.originalPrice > product.price && (
-                  <span className="text-muted text-decoration-line-through ms-2">
-                    ${product.originalPrice}
-                  </span>
-                )}
-              </div>
-              <div className="col-md-4 text-end">
-                <button className="btn-modern-secondary btn-sm">View</button>
+        products.slice(0, 6).map((product, index) => {
+          const currentPrice = getPrice(product.price);
+          const originalPrice = getOriginalPrice(product);
+          return (
+            <div key={index} className="product-card-mini">
+              <div className="row align-items-center">
+                <div className="col-md-8">
+                  <h6 className="text-light mb-1">{product.name}</h6>
+                  <p className="text-muted small mb-1">{product.description}</p>
+                  <span className="text-primary fw-bold">${currentPrice.toFixed(2)}</span>
+                  {originalPrice && originalPrice > currentPrice && (
+                    <span className="text-muted text-decoration-line-through ms-2">
+                      ${originalPrice.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                <div className="col-md-4 text-end">
+                  <button className="btn-modern-secondary btn-sm">View</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))
+          );
+        })
       ) : (
         <p className="text-muted">No recommendations available at the moment.</p>
       )}
@@ -205,22 +226,25 @@ const DynamicContent: React.FC<DynamicContentProps> = ({ type, onHide, onSearch 
       {loading ? (
         <p><i className="fas fa-spinner fa-spin me-2"></i>Loading trending items...</p>
       ) : products.length > 0 ? (
-        products.slice(0, 10).map((product, index) => (
-          <div key={index} className="trend-item">
-            <div className="trend-number">{index + 1}</div>
-            <div className="flex-grow-1">
-              <h6 className="text-light mb-1">{product.name}</h6>
-              <span className="text-primary fw-bold">${product.price}</span>
-              <span className="text-muted ms-2">{product.category}</span>
+        products.slice(0, 10).map((product, index) => {
+          const currentPrice = getPrice(product.price);
+          return (
+            <div key={index} className="trend-item">
+              <div className="trend-number">{index + 1}</div>
+              <div className="flex-grow-1">
+                <h6 className="text-light mb-1">{product.name}</h6>
+                <span className="text-primary fw-bold">${currentPrice.toFixed(2)}</span>
+                <span className="text-muted ms-2">{product.category}</span>
+              </div>
+              <button
+                className="btn-modern-secondary btn-sm"
+                onClick={() => onSearch(product.name)}
+              >
+                Search Similar
+              </button>
             </div>
-            <button
-              className="btn-modern-secondary btn-sm"
-              onClick={() => onSearch(product.name)}
-            >
-              Search Similar
-            </button>
-          </div>
-        ))
+          );
+        })
       ) : (
         <p className="text-muted">No trending items available at the moment.</p>
       )}

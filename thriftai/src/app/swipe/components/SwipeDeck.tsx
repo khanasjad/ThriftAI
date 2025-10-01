@@ -1,9 +1,10 @@
 'use client'
 
+import { useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SwipeCard } from './SwipeCard'
 import { SwipeProduct } from '@/lib/stores/swipeStore'
-import { Heart, X } from 'lucide-react'
+import { Heart, X, Star, RotateCcw, Zap } from 'lucide-react'
 import { vibrate } from '@/lib/utils/cn'
 
 interface SwipeDeckProps {
@@ -14,6 +15,12 @@ interface SwipeDeckProps {
   onViewDetails: (product: SwipeProduct) => void
 }
 
+// TinderCard API type
+interface TinderCardAPI {
+  swipe(dir?: 'left' | 'right' | 'up' | 'down'): Promise<void>
+  restoreCard(): Promise<void>
+}
+
 export function SwipeDeck({
   products,
   currentIndex,
@@ -21,8 +28,11 @@ export function SwipeDeck({
   onSwipeRight,
   onViewDetails
 }: SwipeDeckProps) {
-  // Show 2 cards at a time for better performance
-  const visibleCards = products.slice(currentIndex, currentIndex + 2)
+  // Show 1 card at a time
+  const visibleCards = products.slice(currentIndex, currentIndex + 1)
+
+  // Refs for TinderCard instances - one for each visible card
+  const cardRefs = useRef<(TinderCardAPI | null)[]>([])
 
   const handleSwipeLeft = (product: SwipeProduct) => {
     onSwipeLeft(product)
@@ -34,7 +44,32 @@ export function SwipeDeck({
     vibrate([10, 50])
   }
 
-  // No more products
+  // Programmatic swipe via button
+  const triggerSwipe = async (direction: 'left' | 'right') => {
+    if (visibleCards.length > 0 && cardRefs.current[0]) {
+      try {
+        await cardRefs.current[0].swipe(direction)
+      } catch (error) {
+        console.error('Swipe error:', error)
+      }
+    }
+  }
+
+  const handleButtonSwipeLeft = () => {
+    if (visibleCards.length > 0) {
+      handleSwipeLeft(visibleCards[0])
+      triggerSwipe('left')
+    }
+  }
+
+  const handleButtonSwipeRight = () => {
+    if (visibleCards.length > 0) {
+      handleSwipeRight(visibleCards[0])
+      triggerSwipe('right')
+    }
+  }
+
+  // No more products - Tinder style
   if (visibleCards.length === 0) {
     return (
       <div className="h-[calc(100vh-56px)] lg:h-[876px] flex items-center justify-center px-6">
@@ -43,23 +78,23 @@ export function SwipeDeck({
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            className="mb-6"
+            className="mb-8"
           >
-            <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-orange-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
-              <Heart className="w-10 h-10 text-white fill-white" />
+            <div className="w-24 h-24 bg-gradient-to-br from-[#44D362] to-[#3FB854] rounded-full flex items-center justify-center mx-auto shadow-lg">
+              <Heart className="w-12 h-12 text-white fill-white" />
             </div>
           </motion.div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold text-gray-800 mb-3">
             That's all for now!
           </h2>
-          <p className="text-gray-600 mb-6">
-            Check your likes or try new filters
+          <p className="text-gray-600 mb-8 text-base">
+            Check back later for more matches
           </p>
 
           <button
             onClick={() => window.location.reload()}
-            className="px-8 py-3 bg-gradient-to-r from-pink-500 to-orange-500 text-white rounded-full font-bold transition-all active:scale-95 shadow-lg"
+            className="px-10 py-4 bg-gradient-to-r from-[#44D362] to-[#3FB854] text-white rounded-full font-semibold transition-all active:scale-95 shadow-lg hover:shadow-xl"
           >
             Start Over
           </button>
@@ -102,51 +137,14 @@ export function SwipeDeck({
                   onViewDetails={() => onViewDetails(product)}
                   index={cardIndex}
                   active={isTop}
+                  cardRef={(el) => {
+                    cardRefs.current[index] = el
+                  }}
                 />
               </motion.div>
             )
           })}
         </AnimatePresence>
-      </div>
-
-      {/* Fixed Bottom Action Buttons - Symmetric 2-Button Layout */}
-      <div className="pb-safe px-6 py-6 bg-white">
-        <div className="flex items-center justify-center gap-6">
-          {/* Pass Button */}
-          <motion.button
-            whileTap={{ scale: 0.85 }}
-            onClick={() => {
-              if (visibleCards.length > 0) {
-                handleSwipeLeft(visibleCards[0])
-              }
-            }}
-            className="w-16 h-16 rounded-full bg-white shadow-xl flex items-center justify-center border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 transition-all"
-            aria-label="Pass"
-          >
-            <X className="w-8 h-8 text-red-500 stroke-[2.5]" />
-          </motion.button>
-
-          {/* Like Button */}
-          <motion.button
-            whileTap={{ scale: 0.85 }}
-            onClick={() => {
-              if (visibleCards.length > 0) {
-                handleSwipeRight(visibleCards[0])
-              }
-            }}
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 shadow-2xl flex items-center justify-center hover:scale-105 transition-all"
-            aria-label="Like"
-          >
-            <Heart className="w-8 h-8 text-white fill-white stroke-[2]" />
-          </motion.button>
-        </div>
-
-        {/* Progress Text */}
-        <div className="text-center mt-4">
-          <p className="text-xs text-gray-400 font-medium">
-            {currentIndex + 1} of {products.length}
-          </p>
-        </div>
       </div>
     </div>
   )
