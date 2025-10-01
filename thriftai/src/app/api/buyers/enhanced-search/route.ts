@@ -52,18 +52,22 @@ export async function POST(request: NextRequest) {
 
     // STEP 1: Generate structured query from natural language using Claude
     logger.info('📝 Generating structured query with Claude...')
-    const structuredFilters = await structuredQueryGenerator.generateQuery(query)
+    logger.info(query)
+
+    // Import prisma for dynamic category fetching
+    const { prisma } = await import('@/lib/prisma')
+    const structuredFilters = await structuredQueryGenerator.generateQuery(query, prisma)
 
     logger.info('✅ Structured query generated', {
       searchTerms: structuredFilters.searchTerms,
-      category: structuredFilters.category,
+      categories: structuredFilters.categories,
       confidence: structuredFilters.confidence,
       intent: structuredFilters.intent,
       needsClarification: !!structuredFilters.needsClarification
     })
 
     // Merge with any manual filters from UI
-    if (filters.category) structuredFilters.category = filters.category
+    if (filters.category) structuredFilters.categories = [filters.category]
     if (filters.minPrice !== undefined) structuredFilters.minPrice = filters.minPrice
     if (filters.maxPrice !== undefined) structuredFilters.maxPrice = filters.maxPrice
     if (filters.brands && Array.isArray(filters.brands)) {
@@ -125,7 +129,7 @@ export async function POST(request: NextRequest) {
       // Get product price and ID
       const productPrice = p.price?.current || p.price || 0
       const productId = p.id || p.asin || ''
-      const productCategory = p.category || structuredFilters.category || 'DEFAULT'
+      const productCategory = p.category || structuredFilters.categories?.[0] || 'DEFAULT'
 
       // Generate optimized parameters based on real database statistics
       const optimizedParams = generateOptimizedParams(
@@ -226,7 +230,7 @@ export async function POST(request: NextRequest) {
         query: query,
         appliedFilters: {
           searchTerms: structuredFilters.searchTerms,
-          category: structuredFilters.category,
+          categories: structuredFilters.categories,
           priceRange: {
             min: structuredFilters.minPrice,
             max: structuredFilters.maxPrice

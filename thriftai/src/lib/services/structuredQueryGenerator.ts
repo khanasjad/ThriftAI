@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { logger } from '@/lib/logger'
-import { productConfig } from '@/lib/config/productConfig'
 
 /**
  * Structured query filters that Claude generates
@@ -11,7 +10,7 @@ export interface StructuredQueryFilters {
   searchTerms: string[]  // Keywords to search for
 
   // Filters - dynamically typed based on database configuration
-  category?: string  // Dynamic categories from configuration
+  categories?: string[]  // CHANGED: Now array of categories for broader matching
   minPrice?: number
   maxPrice?: number
   brands?: string[]
@@ -43,6 +42,7 @@ INTELLIGENT QUERY UNDERSTANDING:
    - "Find vintage designer bags" → Primary: bags/handbag/purse
    - "red nike shoes" → Primary: shoe/sneaker
    - "gaming laptop under 1000" → Primary: laptop/computer
+   - "best tech deals" → Primary: tech/electronics (laptops, phones, tablets, headphones, etc.)
 
 2. Extract MODIFIERS (attributes they care about)
    - Style: vintage, modern, classic, retro
@@ -64,25 +64,26 @@ SMART SEARCH TERM GENERATION:
 - DON'T include filler words (find, looking, for, the, a, an, some)
 
 CATEGORY DETECTION:
-Intelligently map to ONE of these categories based on product type:
-- ELECTRONICS (phones, laptops, tablets, cameras, headphones, gaming, tech)
-- CLOTHING (shirts, pants, jackets, dresses, sweaters, hoodies, tops)
-- SHOES (sneakers, boots, sandals, heels, loafers, athletic)
-- ACCESSORIES (bags, purses, wallets, watches, jewelry, sunglasses, belts, hats)
-- HOME (furniture, decor, kitchen, bedding, appliances)
-- BOOKS (novels, textbooks, ebooks, magazines)
-- SPORTS (fitness, gym, athletic, outdoor, exercise equipment)
-- TOYS (games, puzzles, action figures, dolls)
-- BEAUTY (makeup, skincare, perfume, cosmetics)
-- AUTOMOTIVE (car parts, accessories, tools)
+You will be provided with AVAILABLE_CATEGORIES from the database.
+Your task is to intelligently map the user's query to the most relevant categories.
 
-If unsure, omit category - let database search all categories.
+Rules:
+1. Return categories as ARRAY: "categories": ["CATEGORY1", "CATEGORY2", ...]
+2. Use semantic understanding to match user intent to category names
+3. Consider product type, context, and modifiers to select the RIGHT categories
+4. For broad queries (like "tech", "bags", "shoes"), include ALL relevant sub-categories
+5. For specific queries (like "designer handbag", "running shoes"), be more selective
+6. Pay attention to context clues: "designer bags" likely means fashion accessories, not hiking backpacks
+7. ONLY use categories from the provided AVAILABLE_CATEGORIES list
+8. When in doubt, include multiple related categories rather than being too restrictive
 
 PRICE INTELLIGENCE:
-- "cheap" / "affordable" / "budget" → maxPrice: 100
-- "under $X" → maxPrice: X
-- "expensive" / "premium" / "luxury" → minPrice: 200
-- Specific price mentioned → Use that as constraint
+Extract price constraints from user's natural language:
+- "cheap" / "affordable" / "budget" → set reasonable maxPrice
+- "under $X" / "less than $X" → maxPrice: X
+- "expensive" / "premium" / "luxury" → set reasonable minPrice
+- "$X to $Y" → minPrice: X, maxPrice: Y
+- Use your judgment for what's "reasonable" based on product context
 
 BRAND DETECTION:
 Extract any brand names mentioned (Nike, Apple, Gucci, etc.) into brands array.
@@ -102,8 +103,8 @@ SORT INTELLIGENCE:
 
 RESPONSE FORMAT (JSON only, no other text):
 {
-  "searchTerms": ["bag", "handbag", "purse", "vintage", "designer"],
-  "category": "ACCESSORIES",
+  "searchTerms": ["keyword1", "keyword2", "synonym1"],
+  "categories": ["CATEGORY_FROM_AVAILABLE_LIST"],
   "minPrice": null,
   "maxPrice": null,
   "brands": [],
@@ -111,8 +112,8 @@ RESPONSE FORMAT (JSON only, no other text):
   "sortBy": "relevance",
   "sortDirection": "desc",
   "limit": 20,
-  "intent": "User wants vintage designer bags",
-  "confidence": 0.95
+  "intent": "Clear description of what user wants",
+  "confidence": 0.0-1.0
 }
 
 If query is too vague or ambiguous:
@@ -125,27 +126,30 @@ If query is too vague or ambiguous:
 
 Examples:
 
+Example 1 - Specific product with price:
 Input: "Find me vintage designer bags under $200"
 Output: {
-  "searchTerms": ["vintage", "handbag", "luxury"],
-  "category": "ACCESSORIES",
+  "searchTerms": ["vintage", "designer", "handbag", "purse", "luxury"],
+  "categories": ["WOMENS_ACCESSORIES", "MENS_ACCESSORIES"],  // Based on AVAILABLE_CATEGORIES
   "maxPrice": 200,
   "sortBy": "relevance",
-  "limit": 20,
   "intent": "User wants vintage designer bags under $200",
   "confidence": 0.95
 }
 
-Input: "I need a laptop for coding under $700"
+Example 2 - Broad category query:
+Input: "Best tech deals under $100"
 Output: {
-  "searchTerms": ["laptop", "coding", "programming"],
-  "category": "ELECTRONICS",
-  "maxPrice": 700,
-  "sortBy": "relevance",
-  "limit": 20,
-  "intent": "User needs a programming laptop under $700",
+  "searchTerms": ["tech", "electronics"],
+  "categories": ["LAPTOPS", "SMARTPHONES", "TABLETS", "SMARTWATCHES", "HEADPHONES", "CAMERAS", "GAMING_CONSOLES", "KEYBOARDS", "MICE", "MONITORS"],  // ALL tech categories from AVAILABLE_CATEGORIES
+  "maxPrice": 100,
+  "sortBy": "price",
+  "sortDirection": "asc",
+  "intent": "User wants affordable tech/electronics under $100",
   "confidence": 0.9
 }
+
+IMPORTANT: For broad queries (tech, electronics, shoes, bags, clothing), include ALL relevant sub-categories from AVAILABLE_CATEGORIES. Don't arbitrarily exclude categories.
 
 Input: "cheap"
 Output: {
@@ -160,6 +164,9 @@ Be intelligent and extract as much structured data as possible from the user's m
 export class StructuredQueryGenerator {
   private anthropic: Anthropic | null = null
   private isAvailable: boolean = false
+  private categoriesCache: string[] = []
+  private categoriesCacheTime: number = 0
+  private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
   constructor() {
     const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY
@@ -180,10 +187,39 @@ export class StructuredQueryGenerator {
   }
 
   /**
+   * Get available categories from database (with caching)
+   */
+  async getAvailableCategories(prisma: any): Promise<string[]> {
+    const now = Date.now()
+
+    // Return cached if still valid
+    if (this.categoriesCache.length > 0 && (now - this.categoriesCacheTime) < this.CACHE_TTL) {
+      return this.categoriesCache
+    }
+
+    try {
+      const categories = await prisma.product.groupBy({
+        by: ['category'],
+        _count: { category: true }
+      })
+
+      this.categoriesCache = categories.map((c: any) => c.category)
+      this.categoriesCacheTime = now
+
+      logger.info(`📊 Fetched ${this.categoriesCache.length} categories from database`)
+      return this.categoriesCache
+    } catch (error) {
+      logger.error('Error fetching categories', { error })
+      return []
+    }
+  }
+
+  /**
    * Generate structured query filters from natural language
    */
   async generateQuery(
     userMessage: string,
+    prisma: any,
     conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<StructuredQueryFilters> {
     if (!this.isAvailable || !this.anthropic) {
@@ -192,7 +228,13 @@ export class StructuredQueryGenerator {
     }
 
     try {
-      logger.info('🤖 Generating structured query with Claude', { message: userMessage })
+      // Get available categories dynamically
+      const availableCategories = await this.getAvailableCategories(prisma)
+
+      logger.info('🤖 Generating structured query with Claude', {
+        message: userMessage,
+        categoriesCount: availableCategories.length
+      })
 
       // Build conversation context
       const messages: Anthropic.MessageParam[] = []
@@ -204,9 +246,15 @@ export class StructuredQueryGenerator {
         })))
       }
 
+      // Inject available categories into the prompt
       messages.push({
         role: 'user',
-        content: `Generate structured database filters for this query: "${userMessage}"\n\nReturn ONLY valid JSON, no other text.`
+        content: `Generate structured database filters for this query: "${userMessage}"
+
+AVAILABLE_CATEGORIES in the database:
+${availableCategories.join(', ')}
+
+Return ONLY valid JSON, no other text.`
       })
 
       const response = await this.anthropic.messages.create({
@@ -233,9 +281,14 @@ export class StructuredQueryGenerator {
 
       logger.info('✅ Structured query generated successfully', {
         searchTerms: filters.searchTerms,
-        category: filters.category,
-        confidence: filters.confidence
+        categories: filters.categories,
+        categoriesCount: filters.categories?.length || 0,
+        confidence: filters.confidence,
+        rawClaudeResponse: jsonMatch[0]
       })
+
+      // No post-processing - trust Claude AI completely
+      // All intelligence comes from the system prompt and available categories from database
 
       return filters
     } catch (error) {
@@ -247,117 +300,43 @@ export class StructuredQueryGenerator {
   }
 
   /**
-   * Fallback query generation using smart pattern matching when Claude is unavailable
-   * Mimics Claude's intelligence with basic NLP
+   * Minimal fallback when Claude is unavailable
+   * NO HARDCODING - just extract basic words and let database handle the rest
    */
   private async fallbackGeneration(message: string): Promise<StructuredQueryFilters> {
     const normalized = message.toLowerCase().trim()
-    const searchTerms: string[] = []
 
-    logger.warn('⚠️ Using fallback query generation (Claude API not configured)', { query: message })
+    logger.warn('⚠️ Using minimal fallback (Claude API not configured)', { query: message })
 
-    // Remove filler words
+    // Remove common filler words only
     const fillerWords = ['find', 'looking', 'for', 'show', 'me', 'i', 'want', 'need', 'the', 'a', 'an', 'some', 'get', 'buy']
     const words = normalized.split(/\s+/).filter(w => w.length > 2 && !fillerWords.includes(w))
 
-    // Product type detection (basic patterns)
-    const productTypePatterns: Record<string, { keywords: string[]; category: string; synonyms: string[] }> = {
-      'bag': { keywords: ['bag', 'bags', 'handbag', 'handbags', 'purse', 'purses', 'backpack', 'tote'], category: 'ACCESSORIES', synonyms: ['bag', 'handbag', 'purse'] },
-      'shoe': { keywords: ['shoe', 'shoes', 'sneaker', 'sneakers', 'boot', 'boots'], category: 'SHOES', synonyms: ['shoe', 'sneaker'] },
-      'shirt': { keywords: ['shirt', 'shirts', 'tshirt', 't-shirt', 'top'], category: 'CLOTHING', synonyms: ['shirt'] },
-      'jeans': { keywords: ['jeans', 'denim'], category: 'CLOTHING', synonyms: ['jeans'] },
-      'phone': { keywords: ['phone', 'phones', 'iphone', 'smartphone'], category: 'ELECTRONICS', synonyms: ['phone'] },
-      'laptop': { keywords: ['laptop', 'laptops', 'computer', 'macbook'], category: 'ELECTRONICS', synonyms: ['laptop'] },
-      'watch': { keywords: ['watch', 'watches'], category: 'ACCESSORIES', synonyms: ['watch'] },
-      'car': { keywords: ['car', 'cars', 'vehicle', 'auto'], category: 'AUTOMOTIVE', synonyms: ['car'] },
-    }
-
-    // Detect product type
-    let detectedProduct: { category: string; synonyms: string[] } | null = null
-    for (const [, pattern] of Object.entries(productTypePatterns)) {
-      if (pattern.keywords.some(kw => normalized.includes(kw))) {
-        detectedProduct = pattern
-        // Add product type synonyms to search terms
-        searchTerms.push(...pattern.synonyms)
-        break
-      }
-    }
-
-    // Extract modifiers (quality, style, etc.) - add as additional search terms
-    const modifiers: string[] = []
-    const modifierPatterns = ['vintage', 'designer', 'luxury', 'premium', 'cheap', 'affordable', 'new', 'used', 'classic', 'modern']
-    for (const modifier of modifierPatterns) {
-      if (normalized.includes(modifier)) {
-        modifiers.push(modifier)
-      }
-    }
-
-    // Add modifiers to search terms
-    searchTerms.push(...modifiers)
-
-    // Extract price
+    // Extract price constraint if present
     let maxPrice: number | undefined
     const priceMatch = normalized.match(/under\s+\$?(\d+)|less\s+than\s+\$?(\d+)|max\s+\$?(\d+)/)
     if (priceMatch) {
       maxPrice = parseInt(priceMatch[1] || priceMatch[2] || priceMatch[3])
     }
 
-    // Cheap/affordable → maxPrice
-    if (normalized.match(/\b(cheap|affordable|budget)\b/)) {
-      maxPrice = 100
-    }
+    // Use words as search terms - database will match against name, description, brand, category
+    const searchTerms = words.slice(0, 5) // Limit to 5 most important words
 
-    // Category from detected product or try config
-    let category: string | undefined = detectedProduct?.category
-    if (!category) {
-      try {
-        category = await productConfig.findCategoryByKeyword(normalized)
-      } catch (error) {
-        logger.warn('Failed to load categories for fallback', { error })
-      }
-    }
-
-    // Extract brands dynamically from configuration
-    const brands: string[] = []
-    try {
-      const brandList = await productConfig.getBrandNames()
-      brandList.forEach(brandName => {
-        if (normalized.includes(brandName.toLowerCase())) {
-          brands.push(brandName)
-        }
-      })
-    } catch (error) {
-      logger.warn('Failed to load brands for fallback', { error })
-    }
-
-    // If no search terms yet, use all meaningful words
-    if (searchTerms.length === 0) {
-      searchTerms.push(...words.slice(0, 5))
-    }
-
-    const confidence = (detectedProduct && searchTerms.length > 0) ? 0.7 : 0.4
-    const needsClarification = confidence < 0.5
-      ? "Could you be more specific about what you're looking for?"
-      : undefined
-
-    logger.info('📝 Fallback generated query', {
+    logger.info('📝 Minimal fallback query', {
       searchTerms,
-      category,
-      modifiers,
       maxPrice,
-      confidence
+      wordCount: words.length
     })
 
     return {
       searchTerms,
-      category,
+      categories: undefined, // Let database search across ALL categories
       maxPrice,
-      brands: brands.length > 0 ? brands : undefined,
       sortBy: 'relevance',
       limit: 20,
       intent: message,
-      confidence,
-      needsClarification
+      confidence: 0.3, // Low confidence - no AI understanding
+      needsClarification: "Consider using Claude AI for better search results."
     }
   }
 

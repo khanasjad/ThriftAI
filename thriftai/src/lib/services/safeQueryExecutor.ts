@@ -23,31 +23,11 @@ export class SafeQueryExecutor {
    */
 
   /**
-   * Normalize search term to fix common typos and variations
+   * Basic term normalization - NO HARDCODING
+   * Typo handling should be done by Claude AI in query generation
    */
   private normalizeSearchTerm(term: string): string {
-    let normalized = term.toLowerCase().trim()
-
-    // Common typos and misspellings
-    const typoCorrections: [RegExp, string][] = [
-      [/\bjaans?\b/gi, 'jeans'],         // jaan/jaans → jeans
-      [/\bjeens?\b/gi, 'jeans'],         // jeen/jeens → jeans
-      [/\bshose?\b/gi, 'shoes'],         // shose → shoes
-      [/\bsnikers?\b/gi, 'sneakers'],    // sniker/snikers → sneakers
-      [/\blaptap?\b/gi, 'laptop'],       // laptap → laptop
-      [/\blaptob?\b/gi, 'laptop'],       // laptob → laptop
-      [/\biphoen?\b/gi, 'iphone'],       // iphoen → iphone
-      [/\bbagg?s?\b/gi, 'bag'],          // bagg/baggs → bag
-      [/\bwach\b/gi, 'watch'],           // wach → watch
-      [/\btshirts?\b/gi, 'shirt'],       // tshirt → shirt
-    ]
-
-    // Apply typo corrections
-    for (const [pattern, replacement] of typoCorrections) {
-      normalized = normalized.replace(pattern, replacement)
-    }
-
-    return normalized
+    return term.toLowerCase().trim()
   }
 
   /**
@@ -57,7 +37,7 @@ export class SafeQueryExecutor {
     try {
       logger.info('🔒 Executing safe parameterized query', {
         searchTerms: filters.searchTerms,
-        category: filters.category,
+        categories: filters.categories,
         priceRange: { min: filters.minPrice, max: filters.maxPrice }
       })
 
@@ -67,22 +47,26 @@ export class SafeQueryExecutor {
         AND: []
       }
 
-      // Search terms - Claude AI has already generated optimal search terms
-      // We just apply them to the database with simple, flexible matching
-      if (filters.searchTerms && filters.searchTerms.length > 0) {
-        // Normalize terms to fix common typos (lightweight, general-purpose)
-        const normalizedTerms = filters.searchTerms.map(term => this.normalizeSearchTerm(term))
+      // NEW INTELLIGENT SEARCH LOGIC:
+      // When we have categories (from AI category mapping), prioritize them
+      // Search terms become OPTIONAL to boost relevance, not required
+
+      const hasSearchTerms = filters.searchTerms && filters.searchTerms.length > 0
+      const hasCategories = filters.categories && filters.categories.length > 0
+
+      if (hasSearchTerms || hasCategories) {
+        const normalizedTerms = hasSearchTerms
+          ? filters.searchTerms!.map(term => this.normalizeSearchTerm(term))
+          : []
 
         logger.info('🤖 Using Claude AI-generated search terms', {
-          original: filters.searchTerms,
+          original: filters.searchTerms || [],
           normalized: normalizedTerms,
-          category: filters.category || 'all'
+          categories: filters.categories || []
         })
 
-        // Build flexible search: term matches name OR description OR brand
-        // Use OR logic between terms (any term can match)
+        // Build search conditions for search terms
         const searchConditions: Prisma.ProductWhereInput[] = []
-
         normalizedTerms.forEach(term => {
           searchConditions.push({
             OR: [
@@ -93,17 +77,24 @@ export class SafeQueryExecutor {
           })
         })
 
-        // Combine with OR: Show products matching ANY search term
-        if (searchConditions.length > 0) {
+        // SMART LOGIC:
+        // If we have intelligent category mapping, make search terms OPTIONAL
+        // This allows "bags" query to find products in BACKPACKS/ACCESSORIES categories
+        // even if product names don't contain the word "bag"
+        if (hasCategories) {
+          // Trust the category mapping - categories are the primary filter
+          whereClause.AND!.push({
+            category: {
+              in: filters.categories!
+            }
+          })
+          // Search terms are optional for relevance boost (handled in orderBy later)
+        } else if (searchConditions.length > 0) {
+          // No categories - require search term match
           whereClause.AND!.push({
             OR: searchConditions
           })
         }
-      }
-
-      // Category filter (Claude determined the best category)
-      if (filters.category) {
-        whereClause.AND!.push({ category: filters.category })
       }
 
       // Price range filter
@@ -302,7 +293,7 @@ export class SafeQueryExecutor {
 
       const marketplaceResults = await aggregator.searchAllMarketplaces({
         query: filters.searchTerms.join(' '),
-        category: filters.category,
+        category: filters.categories?.[0],
         minPrice: filters.minPrice,
         maxPrice: filters.maxPrice,
         sources: ['amazon', 'ebay'],
