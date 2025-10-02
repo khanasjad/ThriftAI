@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { Send, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Copy, ChevronLeft, ChevronRight } from 'lucide-react'
 import ChatMessage, { ChatMessageData } from './ChatMessage'
+import { getChatConfig } from '@/config/search.config'
 
 const CONVERSATION_STARTERS = [
   "Find me the best laptop under $700 for coding",
@@ -97,9 +98,10 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
   const [userInput, setUserInput] = useState('')
   const [isSendingMessage, setIsSendingMessage] = useState(false)
 
-  // Auto-analysis configuration
+  // Auto-analysis configuration (using centralized search config)
+  const chatConfig = getChatConfig()
   const AUTO_ANALYSIS_CONFIG = {
-    DELAY_MS: 1500,
+    DELAY_MS: chatConfig.autoAnalysisDelayMs,
     SESSION_STORAGE_KEY: 'lastAnalyzedQuery',
     API_ENDPOINT: '/api/chat',
     PROMPT_TEMPLATE: (count: number, query: string) => {

@@ -488,7 +488,7 @@ export default function SearchResults() {
     const hasVeritasScore = product.veritasScore !== undefined && product.veritasScore !== null
 
     return (
-      <div key={product.asin} className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
+      <div key={product.id || `${product.asin}-${index}`} className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
         {/* Product Image */}
         <div className="product-image-container">
           <img

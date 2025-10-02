@@ -1,6 +1,8 @@
 // Simple in-memory rate limiter
 // For production, use Redis (Upstash) for distributed rate limiting
 
+import { logger } from '@/lib/logger'
+
 interface RateLimitConfig {
   requests: number
   windowMs: number
@@ -50,7 +52,7 @@ export async function waitForRateLimit(source: string): Promise<void> {
 
   while (!(await checkRateLimit(source))) {
     if (Date.now() - startTime > maxWait) {
-      console.warn(`Rate limit wait timeout for ${source}`)
+      logger.warn(`Rate limit wait timeout for ${source}`, { source, maxWait })
       break
     }
     await new Promise(resolve => setTimeout(resolve, 100))

@@ -157,7 +157,7 @@ class ConfigManager {
         version: process.env.APP_VERSION || defaultConfig.app.version,
         environment: env.NODE_ENV,
         port: env.PORT ? Number(env.PORT) : defaultConfig.app.port,
-        url: env.NEXTAUTH_URL || `http://localhost:${env.PORT || 3000}`,
+        url: process.env.NEXT_PUBLIC_APP_URL || env.NEXTAUTH_URL || `http://localhost:${env.PORT || 3000}`,
         debug: env.NODE_ENV === 'development',
       },
       database: {

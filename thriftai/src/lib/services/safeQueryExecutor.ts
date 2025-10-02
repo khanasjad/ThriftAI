@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { StructuredQueryFilters } from './structuredQueryGenerator'
 import { logger } from '@/lib/logger'
 import { Prisma } from '@prisma/client'
+import { getPaginationConfig } from '@/config/search.config'
 
 export interface QueryResult {
   products: any[]
@@ -163,8 +164,9 @@ export class SafeQueryExecutor {
         }
       }
 
-      // Pagination (safe - numeric values)
-      const limit = Math.min(filters.limit || 20, 100) // Max 100
+      // Pagination (safe - numeric values, using config)
+      const paginationConfig = getPaginationConfig()
+      const limit = Math.min(filters.limit || paginationConfig.defaultLimit, paginationConfig.maxLimit)
       const offset = filters.offset || 0
       const page = Math.floor(offset / limit) + 1
 
@@ -302,13 +304,14 @@ export class SafeQueryExecutor {
       const { MarketplaceAggregator } = await import('./marketplaceAggregator')
       const aggregator = new MarketplaceAggregator()
 
+      const paginationConfig = getPaginationConfig()
       const marketplaceResults = await aggregator.searchAllMarketplaces({
         query: filters.searchTerms.join(' '),
         category: filters.categories?.[0],
         minPrice: filters.minPrice,
         maxPrice: filters.maxPrice,
         sources: ['amazon', 'ebay'],
-        limit: filters.limit || 20
+        limit: filters.limit || paginationConfig.defaultLimit
       })
 
       logger.info('✅ Found marketplace results', {

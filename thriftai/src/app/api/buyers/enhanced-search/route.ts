@@ -7,6 +7,7 @@ import { intelligentProductRanker, type ProductForRanking } from '@/lib/services
 import { universalScoringEngine, type VeritasScoreInput, type VeritasScore } from '@/lib/services/universalScoringEngine'
 import { parameterEnrichmentService } from '@/lib/services/parameterEnrichmentService'
 import { logger } from '@/lib/logger'
+import { getPaginationConfig, getProductsConfig } from '@/config/search.config'
 
 /**
  * ENHANCED SEARCH - NEW ARCHITECTURE
@@ -27,11 +28,15 @@ import { logger } from '@/lib/logger'
  */
 export async function POST(request: NextRequest) {
   try {
+    // Load search configuration
+    const paginationConfig = getPaginationConfig()
+    const productsConfig = getProductsConfig()
+
     const body = await request.json()
     const {
       query = '',
       filters = {},
-      pagination = { page: 1, limit: 20 },
+      pagination = { page: paginationConfig.defaultPage, limit: paginationConfig.defaultLimit },
       sorting = { field: 'relevance', direction: 'desc' },
       includeMetadata = true
     } = body
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
         {
           error: 'Query is required',
           products: [],
-          metadata: { total: 0, page: 1, totalPages: 0, limit: 20 }
+          metadata: { total: 0, page: paginationConfig.defaultPage, totalPages: 0, limit: paginationConfig.defaultLimit }
         },
         { status: 400 }
       )
@@ -80,9 +85,9 @@ export async function POST(request: NextRequest) {
       structuredFilters.condition = filters.condition
     }
 
-    // Apply pagination
-    const limit = pagination.limit || 20
-    const page = pagination.page || 1
+    // Apply pagination (with config validation)
+    const limit = Math.min(pagination.limit || paginationConfig.defaultLimit, paginationConfig.maxLimit)
+    const page = Math.min(Math.max(pagination.page || paginationConfig.defaultPage, 1), paginationConfig.maxPage)
     structuredFilters.limit = limit
     structuredFilters.offset = (page - 1) * limit
 
@@ -219,7 +224,7 @@ export async function POST(request: NextRequest) {
       intelligenceAnalysis = await intelligentProductRanker.rankProducts(
         productsForRanking,
         query,
-        20 // Top 20 products
+        productsConfig.intelligentRankingLimit
       )
 
       // Re-order products based on intelligence ranking
@@ -323,7 +328,7 @@ export async function POST(request: NextRequest) {
 
     // Enrich all products with 96 parameters (batch processing)
     logger.info('🔧 Enriching products with 96 parameters...')
-    const enrichedProducts = await parameterEnrichmentService.enrichProducts(productsToEnrich, 10)
+    const enrichedProducts = await parameterEnrichmentService.enrichProducts(productsToEnrich, productsConfig.enrichmentBatchSize)
     logger.info('✅ Products enriched', {
       total: enrichedProducts.length,
       stats: parameterEnrichmentService.getBatchStatistics(enrichedProducts)
@@ -390,7 +395,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate AI scores for top products for comparison (legacy compatibility)
     // Use rerankedProducts (Veritas-sorted) instead of results.products (original order)
-    const topProducts = rerankedProducts.slice(0, 3)
+    const topProducts = rerankedProducts.slice(0, productsConfig.comparisonProductsCount)
     const scoredProducts = topProducts.map(p => {
       // Get product price and ID
       const productPrice = p.price?.current || p.price || 0
