@@ -55,6 +55,11 @@ interface ComparisonProduct {
   recommendation?: string
   insights?: string[]
   confidence?: number
+  // Veritas Score™ fields
+  veritasScore?: number
+  veritasBadges?: string[]
+  veritasRecommendation?: string
+  veritasInsights?: string[]
   [key: string]: any
 }
 
@@ -123,8 +128,8 @@ export default function EnhancedComparisonTable({
         return false
       }
 
-      // Score filter
-      const score = product.totalScore || product.score?.total || 0
+      // Score filter - Use Veritas Score™ for consistency
+      const score = product.veritasScore || product.totalScore || product.score?.total || 0
       if (score < minScore) {
         return false
       }
@@ -773,8 +778,9 @@ export default function EnhancedComparisonTable({
                                 fontFamily: 'var(--font-family-primary)'
                               }}>
                                 {(() => {
-                                  const scoreValue = product.totalScore || product.score?.total || 0
-                                  return ((scoreValue / 10).toFixed(3))
+                                  // Use Veritas Score™ (0-100 scale, no division needed)
+                                  const scoreValue = product.veritasScore || product.totalScore || product.score?.total || 0
+                                  return scoreValue.toFixed(1)
                                 })()}
                               </span>
                               <div style={{
@@ -785,7 +791,7 @@ export default function EnhancedComparisonTable({
                                 overflow: 'hidden'
                               }}>
                                 <div style={{
-                                  width: `${Math.min(100, product.totalScore || product.score?.total || 0)}%`,
+                                  width: `${Math.min(100, product.veritasScore || product.totalScore || product.score?.total || 0)}%`,
                                   height: '100%',
                                   background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',
                                   borderRadius: '2px'

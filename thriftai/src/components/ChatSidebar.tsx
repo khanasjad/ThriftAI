@@ -12,8 +12,39 @@ const CONVERSATION_STARTERS = [
   "Professional camera for beginners"
 ]
 
-export default function ChatSidebar() {
+interface ChatSidebarProps {
+  onCollapseChange?: (isCollapsed: boolean) => void
+}
+
+export default function ChatSidebar({ onCollapseChange }: ChatSidebarProps = {}) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+
+  // Detect theme changes
+  useEffect(() => {
+    const updateTheme = () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') as 'light' | 'dark' | null
+      setTheme(currentTheme || 'dark')
+    }
+
+    updateTheme()
+
+    // Watch for theme changes
+    const observer = new MutationObserver(updateTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    })
+
+    return () => observer.disconnect()
+  }, [])
+
+  // Notify parent when collapse state changes
+  useEffect(() => {
+    if (onCollapseChange) {
+      onCollapseChange(isCollapsed)
+    }
+  }, [isCollapsed, onCollapseChange])
   const [messages, setMessages] = useState<ChatMessageData[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -184,18 +215,18 @@ What are you shopping for today?`,
     <div
       style={{
         position: 'fixed',
-        left: 0,
+        right: 0,
         top: 0,
         height: '100vh',
         width: isCollapsed ? '0' : '420px',
-        background: 'rgba(0, 0, 0, 0.98)',
-        borderRight: '1px solid rgba(16, 185, 129, 0.2)',
+        background: theme === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(0, 0, 0, 0.98)',
+        borderLeft: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(16, 185, 129, 0.2)',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.3s ease',
+        transition: 'width 0.3s ease, background 0.3s ease',
         zIndex: 999,
         overflow: 'hidden',
-        boxShadow: isCollapsed ? 'none' : '4px 0 20px rgba(0, 0, 0, 0.5)'
+        boxShadow: isCollapsed ? 'none' : (theme === 'light' ? '-4px 0 20px rgba(0, 0, 0, 0.1)' : '-4px 0 20px rgba(0, 0, 0, 0.5)')
       }}
     >
       {/* Collapse/Expand Button */}
@@ -203,19 +234,19 @@ What are you shopping for today?`,
         onClick={() => setIsCollapsed(!isCollapsed)}
         style={{
           position: 'absolute',
-          right: isCollapsed ? '-40px' : '-20px',
+          left: isCollapsed ? '-40px' : '-20px',
           top: '50%',
           transform: 'translateY(-50%)',
           width: '40px',
           height: '80px',
           background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
           border: 'none',
-          borderRadius: isCollapsed ? '0 8px 8px 0' : '0 8px 8px 0',
+          borderRadius: isCollapsed ? '8px 0 0 8px' : '8px 0 0 8px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '2px 0 10px rgba(16, 185, 129, 0.3)',
+          boxShadow: '-2px 0 10px rgba(16, 185, 129, 0.3)',
           transition: 'all 0.3s ease',
           zIndex: 1000
         }}
@@ -227,9 +258,9 @@ What are you shopping for today?`,
         }}
       >
         {isCollapsed ? (
-          <ChevronRight className="w-5 h-5" style={{ color: 'white' }} />
-        ) : (
           <ChevronLeft className="w-5 h-5" style={{ color: 'white' }} />
+        ) : (
+          <ChevronRight className="w-5 h-5" style={{ color: 'white' }} />
         )}
       </button>
 
@@ -237,8 +268,8 @@ What are you shopping for today?`,
       <div
         style={{
           padding: '1.5rem 1.25rem',
-          background: 'rgba(16, 185, 129, 0.1)',
-          borderBottom: '1px solid rgba(16, 185, 129, 0.2)',
+          background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.1)',
+          borderBottom: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(16, 185, 129, 0.2)',
           flexShrink: 0
         }}
       >
@@ -262,7 +293,7 @@ What are you shopping for today?`,
               style={{
                 fontSize: '1.125rem',
                 fontWeight: '600',
-                color: 'var(--text-primary)',
+                color: theme === 'light' ? '#111827' : 'var(--text-primary)',
                 fontFamily: 'var(--font-family-primary)',
                 margin: 0,
                 letterSpacing: '-0.02em'
@@ -319,12 +350,12 @@ What are you shopping for today?`,
 
             <div
               style={{
-                background: 'rgba(16, 185, 129, 0.05)',
-                border: '1px solid rgba(16, 185, 129, 0.2)',
+                background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)',
+                border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.2)',
                 borderRadius: '12px',
                 padding: '0.75rem 1rem',
                 fontSize: '0.875rem',
-                color: 'var(--text-primary)',
+                color: theme === 'light' ? '#111827' : 'var(--text-primary)',
                 fontFamily: 'var(--font-family-primary)',
                 lineHeight: '1.5',
                 whiteSpace: 'pre-wrap',
@@ -363,12 +394,12 @@ What are you shopping for today?`,
 
             <div
               style={{
-                background: 'rgba(16, 185, 129, 0.05)',
-                border: '1px solid rgba(16, 185, 129, 0.2)',
+                background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)',
+                border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.2)',
                 borderRadius: '12px',
                 padding: '0.75rem 1rem',
                 fontSize: '0.875rem',
-                color: 'var(--text-secondary)',
+                color: theme === 'light' ? '#6b7280' : 'var(--text-secondary)',
                 fontFamily: 'var(--font-family-primary)'
               }}
             >
@@ -383,7 +414,7 @@ What are you shopping for today?`,
             <p
               style={{
                 fontSize: '0.75rem',
-                color: 'var(--text-tertiary)',
+                color: theme === 'light' ? '#6b7280' : 'var(--text-tertiary)',
                 fontFamily: 'var(--font-family-primary)',
                 marginBottom: '0.75rem',
                 textTransform: 'uppercase',
@@ -402,11 +433,11 @@ What are you shopping for today?`,
                     width: '100%',
                     textAlign: 'left',
                     padding: '0.75rem',
-                    background: 'rgba(16, 185, 129, 0.05)',
-                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)',
+                    border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(16, 185, 129, 0.15)',
                     borderRadius: '8px',
                     fontSize: '0.8125rem',
-                    color: 'var(--text-secondary)',
+                    color: theme === 'light' ? '#111827' : 'var(--text-secondary)',
                     fontFamily: 'var(--font-family-primary)',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease'
@@ -418,9 +449,9 @@ What are you shopping for today?`,
                     e.currentTarget.style.transform = 'translateX(4px)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)'
-                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.15)'
-                    e.currentTarget.style.color = 'var(--text-secondary)'
+                    e.currentTarget.style.background = theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)'
+                    e.currentTarget.style.borderColor = theme === 'light' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)'
+                    e.currentTarget.style.color = theme === 'light' ? '#111827' : 'var(--text-secondary)'
                     e.currentTarget.style.transform = 'translateX(0)'
                   }}
                 >
@@ -438,11 +469,11 @@ What are you shopping for today?`,
               onClick={refineResponse}
               style={{
                 padding: '0.5rem 0.75rem',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)',
+                border: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '6px',
                 fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
+                color: theme === 'light' ? '#6b7280' : 'var(--text-secondary)',
                 fontFamily: 'var(--font-family-primary)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
@@ -456,9 +487,9 @@ What are you shopping for today?`,
                 e.currentTarget.style.color = 'var(--accent-primary)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
-                e.currentTarget.style.color = 'var(--text-secondary)'
+                e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)'
+                e.currentTarget.style.borderColor = theme === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'
+                e.currentTarget.style.color = theme === 'light' ? '#6b7280' : 'var(--text-secondary)'
               }}
             >
               <RefreshCw className="w-3 h-3" />
@@ -469,11 +500,11 @@ What are you shopping for today?`,
               onClick={tryDifferentSearch}
               style={{
                 padding: '0.5rem 0.75rem',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)',
+                border: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '6px',
                 fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
+                color: theme === 'light' ? '#6b7280' : 'var(--text-secondary)',
                 fontFamily: 'var(--font-family-primary)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
@@ -487,9 +518,9 @@ What are you shopping for today?`,
                 e.currentTarget.style.color = 'var(--accent-primary)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
-                e.currentTarget.style.color = 'var(--text-secondary)'
+                e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)'
+                e.currentTarget.style.borderColor = theme === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'
+                e.currentTarget.style.color = theme === 'light' ? '#6b7280' : 'var(--text-secondary)'
               }}
             >
               <Sparkles className="w-3 h-3" />
@@ -505,8 +536,8 @@ What are you shopping for today?`,
       <div
         style={{
           padding: '1rem',
-          background: 'rgba(255, 255, 255, 0.02)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+          borderTop: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
           flexShrink: 0
         }}
       >
@@ -527,12 +558,12 @@ What are you shopping for today?`,
             placeholder="Ask me anything..."
             style={{
               flex: 1,
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)',
+              border: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '8px',
               padding: '0.75rem 1rem',
               fontSize: '0.875rem',
-              color: 'var(--text-primary)',
+              color: theme === 'light' ? '#111827' : 'var(--text-primary)',
               fontFamily: 'var(--font-family-primary)',
               outline: 'none',
               transition: 'all 0.2s ease'
@@ -542,7 +573,7 @@ What are you shopping for today?`,
               e.currentTarget.style.boxShadow = '0 0 0 2px rgba(16, 185, 129, 0.1)'
             }}
             onBlur={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
+              e.currentTarget.style.borderColor = theme === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           />

@@ -11,6 +11,7 @@ interface Product {
   originalPrice?: number
   condition: string
   aiScore?: number
+  veritasScore?: number  // NEW: Veritas Score™ (0-100 scale)
   aiConfidence?: number
   aiScoreBreakdown?: {
     total: number
@@ -161,15 +162,15 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
             <div style={{
               fontSize: '2rem',
               fontWeight: '700',
-              color: getScoreColor(product.aiScore || 0)
+              color: getScoreColor(product.veritasScore || product.aiScore || 0)
             }}>
-              {(product.aiScore || 0).toFixed(1)}
+              {(product.veritasScore || product.aiScore || 0).toFixed(1)}
             </div>
             <div style={{
               fontSize: '0.75rem',
               color: 'var(--text-tertiary)'
             }}>
-              AI Score
+              {product.veritasScore ? 'Veritas Score™' : 'AI Score'}
             </div>
           </div>
           {isExpanded ? (

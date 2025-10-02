@@ -4,6 +4,7 @@ import { safeQueryExecutor } from '@/lib/services/safeQueryExecutor'
 import { aiProductScorer, type ProductData, type ScoreBreakdown } from '@/lib/services/aiProductScorer'
 import { generateOptimizedParams } from '@/lib/services/optimizedScoreParameters'
 import { intelligentProductRanker, type ProductForRanking } from '@/lib/services/intelligentProductRanker'
+import { universalScoringEngine, type VeritasScoreInput, type VeritasScore } from '@/lib/services/universalScoringEngine'
 import { logger } from '@/lib/logger'
 
 /**
@@ -112,6 +113,84 @@ export async function POST(request: NextRequest) {
       totalPages: results.totalPages
     })
 
+    // Generate available filters from results
+    const availableFilters = {
+      availableCategories: [] as Array<{ value: string; label: string; count: number }>,
+      availableBrands: [] as Array<{ value: string; label: string; count: number }>,
+      availableConditions: [] as Array<{ value: string; label: string; count: number }>,
+      availableSizes: [] as Array<{ value: string; label: string; count: number }>,
+      priceRange: { min: 0, max: 1000 }
+    }
+
+    // Extract unique values and counts
+    const categoryMap = new Map<string, number>()
+    const brandMap = new Map<string, number>()
+    const conditionMap = new Map<string, number>()
+    const sizeMap = new Map<string, number>()
+    let minPrice = Infinity
+    let maxPrice = 0
+
+    results.products.forEach(p => {
+      // Categories
+      const category = p.category || 'Other'
+      categoryMap.set(category, (categoryMap.get(category) || 0) + 1)
+
+      // Brands
+      const brand = p.brand || p.specifications?.brand
+      if (brand) {
+        brandMap.set(brand, (brandMap.get(brand) || 0) + 1)
+      }
+
+      // Conditions
+      const condition = p.condition || p.specifications?.condition
+      if (condition) {
+        conditionMap.set(condition, (conditionMap.get(condition) || 0) + 1)
+      }
+
+      // Sizes
+      const size = p.specifications?.size
+      if (size) {
+        sizeMap.set(size, (sizeMap.get(size) || 0) + 1)
+      }
+
+      // Price range
+      const price = p.price?.current || p.price || 0
+      if (price > 0) {
+        minPrice = Math.min(minPrice, price)
+        maxPrice = Math.max(maxPrice, price)
+      }
+    })
+
+    // Convert to filter format
+    availableFilters.availableCategories = Array.from(categoryMap.entries())
+      .map(([value, count]) => ({ value, label: value, count }))
+      .sort((a, b) => b.count - a.count)
+
+    availableFilters.availableBrands = Array.from(brandMap.entries())
+      .map(([value, count]) => ({ value, label: value, count }))
+      .sort((a, b) => b.count - a.count)
+
+    availableFilters.availableConditions = Array.from(conditionMap.entries())
+      .map(([value, count]) => ({ value, label: value, count }))
+      .sort((a, b) => b.count - a.count)
+
+    availableFilters.availableSizes = Array.from(sizeMap.entries())
+      .map(([value, count]) => ({ value, label: value, count }))
+      .sort((a, b) => b.count - a.count)
+
+    availableFilters.priceRange = {
+      min: minPrice === Infinity ? 0 : Math.floor(minPrice),
+      max: maxPrice === 0 ? 1000 : Math.ceil(maxPrice)
+    }
+
+    logger.info('📊 Available filters generated', {
+      categories: availableFilters.availableCategories.length,
+      brands: availableFilters.availableBrands.length,
+      conditions: availableFilters.availableConditions.length,
+      sizes: availableFilters.availableSizes.length,
+      priceRange: availableFilters.priceRange
+    })
+
     // STEP 3: Apply intelligent ranking using Claude Haiku
     logger.info('🧠 Applying intelligent ranking...')
     let intelligenceAnalysis = null
@@ -178,6 +257,109 @@ export async function POST(request: NextRequest) {
       rerankedProducts = results.products
     }
 
+    // STEP 4: Calculate Veritas Score™ for ALL products
+    logger.info('🏆 Calculating Veritas Scores for all products...')
+    rerankedProducts = rerankedProducts.map(p => {
+      const productPrice = p.price?.current || p.price || 0
+      const productId = p.id || p.asin || ''
+      const productCategory = p.category || structuredFilters.categories?.[0] || 'DEFAULT'
+
+      const optimizedParams = generateOptimizedParams(
+        productId,
+        productPrice,
+        productCategory,
+        p.price?.original || p.originalPrice
+      )
+
+      const productData: ProductData = {
+        id: productId,
+        name: p.name || p.title || '',
+        description: p.description,
+        brand: p.brand || p.specifications?.brand,
+        category: productCategory,
+        price: productPrice,
+        originalPrice: p.price?.original || p.originalPrice,
+        currency: p.price?.currency || 'USD',
+        sellerRating: p.sellerRating || optimizedParams.sellerRating,
+        sellerTotalSales: p.sellerTotalSales || optimizedParams.sellerTotalSales,
+        sellerResponseTime: optimizedParams.sellerResponseTime,
+        condition: p.condition || p.specifications?.condition || 'good',
+        hasWarranty: p.hasWarranty !== undefined ? p.hasWarranty : optimizedParams.hasWarranty,
+        isAuthentic: true,
+        certifications: p.certifications || [],
+        rating: p.rating || p.reviews?.rating || optimizedParams.rating,
+        reviewCount: p.reviews?.count || p.reviewCount || optimizedParams.reviewCount,
+        recentReviewCount: optimizedParams.recentReviewCount,
+        verifiedPurchaseRatio: optimizedParams.verifiedPurchaseRatio,
+        shippingCost: p.shippingCost || optimizedParams.shippingCost,
+        estimatedDeliveryDays: p.estimatedDeliveryDays || optimizedParams.estimatedDeliveryDays,
+        hasFreeShipping: p.hasFreeShipping !== undefined ? p.hasFreeShipping : optimizedParams.hasFreeShipping,
+        hasFastShipping: optimizedParams.hasFastShipping,
+        hasTracking: true,
+        returnPeriodDays: optimizedParams.returnPeriodDays,
+        hasFreeReturns: p.hasFreeReturns !== undefined ? p.hasFreeReturns : optimizedParams.hasFreeReturns,
+        inStock: p.availability?.inStock !== false,
+        stockLevel: p.availability?.quantity || optimizedParams.stockLevel,
+        viewsLast24h: optimizedParams.viewsLast24h,
+        salesLast7Days: optimizedParams.salesLast7Days,
+        cartAdditionsLast24h: optimizedParams.cartAdditionsLast24h,
+        searchQuery: query,
+        clickThroughRate: optimizedParams.clickThroughRate,
+        conversionRate: optimizedParams.conversionRate,
+        bounceRate: optimizedParams.bounceRate,
+        hasExternalTraffic: false,
+        socialMediaMentions: 0,
+        sustainability: p.sustainability || false,
+        madeInCountry: p.madeInCountry || undefined,
+        marketAveragePrice: optimizedParams.marketAveragePrice
+      }
+
+      const veritasInput: VeritasScoreInput = {
+        ...productData,
+        companyMetrics: p.companyMetrics,
+        dynamicSpecs: p.dynamicSpecs
+      }
+
+      const veritasScore = universalScoringEngine.calculateVeritasScore(veritasInput)
+
+      return {
+        ...p,
+        veritasScore: veritasScore.veritasScore,
+        veritasBadges: veritasScore.badges,
+        veritasRecommendation: veritasScore.recommendation,
+        veritasConfidence: veritasScore.confidence,
+        veritasInsights: veritasScore.insights,
+        veritasDataCompleteness: veritasScore.dataCompleteness,
+        veritasPillars: {
+          quality: veritasScore.pillars.productQuality.score,
+          value: veritasScore.pillars.valueProposition.score,
+          trust: veritasScore.pillars.trustAndSafety.score,
+          ux: veritasScore.pillars.userExperience.score,
+          sustainability: veritasScore.pillars.sustainability.score
+        }
+      }
+    })
+
+    logger.info('✅ Veritas Scores calculated for all products', {
+      count: rerankedProducts.length,
+      avgScore: (rerankedProducts.reduce((sum, p) => sum + (p.veritasScore || 0), 0) / rerankedProducts.length).toFixed(1)
+    })
+
+    // STEP 5: Final sorting by Veritas Score™ (primary ranking)
+    // This ensures ALL views (grid, list, leaderboard) show consistent order
+    rerankedProducts.sort((a, b) => {
+      const scoreA = a.veritasScore || a.intelligenceScore || a.aiScore || 0
+      const scoreB = b.veritasScore || b.intelligenceScore || b.aiScore || 0
+      return scoreB - scoreA
+    })
+
+    logger.info('✅ Products sorted by Veritas Score', {
+      topProduct: rerankedProducts[0]?.name,
+      topScore: rerankedProducts[0]?.veritasScore?.toFixed(1),
+      lastProduct: rerankedProducts[rerankedProducts.length - 1]?.name,
+      lastScore: rerankedProducts[rerankedProducts.length - 1]?.veritasScore?.toFixed(1)
+    })
+
     // Calculate AI insights from scored products in database
     const productsWithAIScores = results.products.filter(p => p.aiScore !== undefined && p.aiScore !== null)
     const averageScore = productsWithAIScores.length > 0
@@ -191,7 +373,8 @@ export async function POST(request: NextRequest) {
     } : undefined
 
     // Calculate AI scores for top products for comparison (legacy compatibility)
-    const topProducts = results.products.slice(0, 3)
+    // Use rerankedProducts (Veritas-sorted) instead of results.products (original order)
+    const topProducts = rerankedProducts.slice(0, 3)
     const scoredProducts = topProducts.map(p => {
       // Get product price and ID
       const productPrice = p.price?.current || p.price || 0
@@ -268,21 +451,18 @@ export async function POST(request: NextRequest) {
         marketAveragePrice: optimizedParams.marketAveragePrice
       }
 
-      // Calculate AI score
+      // Calculate legacy AI score (for backward compatibility)
       const scoreBreakdown: ScoreBreakdown = aiProductScorer.calculateScore(productData)
 
-      logger.info('📊 AI Score calculated for product', {
-        productId: productData.id,
-        name: productData.name,
-        totalScore: scoreBreakdown.total,
-        recommendation: scoreBreakdown.recommendation,
-        components: scoreBreakdown.components
-      })
-
+      // Use existing Veritas Score™ from product (already calculated in STEP 4)
+      // This ensures consistency across all views
       return {
         product: p,
         productData,
-        score: scoreBreakdown
+        score: scoreBreakdown,
+        veritasScore: p.veritasScore, // Use existing score, don't recalculate
+        veritasBadges: p.veritasBadges,
+        veritasRecommendation: p.veritasRecommendation
       }
     })
 
@@ -305,6 +485,14 @@ export async function POST(request: NextRequest) {
           brands: structuredFilters.brands,
           condition: structuredFilters.condition
         },
+        // Add available filters for UI
+        filters: {
+          categories: availableFilters.availableCategories,
+          brands: availableFilters.availableBrands,
+          conditions: availableFilters.availableConditions,
+          sizes: availableFilters.availableSizes,
+          priceRange: availableFilters.priceRange
+        },
         aiInsights: {
           intent: structuredFilters.intent,
           confidence: structuredFilters.confidence,
@@ -326,9 +514,9 @@ export async function POST(request: NextRequest) {
           direction: structuredFilters.sortDirection
         }
       },
-      // Include comparison data with real AI scores
+      // Include comparison data with real AI scores AND Veritas Scores
       comparisonData: {
-        topProducts: scoredProducts.map(({ product: p, score }) => ({
+        topProducts: scoredProducts.map(({ product: p, score, veritasScore, veritasBadges, veritasRecommendation }) => ({
           id: p.id || p.asin,
           asin: p.asin || p.id,
           title: p.name || p.title,
@@ -364,13 +552,22 @@ export async function POST(request: NextRequest) {
             total: score.total // Keep the exact decimal value
           },
 
-          // AI insights and recommendation
+          // AI insights and recommendation (legacy)
           recommendation: score.recommendation,
           confidence: score.confidence,
-          insights: score.insights
+          insights: score.insights,
+
+          // NEW: Veritas Score™ data (use existing scores from product)
+          veritasScore: veritasScore,
+          veritasBadges: veritasBadges || [],
+          veritasRecommendation: veritasRecommendation,
+          veritasInsights: p.veritasInsights || [],
+          veritasPillars: p.veritasPillars,
+          veritasConfidence: p.veritasConfidence,
+          veritasDataCompleteness: p.veritasDataCompleteness
         })),
         totalSources: 1,
-        searchStrategy: 'ai_powered_scoring'
+        searchStrategy: 'veritas_96_parameter_scoring' // Updated strategy name
       }
     })
 
@@ -392,6 +589,13 @@ export async function POST(request: NextRequest) {
           limit: 20,
           query: '',
           appliedFilters: {},
+          filters: {
+            categories: [],
+            brands: [],
+            conditions: [],
+            sizes: [],
+            priceRange: { min: 0, max: 1000 }
+          },
           aiInsights: {
             intent: 'search_error',
             confidence: 0

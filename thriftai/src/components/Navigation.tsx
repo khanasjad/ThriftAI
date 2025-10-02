@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface User {
   id: string;
@@ -16,6 +16,36 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup, onLogout }) => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+  }, []);
+
+  // Toggle between dark and light
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    console.log('Theme toggled:', theme, '->', newTheme);
+    setTheme(newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
+
+  // Get icon for current theme
+  const getThemeIcon = () => {
+    return theme === 'dark' ? 'fa-sun' : 'fa-moon';
+  };
+
+  // Get tooltip text
+  const getThemeTooltip = () => {
+    return theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+  };
+
   return (
     <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
       <div className="container">
@@ -46,6 +76,22 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
             <div className="navbar-nav ms-auto d-flex align-items-center nav-actions">
               <button
                 className="btn-modern-secondary nav-btn"
+                onClick={toggleTheme}
+                title={getThemeTooltip()}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  padding: '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%'
+                }}
+              >
+                <i className={`fas ${getThemeIcon()}`} style={{ fontSize: '18px' }}></i>
+              </button>
+              <button
+                className="btn-modern-secondary nav-btn"
                 onClick={onShowLogin}
               >
                 <i className="fas fa-sign-in-alt nav-btn-icon"></i>
@@ -63,7 +109,23 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
 
           {/* User Menu - shown when user is logged in */}
           {user && (
-            <div className="navbar-nav ms-auto">
+            <div className="navbar-nav ms-auto d-flex align-items-center nav-actions">
+              <button
+                className="btn-modern-secondary nav-btn"
+                onClick={toggleTheme}
+                title={getThemeTooltip()}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  padding: '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%'
+                }}
+              >
+                <i className={`fas ${getThemeIcon()}`} style={{ fontSize: '18px' }}></i>
+              </button>
               <div className="nav-item dropdown">
                 <button
                   className="btn-modern-secondary dropdown-toggle nav-user-btn"

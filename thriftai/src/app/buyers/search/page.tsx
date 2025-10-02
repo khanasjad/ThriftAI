@@ -9,11 +9,11 @@ import LoginModal from '@/components/LoginModal'
 import SignupModal from '@/components/SignupModal'
 import ProductFilters, { ProductFiltersState } from '@/components/ProductFilters'
 import Pagination, { QuickJumpPagination } from '@/components/Pagination'
-import EnhancedComparisonTable from '@/components/EnhancedComparisonTable'
 import ChatSidebar from '@/components/ChatSidebar'
 import LeaderboardCard from '@/components/LeaderboardCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Star } from 'lucide-react'
 
 interface Product {
   asin: string
@@ -52,6 +52,7 @@ interface Product {
   }
   // AI Scoring fields
   aiScore?: number
+  veritasScore?: number  // NEW: Veritas Score™ (0-100 scale)
   aiConfidence?: number
   isHighQuality?: boolean
   leaderboardRank?: number
@@ -115,8 +116,6 @@ export default function SearchResults() {
   const router = useRouter()
   const query = searchParams.get('q') || ''
 
-  console.log('DEBUG: SearchResults component rendered!')
-  console.log('DEBUG: Initial query from URL:', query)
 
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -131,19 +130,9 @@ export default function SearchResults() {
   const [expandedLeaderboardCard, setExpandedLeaderboardCard] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [searchInProgress, setSearchInProgress] = useState(false)
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const searchTriggeredRef = useRef(false)
 
-  console.log('DEBUG: All useState hooks initialized successfully')
-
-  // Debug useEffect to track searchResults changes
-  useEffect(() => {
-    console.log('DEBUG: searchResults changed:', {
-      hasResults: !!searchResults,
-      productsCount: searchResults?.products?.length || 0,
-      totalResults: searchResults?.metadata?.total || 0,
-      loading: loading
-    })
-  }, [searchResults, loading])
 
   // Adapt the user object to match what Navigation expects
   const appUser = session?.user ? {
@@ -161,11 +150,9 @@ export default function SearchResults() {
     page: number,
     limit: number
   ) => {
-    console.log('DEBUG: performSearch called with:', { searchQuery, page, limit })
 
     // Prevent multiple simultaneous searches
     if (searchInProgress) {
-      console.log('DEBUG: Search already in progress, skipping')
       return
     }
 
@@ -191,11 +178,9 @@ export default function SearchResults() {
         includeMetadata: true
       }
 
-      console.log('DEBUG: Making API call with body:', searchBody)
 
       // Fix URL parsing issue - use simple relative path
       const apiUrl = '/api/buyers/enhanced-search'
-      console.log('DEBUG: Using API URL:', apiUrl)
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -205,37 +190,18 @@ export default function SearchResults() {
         body: JSON.stringify(searchBody)
       })
 
-      console.log('DEBUG: API response:', response.ok, response.status)
       if (!response.ok) {
         throw new Error('Failed to fetch search results')
       }
 
       const data = await response.json()
-      console.log('DEBUG: Search data received:', data?.products?.length || 0, 'products')
-      console.log('DEBUG: ComparisonData available:', !!data?.comparisonData, 'with', data?.comparisonData?.topProducts?.length || 0, 'products')
-      console.log('DEBUG: Setting search results...')
 
       // Use functional update to ensure we have the latest state
-      console.log('DEBUG: About to set search results')
-      console.log('DEBUG: Raw API data:', JSON.stringify(data, null, 2))
-      console.log('DEBUG: Data type:', typeof data)
-      console.log('DEBUG: Data has products?', !!data?.products)
-      console.log('DEBUG: Products array length:', data?.products?.length || 'N/A')
-      console.log('DEBUG: ComparisonData products:', data?.comparisonData?.topProducts?.length || 0)
 
       setSearchResults((prevResults) => {
-        console.log('DEBUG: Inside setSearchResults callback')
-        console.log('DEBUG: Previous results:', prevResults)
-        console.log('DEBUG: New data structure check:', {
-          hasProducts: !!data?.products,
-          isArray: Array.isArray(data?.products),
-          productsLength: data?.products?.length,
-          hasMetadata: !!data?.metadata
-        })
-
         // Ensure we're returning a valid SearchResponse object
         if (!data || typeof data !== 'object' || !data.products) {
-          console.error('DEBUG: Invalid SearchResponse received:', data)
+          console.error('Invalid SearchResponse received:', data)
           return null
         }
 
@@ -300,21 +266,13 @@ export default function SearchResults() {
       // Set available filters from search metadata
       if (data?.metadata?.filters) {
         setAvailableFilters(data.metadata.filters)
-        console.log('DEBUG: Available filters set:', data.metadata.filters)
       }
 
-      // Add a slight delay to check if state was updated
-      setTimeout(() => {
-        console.log('DEBUG: State after setTimeout check - searchResults should be updated now')
-      }, 50)
-
-      console.log('DEBUG: Search results set successfully')
 
     } catch (err) {
-      console.error('DEBUG: Search error:', err)
+      console.error('Search error:', err)
       setError('Failed to load search results. Please try again.')
     } finally {
-      console.log('DEBUG: Setting loading to false and search not in progress')
       setLoading(false)
       setSearchInProgress(false)
     }
@@ -402,6 +360,30 @@ export default function SearchResults() {
             alt={product.title}
             className="product-image"
           />
+
+          {/* Top 3 Golden Star Badge */}
+          {index < 3 && (
+            <div style={{
+              position: 'absolute',
+              top: '0.5rem',
+              left: '0.5rem',
+              background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+              color: '#000',
+              padding: '0.25rem 0.5rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--font-bold)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              boxShadow: '0 2px 8px rgba(255, 215, 0, 0.4)',
+              zIndex: 2
+            }}>
+              <Star size={12} fill="#000" />
+              #{index + 1}
+            </div>
+          )}
+
           {discount > 0 && (
             <div className="product-discount-badge">
               -{discount}%
@@ -495,64 +477,66 @@ export default function SearchResults() {
   }
 
 
-  // Debug logging - Fixed to show actual state
-  console.log('DEBUG: Component state:', {
-    loading,
-    searchInProgress,
-    hasSearchResults: searchResults !== null,
-    searchResultsType: typeof searchResults,
-    searchResultsLength: searchResults?.products?.length,
-    error,
-    query,
-    isInitialized,
-    searchTriggered: searchTriggeredRef.current
-  })
-
   if (loading && !searchResults) {
     return (
-      <div className="App">
-        <Navigation
-          user={appUser}
-          onShowLogin={() => setShowLoginModal(true)}
-          onShowSignup={() => setShowSignupModal(true)}
-          onLogout={() => {}}
-        />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto spinner"></div>
-            <h3 className="mt-4 text-xl page-subtitle">Searching for "{query}"...</h3>
-            <p className="text-sm mt-2 empty-state-description">
-              DEBUG: loading={loading.toString()}, hasResults={!!searchResults}, error={error || 'none'}
-            </p>
+      <div className="App flex-container">
+        <ChatSidebar onCollapseChange={setIsChatCollapsed} />
+        <div
+          className="flex-1 flex-container-col"
+          style={{
+            marginRight: isChatCollapsed ? '0' : '420px',
+            transition: 'margin-right 0.3s ease'
+          }}
+        >
+          <Navigation
+            user={appUser}
+            onShowLogin={() => setShowLoginModal(true)}
+            onShowSignup={() => setShowSignupModal(true)}
+            onLogout={() => {}}
+          />
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto spinner"></div>
+              <h3 className="mt-4 text-xl page-subtitle">Searching for "{query}"...</h3>
+            </div>
           </div>
+          <Footer />
         </div>
-        <Footer />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="App">
-        <Navigation
-          user={appUser}
-          onShowLogin={() => setShowLoginModal(true)}
-          onShowSignup={() => setShowSignupModal(true)}
-          onLogout={() => {}}
-        />
-        <div className="container mx-auto px-4 py-8">
-          <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
-            <h3 className="font-semibold empty-state-title" style={{color: 'var(--error)'}}>Error</h3>
-            <p className="empty-state-description" style={{color: 'var(--error)'}}>{error}</p>
-            <Button
-              onClick={() => performSearch(query, filters, currentPage, itemsPerPage)}
-              className="mt-2"
-            >
-              Try Again
-            </Button>
+      <div className="App flex-container">
+        <ChatSidebar onCollapseChange={setIsChatCollapsed} />
+        <div
+          className="flex-1 flex-container-col"
+          style={{
+            marginRight: isChatCollapsed ? '0' : '420px',
+            transition: 'margin-right 0.3s ease'
+          }}
+        >
+          <Navigation
+            user={appUser}
+            onShowLogin={() => setShowLoginModal(true)}
+            onShowSignup={() => setShowSignupModal(true)}
+            onLogout={() => {}}
+          />
+          <div className="container mx-auto px-4 py-8">
+            <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
+              <h3 className="font-semibold empty-state-title" style={{color: 'var(--error)'}}>Error</h3>
+              <p className="empty-state-description" style={{color: 'var(--error)'}}>{error}</p>
+              <Button
+                onClick={() => performSearch(query, filters, currentPage, itemsPerPage)}
+                className="mt-2"
+              >
+                Try Again
+              </Button>
+            </div>
           </div>
+          <Footer />
         </div>
-        <Footer />
       </div>
     )
   }
@@ -560,10 +544,16 @@ export default function SearchResults() {
   return (
     <div className="App flex-container">
       {/* AI Shopping Advisor Sidebar */}
-      <ChatSidebar />
+      <ChatSidebar onCollapseChange={setIsChatCollapsed} />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex-container-col">
+      {/* Main Content Area - Add right margin when chat is expanded */}
+      <div
+        className="flex-1 flex-container-col"
+        style={{
+          marginRight: isChatCollapsed ? '0' : '420px',
+          transition: 'margin-right 0.3s ease'
+        }}
+      >
         <Navigation
           user={appUser}
           onShowLogin={() => setShowLoginModal(true)}
@@ -588,9 +578,7 @@ export default function SearchResults() {
                   viewMode === 'grid' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
                 onClick={() => {
-                  console.log('DEBUG: Grid button clicked, current viewMode:', viewMode)
                   setViewMode('grid')
-                  console.log('DEBUG: setViewMode(grid) called')
                 }}
               >
                 Grid
@@ -600,9 +588,7 @@ export default function SearchResults() {
                   viewMode === 'list' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
                 onClick={() => {
-                  console.log('DEBUG: List button clicked, current viewMode:', viewMode)
                   setViewMode('list')
-                  console.log('DEBUG: setViewMode(list) called')
                 }}
               >
                 List
@@ -612,9 +598,7 @@ export default function SearchResults() {
                   viewMode === 'leaderboard' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
                 onClick={() => {
-                  console.log('DEBUG: Leaderboard button clicked, current viewMode:', viewMode)
                   setViewMode('leaderboard')
-                  console.log('DEBUG: setViewMode(leaderboard) called')
                 }}
               >
                 Leaderboard
@@ -639,20 +623,6 @@ export default function SearchResults() {
 
           {/* Main Content */}
           <div className="lg:w-3/4">
-            {/* AI-Powered Marketplace Comparison - Only show in grid/list view (not leaderboard) */}
-            {!loading && viewMode !== 'leaderboard' && searchResults?.products && searchResults.products.length > 0 && searchResults.comparisonData?.topProducts && searchResults.comparisonData.topProducts.length > 0 && (
-              <div className="mb-6">
-                <EnhancedComparisonTable
-                  topProducts={searchResults.comparisonData.topProducts}
-                  insights={searchResults.comparisonData.insights}
-                  onProductClick={(product) => {
-                    console.log('Product clicked:', product)
-                    // Track click for analytics
-                  }}
-                />
-              </div>
-            )}
-
             {searchResults?.products && searchResults.products.length > 0 ? (
               <>
                 {/* Top Pagination */}
@@ -683,10 +653,15 @@ export default function SearchResults() {
                 {/* Products */}
                 {viewMode === 'leaderboard' ? (
                   <div className="flex flex-col gap-4">
-                    {/* Sort products by AI score (descending) and render as leaderboard */}
+                    {/* Sort products by Veritas Score™ (descending) and render as leaderboard */}
                     {searchResults.products
                       .slice()
-                      .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
+                      .sort((a, b) => {
+                        // Prioritize Veritas Score, fallback to aiScore
+                        const scoreA = a.veritasScore || a.aiScore || 0
+                        const scoreB = b.veritasScore || b.aiScore || 0
+                        return scoreB - scoreA
+                      })
                       .map((product, index) => {
                         // Map search page Product to LeaderboardCard's expected format
                         const leaderboardProduct = {
@@ -701,6 +676,7 @@ export default function SearchResults() {
                           originalPrice: product.price.original,
                           condition: product.specifications?.condition || 'Used - Good',
                           aiScore: product.aiScore || 0,
+                          veritasScore: product.veritasScore,  // NEW: Include Veritas Score™
                           aiConfidence: product.aiConfidence || 0,
                           aiScoreBreakdown: {
                             total: product.aiScore || 0,
@@ -747,8 +723,6 @@ export default function SearchResults() {
                       ? "products-grid-modern"
                       : "products-list-modern"
                   }>
-                    {/* Debug: Log current viewMode and className */}
-                    {console.log('DEBUG: Rendering products container with viewMode:', viewMode, 'className:', viewMode === 'grid' ? 'products-grid-modern' : 'products-list-modern')}
                     {searchResults.products.map((product, index) =>
                       renderProduct(product, index)
                     )}
