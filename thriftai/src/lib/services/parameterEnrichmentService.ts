@@ -237,11 +237,53 @@ export class ParameterEnrichmentService {
       return product.dynamicSpecs
     }
 
-    // Get category
-    const category = product.category || 'OTHER'
+    // Map category variations to standard categories
+    const categoryMappings: Record<string, string> = {
+      'WATCHES': 'ELECTRONICS',
+      'WEARABLES': 'ELECTRONICS',
+      'SMARTWATCH': 'ELECTRONICS',
+      'LAPTOP': 'ELECTRONICS',
+      'PHONE': 'ELECTRONICS',
+      'COMPUTER': 'ELECTRONICS',
+      'TABLET': 'ELECTRONICS',
+      'SHIRT': 'CLOTHING',
+      'PANTS': 'CLOTHING',
+      'DRESS': 'CLOTHING',
+      'JACKET': 'CLOTHING',
+      'SNEAKERS': 'SHOES',
+      'BOOTS': 'SHOES',
+      'SANDALS': 'SHOES',
+      'BAG': 'ACCESSORIES',
+      'BACKPACK': 'ACCESSORIES',
+      'WALLET': 'ACCESSORIES',
+      'FURNITURE': 'HOME',
+      'DECOR': 'HOME',
+      'FITNESS': 'SPORTS',
+      'OUTDOOR': 'SPORTS'
+    }
+
+    // Get category - use 'DEFAULT' as fallback to match database
+    let category = (product.category || 'DEFAULT').toUpperCase()
+
+    // Map to standard category if needed
+    if (categoryMappings[category]) {
+      category = categoryMappings[category]
+      logger.debug(`Mapped category ${product.category} to ${category}`, {
+        productId: product.id
+      })
+    }
 
     // Get default specs from database (with subcategory support)
-    const defaultSpecs = await configService.getCategoryDefaultSpecs(category)
+    let defaultSpecs = await configService.getCategoryDefaultSpecs(category)
+
+    // If category not found, fallback to DEFAULT
+    if (!defaultSpecs || Object.keys(defaultSpecs).length === 0) {
+      logger.warn(`No default specs for category ${category}, using DEFAULT`, {
+        productId: product.id,
+        originalCategory: product.category
+      })
+      defaultSpecs = await configService.getCategoryDefaultSpecs('DEFAULT')
+    }
 
     // Merge existing specs with defaults (existing takes precedence)
     const enrichedSpecs = {
@@ -263,12 +305,13 @@ export class ParameterEnrichmentService {
    * Check if dynamic specs are reasonably complete
    */
   private isDynamicSpecsComplete(specs: Record<string, any>): boolean {
-    // Check if at least 3 spec fields exist
+    // Check if at least 15 spec fields exist (out of 25 target specs)
+    // This ensures we always enrich products with database defaults
     const filledFields = Object.values(specs).filter(
       value => value !== undefined && value !== null && value !== ''
     ).length
 
-    return filledFields >= 3
+    return filledFields >= 15
   }
 
   // ========================================
@@ -358,7 +401,7 @@ export class ParameterEnrichmentService {
    * Used as fallback when enrichment fails
    */
   private getDefaultEnrichedProduct(product: ProductData): VeritasScoreInput {
-    const category = product.category || 'OTHER'
+    const category = product.category || 'DEFAULT'
 
     return {
       ...product,

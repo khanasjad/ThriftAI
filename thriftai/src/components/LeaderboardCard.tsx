@@ -234,8 +234,8 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
         }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '1.5rem',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '1rem',
             marginTop: '1.5rem'
           }}>
             {/* Score Components */}

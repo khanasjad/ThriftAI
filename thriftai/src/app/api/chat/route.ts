@@ -3,6 +3,7 @@ import { streamText, convertToCoreMessages } from 'ai'
 import { structuredQueryGenerator } from '@/lib/services/structuredQueryGenerator'
 import { safeQueryExecutor } from '@/lib/services/safeQueryExecutor'
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -42,11 +43,14 @@ IMPORTANT:
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json()
+    const { messages, pageContext } = await req.json()
 
     logger.info('🤖 Streaming chat request', {
       messageCount: messages.length,
-      lastMessage: messages[messages.length - 1]?.content?.substring(0, 100)
+      lastMessage: messages[messages.length - 1]?.content?.substring(0, 100),
+      hasPageContext: !!pageContext,
+      contextQuery: pageContext?.searchQuery,
+      contextProducts: pageContext?.products?.length || 0
     })
 
     // Get the last user message
@@ -56,6 +60,7 @@ export async function POST(req: Request) {
     logger.info('📝 Generating structured query...')
     const queryFilters = await structuredQueryGenerator.generateQuery(
       lastUserMessage,
+      prisma,
       messages.slice(0, -1).map((m: any) => ({ role: m.role, content: m.content }))
     )
 
@@ -107,19 +112,35 @@ export async function POST(req: Request) {
     // Step 3: Stream conversational response
     logger.info('💬 Streaming conversational response...')
 
+    // Build page context information
+    let pageContextInfo = ''
+    if (pageContext?.searchQuery || pageContext?.products?.length > 0) {
+      pageContextInfo = `\n\nCURRENT PAGE CONTEXT:
+User is currently viewing a search results page with:
+- Search Query: "${pageContext.searchQuery || 'none'}"
+- Visible Products: ${pageContext.products?.length || 0} results
+- Total Results: ${pageContext.totalResults || 'unknown'}
+${pageContext.products && pageContext.products.length > 0 ? `
+Top products currently visible to user:
+${pageContext.products.slice(0, 5).map((p: any, i: number) => `${i + 1}. ${p.name || p.title} - $${p.price || p.totalCost} (${p.category || 'General'})`).join('\n')}
+` : ''}`
+    }
+
     // Build context message
     const contextMessage = `QUERY FILTERS GENERATED:
 - Search Terms: ${queryFilters.searchTerms.join(', ') || 'none'}
 - Category: ${queryFilters.category || 'any'}
 - Price Range: ${queryFilters.minPrice || 0} - ${queryFilters.maxPrice || 'unlimited'}
 - Confidence: ${(queryFilters.confidence * 100).toFixed(0)}%
+${pageContextInfo}
 ${productsContext}
 
 Now provide a conversational response that:
 1. Addresses the user's query naturally
 2. ${productCount > 0 ? `Recommends the most relevant products with specific reasons` : 'Asks helpful clarifying questions'}
 3. ${productCount > 0 ? `Explains trade-offs and comparisons` : 'Guides them to refine their search'}
-4. Stays specific to this conversation context`
+4. References what the user is currently viewing if relevant
+5. Stays specific to this conversation context`
 
     const result = streamText({
       model: anthropic('claude-3-haiku-20240307'),
@@ -149,7 +170,7 @@ Now provide a conversational response that:
       }
     })
 
-    return result.toDataStreamResponse()
+    return result.toTextStreamResponse()
 
   } catch (error) {
     logger.error('❌ Streaming chat error', {

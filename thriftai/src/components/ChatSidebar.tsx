@@ -12,11 +12,19 @@ const CONVERSATION_STARTERS = [
   "Professional camera for beginners"
 ]
 
-interface ChatSidebarProps {
-  onCollapseChange?: (isCollapsed: boolean) => void
+interface PageContext {
+  searchQuery?: string
+  products?: any[]
+  filters?: any
+  totalResults?: number
 }
 
-export default function ChatSidebar({ onCollapseChange }: ChatSidebarProps = {}) {
+interface ChatSidebarProps {
+  onCollapseChange?: (isCollapsed: boolean) => void
+  pageContext?: PageContext
+}
+
+export default function ChatSidebar({ onCollapseChange, pageContext }: ChatSidebarProps = {}) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
 
@@ -136,7 +144,8 @@ What are you shopping for today?`,
               role: 'user',
               content: messageContent
             }
-          ]
+          ],
+          pageContext: pageContext || {}
         })
       })
 
@@ -144,7 +153,7 @@ What are you shopping for today?`,
         throw new Error('Failed to get response')
       }
 
-      // Handle streaming response
+      // Handle streaming response (text stream from AI SDK)
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
       let fullResponse = ''
@@ -154,21 +163,8 @@ What are you shopping for today?`,
           const { done, value } = await reader.read()
           if (done) break
 
-          const chunk = decoder.decode(value)
-          const lines = chunk.split('\n')
-
-          for (const line of lines) {
-            if (line.startsWith('0:')) {
-              try {
-                const json = JSON.parse(line.slice(2))
-                if (json && typeof json === 'string') {
-                  fullResponse += json
-                }
-              } catch (e) {
-                // Skip invalid JSON
-              }
-            }
-          }
+          const chunk = decoder.decode(value, { stream: true })
+          fullResponse += chunk
         }
       }
 
@@ -212,50 +208,38 @@ What are you shopping for today?`,
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        right: 0,
-        top: 0,
-        height: '100vh',
-        width: isCollapsed ? '0' : '420px',
-        background: theme === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(0, 0, 0, 0.98)',
-        borderLeft: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(16, 185, 129, 0.2)',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'width 0.3s ease, background 0.3s ease',
-        zIndex: 999,
-        overflow: 'hidden',
-        boxShadow: isCollapsed ? 'none' : (theme === 'light' ? '-4px 0 20px rgba(0, 0, 0, 0.1)' : '-4px 0 20px rgba(0, 0, 0, 0.5)')
-      }}
-    >
-      {/* Collapse/Expand Button */}
+    <>
+      {/* Collapse/Expand Button - Outside sidebar to prevent pointer-events issues */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         style={{
-          position: 'absolute',
-          left: isCollapsed ? '-40px' : '-20px',
+          position: 'fixed',
+          right: isCollapsed ? '0px' : '420px',
           top: '50%',
           transform: 'translateY(-50%)',
           width: '40px',
           height: '80px',
           background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
           border: 'none',
-          borderRadius: isCollapsed ? '8px 0 0 8px' : '8px 0 0 8px',
+          borderRadius: '8px 0 0 8px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           boxShadow: '-2px 0 10px rgba(16, 185, 129, 0.3)',
           transition: 'all 0.3s ease',
-          zIndex: 1000
+          zIndex: 10000,
+          pointerEvents: 'auto'
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)'
+          e.currentTarget.style.boxShadow = '-2px 0 15px rgba(16, 185, 129, 0.5)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
+          e.currentTarget.style.boxShadow = '-2px 0 10px rgba(16, 185, 129, 0.3)'
         }}
+        aria-label={isCollapsed ? 'Expand AI Shopping Advisor' : 'Collapse AI Shopping Advisor'}
       >
         {isCollapsed ? (
           <ChevronLeft className="w-5 h-5" style={{ color: 'white' }} />
@@ -263,6 +247,26 @@ What are you shopping for today?`,
           <ChevronRight className="w-5 h-5" style={{ color: 'white' }} />
         )}
       </button>
+
+      {/* Sidebar Content */}
+      <div
+        style={{
+          position: 'fixed',
+          right: 0,
+          top: 0,
+          height: '100vh',
+          width: isCollapsed ? '0' : '420px',
+          background: theme === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(0, 0, 0, 0.98)',
+          borderLeft: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(16, 185, 129, 0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'width 0.3s ease, background 0.3s ease',
+          zIndex: 9998,
+          overflow: 'hidden',
+          boxShadow: isCollapsed ? 'none' : (theme === 'light' ? '-4px 0 20px rgba(0, 0, 0, 0.1)' : '-4px 0 20px rgba(0, 0, 0, 0.5)'),
+          pointerEvents: isCollapsed ? 'none' : 'auto'
+        }}
+      >
 
       {/* Header */}
       <div
@@ -617,5 +621,6 @@ What are you shopping for today?`,
         </div>
       </div>
     </div>
+    </>
   )
 }

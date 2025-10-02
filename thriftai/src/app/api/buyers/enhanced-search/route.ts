@@ -348,7 +348,10 @@ export async function POST(request: NextRequest) {
           trust: veritasScore.pillars.trustAndSafety.score,
           ux: veritasScore.pillars.userExperience.score,
           sustainability: veritasScore.pillars.sustainability.score
-        }
+        },
+        // Include enriched 96-parameter data
+        dynamicSpecs: enrichedProduct.dynamicSpecs,
+        companyMetrics: enrichedProduct.companyMetrics
       }
     }))
 
@@ -533,7 +536,12 @@ export async function POST(request: NextRequest) {
       },
       // Include comparison data with real AI scores AND Veritas Scores
       comparisonData: {
-        topProducts: scoredProducts.map(({ product: p, score, veritasScore, veritasBadges, veritasRecommendation, veritasPillars, veritasInsights, veritasConfidence, veritasDataCompleteness }) => ({
+        topProducts: scoredProducts.map(({ product: p, score, veritasScore, veritasBadges, veritasRecommendation, veritasPillars, veritasInsights, veritasConfidence, veritasDataCompleteness }) => {
+          // Get dynamicSpecs and companyMetrics from product
+          const dynamicSpecs = p.dynamicSpecs
+          const companyMetrics = p.companyMetrics
+
+          return {
           id: p.id || p.asin,
           asin: p.asin || p.id,
           title: p.name || p.title,
@@ -581,8 +589,13 @@ export async function POST(request: NextRequest) {
           veritasInsights: veritasInsights || [],
           veritasPillars: veritasPillars,
           veritasConfidence: veritasConfidence,
-          veritasDataCompleteness: veritasDataCompleteness
-        })),
+          veritasDataCompleteness: veritasDataCompleteness,
+
+          // Include enriched 96-parameter data
+          dynamicSpecs: dynamicSpecs,
+          companyMetrics: companyMetrics
+        }
+        }),
         totalSources: 1,
         searchStrategy: 'veritas_96_parameter_scoring' // Updated strategy name
       }

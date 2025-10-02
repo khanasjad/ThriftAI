@@ -75,6 +75,15 @@ interface Product {
   cons?: string[]
   bestFor?: string
   intelligenceRank?: number
+  // 96-Parameter Enriched Data
+  dynamicSpecs?: Record<string, any>
+  companyMetrics?: {
+    esgScore?: number
+    carbonFootprint?: number
+    sustainabilityRating?: number
+    laborPractices?: number
+    supplyChainTransparency?: number
+  }
 }
 
 interface SearchResponse {
@@ -263,7 +272,9 @@ export default function SearchResults() {
             veritasInsights: mp.veritasInsights,
             veritasBadges: mp.veritasBadges,
             veritasRecommendation: mp.veritasRecommendation,
-            veritasDataCompleteness: mp.veritasDataCompleteness
+            veritasDataCompleteness: mp.veritasDataCompleteness,
+            dynamicSpecs: mp.dynamicSpecs,
+            companyMetrics: mp.companyMetrics
           }))
 
           console.log(`✅ Converted ${convertedProducts.length} marketplace products to main display`)
@@ -515,7 +526,14 @@ export default function SearchResults() {
   if (loading && !searchResults) {
     return (
       <div className="App flex-container">
-        <ChatSidebar onCollapseChange={setIsChatCollapsed} />
+        <ChatSidebar
+          onCollapseChange={setIsChatCollapsed}
+          pageContext={{
+            searchQuery: query || '',
+            products: [],
+            totalResults: 0
+          }}
+        />
         <div
           className="flex-1 flex-container-col"
           style={{
@@ -544,7 +562,14 @@ export default function SearchResults() {
   if (error) {
     return (
       <div className="App flex-container">
-        <ChatSidebar onCollapseChange={setIsChatCollapsed} />
+        <ChatSidebar
+          onCollapseChange={setIsChatCollapsed}
+          pageContext={{
+            searchQuery: query || '',
+            products: [],
+            totalResults: 0
+          }}
+        />
         <div
           className="flex-1 flex-container-col"
           style={{
@@ -579,7 +604,15 @@ export default function SearchResults() {
   return (
     <div className="App flex-container">
       {/* AI Shopping Advisor Sidebar */}
-      <ChatSidebar onCollapseChange={setIsChatCollapsed} />
+      <ChatSidebar
+        onCollapseChange={setIsChatCollapsed}
+        pageContext={{
+          searchQuery: query || '',
+          products: searchResults?.products || [],
+          filters: filters,
+          totalResults: searchResults?.metadata.total || 0
+        }}
+      />
 
       {/* Main Content Area - Add right margin when chat is expanded */}
       <div
@@ -740,7 +773,8 @@ export default function SearchResults() {
                           hasFreeShipping: product.availability?.shippingCost === 0,
                           estimatedDeliveryDays: product.availability?.shippingDays,
                           hasFreeReturns: false,
-                          dynamicSpecs: product.specifications || {}
+                          dynamicSpecs: product.dynamicSpecs || product.specifications || {},
+                          companyMetrics: product.companyMetrics
                         }
 
                         return (

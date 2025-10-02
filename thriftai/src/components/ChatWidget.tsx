@@ -132,7 +132,8 @@ Let's find you the best deal!`,
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'all 0.3s ease',
-            zIndex: 1000
+            zIndex: 9999,
+            pointerEvents: 'auto'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'scale(1.1)'
@@ -167,7 +168,8 @@ Let's find you the best deal!`,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            zIndex: 1000
+            zIndex: 9999,
+            pointerEvents: 'auto'
           }}
         >
           {/* Header */}
