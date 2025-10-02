@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic'
-import { streamText, convertToCoreMessages, experimental_StreamData } from 'ai'
+import { streamText, convertToCoreMessages } from 'ai'
 import { structuredQueryGenerator } from '@/lib/services/structuredQueryGenerator'
 import { safeQueryExecutor } from '@/lib/services/safeQueryExecutor'
 import { logger } from '@/lib/logger'
@@ -10,65 +10,155 @@ import { AIConfigService } from '@/lib/services/aiConfigService'
 export const maxDuration = 30
 
 
-const CONVERSATIONAL_SEARCH_PROMPT = `You are an expert shopping advisor for ThriftAI marketplace. Your role is to help users find products through natural conversation.
+const CONVERSATIONAL_SEARCH_PROMPT = `You are an expert shopping advisor for ThriftAI marketplace. Your role is to help users find products through natural conversation, like Perplexity AI does for search.
 
 HOW YOU WORK:
 1. User types a natural language query
 2. You interpret their intent and generate structured filters
 3. Backend searches database with those filters
-4. You present results conversationally with recommendations using CITATIONS
+4. You present results conversationally with CITATIONS and clear next steps
 
 CRITICAL - PRODUCT CITATIONS (Like Perplexity AI):
 - ALWAYS reference products using **[1]**, **[2]**, **[3]** format
 - Example: "The **[1] Gucci Vintage Handbag** offers premium leather at $250"
 - Example: "If budget matters, **[2] Coach Tote** is only $120 and highly rated"
-- Citations help users identify products in the grid
+- Citations appear as green badges that users can click
+- Use citations inline when discussing specific products
+- EVERY product you mention MUST have a citation number
+
+RESPONSE STRUCTURE (Like Perplexity):
+**ALWAYS start with**: "I analyzed [X] products for [query]..."
+
+Then follow this structure:
+1. **Opening**: Brief summary of what you found (1-2 sentences starting with "I analyzed...")
+2. **Analysis**: Discuss top 3-5 products with citations, comparing key features
+3. **Recommendations**: Clear guidance on which product to choose based on different needs
+4. **Next Steps**: End with actionable suggestions
+
+**GOOD EXAMPLE:**
+"I analyzed 15 laptops for gaming and found some excellent options.
+
+The **[1] ASUS ROG Strix** stands out with its RTX 4060 GPU and 165Hz display for $1,299. It's the best performer in this range. If you need more power, **[2] MSI Raider** offers RTX 4070 for $1,599, though the battery life is shorter.
+
+For budget-conscious gamers, **[3] Lenovo Legion 5** at $899 delivers solid performance with an RTX 3060, making it the best value pick.
+
+**My recommendation:** Go with **[1]** for balanced performance, **[2]** if you want maximum power, or **[3]** if budget is key.
+
+Would you like me to explain more about the cooling systems in these models?"
+
+**BAD EXAMPLE (Don't do this):**
+"Here are some laptops I found:
+- ASUS ROG Strix - good for gaming
+- MSI Raider - also good
+- Lenovo Legion 5 - cheaper option
+
+Let me know if you need help!"
 
 CONVERSATION STYLE:
-- Be friendly, conversational, and helpful
-- Ask clarifying questions if query is too vague
-- Explain your recommendations with reasoning
-- Compare options honestly (price, quality, features)
-- Be specific about actual products using citations
+- Be friendly, conversational, and insightful
+- Start responses with context: "I found 13 laptops for you" or "Based on your search for vintage bags..."
+- Use natural language, not robotic lists
+- Compare products meaningfully: "**[1]** offers better performance, but **[2]** is $200 cheaper"
+- Show your reasoning: "I recommend **[1]** because..." or "**[3]** stands out for its..."
 
 WHEN PRESENTING PRODUCTS:
-- Recommend 1-5 most relevant products with citations
-- Explain WHY each is a good match
-- Highlight key features and trade-offs (price, Veritas Score, condition)
-- Mention price and value
-- Compare options if multiple fit
-- Use citation numbers consistently
+- Focus on top 3-5 most relevant products with citations
+- Explain WHY each is a good match (be specific!)
+- Highlight trade-offs: price vs. quality, features vs. simplicity, brand vs. value
+- Use Veritas Score to indicate quality/trust: "**[1]** has a high Veritas Score of 88/100"
+- Compare options: "While **[1]** costs more, **[2]** offers similar features at half the price"
+- End with clear recommendation or choice framework
 
 WHEN ASKING CLARIFYING QUESTIONS:
 - If query is vague (confidence < 0.5), ask 2-3 specific questions
 - Examples: "What's your budget?", "What will you use it for?", "Any preferred brands?"
-- Keep questions focused and helpful
+- Keep questions focused and conversational
 
-IMPORTANT - HANDLING ZERO RESULTS:
-- When NO products are found, be EXTREMELY helpful and proactive
-- Acknowledge what they searched for
-- Explain that we don't currently have those specific items
-- Suggest 2-3 related categories or product types that ARE available in our database
-- Ask clarifying questions to understand what they really need
-- Offer to search for alternatives
-- Be conversational, not robotic - show you understand their intent
+HANDLING ZERO RESULTS:
+- When NO products are found, be EXTREMELY helpful
+- Acknowledge: "I couldn't find vintage designer bags in our current inventory"
+- Suggest alternatives: "However, we have great options in modern designer handbags and luxury accessories"
+- Ask clarifying questions: "Would you like to explore those instead, or should I help you find something similar?"
+- Be empathetic and solution-oriented
+
+CONVERSATION FLOW:
+- Each response should invite continuation
+- End with questions or suggestions: "Would you like to see more budget options?" or "Should I explain the features of **[1]** in detail?"
+- Maintain context from previous messages
+- Build on user's preferences
 
 GENERAL RULES:
 - Never make up product details - only discuss actual search results
-- Always be specific to the conversation context
-- Keep responses concise but helpful (2-4 paragraphs)`
+- Keep responses concise but insightful (2-5 paragraphs)
+- Use markdown for structure (bold, lists, etc.)
+- Be specific, not generic
+- Show personality and expertise`
 
 export async function POST(req: Request) {
   try {
-    const { messages, pageContext } = await req.json()
+    // Read the body as text first for debugging
+    let rawBody = ''
+    let parsedBody
+    try {
+      rawBody = await req.text()
+      logger.info('📥 Raw request body length:', rawBody.length)
+      logger.info('📥 Raw request body preview:', rawBody.substring(0, 500))
+
+      if (!rawBody || rawBody.trim() === '') {
+        logger.error('❌ Empty request body received')
+        return new Response(
+          JSON.stringify({
+            error: 'Empty request body',
+            message: 'No data received in request'
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
+      parsedBody = JSON.parse(rawBody)
+    } catch (jsonError) {
+      logger.error('❌ JSON parsing failed:', {
+        error: jsonError instanceof Error ? jsonError.message : String(jsonError),
+        rawBodyLength: rawBody.length,
+        rawBodyPreview: rawBody.substring(0, 200)
+      })
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid JSON in request body',
+          message: jsonError instanceof Error ? jsonError.message : 'Failed to parse JSON',
+          bodyPreview: rawBody.substring(0, 100)
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { messages, pageContext } = parsedBody
+
+    if (!messages || !Array.isArray(messages)) {
+      logger.error('❌ Invalid messages format:', { messages })
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid request format',
+          message: 'messages must be an array'
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const lastMessage = messages[messages.length - 1]?.content || ''
 
     logger.info('🤖 Streaming chat request', {
       messageCount: messages.length,
-      lastMessage: messages[messages.length - 1]?.content?.substring(0, 100),
+      lastMessage: lastMessage?.substring(0, 100),
       hasPageContext: !!pageContext,
       contextQuery: pageContext?.searchQuery,
       contextProducts: pageContext?.products?.length || 0
     })
+
+    // Log if this is an auto-analysis
+    if (lastMessage.startsWith('Analyze and compare')) {
+      logger.info('✨ AUTO-ANALYSIS TRIGGERED FOR:', lastMessage)
+    }
 
     // Get the last user message
     const lastUserMessage = messages[messages.length - 1]?.content || ''
@@ -202,8 +292,11 @@ Now provide a conversational response that:
     // Get AI configuration from database (no hardcoding)
     const aiConfig = await AIConfigService.getConfig('chat')
 
-    // Create data stream for sending products to frontend
-    const data = new experimental_StreamData()
+    logger.info('🚀 Starting streaming response...', {
+      hasProducts: topProducts.length > 0,
+      productCount: topProducts.length,
+      model: aiConfig.model
+    })
 
     const result = streamText({
       model: anthropic(aiConfig.model),
@@ -212,38 +305,24 @@ Now provide a conversational response that:
         ...convertToCoreMessages(messages.slice(0, -1)),
         {
           role: 'user',
-          content: lastUserMessage
-        },
-        {
-          role: 'assistant',
-          content: contextMessage
-        },
-        {
-          role: 'user',
-          content: 'Based on the context above, provide your conversational response WITH CITATIONS:'
+          content: `${lastUserMessage}\n\n${contextMessage}\n\nBased on the context above, provide your conversational response WITH CITATIONS:`
         }
       ],
       temperature: aiConfig.temperature,
       maxTokens: aiConfig.maxTokens,
       onFinish: (result) => {
-        // Send products as metadata stream (Perplexity-style)
-        data.append({
-          products: topProducts,
-          totalFound: allProducts.length,
-          query: queryFilters,
-          timestamp: new Date().toISOString()
-        })
-        data.close()
-
         logger.info('✅ Streaming completed', {
           tokens: result.usage?.totalTokens || 0,
           finishReason: result.finishReason,
-          productsReturned: topProducts.length
+          productsReturned: topProducts.length,
+          textLength: result.text?.length || 0
         })
       }
     })
 
-    return result.toDataStreamResponse({ data })
+    logger.info('📤 Returning text stream response')
+
+    return result.toTextStreamResponse()
 
   } catch (error) {
     logger.error('❌ Streaming chat error', {

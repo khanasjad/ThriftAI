@@ -157,10 +157,48 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                     {...props}
                   />
                 ),
-                // Style strong/bold
-                strong: ({ node, ...props }) => (
-                  <strong style={{ fontWeight: '600', color: 'var(--text-primary)' }} {...props} />
-                ),
+                // Style strong/bold - Enhanced for citations
+                strong: ({ node, children, ...props }) => {
+                  // Check if this is a citation like [1], [2], [3]
+                  const text = String(children)
+                  const isCitation = /^\[\d+\]$/.test(text)
+
+                  if (isCitation) {
+                    return (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+                          color: 'white',
+                          fontWeight: '600',
+                          fontSize: '0.75rem',
+                          padding: '0.125rem 0.375rem',
+                          borderRadius: '4px',
+                          marginLeft: '0.125rem',
+                          marginRight: '0.125rem',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-1px)'
+                          e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)'
+                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)'
+                        }}
+                        {...props}
+                      >
+                        {children}
+                      </span>
+                    )
+                  }
+
+                  return <strong style={{ fontWeight: '600', color: 'var(--text-primary)' }} {...props}>{children}</strong>
+                },
                 // Style emphasis/italic
                 em: ({ node, ...props }) => (
                   <em style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }} {...props} />

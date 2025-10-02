@@ -63,6 +63,9 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
       pageContext: pageContext || {}
     },
     onFinish: (message, options) => {
+      console.log('✅ Chat finished. Message:', message)
+      console.log('📊 Data stream:', data)
+
       // Extract products from data stream when AI response completes
       if (data && data.length > 0) {
         const latestData = data[data.length - 1]
@@ -77,19 +80,141 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
     }
   })
 
+  // Debug: Log messages when they change
+  useEffect(() => {
+    console.log('💬 Chat messages updated:', chatMessages)
+  }, [chatMessages])
+
   const [isTyping, setIsTyping] = useState(false)
   const [typingText, setTypingText] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout>()
+  const [isAutoAnalyzing, setIsAutoAnalyzing] = useState(false)
+  const [autoAnalysisMessages, setAutoAnalysisMessages] = useState<Array<{role: string, content: string}>>([])
+  const [streamingContent, setStreamingContent] = useState('')
+
+  // Auto-analyze products when they load - Fixed state timing issue
+  useEffect(() => {
+    try {
+      const products = pageContext?.products || []
+      const searchQuery = pageContext?.searchQuery || ''
+      const lastAnalyzedQuery = sessionStorage.getItem('lastAnalyzedQuery')
+
+      // Check if this is a NEW query that hasn't been analyzed yet
+      const shouldAnalyze = products.length > 0 &&
+                           searchQuery &&
+                           searchQuery !== lastAnalyzedQuery
+
+      console.log('🔍 AUTO-ANALYSIS CHECK:', {
+        productsCount: products.length,
+        searchQuery,
+        lastAnalyzedQuery,
+        shouldAnalyze
+      })
+
+      // Auto-analyze when it's a new query
+      if (shouldAnalyze) {
+        console.log('🤖 AUTO-ANALYZING', products.length, 'products for:', searchQuery)
+
+        // Mark as analyzed IMMEDIATELY to prevent duplicates
+        sessionStorage.setItem('lastAnalyzedQuery', searchQuery)
+        setIsAutoAnalyzing(true)
+
+        // Trigger auto-analysis after a short delay
+        setTimeout(async () => {
+          const analysisContent = `Analyze and compare these ${products.length} products for "${searchQuery}". Highlight key differences, best value, and top recommendations.`
+          console.log('📡 Triggering auto-analysis...', analysisContent)
+
+          try {
+            console.log('📤 Calling /api/chat directly...')
+
+            // Make a direct API call to /api/chat
+            const response = await fetch('/api/chat', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                messages: [
+                  {
+                    role: 'user',
+                    content: analysisContent
+                  }
+                ],
+                pageContext: pageContext || {}
+              })
+            })
+
+            if (!response.ok) {
+              throw new Error(`API returned ${response.status}`)
+            }
+
+            console.log('✅ Auto-analysis API call successful, streaming response...')
+
+            // Add user message for the auto-analysis
+            setAutoAnalysisMessages([{
+              role: 'user',
+              content: analysisContent
+            }])
+
+            // Stream the AI response and update UI in real-time
+            const reader = response.body?.getReader()
+            const decoder = new TextDecoder()
+
+            if (reader) {
+              let aiResponseText = ''
+              setStreamingContent('') // Reset streaming content
+
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                const chunk = decoder.decode(value, { stream: true })
+                aiResponseText += chunk
+
+                // Update streaming content in real-time for typing effect
+                setStreamingContent(aiResponseText)
+              }
+
+              console.log('✅ Auto-analysis completed, received', aiResponseText.length, 'characters')
+
+              // Add complete AI response to messages
+              setAutoAnalysisMessages([
+                {
+                  role: 'user',
+                  content: analysisContent
+                },
+                {
+                  role: 'assistant',
+                  content: aiResponseText
+                }
+              ])
+              setStreamingContent('') // Clear streaming state
+            }
+          } catch (error) {
+            console.error('❌ Auto-analysis submission error:', error)
+          } finally {
+            // Reset analyzing state
+            setIsAutoAnalyzing(false)
+          }
+        }, 1500)
+      } else if (searchQuery && searchQuery === lastAnalyzedQuery) {
+        console.log('✅ Already analyzed this query - skipping')
+      }
+    } catch (error) {
+      console.error('❌ Auto-analysis error:', error)
+      setIsAutoAnalyzing(false)
+    }
+  }, [pageContext?.products, pageContext?.searchQuery])
 
   // Auto-scroll to bottom
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [chatMessages, typingText])
+  }, [chatMessages, typingText, autoAnalysisMessages, streamingContent])
 
   // Initialize with welcome message (only on first mount, independent of chatMessages)
   useEffect(() => {
@@ -111,16 +236,6 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
       handleSubmit(event, { data: { message: content } })
     }
     setShowSuggestions(false)
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      const submitEvent = new Event('submit', { bubbles: true, cancelable: true }) as any
-      submitEvent.preventDefault = () => {}
-      handleSubmit(submitEvent)
-      setShowSuggestions(false)
-    }
   }
 
   const refineResponse = () => {
@@ -262,6 +377,26 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           }} />
         ))}
 
+        {/* Auto-Analysis Messages */}
+        {autoAnalysisMessages.map((message, index) => (
+          <ChatMessage key={`auto-${index}`} message={{
+            id: `auto-${index}`,
+            role: message.role as 'user' | 'assistant',
+            content: message.content,
+            timestamp: new Date()
+          }} />
+        ))}
+
+        {/* Streaming Content (real-time typing effect) */}
+        {streamingContent && (
+          <ChatMessage message={{
+            id: 'streaming',
+            role: 'assistant',
+            content: streamingContent,
+            timestamp: new Date()
+          }} />
+        )}
+
         {/* Typing Animation */}
         {isTyping && typingText && (
           <div className="flex gap-3 mb-4">
@@ -302,8 +437,45 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           </div>
         )}
 
+        {/* Auto-Analysis Indicator */}
+        {isAutoAnalyzing && (
+          <div className="flex gap-3 mb-4">
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+              }}
+            >
+              <Sparkles className="w-4 h-4" style={{ color: 'white' }} />
+            </div>
+
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '12px',
+                padding: '0.75rem 1rem',
+                fontSize: '0.875rem',
+                color: 'var(--accent-primary)',
+                fontFamily: 'var(--font-family-primary)',
+                fontWeight: '500'
+              }}
+            >
+              ✨ Analyzing products for you...
+            </div>
+          </div>
+        )}
+
         {/* Loading Dots */}
-        {isLoading && !isTyping && (
+        {isLoading && !isTyping && !isAutoAnalyzing && (
           <div className="flex gap-3 mb-4">
             <div
               style={{
@@ -474,7 +646,13 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           flexShrink: 0
         }}
       >
-        <div
+        <form
+          data-chat-form
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSubmit(e)
+            setShowSuggestions(false)
+          }}
           style={{
             display: 'flex',
             gap: '0.5rem',
@@ -486,7 +664,6 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
             type="text"
             value={input}
             onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
             disabled={isLoading}
             placeholder="Ask me anything..."
             style={{
@@ -512,11 +689,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           />
 
           <button
-            onClick={(e) => {
-              e.preventDefault()
-              handleSubmit(e as any)
-              setShowSuggestions(false)
-            }}
+            type="submit"
             disabled={!input?.trim() || isLoading}
             style={{
               width: '40px',
@@ -551,7 +724,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           >
             <Send className="w-4 h-4" style={{ color: 'white' }} />
           </button>
-        </div>
+        </form>
       </div>
     </div>
     </>
