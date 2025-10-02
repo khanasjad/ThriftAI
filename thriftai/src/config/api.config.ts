@@ -247,7 +247,10 @@ class ApiConfigManager {
 
   public getConfig(): ApiConfig {
     if (!this.initialized) {
-      throw new Error('API configuration not initialized. Call initialize() first.')
+      // Auto-initialize if not done yet
+      const envConfig = getApiConfigFromEnv()
+      this.config = apiConfigSchema.parse(envConfig)
+      this.initialized = true
     }
     return this.config
   }
@@ -257,40 +260,40 @@ class ApiConfigManager {
   }
 
   public getAiConfig(): ApiConfig['ai'] {
-    return this.config.ai
+    return this.getConfig().ai
   }
 
   public getExternalConfig(): ApiConfig['external'] {
-    return this.config.external
+    return this.getConfig().external
   }
 
   public getShippingConfig(): ApiConfig['shipping'] {
-    return this.config.shipping
+    return this.getConfig().shipping
   }
 
   public getEndpointsConfig(): ApiConfig['endpoints'] {
-    return this.config.endpoints
+    return this.getConfig().endpoints
   }
 
   public getMonitoringConfig(): ApiConfig['monitoring'] {
-    return this.config.monitoring
+    return this.getConfig().monitoring
   }
 
   public isOpenAIAvailable(): boolean {
-    return !!this.config.ai.openai.apiKey
+    return !!this.getConfig().ai.openai.apiKey
   }
 
   public isAnthropicAvailable(): boolean {
-    return !!this.config.ai.anthropic.apiKey
+    return !!this.getConfig().ai.anthropic.apiKey
   }
 
   public isExternalApiAvailable(service: keyof ApiConfig['external']): boolean {
-    const serviceConfig = this.config.external[service] as any
+    const serviceConfig = this.getConfig().external[service] as any
     return !!serviceConfig.apiKey
   }
 
   public isShippingApiAvailable(service: keyof ApiConfig['shipping']): boolean {
-    const serviceConfig = this.config.shipping[service] as any
+    const serviceConfig = this.getConfig().shipping[service] as any
     return !!serviceConfig.apiKey
   }
 

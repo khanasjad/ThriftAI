@@ -312,20 +312,21 @@ Now provide a conversational response that:
     )
 
     const conversationHistory = validPreviousMessages.length > 0
-      ? convertToCoreMessages(validPreviousMessages)
+      ? (convertToCoreMessages(validPreviousMessages) || [])
       : []
 
     logger.info('📨 Message history', {
       totalMessages: messages.length,
       previousCount: previousMessages.length,
-      validCount: validPreviousMessages.length
+      validCount: validPreviousMessages.length,
+      conversationHistoryLength: conversationHistory.length
     })
 
     const result = streamText({
       model: anthropic(aiConfig.model),
       system: CONVERSATIONAL_SEARCH_PROMPT,
       messages: [
-        ...conversationHistory,
+        ...(conversationHistory || []),
         {
           role: 'user',
           content: `${lastUserMessage}\n\n${contextMessage}\n\nBased on the context above, provide your conversational response WITH CITATIONS:`
