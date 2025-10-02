@@ -153,10 +153,21 @@ export default function SearchResults() {
   const [searchInProgress, setSearchInProgress] = useState(false)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const searchTriggeredRef = useRef(false)
+  const [displayQuery, setDisplayQuery] = useState(query) // Track current display query
+
+  // Reset display query when URL query changes
+  useEffect(() => {
+    setDisplayQuery(query)
+  }, [query])
 
   // Handle products from AI - update search grid with AI-selected products
   const handleProductsFromAI = useCallback((products: any[], queryInfo: any) => {
     console.log('📦 Received AI-selected products:', products.length)
+
+    // Update display query if this came from chat
+    if (queryInfo?.query && queryInfo?.source === 'chat') {
+      setDisplayQuery(queryInfo.query)
+    }
 
     // Convert AI products to SearchResponse format
     const aiSearchResponse: SearchResponse = {
@@ -609,7 +620,7 @@ export default function SearchResults() {
           onCollapseChange={setIsChatCollapsed}
           onProductsFromAI={handleProductsFromAI}
           pageContext={{
-            searchQuery: query || '',
+            searchQuery: displayQuery || query || '',
             products: [],
             totalResults: 0
           }}
@@ -646,7 +657,7 @@ export default function SearchResults() {
           onCollapseChange={setIsChatCollapsed}
           onProductsFromAI={handleProductsFromAI}
           pageContext={{
-            searchQuery: query || '',
+            searchQuery: displayQuery || query || '',
             products: [],
             totalResults: 0
           }}
@@ -689,7 +700,7 @@ export default function SearchResults() {
         onCollapseChange={setIsChatCollapsed}
         onProductsFromAI={handleProductsFromAI}
         pageContext={{
-          searchQuery: query || '',
+          searchQuery: displayQuery || query || '',
           products: searchResults?.products || [],
           filters: filters,
           totalResults: searchResults?.metadata.total || 0
@@ -715,7 +726,7 @@ export default function SearchResults() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-light mb-4 page-header">
-            Search Results for "{query}"
+            Search Results for "{displayQuery}"
           </h1>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <p className="text-lg page-subtitle">

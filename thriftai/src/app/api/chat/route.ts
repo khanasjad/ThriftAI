@@ -9,6 +9,11 @@ import { AIConfigService } from '@/lib/services/aiConfigService'
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
 
+// Configuration constants
+const CHAT_CONFIG = {
+  TOP_PRODUCTS_COUNT: 5,
+  MIN_CONFIDENCE_THRESHOLD: 0.5
+}
 
 const CONVERSATIONAL_SEARCH_PROMPT = `You are an expert shopping advisor for ThriftAI marketplace. Your role is to help users find products through natural conversation, like Perplexity AI does for search.
 
@@ -184,7 +189,7 @@ export async function POST(req: Request) {
     let topProducts: any[] = []
     let allProducts: any[] = []
 
-    if (queryFilters.confidence >= 0.5 && queryFilters.searchTerms.length > 0) {
+    if (queryFilters.confidence >= CHAT_CONFIG.MIN_CONFIDENCE_THRESHOLD && queryFilters.searchTerms.length > 0) {
       logger.info('🔍 Executing database query...')
       const results = await safeQueryExecutor.executeWithMarketplace(queryFilters)
 
@@ -193,7 +198,7 @@ export async function POST(req: Request) {
       logger.info(`✅ Found ${productCount} products`)
 
       if (results.products.length > 0) {
-        // Select top 5 products using Veritas Score (already calculated by VeritasEngine)
+        // Select top products using Veritas Score (already calculated by VeritasEngine)
         // Products are already sorted by Veritas Score in the enhanced-search API
         topProducts = results.products
           .filter((p: any) => p.veritasScore || p.aiScore) // Only products with scores
@@ -202,7 +207,7 @@ export async function POST(req: Request) {
             const scoreB = b.veritasScore || b.aiScore || 0
             return scoreB - scoreA // Descending order
           })
-          .slice(0, 5) // Top 5 products
+          .slice(0, CHAT_CONFIG.TOP_PRODUCTS_COUNT)
 
         logger.info(`🎯 Selected top ${topProducts.length} products using Veritas scoring`, {
           scores: topProducts.map(p => ({ name: p.name, score: p.veritasScore || p.aiScore }))
@@ -298,11 +303,29 @@ Now provide a conversational response that:
       model: aiConfig.model
     })
 
+    // Only include conversation history if there are previous messages
+    const previousMessages = messages.slice(0, -1)
+
+    // Filter out any invalid messages and ensure proper structure
+    const validPreviousMessages = previousMessages.filter((m: any) =>
+      m && typeof m === 'object' && m.role && m.content
+    )
+
+    const conversationHistory = validPreviousMessages.length > 0
+      ? convertToCoreMessages(validPreviousMessages)
+      : []
+
+    logger.info('📨 Message history', {
+      totalMessages: messages.length,
+      previousCount: previousMessages.length,
+      validCount: validPreviousMessages.length
+    })
+
     const result = streamText({
       model: anthropic(aiConfig.model),
       system: CONVERSATIONAL_SEARCH_PROMPT,
       messages: [
-        ...convertToCoreMessages(messages.slice(0, -1)),
+        ...conversationHistory,
         {
           role: 'user',
           content: `${lastUserMessage}\n\n${contextMessage}\n\nBased on the context above, provide your conversational response WITH CITATIONS:`

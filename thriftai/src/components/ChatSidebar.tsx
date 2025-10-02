@@ -94,44 +94,62 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
   const [isAutoAnalyzing, setIsAutoAnalyzing] = useState(false)
   const [autoAnalysisMessages, setAutoAnalysisMessages] = useState<Array<{role: string, content: string}>>([])
   const [streamingContent, setStreamingContent] = useState('')
+  const [userInput, setUserInput] = useState('')
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
+
+  // Auto-analysis configuration
+  const AUTO_ANALYSIS_CONFIG = {
+    DELAY_MS: 1500,
+    SESSION_STORAGE_KEY: 'lastAnalyzedQuery',
+    API_ENDPOINT: '/api/chat',
+    PROMPT_TEMPLATE: (count: number, query: string) => {
+      if (count === 0) {
+        return `The search for "${query}" returned no results. Engage in a helpful conversation: explain we don't have this item, suggest related products we DO have, and ask what they're really looking for.`
+      }
+      return `Analyze and compare these ${count} products for "${query}". Highlight key differences, best value, and top recommendations.`
+    }
+  }
 
   // Auto-analyze products when they load - Fixed state timing issue
   useEffect(() => {
     try {
       const products = pageContext?.products || []
       const searchQuery = pageContext?.searchQuery || ''
-      const lastAnalyzedQuery = sessionStorage.getItem('lastAnalyzedQuery')
+      const lastAnalyzedQuery = sessionStorage.getItem(AUTO_ANALYSIS_CONFIG.SESSION_STORAGE_KEY)
 
       // Check if this is a NEW query that hasn't been analyzed yet
-      const shouldAnalyze = products.length > 0 &&
-                           searchQuery &&
+      // ALWAYS analyze - even with 0 results (AI should have a conversation)
+      const shouldAnalyze = searchQuery &&
                            searchQuery !== lastAnalyzedQuery
 
       console.log('🔍 AUTO-ANALYSIS CHECK:', {
         productsCount: products.length,
         searchQuery,
         lastAnalyzedQuery,
-        shouldAnalyze
+        shouldAnalyze,
+        isDifferent: searchQuery !== lastAnalyzedQuery,
+        pageContext: !!pageContext,
+        timestamp: new Date().toISOString()
       })
 
-      // Auto-analyze when it's a new query
+      // Auto-analyze when it's a new query (even with 0 results)
       if (shouldAnalyze) {
-        console.log('🤖 AUTO-ANALYZING', products.length, 'products for:', searchQuery)
+        console.log('🤖 AUTO-ANALYZING', products.length, 'products for:', searchQuery, products.length === 0 ? '(ZERO RESULTS - AI CONVERSATION)' : '')
 
         // Mark as analyzed IMMEDIATELY to prevent duplicates
-        sessionStorage.setItem('lastAnalyzedQuery', searchQuery)
+        sessionStorage.setItem(AUTO_ANALYSIS_CONFIG.SESSION_STORAGE_KEY, searchQuery)
         setIsAutoAnalyzing(true)
 
-        // Trigger auto-analysis after a short delay
+        // Trigger auto-analysis after configured delay
         setTimeout(async () => {
-          const analysisContent = `Analyze and compare these ${products.length} products for "${searchQuery}". Highlight key differences, best value, and top recommendations.`
+          const analysisContent = AUTO_ANALYSIS_CONFIG.PROMPT_TEMPLATE(products.length, searchQuery)
           console.log('📡 Triggering auto-analysis...', analysisContent)
 
           try {
-            console.log('📤 Calling /api/chat directly...')
+            console.log('📤 Calling API endpoint:', AUTO_ANALYSIS_CONFIG.API_ENDPOINT)
 
-            // Make a direct API call to /api/chat
-            const response = await fetch('/api/chat', {
+            // Make a direct API call to chat endpoint
+            const response = await fetch(AUTO_ANALYSIS_CONFIG.API_ENDPOINT, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -199,9 +217,13 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
             // Reset analyzing state
             setIsAutoAnalyzing(false)
           }
-        }, 1500)
+        }, AUTO_ANALYSIS_CONFIG.DELAY_MS)
       } else if (searchQuery && searchQuery === lastAnalyzedQuery) {
         console.log('✅ Already analyzed this query - skipping')
+      } else if (!searchQuery && lastAnalyzedQuery) {
+        // Clear session when search is cleared (user started fresh)
+        console.log('🧹 Clearing analyzed query session')
+        sessionStorage.removeItem(AUTO_ANALYSIS_CONFIG.SESSION_STORAGE_KEY)
       }
     } catch (error) {
       console.error('❌ Auto-analysis error:', error)
@@ -227,15 +249,98 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
     }
   }, [])
 
-  // Simplified send message using useChat hook
+  // Send message using direct API call (same approach as auto-analysis)
   const sendMessage = async (content?: string) => {
-    if (content) {
-      // For conversation starters, set input and submit
-      const event = new Event('submit', { bubbles: true, cancelable: true }) as any
-      event.preventDefault = () => {}
-      handleSubmit(event, { data: { message: content } })
+    if (!content) {
+      setShowSuggestions(false)
+      return
     }
-    setShowSuggestions(false)
+
+    console.log('🗣️ USER SENT MESSAGE:', content)
+
+    try {
+      setShowSuggestions(false)
+      setUserInput('') // Clear input field
+      setIsSendingMessage(true) // Show loading indicator
+
+      // Add user message to display
+      const userMessage = { role: 'user', content }
+      console.log('📝 Adding user message to chat, current messages:', autoAnalysisMessages.length)
+      setAutoAnalysisMessages(prev => [...prev, userMessage])
+
+      // Parallel: Update search results + Get AI response
+      const [chatResponse] = await Promise.all([
+        // 1. Get AI chat response
+        fetch(AUTO_ANALYSIS_CONFIG.API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [...autoAnalysisMessages, userMessage],
+            pageContext: pageContext || {}
+          })
+        }),
+
+        // 2. Update search results based on chat message
+        (async () => {
+          try {
+            const searchResponse = await fetch('/api/buyers/enhanced-search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: content })
+            })
+
+            if (searchResponse.ok) {
+              const searchData = await searchResponse.json()
+              if (searchData.products && onProductsFromAI) {
+                console.log('📦 Updating search results with', searchData.products.length, 'products')
+                onProductsFromAI(searchData.products, { query: content, source: 'chat' })
+              }
+            }
+          } catch (error) {
+            console.error('❌ Search update error:', error)
+          }
+        })()
+      ])
+
+      if (!chatResponse.ok) {
+        throw new Error(`API returned ${chatResponse.status}`)
+      }
+
+      console.log('✅ Chat API call successful, streaming response...')
+
+      // Stream the AI response
+      const reader = chatResponse.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (reader) {
+        let aiResponseText = ''
+        setStreamingContent('')
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value, { stream: true })
+          aiResponseText += chunk
+          setStreamingContent(aiResponseText)
+        }
+
+        console.log('💬 AI response complete, length:', aiResponseText.length)
+
+        // Add complete AI response to messages
+        setAutoAnalysisMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: aiResponseText }
+        ])
+        setStreamingContent('')
+      } else {
+        console.error('❌ No reader available from response')
+      }
+    } catch (error) {
+      console.error('❌ Send message error:', error)
+    } finally {
+      setIsSendingMessage(false) // Hide loading indicator
+    }
   }
 
   const refineResponse = () => {
@@ -395,6 +500,54 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
             content: streamingContent,
             timestamp: new Date()
           }} />
+        )}
+
+        {/* Loading indicator while sending message */}
+        {isSendingMessage && !streamingContent && (
+          <div style={{
+            padding: '1rem',
+            backgroundColor: 'var(--chat-bg)',
+            borderRadius: '12px',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--accent-primary)',
+              animation: 'pulse 1.5s ease-in-out infinite'
+            }} />
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--accent-primary)',
+              animation: 'pulse 1.5s ease-in-out infinite 0.2s'
+            }} />
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--accent-primary)',
+              animation: 'pulse 1.5s ease-in-out infinite 0.4s'
+            }} />
+            <span style={{
+              fontSize: '0.875rem',
+              color: 'var(--text-secondary)',
+              marginLeft: '0.5rem'
+            }}>
+              Analyzing and updating results...
+            </span>
+            <style>{`
+              @keyframes pulse {
+                0%, 100% { opacity: 0.3; transform: scale(0.8); }
+                50% { opacity: 1; transform: scale(1.2); }
+              }
+            `}</style>
+          </div>
         )}
 
         {/* Typing Animation */}
@@ -648,10 +801,11 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
       >
         <form
           data-chat-form
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault()
-            handleSubmit(e)
-            setShowSuggestions(false)
+            if (userInput.trim()) {
+              await sendMessage(userInput.trim())
+            }
           }}
           style={{
             display: 'flex',
@@ -662,9 +816,17 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           <input
             ref={inputRef}
             type="text"
-            value={input}
-            onChange={handleInputChange}
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
             disabled={isLoading}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (userInput.trim()) {
+                  sendMessage(userInput.trim())
+                }
+              }
+            }}
             placeholder="Ask me anything..."
             style={{
               flex: 1,

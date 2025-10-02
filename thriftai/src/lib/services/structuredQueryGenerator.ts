@@ -63,23 +63,34 @@ Examples:
 - "Art" → ["artistic", "designer", "creative", "unique", "handmade", "custom", "special", "exclusive", "luxury"]
 - "Tech gadgets" → ["technology", "electronic", "digital", "smart", "device", "gadget", "tech", "innovative"]
 
-📂 CATEGORY DETECTION (CAST A WIDE NET):
+📂 CATEGORY DETECTION (PRAGMATIC MAPPING):
 You will be provided with AVAILABLE_CATEGORIES from the database.
 
-CRITICAL RULE: When query is broad/semantic (like "rare collectibles", "art", "eco-friendly"), map to ALL potentially relevant categories instead of leaving empty!
+CRITICAL RULE: Map user intent to the CLOSEST available categories, even if not a perfect semantic match!
 
 Rules:
-1. For SPECIFIC queries (laptop, shoes, phone) → map to exact category match
+1. For SPECIFIC queries (laptop, shoes, phone) → map to exact category match IF IT EXISTS
 2. For BROAD/SEMANTIC queries (collectibles, art, luxury, eco-friendly) → include ALL potentially relevant categories
-3. Think creatively about what categories MIGHT contain products matching user's intent
-4. Better to over-include categories than under-include
-5. ONLY leave categories empty if ZERO categories could possibly be relevant
+3. **PRAGMATIC FALLBACK**: If the exact category doesn't exist, find the CLOSEST related category
+4. **KEYWORD SEARCH FALLBACK**: If NO category is even remotely related, leave categories EMPTY [] to use broad keyword search
+5. Think: "What categories in this database could satisfy the user's need?"
+6. Better to show SOMETHING relevant than NOTHING
+7. ❌ NEVER map to completely unrelated categories just to fill the array
 
 Examples:
-- "laptop" + has ELECTRONICS → categories: ["ELECTRONICS"]
-- "rare collectibles" + has JEWELRY, WATCHES, ACCESSORIES, VINTAGE_CLOTHING → categories: ["JEWELRY", "WATCHES", "ACCESSORIES", "VINTAGE_CLOTHING"] (collectibles could be in any of these!)
-- "designer bags" + has ACCESSORIES, HANDBAGS, PURSES → categories: ["ACCESSORIES", "HANDBAGS", "PURSES"]
-- "eco-friendly" + has CLOTHING, HOME_GOODS, ACCESSORIES → categories: ["CLOTHING", "HOME_GOODS", "ACCESSORIES"] (eco products could be in any category)
+- "laptop" + has LAPTOPS → categories: ["LAPTOPS"] (exact match)
+- "rare collectibles" + has JEWELRY, WATCHES, ACCESSORIES → categories: ["JEWELRY", "WATCHES", "ACCESSORIES"] (could be in any)
+- "designer bags" + has HANDBAGS, BACKPACKS → categories: ["HANDBAGS", "BACKPACKS"] (bag-related categories)
+- "bag" + has BACKPACKS (no HANDBAGS) → categories: ["BACKPACKS"] (closest match - still a bag!)
+- "eco-friendly" + has CLOTHING, HOME_GOODS → categories: ["CLOTHING", "HOME_GOODS"] (eco products could be anywhere)
+- **"car" + has TOYS, RC_TOYS but NO car category** → categories: [] (no relevant match - use keyword search to find brands/products with "car" in name)
+- **"pizza" + marketplace has NO food** → categories: [] (no match - rely on keyword search)
+
+**PRAGMATIC PRINCIPLE**:
+- First try: exact category match
+- Second try: semantically close categories
+- Last resort: categories: [] (empty) to trigger broad keyword search across ALL products
+- ❌ NEVER pick random unrelated categories
 
 PRICE INTELLIGENCE:
 Extract price constraints from user's natural language:
@@ -91,6 +102,32 @@ Extract price constraints from user's natural language:
 
 BRAND DETECTION:
 Extract any brand names mentioned (Nike, Apple, Gucci, etc.) into brands array.
+
+CONDITION DETECTION (CRITICAL - AVOID ZERO RESULTS):
+The "condition" field is for PRODUCT CONDITION ONLY, not descriptive attributes!
+
+VALID CONDITIONS (exact match required):
+- "New" - brand new products
+- "Like New" - excellent condition, barely used
+- "Very Good" - minor wear, fully functional
+- "Good" - noticeable wear but works well
+- "Acceptable" - significant wear but usable
+
+IMPORTANT RULES:
+1. ❌ NEVER put descriptive words in condition: "vintage", "designer", "luxury", "rare", "modern", "classic", etc.
+2. ❌ These are NOT conditions - they are search attributes that go in searchTerms
+3. ✅ Only use condition if user explicitly mentions product condition (e.g., "new phone", "used laptop", "like new shoes")
+4. ✅ When in doubt, leave condition EMPTY [] - it's better to show results than filter to zero
+
+Examples:
+- "vintage designer bag" → condition: [] (vintage is a style, not a condition - put in searchTerms)
+- "new iPhone" → condition: ["New"] (user wants new product)
+- "used laptop" → condition: ["Good", "Very Good", "Acceptable"] (used = various conditions)
+- "like new shoes" → condition: ["Like New"] (explicit condition)
+- "luxury watch" → condition: [] (luxury is not a condition)
+- "cheap phone" → condition: [] (cheap is about price, not condition)
+
+DEFAULT: Leave condition: [] unless user explicitly mentions product condition.
 
 CONFIDENCE SCORING:
 - 0.9+: Crystal clear what they want (product type + details)
@@ -132,13 +169,15 @@ Examples:
 
 Example 1 - Specific product with price:
 Input: "Find me vintage designer bags under $200"
+Available categories: HANDBAGS, BACKPACKS, ACCESSORIES, ELECTRONICS, CLOTHING
 Output: {
-  "searchTerms": ["vintage", "designer", "handbag", "purse", "luxury"],
-  "categories": ["WOMENS_ACCESSORIES", "MENS_ACCESSORIES"],  // Based on AVAILABLE_CATEGORIES
+  "searchTerms": ["vintage", "designer", "bag", "handbag", "luxury", "retro", "classic"],
+  "categories": ["HANDBAGS", "BACKPACKS", "ACCESSORIES"],  // All bag-related categories
   "maxPrice": 200,
+  "condition": [],  // CRITICAL: "vintage" is NOT a condition, it's a style descriptor!
   "sortBy": "relevance",
   "intent": "User wants vintage designer bags under $200",
-  "confidence": 0.95
+  "confidence": 0.9
 }
 
 Example 2 - Broad category query:
@@ -158,6 +197,7 @@ Input: "mobile"
 Output: {
   "searchTerms": ["phone", "smartphone", "mobile", "cell"],
   "categories": ["SMARTPHONES"],  // ONLY smartphones, NOT laptops or other electronics
+  "condition": [],
   "sortBy": "relevance",
   "intent": "User wants mobile phones/smartphones",
   "confidence": 0.95
