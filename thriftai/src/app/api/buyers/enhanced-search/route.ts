@@ -5,6 +5,7 @@ import { aiProductScorer, type ProductData, type ScoreBreakdown } from '@/lib/se
 import { generateOptimizedParams } from '@/lib/services/optimizedScoreParameters'
 import { intelligentProductRanker, type ProductForRanking } from '@/lib/services/intelligentProductRanker'
 import { universalScoringEngine, type VeritasScoreInput, type VeritasScore } from '@/lib/services/universalScoringEngine'
+import { parameterEnrichmentService } from '@/lib/services/parameterEnrichmentService'
 import { logger } from '@/lib/logger'
 
 /**
@@ -259,7 +260,9 @@ export async function POST(request: NextRequest) {
 
     // STEP 4: Calculate Veritas Score™ for ALL products
     logger.info('🏆 Calculating Veritas Scores for all products...')
-    rerankedProducts = rerankedProducts.map(p => {
+
+    // First, enrich all products with 96 parameters in batch
+    const productsToEnrich = rerankedProducts.map(p => {
       const productPrice = p.price?.current || p.price || 0
       const productId = p.id || p.asin || ''
       const productCategory = p.category || structuredFilters.categories?.[0] || 'DEFAULT'
@@ -311,16 +314,25 @@ export async function POST(request: NextRequest) {
         socialMediaMentions: 0,
         sustainability: p.sustainability || false,
         madeInCountry: p.madeInCountry || undefined,
-        marketAveragePrice: optimizedParams.marketAveragePrice
+        marketAveragePrice: optimizedParams.marketAveragePrice,
+        dynamicSpecs: p.dynamicSpecs // Include existing dynamicSpecs if available
       }
 
-      const veritasInput: VeritasScoreInput = {
-        ...productData,
-        companyMetrics: p.companyMetrics,
-        dynamicSpecs: p.dynamicSpecs
-      }
+      return productData
+    })
 
-      const veritasScore = universalScoringEngine.calculateVeritasScore(veritasInput)
+    // Enrich all products with 96 parameters (batch processing)
+    logger.info('🔧 Enriching products with 96 parameters...')
+    const enrichedProducts = await parameterEnrichmentService.enrichProducts(productsToEnrich, 10)
+    logger.info('✅ Products enriched', {
+      total: enrichedProducts.length,
+      stats: parameterEnrichmentService.getBatchStatistics(enrichedProducts)
+    })
+
+    // Calculate Veritas Scores with enriched data
+    rerankedProducts = rerankedProducts.map((p, index) => {
+      const enrichedProduct = enrichedProducts[index]
+      const veritasScore = universalScoringEngine.calculateVeritasScore(enrichedProduct)
 
       return {
         ...p,

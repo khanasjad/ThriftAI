@@ -1,11 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
-import { Slider } from '@/components/ui/slider'
-import { Badge } from '@/components/ui/badge'
+import React, { useState, useEffect } from 'react'
 
 interface FilterOption {
   value: string
@@ -50,7 +45,7 @@ const DEFAULT_FILTERS: ProductFiltersState = {
   sortDirection: 'desc'
 }
 
-export default function ProductFilters({
+function ProductFilters({
   filters,
   onFiltersChange,
   availableFilters,
@@ -605,3 +600,5 @@ export default function ProductFilters({
     </div>
   )
 }
+
+export default ProductFilters
