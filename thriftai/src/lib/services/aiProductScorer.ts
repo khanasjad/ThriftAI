@@ -76,6 +76,9 @@ export interface ProductData {
   // Competition
   competitorPrices?: number[]
   marketAveragePrice?: number
+
+  // Dynamic Specifications (category-specific)
+  dynamicSpecs?: Record<string, any>
 }
 
 export interface ScoreBreakdown {
@@ -89,6 +92,7 @@ export interface ScoreBreakdown {
     urgency: number // Stock & demand signals
     relevance: number // Search match quality
     emotional: number // Brand & sustainability appeal
+    specsQuality: number // Dynamic specifications completeness
   }
   confidence: number // 0-1, how confident we are in the score
   insights: string[] // Human-readable insights
@@ -112,20 +116,22 @@ export class AIProductScorer {
       convenience: this.calculateConvenience(product),
       urgency: this.calculateUrgency(product),
       relevance: this.calculateRelevance(product),
-      emotional: this.calculateEmotionalAppeal(product)
+      emotional: this.calculateEmotionalAppeal(product),
+      specsQuality: this.calculateSpecsQuality(product)
     }
 
     // Weight factors based on consumer psychology research
     // Research shows price (25%), trust (20%), and social proof (15%) are top factors
     const weights = {
-      priceValue: 0.25,    // Price is #1 factor for most consumers
-      trustScore: 0.20,    // Trust crucial for online purchases
-      socialProof: 0.15,   // 93% influenced by reviews
+      priceValue: 0.23,    // Price is #1 factor for most consumers
+      trustScore: 0.18,    // Trust crucial for online purchases
+      socialProof: 0.14,   // 93% influenced by reviews
       qualityScore: 0.12,  // Product quality assessment
       convenience: 0.10,   // Shipping & returns matter
-      relevance: 0.08,     // Search relevance
-      urgency: 0.05,       // FOMO and scarcity
-      emotional: 0.05      // Brand appeal & sustainability
+      specsQuality: 0.10,  // Product specifications completeness
+      relevance: 0.07,     // Search relevance
+      urgency: 0.04,       // FOMO and scarcity
+      emotional: 0.02      // Brand appeal & sustainability
     }
 
     // Calculate weighted total
@@ -299,6 +305,16 @@ export class AIProductScorer {
     // Certifications
     if (product.certifications && product.certifications.length > 0) {
       score = Math.min(100, score + 5 * product.certifications.length)
+    }
+
+    // Dynamic Specifications Bonus
+    // Products with detailed specs are more transparent and trustworthy
+    if (product.dynamicSpecs && Object.keys(product.dynamicSpecs).length > 0) {
+      const specsCount = Object.keys(product.dynamicSpecs).length
+      // Award up to 10 points for complete specifications
+      // More specs = better product transparency
+      const specsBonus = Math.min(10, specsCount * 2)
+      score = Math.min(100, score + specsBonus)
     }
 
     return Math.max(0, Math.min(100, score))
@@ -477,6 +493,36 @@ export class AIProductScorer {
     }
 
     return Math.max(0, Math.min(100, score))
+  }
+
+  /**
+   * Specs Quality Score (0-100)
+   * Product specifications completeness and detail level
+   */
+  private calculateSpecsQuality(product: ProductData): number {
+    // Products with detailed specifications score higher
+    if (!product.dynamicSpecs || Object.keys(product.dynamicSpecs).length === 0) {
+      return 0 // No specs = 0 score
+    }
+
+    const specsCount = Object.keys(product.dynamicSpecs).length
+
+    // Score based on number of specifications
+    // 1-2 specs = 40 points (basic info)
+    // 3-4 specs = 70 points (good detail)
+    // 5+ specs = 100 points (excellent detail)
+
+    if (specsCount >= 5) {
+      return 100
+    } else if (specsCount === 4) {
+      return 80
+    } else if (specsCount === 3) {
+      return 60
+    } else if (specsCount === 2) {
+      return 40
+    } else {
+      return 20
+    }
   }
 
   /**

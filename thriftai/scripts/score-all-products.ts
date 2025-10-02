@@ -92,8 +92,9 @@ async function main() {
         process.stdout.write(`\r📈 Progress: ${progress}% (${i}/${products.length}) - ${product.name.substring(0, 40)}...`)
 
         const result = await aiScoringEngine.scoreProduct(product.id, {
-          skipCache: forceRescore,
-          includeInsights: true
+          forceRefresh: forceRescore,
+          includeCompanyMetrics: true,
+          includeDynamicSpecs: true
         })
 
         successful++

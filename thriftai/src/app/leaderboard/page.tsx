@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Trophy, Filter, TrendingUp, Star, DollarSign, Shield, Truck, Zap, Heart, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trophy, Filter, TrendingUp, Star, DollarSign, Shield, Truck, Zap, Heart, ChevronDown, ChevronUp, Package } from 'lucide-react'
 
 interface Product {
   id: string
@@ -24,6 +24,7 @@ interface Product {
       convenience: number
       urgency: number
       emotional: number
+      specsQuality: number
     }
     recommendation: string
     insights: string[]
@@ -40,6 +41,7 @@ interface Product {
     laborPractices: number
     supplyChainTransparency: number
   }
+  dynamicSpecs?: Record<string, any>
 }
 
 export default function LeaderboardPage() {
@@ -474,7 +476,8 @@ export default function LeaderboardPage() {
                             { label: 'Social Proof', value: product.aiScoreBreakdown?.components?.socialProof || 0, icon: Star },
                             { label: 'Convenience', value: product.aiScoreBreakdown?.components?.convenience || 0, icon: Truck },
                             { label: 'Urgency', value: product.aiScoreBreakdown?.components?.urgency || 0, icon: Zap },
-                            { label: 'Emotional', value: product.aiScoreBreakdown?.components?.emotional || 0, icon: Heart }
+                            { label: 'Emotional', value: product.aiScoreBreakdown?.components?.emotional || 0, icon: Heart },
+                            { label: 'Specs Quality', value: product.aiScoreBreakdown?.components?.specsQuality || 0, icon: Package }
                           ].map(({ label, value, icon: Icon }) => (
                             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                               <Icon size={16} style={{ color: 'var(--text-tertiary)' }} />
@@ -586,6 +589,51 @@ export default function LeaderboardPage() {
                             <span>{(product.companyMetrics?.supplyChainTransparency || 0).toFixed(1)}/100</span>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Product Specifications */}
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '8px',
+                        padding: '1rem'
+                      }}>
+                        <h4 style={{
+                          margin: '0 0 1rem 0',
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          <Package size={18} style={{ color: 'var(--accent-primary)' }} />
+                          Product Specifications
+                        </h4>
+                        {product.dynamicSpecs && Object.keys(product.dynamicSpecs).length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem' }}>
+                            {Object.entries(product.dynamicSpecs).map(([key, value]) => (
+                              <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                                  {key.replace(/([A-Z])/g, ' $1').trim()}:
+                                </span>
+                                <span style={{ fontWeight: '600' }}>{String(value)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{
+                            padding: '1rem',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            color: 'var(--text-secondary)',
+                            textAlign: 'center'
+                          }}>
+                            <div style={{ marginBottom: '0.5rem' }}>⚠️ No specifications available</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                              This product was generated without detailed specs
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* AI Insights */}

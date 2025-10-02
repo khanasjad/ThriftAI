@@ -1,22 +1,43 @@
 import { prisma } from '../src/lib/prisma'
 
 async function checkDynamicSpecs() {
-  const product = await prisma.product.findFirst({
+  console.log('🔍 Checking recently re-scored products...\n')
+
+  // Get recently scored products
+  const samples = await prisma.product.findMany({
     where: {
-      name: { contains: 'Puma Elite', mode: 'insensitive' },
-      category: 'BASKETBALL_SHOES'
+      dynamicSpecs: { not: null },
+      lastScoredAt: { not: null }
     },
     select: {
       id: true,
       name: true,
-      dynamicSpecs: true
-    }
+      category: true,
+      dynamicSpecs: true,
+      aiScoreBreakdown: true,
+      lastScoredAt: true
+    },
+    orderBy: {
+      lastScoredAt: 'desc'
+    },
+    take: 10
   })
 
-  console.log('Product:', product?.name)
-  console.log('Current dynamicSpecs:', JSON.stringify(product?.dynamicSpecs, null, 2))
+  console.log(`📦 Recently scored products (ordered by lastScoredAt):\n`)
+  samples.forEach((p, i) => {
+    console.log(`${i + 1}. ${p.name} (${p.category})`)
+    console.log(`   Last Scored: ${p.lastScoredAt}`)
+    console.log(`   Specs:`, p.dynamicSpecs)
+    const breakdown = p.aiScoreBreakdown as any
+    console.log(`   Has specsQuality in breakdown:`, breakdown?.components?.specsQuality !== undefined)
+    console.log(`   specsQuality value:`, breakdown?.components?.specsQuality || 'N/A')
+    if (breakdown?.components) {
+      console.log(`   All components:`, Object.keys(breakdown.components))
+    }
+    console.log('')
+  })
 
   await prisma.$disconnect()
 }
 
-checkDynamicSpecs()
+checkDynamicSpecs().catch(console.error)

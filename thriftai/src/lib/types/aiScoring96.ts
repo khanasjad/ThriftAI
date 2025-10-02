@@ -493,20 +493,20 @@ export interface ScoringWeights {
 }
 
 export const DEFAULT_WEIGHTS: ScoringWeights = {
-  priceValue: 0.20,                  // 20%
-  trustScore: 0.15,                  // 15%
-  qualityScore: 0.12,                // 12%
-  socialProof: 0.12,                 // 12%
-  convenience: 0.08,                 // 8%
-  urgency: 0.03,                     // 3%
-  relevance: 0.08,                   // 8%
-  emotional: 0.04,                   // 4%
-  companyFinancialHealth: 0.05,      // 5%
-  companyGrowth: 0.03,               // 3%
-  companySustainability: 0.04,       // 4%
-  companySocialResponsibility: 0.03, // 3%
-  companyRisk: 0.02,                 // 2%
-  dynamicProductSpecs: 0.01          // 1%
+  priceValue: 0.15,                  // 15% (scaled from 20%)
+  trustScore: 0.11,                  // 11% (scaled from 15%)
+  qualityScore: 0.09,                // 9% (scaled from 12%)
+  socialProof: 0.09,                 // 9% (scaled from 12%)
+  convenience: 0.06,                 // 6% (scaled from 8%)
+  urgency: 0.02,                     // 2% (scaled from 3%)
+  relevance: 0.06,                   // 6% (scaled from 8%)
+  emotional: 0.03,                   // 3% (scaled from 4%)
+  companyFinancialHealth: 0.04,      // 4% (scaled from 5%)
+  companyGrowth: 0.02,               // 2% (scaled from 3%)
+  companySustainability: 0.03,       // 3% (scaled from 4%)
+  companySocialResponsibility: 0.02, // 2% (scaled from 3%)
+  companyRisk: 0.03,                 // 3% (scaled from 2%)
+  dynamicProductSpecs: 0.25          // 25% ⭐ Product specs are now 25% of total score!
 }
 
 // Category-specific weight adjustments
