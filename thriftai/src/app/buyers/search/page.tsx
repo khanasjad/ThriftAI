@@ -154,6 +154,85 @@ export default function SearchResults() {
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const searchTriggeredRef = useRef(false)
 
+  // Handle products from AI - update search grid with AI-selected products
+  const handleProductsFromAI = useCallback((products: any[], queryInfo: any) => {
+    console.log('📦 Received AI-selected products:', products.length)
+
+    // Convert AI products to SearchResponse format
+    const aiSearchResponse: SearchResponse = {
+      products: products.map(p => ({
+        asin: p.id || p.asin || `ai-${Date.now()}-${Math.random()}`,
+        title: p.name || p.title || 'Product',
+        brand: p.brand || 'Various',
+        category: p.category || 'GENERAL',
+        price: {
+          current: p.price?.current || p.price || p.totalCost || 0,
+          original: p.price?.original || p.originalPrice || p.price || p.totalCost || 0,
+          currency: 'USD',
+          discountPercentage: p.price?.discountPercentage || 0
+        },
+        availability: {
+          inStock: p.availability !== false && p.inStock !== false,
+          quantity: p.stockQuantity || p.quantity || 1,
+          shippingDays: p.estimatedDeliveryDays || p.shippingDays || 5,
+          shippingCost: p.shippingCost || 0
+        },
+        reviews: {
+          rating: p.rating || p.reviews?.rating || 4.0,
+          count: p.reviewCount || p.reviews?.count || 0,
+          verified: true
+        },
+        images: p.images || (p.imageUrl ? [p.imageUrl] : ['/placeholder-image.jpg']),
+        description: p.description || p.title || 'AI-recommended product',
+        seller: {
+          name: p.seller?.name || p.source || 'ThriftAI',
+          rating: p.seller?.rating || 4.5,
+          verified: true
+        },
+        specifications: {
+          category: p.category || 'GENERAL',
+          condition: p.condition || 'Used - Good',
+          size: p.size,
+          color: p.color
+        },
+        veritasScore: p.veritasScore,
+        veritasConfidence: p.veritasConfidence,
+        veritasPillars: p.veritasPillars,
+        veritasInsights: p.veritasInsights,
+        veritasBadges: p.veritasBadges,
+        veritasRecommendation: p.veritasRecommendation,
+        veritasDataCompleteness: p.veritasDataCompleteness,
+        aiScore: p.veritasScore || p.aiScore,
+        aiConfidence: p.veritasConfidence || p.aiConfidence,
+        isHighQuality: p.isHighQuality || (p.veritasScore && p.veritasScore >= 80),
+        dynamicSpecs: p.dynamicSpecs,
+        companyMetrics: p.companyMetrics
+      })),
+      metadata: {
+        total: products.length,
+        page: 1,
+        limit: products.length,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+        filters: availableFilters || {
+          availableCategories: [],
+          availableBrands: [],
+          priceRange: { min: 0, max: 1000 },
+          availableConditions: [],
+          availableSizes: []
+        }
+      },
+      aiInsights: {
+        intelligenceApplied: true,
+        queryUnderstanding: queryInfo?.intent || 'AI-curated selection',
+        overallInsight: `Selected ${products.length} products using Veritas scoring`
+      }
+    }
+
+    setSearchResults(aiSearchResponse)
+    console.log('✅ Updated search grid with AI products')
+  }, [availableFilters])
 
   // Adapt the user object to match what Navigation expects
   const appUser = session?.user ? {
@@ -528,6 +607,7 @@ export default function SearchResults() {
       <div className="App flex-container">
         <ChatSidebar
           onCollapseChange={setIsChatCollapsed}
+          onProductsFromAI={handleProductsFromAI}
           pageContext={{
             searchQuery: query || '',
             products: [],
@@ -564,6 +644,7 @@ export default function SearchResults() {
       <div className="App flex-container">
         <ChatSidebar
           onCollapseChange={setIsChatCollapsed}
+          onProductsFromAI={handleProductsFromAI}
           pageContext={{
             searchQuery: query || '',
             products: [],
@@ -606,6 +687,7 @@ export default function SearchResults() {
       {/* AI Shopping Advisor Sidebar */}
       <ChatSidebar
         onCollapseChange={setIsChatCollapsed}
+        onProductsFromAI={handleProductsFromAI}
         pageContext={{
           searchQuery: query || '',
           products: searchResults?.products || [],

@@ -1,9 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic'
-import { streamText, convertToCoreMessages } from 'ai'
+import { streamText, convertToCoreMessages, experimental_StreamData } from 'ai'
 import { structuredQueryGenerator } from '@/lib/services/structuredQueryGenerator'
 import { safeQueryExecutor } from '@/lib/services/safeQueryExecutor'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
+import { AIConfigService } from '@/lib/services/aiConfigService'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -15,21 +16,28 @@ HOW YOU WORK:
 1. User types a natural language query
 2. You interpret their intent and generate structured filters
 3. Backend searches database with those filters
-4. You present results conversationally with recommendations
+4. You present results conversationally with recommendations using CITATIONS
+
+CRITICAL - PRODUCT CITATIONS (Like Perplexity AI):
+- ALWAYS reference products using **[1]**, **[2]**, **[3]** format
+- Example: "The **[1] Gucci Vintage Handbag** offers premium leather at $250"
+- Example: "If budget matters, **[2] Coach Tote** is only $120 and highly rated"
+- Citations help users identify products in the grid
 
 CONVERSATION STYLE:
 - Be friendly, conversational, and helpful
 - Ask clarifying questions if query is too vague
 - Explain your recommendations with reasoning
 - Compare options honestly (price, quality, features)
-- Be specific about actual products, not generic advice
+- Be specific about actual products using citations
 
 WHEN PRESENTING PRODUCTS:
-- Recommend 1-5 most relevant products
+- Recommend 1-5 most relevant products with citations
 - Explain WHY each is a good match
-- Highlight key features and trade-offs
+- Highlight key features and trade-offs (price, Veritas Score, condition)
 - Mention price and value
 - Compare options if multiple fit
+- Use citation numbers consistently
 
 WHEN ASKING CLARIFYING QUESTIONS:
 - If query is vague (confidence < 0.5), ask 2-3 specific questions
@@ -80,33 +88,55 @@ export async function POST(req: Request) {
       needsClarification: !!queryFilters.needsClarification
     })
 
-    // Step 2: Execute safe database query
+    // Step 2: Execute safe database query with Veritas scoring
     let productsContext = ''
     let productCount = 0
+    let topProducts: any[] = []
+    let allProducts: any[] = []
 
     if (queryFilters.confidence >= 0.5 && queryFilters.searchTerms.length > 0) {
       logger.info('🔍 Executing database query...')
       const results = await safeQueryExecutor.executeWithMarketplace(queryFilters)
 
+      allProducts = results.products
       productCount = results.products.length
       logger.info(`✅ Found ${productCount} products`)
 
       if (results.products.length > 0) {
-        // Format products for Claude
-        productsContext = `\n\nAVAILABLE PRODUCTS (${results.products.length} found):\n` +
-          results.products.slice(0, 10).map((p: any, idx: number) => {
+        // Select top 5 products using Veritas Score (already calculated by VeritasEngine)
+        // Products are already sorted by Veritas Score in the enhanced-search API
+        topProducts = results.products
+          .filter((p: any) => p.veritasScore || p.aiScore) // Only products with scores
+          .sort((a: any, b: any) => {
+            const scoreA = a.veritasScore || a.aiScore || 0
+            const scoreB = b.veritasScore || b.aiScore || 0
+            return scoreB - scoreA // Descending order
+          })
+          .slice(0, 5) // Top 5 products
+
+        logger.info(`🎯 Selected top ${topProducts.length} products using Veritas scoring`, {
+          scores: topProducts.map(p => ({ name: p.name, score: p.veritasScore || p.aiScore }))
+        })
+
+        // Format products for Claude with citation numbers
+        productsContext = `\n\nTOP PRODUCTS (${topProducts.length} selected from ${results.products.length} found):\n` +
+          topProducts.map((p: any, idx: number) => {
             const price = p.price || p.totalCost || 0
             const name = p.name || p.title || 'Unknown'
             const brand = p.brand || 'Various'
             const condition = p.condition || 'Good'
             const rating = p.rating || p.reviews?.rating || 0
+            const veritasScore = p.veritasScore || p.aiScore || 0
 
-            return `[Product ${idx + 1}] ${name}
+            return `[${idx + 1}] ${name}
   - Brand: ${brand}
   - Price: $${price}
   - Condition: ${condition}
   - Rating: ${rating}/5
-  - Category: ${p.category || 'General'}`
+  - Veritas Score: ${veritasScore}/100 (Quality indicator)
+  - Category: ${p.category || 'General'}
+
+IMPORTANT: Reference this as **[${idx + 1}]** in your response`
           }).join('\n\n')
       } else {
         // When no products found, get available categories to suggest alternatives
@@ -169,8 +199,14 @@ Now provide a conversational response that:
 4. References what the user is currently viewing if relevant
 5. Stays specific to this conversation context`
 
+    // Get AI configuration from database (no hardcoding)
+    const aiConfig = await AIConfigService.getConfig('chat')
+
+    // Create data stream for sending products to frontend
+    const data = new experimental_StreamData()
+
     const result = streamText({
-      model: anthropic('claude-3-haiku-20240307'),
+      model: anthropic(aiConfig.model),
       system: CONVERSATIONAL_SEARCH_PROMPT,
       messages: [
         ...convertToCoreMessages(messages.slice(0, -1)),
@@ -184,20 +220,30 @@ Now provide a conversational response that:
         },
         {
           role: 'user',
-          content: 'Based on the context above, provide your conversational response:'
+          content: 'Based on the context above, provide your conversational response WITH CITATIONS:'
         }
       ],
-      temperature: 0.7,
-      maxTokens: 1000,
+      temperature: aiConfig.temperature,
+      maxTokens: aiConfig.maxTokens,
       onFinish: (result) => {
+        // Send products as metadata stream (Perplexity-style)
+        data.append({
+          products: topProducts,
+          totalFound: allProducts.length,
+          query: queryFilters,
+          timestamp: new Date().toISOString()
+        })
+        data.close()
+
         logger.info('✅ Streaming completed', {
           tokens: result.usage?.totalTokens || 0,
-          finishReason: result.finishReason
+          finishReason: result.finishReason,
+          productsReturned: topProducts.length
         })
       }
     })
 
-    return result.toTextStreamResponse()
+    return result.toDataStreamResponse({ data })
 
   } catch (error) {
     logger.error('❌ Streaming chat error', {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useChat } from '@ai-sdk/react'
 import { Send, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Copy, ChevronLeft, ChevronRight } from 'lucide-react'
 import ChatMessage, { ChatMessageData } from './ChatMessage'
 
@@ -22,9 +23,10 @@ interface PageContext {
 interface ChatSidebarProps {
   onCollapseChange?: (isCollapsed: boolean) => void
   pageContext?: PageContext
+  onProductsFromAI?: (products: any[], query: any) => void
 }
 
-export default function ChatSidebar({ onCollapseChange, pageContext }: ChatSidebarProps = {}) {
+export default function ChatSidebar({ onCollapseChange, pageContext, onProductsFromAI }: ChatSidebarProps = {}) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
 
@@ -53,9 +55,28 @@ export default function ChatSidebar({ onCollapseChange, pageContext }: ChatSideb
       onCollapseChange(isCollapsed)
     }
   }, [isCollapsed, onCollapseChange])
-  const [messages, setMessages] = useState<ChatMessageData[]>([])
-  const [inputValue, setInputValue] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+
+  // Use Vercel AI SDK's useChat hook for streaming with product data
+  const { messages: chatMessages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
+    api: '/api/chat',
+    body: {
+      pageContext: pageContext || {}
+    },
+    onFinish: (message, options) => {
+      // Extract products from data stream when AI response completes
+      if (data && data.length > 0) {
+        const latestData = data[data.length - 1]
+        if (latestData?.products && latestData.products.length > 0) {
+          console.log('🎯 Received products from AI:', latestData.products)
+          // Send products to parent component to update search grid
+          if (onProductsFromAI) {
+            onProductsFromAI(latestData.products, latestData.query)
+          }
+        }
+      }
+    }
+  })
+
   const [isTyping, setIsTyping] = useState(false)
   const [typingText, setTypingText] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(true)
@@ -68,134 +89,37 @@ export default function ChatSidebar({ onCollapseChange, pageContext }: ChatSideb
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages, typingText])
+  }, [chatMessages, typingText])
 
-  // Initialize with welcome message
+  // Initialize with welcome message (only on first mount, independent of chatMessages)
   useEffect(() => {
     const hasInitialized = sessionStorage.getItem('chatInitialized')
-    if (messages.length === 0 && !hasInitialized) {
+    if (!hasInitialized) {
       sessionStorage.setItem('chatInitialized', 'true')
       setTimeout(() => {
-        typeMessage({
-          id: 'welcome',
-          role: 'assistant',
-          content: `Hey there! 👋 I'm your AI Shopping Advisor powered by Claude.
-
-I can help you find the perfect products through conversation. Tell me what you're looking for, and I'll search across ThriftAI, Amazon, and eBay to find you the best deals!
-
-Try asking me something like:
-• "I need a laptop for college under $600"
-• "Find me quality running shoes"
-• "What's the best value for wireless headphones?"
-
-What are you shopping for today?`,
-          timestamp: new Date()
-        })
+        setShowSuggestions(true)
       }, 500)
     }
   }, [])
 
-  // Typing animation effect
-  const typeMessage = async (message: ChatMessageData) => {
-    setIsTyping(true)
-    setShowSuggestions(false)
-    const words = message.content.split(' ')
-    let current = ''
-
-    for (let i = 0; i < words.length; i++) {
-      current += (i > 0 ? ' ' : '') + words[i]
-      setTypingText(current)
-      await new Promise(resolve => setTimeout(resolve, 30 + Math.random() * 20))
-    }
-
-    setIsTyping(false)
-    setTypingText('')
-    setMessages(prev => [...prev, message])
-  }
-
+  // Simplified send message using useChat hook
   const sendMessage = async (content?: string) => {
-    const messageContent = content || inputValue.trim()
-    if (!messageContent || isLoading) return
-
-    const userMessage: ChatMessageData = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: messageContent,
-      timestamp: new Date()
+    if (content) {
+      // For conversation starters, set input and submit
+      const event = new Event('submit', { bubbles: true, cancelable: true }) as any
+      event.preventDefault = () => {}
+      handleSubmit(event, { data: { message: content } })
     }
-
-    setMessages(prev => [...prev, userMessage])
-    setInputValue('')
-    setIsLoading(true)
     setShowSuggestions(false)
-
-    try {
-      // Use the new streaming chat API with structured queries
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            ...messages.map(m => ({
-              role: m.role,
-              content: m.content
-            })),
-            {
-              role: 'user',
-              content: messageContent
-            }
-          ],
-          pageContext: pageContext || {}
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-
-      // Handle streaming response (text stream from AI SDK)
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let fullResponse = ''
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const chunk = decoder.decode(value, { stream: true })
-          fullResponse += chunk
-        }
-      }
-
-      const assistantMessage: ChatMessageData = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content: fullResponse || 'I apologize, but I couldn\'t generate a response.',
-        products: [],
-        timestamp: new Date()
-      }
-
-      // Type the response with animation
-      await typeMessage(assistantMessage)
-    } catch (error) {
-      console.error('Chat error:', error)
-
-      await typeMessage({
-        id: `error-${Date.now()}`,
-        role: 'assistant',
-        content: `I apologize, but I'm having trouble connecting right now. Please try again in a moment.`,
-        timestamp: new Date()
-      })
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      const submitEvent = new Event('submit', { bubbles: true, cancelable: true }) as any
+      submitEvent.preventDefault = () => {}
+      handleSubmit(submitEvent)
+      setShowSuggestions(false)
     }
   }
 
@@ -329,8 +253,13 @@ What are you shopping for today?`,
           flexDirection: 'column'
         }}
       >
-        {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
+        {chatMessages.map((message) => (
+          <ChatMessage key={message.id} message={{
+            id: message.id,
+            role: message.role as 'user' | 'assistant',
+            content: message.content,
+            timestamp: new Date()
+          }} />
         ))}
 
         {/* Typing Animation */}
@@ -413,7 +342,7 @@ What are you shopping for today?`,
         )}
 
         {/* Conversation Starters */}
-        {showSuggestions && messages.length <= 1 && !isLoading && (
+        {showSuggestions && chatMessages.length === 0 && !isLoading && (
           <div style={{ marginTop: '1rem' }}>
             <p
               style={{
@@ -467,7 +396,7 @@ What are you shopping for today?`,
         )}
 
         {/* Response Actions */}
-        {messages.length > 1 && messages[messages.length - 1].role === 'assistant' && !isLoading && !isTyping && (
+        {chatMessages.length > 0 && chatMessages[chatMessages.length - 1].role === 'assistant' && !isLoading && !isTyping && (
           <div style={{ marginTop: '0.5rem' }} className="flex gap-2">
             <button
               onClick={refineResponse}
@@ -555,8 +484,8 @@ What are you shopping for today?`,
           <input
             ref={inputRef}
             type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            value={input}
+            onChange={handleInputChange}
             onKeyPress={handleKeyPress}
             disabled={isLoading}
             placeholder="Ask me anything..."
@@ -583,34 +512,38 @@ What are you shopping for today?`,
           />
 
           <button
-            onClick={() => sendMessage()}
-            disabled={!inputValue.trim() || isLoading}
+            onClick={(e) => {
+              e.preventDefault()
+              handleSubmit(e as any)
+              setShowSuggestions(false)
+            }}
+            disabled={!input?.trim() || isLoading}
             style={{
               width: '40px',
               height: '40px',
               borderRadius: '8px',
-              background: inputValue.trim() && !isLoading
+              background: input?.trim() && !isLoading
                 ? 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)'
                 : 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid ' + (inputValue.trim() && !isLoading
+              border: '1px solid ' + (input?.trim() && !isLoading
                 ? 'rgba(16, 185, 129, 0.3)'
                 : 'rgba(255, 255, 255, 0.1)'),
-              cursor: inputValue.trim() && !isLoading ? 'pointer' : 'not-allowed',
+              cursor: input?.trim() && !isLoading ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.2s ease',
-              opacity: inputValue.trim() && !isLoading ? 1 : 0.5,
-              boxShadow: inputValue.trim() && !isLoading ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
+              opacity: input?.trim() && !isLoading ? 1 : 0.5,
+              boxShadow: input?.trim() && !isLoading ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
             }}
             onMouseEnter={(e) => {
-              if (inputValue.trim() && !isLoading) {
+              if (input?.trim() && !isLoading) {
                 e.currentTarget.style.transform = 'scale(1.05)'
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)'
               }
             }}
             onMouseLeave={(e) => {
-              if (inputValue.trim() && !isLoading) {
+              if (input?.trim() && !isLoading) {
                 e.currentTarget.style.transform = 'scale(1)'
                 e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)'
               }
