@@ -3,6 +3,7 @@ import { structuredQueryGenerator } from '@/lib/services/structuredQueryGenerato
 import { safeQueryExecutor } from '@/lib/services/safeQueryExecutor'
 import { aiProductScorer, type ProductData, type ScoreBreakdown } from '@/lib/services/aiProductScorer'
 import { generateOptimizedParams } from '@/lib/services/optimizedScoreParameters'
+import { intelligentProductRanker, type ProductForRanking } from '@/lib/services/intelligentProductRanker'
 import { logger } from '@/lib/logger'
 
 /**
@@ -110,6 +111,72 @@ export async function POST(request: NextRequest) {
       page: results.page,
       totalPages: results.totalPages
     })
+
+    // STEP 3: Apply intelligent ranking using Claude Haiku
+    logger.info('🧠 Applying intelligent ranking...')
+    let intelligenceAnalysis = null
+    let rerankedProducts = results.products
+
+    try {
+      // Prepare products for ranking
+      const productsForRanking: ProductForRanking[] = results.products.map(p => ({
+        id: p.id || p.asin || '',
+        name: p.name || p.title || '',
+        title: p.title || p.name,
+        brand: p.brand,
+        category: p.category,
+        price: p.price?.current || p.price || 0,
+        originalPrice: p.price?.original || p.originalPrice,
+        description: p.description,
+        condition: p.condition || p.specifications?.condition,
+        specifications: p.specifications,
+        dynamicSpecs: p.dynamicSpecs,
+        reviews: p.reviews,
+        aiScore: p.aiScore
+      }))
+
+      // Get intelligent ranking from Claude
+      intelligenceAnalysis = await intelligentProductRanker.rankProducts(
+        productsForRanking,
+        query,
+        20 // Top 20 products
+      )
+
+      // Re-order products based on intelligence ranking
+      if (intelligenceAnalysis.rankedProducts.length > 0) {
+        const rankedProductsMap = new Map(
+          intelligenceAnalysis.rankedProducts.map(rp => [rp.id, rp])
+        )
+
+        // Add intelligence metadata to products (preserve original product structure)
+        rerankedProducts = intelligenceAnalysis.rankedProducts.map(rp => {
+          const originalProduct = results.products.find(p => (p.id || p.asin) === rp.id)
+          if (!originalProduct) return null
+
+          // IMPORTANT: Spread originalProduct first, then add ONLY intelligence fields
+          // Do NOT spread rp as it has incompatible price structure
+          return {
+            ...originalProduct,
+            intelligenceScore: rp.intelligenceScore,
+            reasoning: rp.reasoning,
+            pros: rp.pros,
+            cons: rp.cons,
+            bestFor: rp.bestFor,
+            intelligenceRank: rp.rank
+          }
+        }).filter(Boolean)
+
+        logger.info('✅ Intelligent ranking applied', {
+          rerankedCount: rerankedProducts.length,
+          topProduct: rerankedProducts[0]?.name,
+          topScore: rerankedProducts[0]?.intelligenceScore
+        })
+      }
+    } catch (error) {
+      logger.error('⚠️  Intelligent ranking failed, using default order', { error })
+      // Continue with original products if intelligence fails
+      rerankedProducts = results.products
+    }
 
     // Calculate AI insights from scored products in database
     const productsWithAIScores = results.products.filter(p => p.aiScore !== undefined && p.aiScore !== null)
@@ -221,7 +288,7 @@ export async function POST(request: NextRequest) {
 
     // Return results in format compatible with existing frontend
     return NextResponse.json({
-      products: results.products,
+      products: rerankedProducts,
       metadata: {
         total: results.total,
         page: results.page,
@@ -247,7 +314,12 @@ export async function POST(request: NextRequest) {
           highQualityCount,
           priceIntentDetected,
           priceRange,
-          totalScored: productsWithAIScores.length
+          totalScored: productsWithAIScores.length,
+          // NEW: Intelligence layer insights
+          intelligenceApplied: !!intelligenceAnalysis,
+          queryUnderstanding: intelligenceAnalysis?.queryUnderstanding,
+          overallInsight: intelligenceAnalysis?.overallInsight,
+          recommendations: intelligenceAnalysis?.recommendations
         },
         sorting: {
           field: structuredFilters.sortBy,
@@ -266,7 +338,7 @@ export async function POST(request: NextRequest) {
           totalCost: p.price?.current || p.price || 0,
           condition: p.condition || p.specifications?.condition,
           rating: p.rating || p.reviews?.rating || 0,
-          source: 'ThriftAI',
+          source: 'Veritas.ai',
 
           // Real AI scores - Keep decimal precision
           relevanceScore: score.components.relevance,

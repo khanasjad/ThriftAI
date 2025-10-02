@@ -20,11 +20,8 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
     <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
       <div className="container">
         <a className="navbar-brand fw-bold nav-logo-link" href="/">
-          <span className="text-gradient-primary nav-logo-thrift">
-            Thrift
-          </span>
-          <span className="nav-logo-ai">
-            AI
+          <span className="text-gradient-primary nav-logo-veritas">
+            Veritas</span><span className="nav-logo-ai">.ai
           </span>
         </a>
 

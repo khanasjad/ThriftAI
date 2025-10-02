@@ -2011,16 +2011,16 @@ button,
   text-decoration: none;
 }
 
-.nav-logo-thrift {
+.nav-logo-thrift,
+.nav-logo-veritas {
   font-size: var(--text-2xl);
-  font-weight: var(--font-black);
+  font-weight: var(--font-regular);
 }
 
 .nav-logo-ai {
   color: var(--text-primary);
-  font-weight: var(--font-light);
+  font-weight: var(--font-regular);
   font-size: var(--text-2xl);
-  margin-left: 2px;
 }
 
 .nav-toggler {

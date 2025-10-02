@@ -731,9 +731,9 @@ export default function EnhancedComparisonTable({
                             fontSize: '0.6875rem',
                             fontWeight: '500',
                             fontFamily: 'var(--font-family-primary)',
-                            background: product.source === 'ThriftAI' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                            color: product.source === 'ThriftAI' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                            border: `1px solid ${product.source === 'ThriftAI' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`
+                            background: product.source === 'Veritas.ai' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                            color: product.source === 'Veritas.ai' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                            border: `1px solid ${product.source === 'Veritas.ai' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`
                           }}>
                             {product.source}
                           </span>

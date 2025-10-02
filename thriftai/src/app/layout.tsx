@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "ThriftAI - Smart Secondhand Shopping",
-  description: "Discover amazing secondhand finds with AI-powered search and recommendations",
+  title: "Veritas.ai - Intelligent Shopping Platform",
+  description: "Discover amazing finds with AI-powered search and intelligent recommendations",
 };
 
 export default function RootLayout({

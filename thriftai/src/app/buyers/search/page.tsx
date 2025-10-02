@@ -11,6 +11,7 @@ import ProductFilters, { ProductFiltersState } from '@/components/ProductFilters
 import Pagination, { QuickJumpPagination } from '@/components/Pagination'
 import EnhancedComparisonTable from '@/components/EnhancedComparisonTable'
 import ChatSidebar from '@/components/ChatSidebar'
+import LeaderboardCard from '@/components/LeaderboardCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -49,11 +50,18 @@ interface Product {
     color?: string
     condition?: string
   }
-  // NEW: AI Scoring fields
+  // AI Scoring fields
   aiScore?: number
   aiConfidence?: number
   isHighQuality?: boolean
   leaderboardRank?: number
+  // NEW: Intelligence Layer fields
+  intelligenceScore?: number
+  reasoning?: string
+  pros?: string[]
+  cons?: string[]
+  bestFor?: string
+  intelligenceRank?: number
 }
 
 interface SearchResponse {
@@ -77,12 +85,17 @@ interface SearchResponse {
     topProducts: any[]
     insights: any
   }
-  // NEW: AI Scoring insights
+  // AI Scoring insights
   aiInsights?: {
     averageScore?: number
     highQualityCount?: number
     priceIntentDetected?: boolean
     priceRange?: { min: number; max: number }
+    // NEW: Intelligence layer insights
+    intelligenceApplied?: boolean
+    queryUnderstanding?: string
+    overallInsight?: string
+    recommendations?: string[]
   }
 }
 
@@ -114,7 +127,8 @@ export default function SearchResults() {
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [filters, setFilters] = useState<ProductFiltersState>(DEFAULT_FILTERS)
   const [availableFilters, setAvailableFilters] = useState<any>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'leaderboard'>('grid')
+  const [expandedLeaderboardCard, setExpandedLeaderboardCard] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [searchInProgress, setSearchInProgress] = useState(false)
   const searchTriggeredRef = useRef(false)
@@ -372,8 +386,11 @@ export default function SearchResults() {
   }
 
   const renderProduct = (product: Product, index: number) => {
-    const discount = product.price.discountPercentage
-    const savings = product.price.original - product.price.current
+    // Safety checks for price structure
+    const currentPrice = product.price?.current ?? product.price ?? 0
+    const originalPrice = product.price?.original ?? currentPrice
+    const discount = product.price?.discountPercentage ?? 0
+    const savings = originalPrice - currentPrice
     const hasAIScore = product.aiScore !== undefined && product.aiScore !== null
 
     return (
@@ -395,7 +412,7 @@ export default function SearchResults() {
               <span>Out of Stock</span>
             </div>
           )}
-          {/* NEW: AI Score Badge */}
+          {/* AI Score Badge */}
           {hasAIScore && (
             <div className="absolute top-2 left-2 flex flex-col gap-1">
               <div className={`px-2 py-1 rounded-md text-xs font-semibold ${
@@ -455,11 +472,11 @@ export default function SearchResults() {
           <div className="product-pricing">
             <div className="product-price-row">
               <span className="product-current-price">
-                ${product.price.current.toFixed(2)}
+                ${currentPrice.toFixed(2)}
               </span>
               {discount > 0 && (
                 <span className="product-original-price">
-                  ${product.price.original.toFixed(2)}
+                  ${originalPrice.toFixed(2)}
                 </span>
               )}
             </div>
@@ -590,6 +607,18 @@ export default function SearchResults() {
               >
                 List
               </button>
+              <button
+                className={`btn-modern btn-modern-sm ${
+                  viewMode === 'leaderboard' ? 'btn-modern-default' : 'btn-modern-outline'
+                }`}
+                onClick={() => {
+                  console.log('DEBUG: Leaderboard button clicked, current viewMode:', viewMode)
+                  setViewMode('leaderboard')
+                  console.log('DEBUG: setViewMode(leaderboard) called')
+                }}
+              >
+                Leaderboard
+              </button>
             </div>
           </div>
         </div>
@@ -610,9 +639,8 @@ export default function SearchResults() {
 
           {/* Main Content */}
           <div className="lg:w-3/4">
-            {/* Show AI-Powered Marketplace Comparison even when main products are empty */}
-            {/* AI-Powered Marketplace Comparison - Only show when we have database results */}
-            {!loading && searchResults?.products && searchResults.products.length > 0 && searchResults.comparisonData?.topProducts && searchResults.comparisonData.topProducts.length > 0 && (
+            {/* AI-Powered Marketplace Comparison - Only show in grid/list view (not leaderboard) */}
+            {!loading && viewMode !== 'leaderboard' && searchResults?.products && searchResults.products.length > 0 && searchResults.comparisonData?.topProducts && searchResults.comparisonData.topProducts.length > 0 && (
               <div className="mb-6">
                 <EnhancedComparisonTable
                   topProducts={searchResults.comparisonData.topProducts}
@@ -627,82 +655,6 @@ export default function SearchResults() {
 
             {searchResults?.products && searchResults.products.length > 0 ? (
               <>
-                {/* AI Scoring Insights Banner - NEW 96-parameter system */}
-                {searchResults.metadata?.aiInsights?.totalScored && searchResults.metadata.aiInsights.totalScored > 0 && (
-                  <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-700 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="text-2xl">🎯</div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-purple-300 mb-2">AI Quality Insights (96-Parameter Scoring)</h3>
-                        <p className="text-sm text-purple-200 mb-3">
-                          {searchResults.metadata.aiInsights.totalScored} of {searchResults.metadata.total} products have been analyzed with our advanced AI scoring system:
-                        </p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                          {searchResults.metadata.aiInsights.averageScore !== undefined && (
-                            <div className="bg-purple-800/20 rounded-lg p-3 border border-purple-700/50">
-                              <div className="text-xs text-purple-400 mb-1">Average Score</div>
-                              <div className="text-lg font-semibold text-purple-200">
-                                {searchResults.metadata.aiInsights.averageScore.toFixed(1)}/100
-                              </div>
-                            </div>
-                          )}
-                          {searchResults.metadata.aiInsights.highQualityCount !== undefined && (
-                            <div className="bg-purple-800/20 rounded-lg p-3 border border-purple-700/50">
-                              <div className="text-xs text-purple-400 mb-1">High Quality</div>
-                              <div className="text-lg font-semibold text-purple-200">
-                                {searchResults.metadata.aiInsights.highQualityCount} products
-                              </div>
-                            </div>
-                          )}
-                          {searchResults.metadata.aiInsights.priceIntentDetected && searchResults.metadata.aiInsights.priceRange && (
-                            <div className="bg-purple-800/20 rounded-lg p-3 border border-purple-700/50">
-                              <div className="text-xs text-purple-400 mb-1">Price Range</div>
-                              <div className="text-sm font-semibold text-purple-200">
-                                ${searchResults.metadata.aiInsights.priceRange.min.toFixed(0)} - ${searchResults.metadata.aiInsights.priceRange.max === Infinity ? '∞' : searchResults.metadata.aiInsights.priceRange.max.toFixed(0)}
-                              </div>
-                            </div>
-                          )}
-                          <div className="bg-purple-800/20 rounded-lg p-3 border border-purple-700/50">
-                            <div className="text-xs text-purple-400 mb-1">AI Analysis</div>
-                            <div className="text-xs font-semibold text-purple-200">
-                              96 parameters
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2 text-xs text-purple-300">
-                          <span className="px-2 py-1 bg-purple-800/30 rounded">✓ Quality scored</span>
-                          <span className="px-2 py-1 bg-purple-800/30 rounded">✓ Company metrics</span>
-                          <span className="px-2 py-1 bg-purple-800/30 rounded">✓ Leaderboard ranked</span>
-                          {searchResults.metadata.aiInsights.priceIntentDetected && (
-                            <span className="px-2 py-1 bg-purple-800/30 rounded">✓ Price intent detected</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Smart Search Banner - shown when displaying marketplace products */}
-                {searchResults.comparisonData && !searchResults.metadata.fromDatabase && (
-                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="text-2xl">🤖</div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-blue-300 mb-2">AI-Powered Smart Search Results</h3>
-                        <p className="text-sm text-blue-200 mb-2">
-                          We didn't find exact matches in our inventory, so our AI searched across multiple marketplaces and found {searchResults.products.length} relevant products for you:
-                        </p>
-                        <div className="flex flex-wrap gap-2 text-xs text-blue-300">
-                          <span className="px-2 py-1 bg-blue-800/30 rounded">✓ Typo corrected</span>
-                          <span className="px-2 py-1 bg-blue-800/30 rounded">✓ Query optimized</span>
-                          <span className="px-2 py-1 bg-blue-800/30 rounded">✓ Multi-marketplace search</span>
-                          <span className="px-2 py-1 bg-blue-800/30 rounded">✓ Relevance scored</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Top Pagination */}
                 <div className="mb-6">
                   <Pagination
@@ -729,17 +681,79 @@ export default function SearchResults() {
                 )}
 
                 {/* Products */}
-                <div className={
-                  viewMode === 'grid'
-                    ? "products-grid-modern"
-                    : "products-list-modern"
-                }>
-                  {/* Debug: Log current viewMode and className */}
-                  {console.log('DEBUG: Rendering products container with viewMode:', viewMode, 'className:', viewMode === 'grid' ? 'products-grid-modern' : 'products-list-modern')}
-                  {searchResults.products.map((product, index) =>
-                    renderProduct(product, index)
-                  )}
-                </div>
+                {viewMode === 'leaderboard' ? (
+                  <div className="flex flex-col gap-4">
+                    {/* Sort products by AI score (descending) and render as leaderboard */}
+                    {searchResults.products
+                      .slice()
+                      .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
+                      .map((product, index) => {
+                        // Map search page Product to LeaderboardCard's expected format
+                        const leaderboardProduct = {
+                          id: product.asin,
+                          name: product.title,
+                          brand: product.brand,
+                          category: product.category,
+                          price: {
+                            current: product.price.current,
+                            original: product.price.original
+                          },
+                          originalPrice: product.price.original,
+                          condition: product.specifications?.condition || 'Used - Good',
+                          aiScore: product.aiScore || 0,
+                          aiConfidence: product.aiConfidence || 0,
+                          aiScoreBreakdown: {
+                            total: product.aiScore || 0,
+                            components: {
+                              relevance: 0,
+                              priceValue: 0,
+                              trustScore: 0,
+                              qualityScore: 0,
+                              socialProof: 0,
+                              convenience: 0,
+                              urgency: 0,
+                              emotional: 0,
+                              specsQuality: 0
+                            },
+                            recommendation: product.isHighQuality ? 'strong-buy' : 'consider',
+                            insights: []
+                          },
+                          stockQuantity: product.availability?.quantity,
+                          shippingCost: product.availability?.shippingCost,
+                          hasFreeShipping: product.availability?.shippingCost === 0,
+                          estimatedDeliveryDays: product.availability?.shippingDays,
+                          hasFreeReturns: false,
+                          dynamicSpecs: product.specifications || {}
+                        }
+
+                        return (
+                          <LeaderboardCard
+                            key={product.asin}
+                            product={leaderboardProduct}
+                            rank={index + 1}
+                            isExpanded={expandedLeaderboardCard === product.asin}
+                            onToggleExpand={() => {
+                              setExpandedLeaderboardCard(
+                                expandedLeaderboardCard === product.asin ? null : product.asin
+                              )
+                            }}
+                          />
+                        )
+                      })}
+                  </div>
+                ) : (
+                  <div className={
+                    viewMode === 'grid'
+                      ? "products-grid-modern"
+                      : "products-list-modern"
+                  }>
+                    {/* Debug: Log current viewMode and className */}
+                    {console.log('DEBUG: Rendering products container with viewMode:', viewMode, 'className:', viewMode === 'grid' ? 'products-grid-modern' : 'products-list-modern')}
+                    {searchResults.products.map((product, index) =>
+                      renderProduct(product, index)
+                    )}
+                  </div>
+                )}
 
                 {/* Bottom Pagination */}
                 <div className="mt-8">

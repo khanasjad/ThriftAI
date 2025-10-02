@@ -99,7 +99,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
         {/* Modern Hero Title */}
         <h1 className="hero-title">
           Discover amazing finds with{' '}
-          <span className="text-gradient-primary">ThriftAI</span>
+          <span className="text-gradient-primary">Veritas.ai</span>
         </h1>
 
         <p className="hero-subtitle">
