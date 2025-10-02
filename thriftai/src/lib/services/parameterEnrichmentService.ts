@@ -15,10 +15,7 @@ import { ProductData } from './aiProductScorer'
 import { VeritasScoreInput } from './universalScoringEngine'
 import { CompanyMetrics } from '@/lib/types/aiScoring96'
 import { companyMetricsService } from './companyMetricsService'
-import {
-  getDefaultSpecsByCategory,
-  getCategoryType
-} from '@/lib/data/categoryDefaultSpecs'
+import { configService } from './configService'
 
 // ========================================
 // ENRICHMENT SERVICE
@@ -39,7 +36,7 @@ export class ParameterEnrichmentService {
       const companyMetrics = await this.enrichCompanyMetrics(product)
 
       // Step 2: Enrich dynamic specs (25 parameters)
-      const dynamicSpecs = this.enrichDynamicSpecs(product)
+      const dynamicSpecs = await this.enrichDynamicSpecs(product)
 
       // Step 3: Combine into enriched product
       const enrichedProduct: VeritasScoreInput = {
@@ -231,21 +228,20 @@ export class ParameterEnrichmentService {
 
   /**
    * Enrich or fill dynamic specifications for a product
-   * Uses category-specific defaults for missing specs
+   * Uses database-driven category-specific defaults for missing specs
    */
-  private enrichDynamicSpecs(product: ProductData): Record<string, any> {
+  private async enrichDynamicSpecs(product: ProductData): Promise<Record<string, any>> {
     // If product already has complete dynamic specs, use them
     if (product.dynamicSpecs && this.isDynamicSpecsComplete(product.dynamicSpecs)) {
       logger.debug('Using existing dynamic specs', { productId: product.id })
       return product.dynamicSpecs
     }
 
-    // Get category type
+    // Get category
     const category = product.category || 'OTHER'
-    const categoryType = getCategoryType(category)
 
-    // Get default specs for this category
-    const defaultSpecs = getDefaultSpecsByCategory(category)
+    // Get default specs from database (with subcategory support)
+    const defaultSpecs = await configService.getCategoryDefaultSpecs(category)
 
     // Merge existing specs with defaults (existing takes precedence)
     const enrichedSpecs = {
@@ -253,10 +249,9 @@ export class ParameterEnrichmentService {
       ...(product.dynamicSpecs || {})
     }
 
-    logger.info('Enriched dynamic specs with defaults', {
+    logger.info('Enriched dynamic specs with DB defaults', {
       productId: product.id,
       category,
-      categoryType,
       existingSpecsCount: Object.keys(product.dynamicSpecs || {}).length,
       enrichedSpecsCount: Object.keys(enrichedSpecs).length
     })

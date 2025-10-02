@@ -20,6 +20,7 @@
 import { logger } from '@/lib/logger'
 import { aiProductScorer, ProductData, ScoreBreakdown } from './aiProductScorer'
 import { CompanyMetrics } from '@/lib/types/aiScoring96'
+import { configService } from './configService'
 
 export interface VeritasScoreInput extends ProductData {
   // Company metrics (25 parameters)
@@ -107,8 +108,18 @@ export interface VeritasScore {
 }
 
 /**
- * Category-specific weight configurations
- * Adapts the 5-pillar weights based on product category
+ * Category-Specific Weight Configurations
+ *
+ * The Veritas Score™ algorithm dynamically adapts based on product category.
+ * This ensures fair, relevant comparisons within each category:
+ *
+ * - ELECTRONICS: Quality (35%) + Trust (25%) - technical specs matter most
+ * - CLOTHING: Value (35%) + UX (20%) - price-sensitive, fit/returns critical
+ * - HOME: Quality (35%) + Trust (25%) - safety and durability paramount
+ *
+ * Each category uses category-specific dynamic specs (25 parameters)
+ * combined with universal base parameters (46) and company metrics (25)
+ * for a comprehensive 96-parameter scoring system.
  */
 const CATEGORY_WEIGHTS = {
   ELECTRONICS: {
@@ -165,16 +176,27 @@ const CATEGORY_WEIGHTS = {
 /**
  * Universal Scoring Engine
  * Combines all 96 parameters into Veritas Score™
+ *
+ * NOW DATABASE-DRIVEN: All weights fetched from configuration database
  */
 export class UniversalScoringEngine {
   /**
    * Calculate Veritas Score for a product
+   * NOW ASYNC: Fetches category-specific weights from database
    */
-  calculateVeritasScore(input: VeritasScoreInput): VeritasScore {
+  async calculateVeritasScore(input: VeritasScoreInput): Promise<VeritasScore> {
     const category = (input.category || 'DEFAULT').toUpperCase()
 
-    // Get category-specific weights
-    const weights = CATEGORY_WEIGHTS[category as keyof typeof CATEGORY_WEIGHTS] || CATEGORY_WEIGHTS.DEFAULT
+    // Get category-specific weights from database (with fallback to DEFAULT)
+    const dbWeights = await configService.getScoringWeights(category)
+
+    const weights = {
+      productQuality: dbWeights.productQuality,
+      valueProposition: dbWeights.valueProposition,
+      trustAndSafety: dbWeights.trustAndSafety,
+      userExperience: dbWeights.userExperience,
+      sustainability: dbWeights.sustainability
+    }
 
     // Calculate legacy scores first (existing 46 parameters)
     const legacyScores = aiProductScorer.calculateScore(input)
@@ -694,18 +716,18 @@ export class UniversalScoringEngine {
   /**
    * Batch score multiple products
    */
-  batchScore(products: VeritasScoreInput[]): VeritasScore[] {
-    return products.map(product => this.calculateVeritasScore(product))
+  async batchScore(products: VeritasScoreInput[]): Promise<VeritasScore[]> {
+    return await Promise.all(products.map(product => this.calculateVeritasScore(product)))
   }
 
   /**
    * Compare products and rank by Veritas Score
    */
-  compareAndRank(products: VeritasScoreInput[]): Array<VeritasScoreInput & { veritasScore: VeritasScore }> {
-    const scored = products.map(product => ({
+  async compareAndRank(products: VeritasScoreInput[]): Promise<Array<VeritasScoreInput & { veritasScore: VeritasScore }>> {
+    const scored = await Promise.all(products.map(async product => ({
       ...product,
-      veritasScore: this.calculateVeritasScore(product)
-    }))
+      veritasScore: await this.calculateVeritasScore(product)
+    })))
 
     // Sort by Veritas Score descending
     scored.sort((a, b) => b.veritasScore.veritasScore - a.veritasScore.veritasScore)

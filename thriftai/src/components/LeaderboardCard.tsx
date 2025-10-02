@@ -1,6 +1,7 @@
 'use client'
 
 import { Trophy, TrendingUp, Star, DollarSign, Shield, Truck, Zap, Heart, ChevronDown, ChevronUp, Package } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 interface Product {
   id: string
@@ -10,9 +11,21 @@ interface Product {
   price: number | { current: number; original: number }
   originalPrice?: number
   condition: string
-  aiScore?: number
-  veritasScore?: number  // NEW: Veritas Score™ (0-100 scale)
-  aiConfidence?: number
+  veritasScore?: number  // Veritas Score™ (0-100 scale) - 96-parameter universal scoring
+  veritasConfidence?: number
+  veritasBadges?: string[]
+  veritasRecommendation?: string
+  veritasInsights?: string[]
+  veritasDataCompleteness?: number
+  veritasPillars?: {
+    quality: number
+    value: number
+    trust: number
+    ux: number
+    sustainability: number
+  }
+  aiScore?: number  // Legacy field - maps to veritasScore
+  aiConfidence?: number  // Legacy field
   aiScoreBreakdown?: {
     total: number
     components: {
@@ -51,7 +64,30 @@ interface LeaderboardCardProps {
   onToggleExpand: () => void
 }
 
+interface ScoreThreshold {
+  name: string
+  minScore: number
+  maxScore: number
+  badgeColor: string
+  badgeClass: string
+  label: string
+}
+
 export default function LeaderboardCard({ product, rank, isExpanded, onToggleExpand }: LeaderboardCardProps) {
+  const [thresholds, setThresholds] = useState<ScoreThreshold[]>([])
+
+  useEffect(() => {
+    // Fetch score thresholds from API
+    fetch('/api/config/score-thresholds')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.thresholds) {
+          setThresholds(data.thresholds)
+        }
+      })
+      .catch(err => console.error('Failed to fetch score thresholds:', err))
+  }, [])
+
   const getRecommendationColor = (rec?: string) => {
     switch (rec?.toLowerCase()) {
       case 'strong-buy': return '#10b981'
@@ -62,6 +98,15 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
   }
 
   const getScoreColor = (score: number) => {
+    // Use database-driven thresholds if available
+    if (thresholds.length > 0) {
+      const threshold = thresholds.find(t => score >= t.minScore && score <= t.maxScore)
+      if (threshold) {
+        return threshold.badgeColor
+      }
+    }
+
+    // Fallback to hardcoded values
     if (score >= 85) return '#10b981'
     if (score >= 70) return '#3b82f6'
     if (score >= 50) return '#f59e0b'
@@ -125,7 +170,7 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
               fontSize: '1.25rem',
               fontWeight: '600'
             }}>
-              {product.name}
+              {product.name.replace(/#\d+$/, '')}
             </h3>
             <span style={{
               padding: '0.25rem 0.75rem',
@@ -162,15 +207,15 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
             <div style={{
               fontSize: '2rem',
               fontWeight: '700',
-              color: getScoreColor(product.veritasScore || product.aiScore || 0)
+              color: getScoreColor(product.veritasScore || 0)
             }}>
-              {(product.veritasScore || product.aiScore || 0).toFixed(1)}
+              {(product.veritasScore || 0).toFixed(1)}
             </div>
             <div style={{
               fontSize: '0.75rem',
               color: 'var(--text-tertiary)'
             }}>
-              {product.veritasScore ? 'Veritas Score™' : 'AI Score'}
+              Veritas Score™
             </div>
           </div>
           {isExpanded ? (
@@ -208,10 +253,16 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                 gap: '0.5rem'
               }}>
                 <TrendingUp size={18} style={{ color: 'var(--accent-primary)' }} />
-                Score Components
+                Veritas Score™ Pillars
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {[
+                {(product.veritasPillars ? [
+                  { label: 'Product Quality', value: product.veritasPillars.quality, icon: Trophy },
+                  { label: 'Value Proposition', value: product.veritasPillars.value, icon: DollarSign },
+                  { label: 'Trust & Safety', value: product.veritasPillars.trust, icon: Shield },
+                  { label: 'User Experience', value: product.veritasPillars.ux, icon: Truck },
+                  { label: 'Sustainability', value: product.veritasPillars.sustainability, icon: Heart }
+                ] : [
                   { label: 'Relevance', value: product.aiScoreBreakdown?.components?.relevance || 0, icon: Star },
                   { label: 'Price Value', value: product.aiScoreBreakdown?.components?.priceValue || 0, icon: DollarSign },
                   { label: 'Trust', value: product.aiScoreBreakdown?.components?.trustScore || 0, icon: Shield },
@@ -221,7 +272,7 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                   { label: 'Urgency', value: product.aiScoreBreakdown?.components?.urgency || 0, icon: Zap },
                   { label: 'Emotional', value: product.aiScoreBreakdown?.components?.emotional || 0, icon: Heart },
                   { label: 'Specs Quality', value: product.aiScoreBreakdown?.components?.specsQuality || 0, icon: Package }
-                ].map(({ label, value, icon: Icon }) => (
+                ]).map(({ label, value, icon: Icon }) => (
                   <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <Icon size={16} style={{ color: 'var(--text-tertiary)' }} />
                     <span style={{ flex: 1, fontSize: '0.875rem' }}>{label}</span>
@@ -233,9 +284,9 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                       overflow: 'hidden'
                     }}>
                       <div style={{
-                        width: `${(value / 10) * 100}%`,
+                        width: product.veritasPillars ? `${value}%` : `${(value / 10) * 100}%`,
                         height: '100%',
-                        background: getScoreColor(value * 10),
+                        background: product.veritasPillars ? getScoreColor(value) : getScoreColor(value * 10),
                         borderRadius: '3px'
                       }} />
                     </div>
@@ -245,7 +296,7 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                       minWidth: '45px',
                       textAlign: 'right'
                     }}>
-                      {value.toFixed(1)}/10
+                      {product.veritasPillars ? `${value.toFixed(0)}/100` : `${value.toFixed(1)}/10`}
                     </span>
                   </div>
                 ))}
@@ -390,7 +441,7 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
             </div>
 
             {/* AI Insights */}
-            {product.aiScoreBreakdown?.insights && product.aiScoreBreakdown.insights.length > 0 && (
+            {((product.veritasInsights && product.veritasInsights.length > 0) || (product.aiScoreBreakdown?.insights && product.aiScoreBreakdown.insights.length > 0)) && (
               <div style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 borderRadius: '8px',
@@ -402,10 +453,10 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                   fontSize: '1rem',
                   fontWeight: '600'
                 }}>
-                  AI Insights
+                  {product.veritasInsights ? 'Veritas Insights' : 'AI Insights'}
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {product.aiScoreBreakdown.insights.map((insight, i) => (
+                  {(product.veritasInsights || product.aiScoreBreakdown?.insights || []).map((insight, i) => (
                     <div key={i} style={{
                       fontSize: '0.875rem',
                       padding: '0.5rem',

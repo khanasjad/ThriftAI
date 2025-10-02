@@ -50,10 +50,22 @@ interface Product {
     color?: string
     condition?: string
   }
-  // AI Scoring fields
-  aiScore?: number
-  veritasScore?: number  // NEW: Veritas Score™ (0-100 scale)
-  aiConfidence?: number
+  // Veritas Score™ - 96-Parameter Universal Scoring
+  veritasScore?: number  // Veritas Score™ (0-100 scale)
+  veritasConfidence?: number
+  veritasPillars?: {
+    quality: number
+    value: number
+    trust: number
+    ux: number
+    sustainability: number
+  }
+  veritasInsights?: string[]
+  veritasBadges?: string[]
+  veritasRecommendation?: string
+  veritasDataCompleteness?: number
+  aiScore?: number  // Legacy field - mapped to veritasScore from API
+  aiConfidence?: number  // Legacy field - mapped to veritasConfidence from API
   isHighQuality?: boolean
   leaderboardRank?: number
   // NEW: Intelligence Layer fields
@@ -243,7 +255,15 @@ export default function SearchResults() {
               condition: mp.condition || 'Used - Good',
               size: mp.size,
               color: mp.color
-            }
+            },
+            // Include Veritas Score™ data if available
+            veritasScore: mp.veritasScore,
+            veritasConfidence: mp.veritasConfidence,
+            veritasPillars: mp.veritasPillars,
+            veritasInsights: mp.veritasInsights,
+            veritasBadges: mp.veritasBadges,
+            veritasRecommendation: mp.veritasRecommendation,
+            veritasDataCompleteness: mp.veritasDataCompleteness
           }))
 
           console.log(`✅ Converted ${convertedProducts.length} marketplace products to main display`)
@@ -343,13 +363,28 @@ export default function SearchResults() {
     }
   }
 
+  // Helper function to render star ratings
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating)
+    const hasHalfStar = rating % 1 >= 0.5
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
+
+    return (
+      <>
+        {'★'.repeat(fullStars)}
+        {hasHalfStar && '☆'}
+        {'☆'.repeat(emptyStars)}
+      </>
+    )
+  }
+
   const renderProduct = (product: Product, index: number) => {
     // Safety checks for price structure
     const currentPrice = product.price?.current ?? product.price ?? 0
     const originalPrice = product.price?.original ?? currentPrice
     const discount = product.price?.discountPercentage ?? 0
     const savings = originalPrice - currentPrice
-    const hasAIScore = product.aiScore !== undefined && product.aiScore !== null
+    const hasVeritasScore = product.veritasScore !== undefined && product.veritasScore !== null
 
     return (
       <div key={product.asin} className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
@@ -394,15 +429,15 @@ export default function SearchResults() {
               <span>Out of Stock</span>
             </div>
           )}
-          {/* AI Score Badge */}
-          {hasAIScore && (
+          {/* Veritas Score™ Badge */}
+          {hasVeritasScore && (
             <div className="absolute top-2 left-2 flex flex-col gap-1">
               <div className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                product.aiScore! >= 80 ? 'bg-green-600' :
-                product.aiScore! >= 60 ? 'bg-blue-600' :
-                product.aiScore! >= 40 ? 'bg-yellow-600' : 'bg-gray-600'
+                product.veritasScore! >= 80 ? 'bg-green-600' :
+                product.veritasScore! >= 70 ? 'bg-blue-600' :
+                product.veritasScore! >= 60 ? 'bg-yellow-600' : 'bg-gray-600'
               }`}>
-                AI Score: {product.aiScore!.toFixed(0)}
+                Veritas: {product.veritasScore!.toFixed(0)}
               </div>
               {product.isHighQuality && (
                 <div className="px-2 py-1 rounded-md text-xs font-semibold bg-purple-600">
@@ -426,14 +461,14 @@ export default function SearchResults() {
               {product.brand}
             </span>
             <div className="product-rating">
-              <span className="product-star">★</span>
+              <span className="product-star">{renderStars(product.reviews.rating)}</span>
               <span>{product.reviews.rating}</span>
             </div>
           </div>
 
           {/* Product Title */}
           <h3 className="product-title">
-            {product.title}
+            {product.title.replace(/#\d+$/,'')}
           </h3>
 
           {/* Specifications */}
@@ -657,9 +692,9 @@ export default function SearchResults() {
                     {searchResults.products
                       .slice()
                       .sort((a, b) => {
-                        // Prioritize Veritas Score, fallback to aiScore
-                        const scoreA = a.veritasScore || a.aiScore || 0
-                        const scoreB = b.veritasScore || b.aiScore || 0
+                        // Sort by Veritas Score™ - 96-parameter universal scoring
+                        const scoreA = a.veritasScore || 0
+                        const scoreB = b.veritasScore || 0
                         return scoreB - scoreA
                       })
                       .map((product, index) => {
@@ -675,11 +710,17 @@ export default function SearchResults() {
                           },
                           originalPrice: product.price.original,
                           condition: product.specifications?.condition || 'Used - Good',
-                          aiScore: product.aiScore || 0,
-                          veritasScore: product.veritasScore,  // NEW: Include Veritas Score™
-                          aiConfidence: product.aiConfidence || 0,
+                          veritasScore: product.veritasScore || 0,
+                          veritasConfidence: product.veritasConfidence || 0,
+                          veritasPillars: product.veritasPillars,
+                          veritasInsights: product.veritasInsights || [],
+                          veritasBadges: product.veritasBadges || [],
+                          veritasRecommendation: product.veritasRecommendation,
+                          veritasDataCompleteness: product.veritasDataCompleteness,
+                          aiScore: product.veritasScore || 0,  // Legacy field - maps to veritasScore
+                          aiConfidence: product.veritasConfidence || 0,  // Legacy field
                           aiScoreBreakdown: {
-                            total: product.aiScore || 0,
+                            total: product.veritasScore || 0,
                             components: {
                               relevance: 0,
                               priceValue: 0,

@@ -55,20 +55,14 @@ export async function POST(request: NextRequest) {
         price: true,
         originalPrice: true,
         condition: true,
-        rating: true,
-        reviewCount: true,
-        sellerRating: true,
-        sellerTotalSales: true,
         hasWarranty: true,
         certifications: true,
         shippingCost: true,
         estimatedDeliveryDays: true,
         hasFreeShipping: true,
         hasFreeReturns: true,
-        inStock: true,
-        stockLevel: true,
-        sustainability: true,
-        madeInCountry: true,
+        isAvailable: true,
+        stockQuantity: true,
         dynamicSpecs: true,
         companyMetrics: true
       }
@@ -105,18 +99,12 @@ export async function POST(request: NextRequest) {
       hasWarranty: p.hasWarranty || false,
       isAuthentic: true,
       certifications: Array.isArray(p.certifications) ? p.certifications as string[] : [],
-      rating: p.rating || undefined,
-      reviewCount: p.reviewCount || undefined,
-      sellerRating: p.sellerRating || undefined,
-      sellerTotalSales: p.sellerTotalSales || undefined,
       shippingCost: p.shippingCost || undefined,
       estimatedDeliveryDays: p.estimatedDeliveryDays || undefined,
       hasFreeShipping: p.hasFreeShipping || false,
       hasFreeReturns: p.hasFreeReturns || false,
-      inStock: p.inStock !== false,
-      stockLevel: p.stockLevel || undefined,
-      sustainability: p.sustainability || false,
-      madeInCountry: p.madeInCountry || undefined,
+      inStock: p.isAvailable !== false,
+      stockLevel: p.stockQuantity || undefined,
       dynamicSpecs: (p.dynamicSpecs as Record<string, unknown>) || undefined
     }))
 
@@ -137,10 +125,10 @@ export async function POST(request: NextRequest) {
     const enrichmentStats = parameterEnrichmentService.getBatchStatistics(enrichedProducts)
     logger.info('✅ Products enriched', enrichmentStats)
 
-    // STEP 3: Calculate Veritas Scores for all enriched products
+    // STEP 3: Calculate Veritas Scores for all enriched products (DB-DRIVEN)
     logger.info('🏆 Calculating Veritas Scores...')
-    const scoredProducts = enrichedProducts.map(enrichedProduct => {
-      const veritasScore = universalScoringEngine.calculateVeritasScore(enrichedProduct)
+    const scoredProducts = await Promise.all(enrichedProducts.map(async (enrichedProduct) => {
+      const veritasScore = await universalScoringEngine.calculateVeritasScore(enrichedProduct)
 
       return {
         id: enrichedProduct.id,

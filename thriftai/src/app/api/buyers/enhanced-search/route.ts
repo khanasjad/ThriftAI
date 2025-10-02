@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
         specifications: p.specifications,
         dynamicSpecs: p.dynamicSpecs,
         reviews: p.reviews,
-        aiScore: p.aiScore
+        aiScore: p.aiScore  // DB field stores Veritas Score™ (96-parameter scoring)
       }))
 
       // Get intelligent ranking from Claude
@@ -330,9 +330,9 @@ export async function POST(request: NextRequest) {
     })
 
     // Calculate Veritas Scores with enriched data
-    rerankedProducts = rerankedProducts.map((p, index) => {
+    rerankedProducts = await Promise.all(rerankedProducts.map(async (p, index) => {
       const enrichedProduct = enrichedProducts[index]
-      const veritasScore = universalScoringEngine.calculateVeritasScore(enrichedProduct)
+      const veritasScore = await universalScoringEngine.calculateVeritasScore(enrichedProduct)
 
       return {
         ...p,
@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
           sustainability: veritasScore.pillars.sustainability.score
         }
       }
-    })
+    }))
 
     logger.info('✅ Veritas Scores calculated for all products', {
       count: rerankedProducts.length,
@@ -359,9 +359,10 @@ export async function POST(request: NextRequest) {
 
     // STEP 5: Final sorting by Veritas Score™ (primary ranking)
     // This ensures ALL views (grid, list, leaderboard) show consistent order
+    // Veritas Score™ uses 96-parameter universal scoring with category-specific algorithms
     rerankedProducts.sort((a, b) => {
-      const scoreA = a.veritasScore || a.intelligenceScore || a.aiScore || 0
-      const scoreB = b.veritasScore || b.intelligenceScore || b.aiScore || 0
+      const scoreA = a.veritasScore || 0
+      const scoreB = b.veritasScore || 0
       return scoreB - scoreA
     })
 
@@ -372,12 +373,12 @@ export async function POST(request: NextRequest) {
       lastScore: rerankedProducts[rerankedProducts.length - 1]?.veritasScore?.toFixed(1)
     })
 
-    // Calculate AI insights from scored products in database
-    const productsWithAIScores = results.products.filter(p => p.aiScore !== undefined && p.aiScore !== null)
-    const averageScore = productsWithAIScores.length > 0
-      ? productsWithAIScores.reduce((sum, p) => sum + (p.aiScore || 0), 0) / productsWithAIScores.length
+    // Calculate Veritas Score™ insights from scored products
+    const productsWithVeritasScores = rerankedProducts.filter(p => p.veritasScore !== undefined && p.veritasScore !== null)
+    const averageScore = productsWithVeritasScores.length > 0
+      ? productsWithVeritasScores.reduce((sum, p) => sum + (p.veritasScore || 0), 0) / productsWithVeritasScores.length
       : undefined
-    const highQualityCount = productsWithAIScores.filter(p => p.isHighQuality).length
+    const highQualityCount = productsWithVeritasScores.filter(p => p.isHighQuality).length
     const priceIntentDetected = !!(structuredFilters.minPrice || structuredFilters.maxPrice)
     const priceRange = priceIntentDetected ? {
       min: structuredFilters.minPrice || 0,
@@ -474,7 +475,11 @@ export async function POST(request: NextRequest) {
         score: scoreBreakdown,
         veritasScore: p.veritasScore, // Use existing score, don't recalculate
         veritasBadges: p.veritasBadges,
-        veritasRecommendation: p.veritasRecommendation
+        veritasRecommendation: p.veritasRecommendation,
+        veritasPillars: p.veritasPillars,
+        veritasInsights: p.veritasInsights,
+        veritasConfidence: p.veritasConfidence,
+        veritasDataCompleteness: p.veritasDataCompleteness
       }
     })
 
@@ -514,7 +519,7 @@ export async function POST(request: NextRequest) {
           highQualityCount,
           priceIntentDetected,
           priceRange,
-          totalScored: productsWithAIScores.length,
+          totalScored: productsWithVeritasScores.length,
           // NEW: Intelligence layer insights
           intelligenceApplied: !!intelligenceAnalysis,
           queryUnderstanding: intelligenceAnalysis?.queryUnderstanding,
@@ -528,7 +533,7 @@ export async function POST(request: NextRequest) {
       },
       // Include comparison data with real AI scores AND Veritas Scores
       comparisonData: {
-        topProducts: scoredProducts.map(({ product: p, score, veritasScore, veritasBadges, veritasRecommendation }) => ({
+        topProducts: scoredProducts.map(({ product: p, score, veritasScore, veritasBadges, veritasRecommendation, veritasPillars, veritasInsights, veritasConfidence, veritasDataCompleteness }) => ({
           id: p.id || p.asin,
           asin: p.asin || p.id,
           title: p.name || p.title,
@@ -573,10 +578,10 @@ export async function POST(request: NextRequest) {
           veritasScore: veritasScore,
           veritasBadges: veritasBadges || [],
           veritasRecommendation: veritasRecommendation,
-          veritasInsights: p.veritasInsights || [],
-          veritasPillars: p.veritasPillars,
-          veritasConfidence: p.veritasConfidence,
-          veritasDataCompleteness: p.veritasDataCompleteness
+          veritasInsights: veritasInsights || [],
+          veritasPillars: veritasPillars,
+          veritasConfidence: veritasConfidence,
+          veritasDataCompleteness: veritasDataCompleteness
         })),
         totalSources: 1,
         searchStrategy: 'veritas_96_parameter_scoring' // Updated strategy name

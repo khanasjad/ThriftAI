@@ -1231,3 +1231,103 @@ enum SwipeActionType {
   VIEW_DETAILS  // Scrolled down to see details
   SUPER_LIKE    // Swiped up (potential future feature)
 }
+
+// ========================================
+// CONFIGURATION SYSTEM
+// All hardcoded values moved to database
+// ========================================
+
+// Category-specific scoring algorithm weights
+model ScoringConfiguration {
+  id        String   @id @default(cuid())
+  category  String   @unique // ELECTRONICS, CLOTHING, SHOES, etc.
+  isActive  Boolean  @default(true)
+  
+  // 5-Pillar weights (must sum to 1.0)
+  productQualityWeight    Float @default(0.30)
+  valuePropositionWeight  Float @default(0.25)
+  trustAndSafetyWeight    Float @default(0.20)
+  userExperienceWeight    Float @default(0.15)
+  sustainabilityWeight    Float @default(0.10)
+  
+  // Metadata
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("scoring_configurations")
+}
+
+// Category-specific default product specifications
+model CategoryDefaultSpec {
+  id            String   @id @default(cuid())
+  category      String   // ELECTRONICS, CLOTHING, etc.
+  subcategory   String?  // LAPTOP, SMARTPHONE, etc.
+  isActive      Boolean  @default(true)
+  
+  // JSON field storing all default specifications
+  defaultSpecs  Json     // e.g., {cpu: "Intel i5", ram: 8, storage: "256GB"}
+  
+  // Metadata
+  description   String?
+  priority      Int      @default(0) // Higher priority = more specific match
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([category, subcategory])
+  @@index([category])
+  @@map("category_default_specs")
+}
+
+// Score display thresholds for badges/colors
+model ScoreThreshold {
+  id          String   @id @default(cuid())
+  name        String   @unique // "excellent", "good", "fair", "poor"
+  minScore    Float    // Minimum Veritas Score for this tier
+  maxScore    Float    // Maximum Veritas Score for this tier
+  
+  // Display properties
+  badgeColor  String   // "green", "blue", "yellow", "gray"
+  badgeClass  String   // "bg-green-600", "bg-blue-600", etc.
+  label       String   // "Excellent", "Good Value", etc.
+  description String?
+  
+  // Ordering
+  displayOrder Int    @default(0)
+  isActive    Boolean @default(true)
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([minScore, maxScore])
+  @@map("score_thresholds")
+}
+
+// System-wide configuration settings
+model SystemConfiguration {
+  id          String   @id @default(cuid())
+  key         String   @unique // "batch_size", "concurrency_limit", etc.
+  value       String   // Stored as string, parsed based on valueType
+  valueType   ConfigValueType @default(STRING)
+  category    String   @default("general") // "scoring", "api", "performance", etc.
+  
+  description String?
+  isActive    Boolean  @default(true)
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([category])
+  @@index([key])
+  @@map("system_configurations")
+}
+
+enum ConfigValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
