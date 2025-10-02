@@ -77,20 +77,31 @@ export class SafeQueryExecutor {
           })
         })
 
-        // SMART LOGIC:
-        // If we have intelligent category mapping, make search terms OPTIONAL
-        // This allows "bags" query to find products in BACKPACKS/ACCESSORIES categories
-        // even if product names don't contain the word "bag"
-        if (hasCategories) {
-          // Trust the category mapping - categories are the primary filter
+        // SEMANTIC SEARCH LOGIC:
+        // For semantic queries, we need BOTH category filtering AND keyword matching
+        // Example: "rare collectibles" → categories: [JEWELRY, WATCHES, ACCESSORIES] + keywords: [rare, limited, exclusive, vintage, designer]
+        // This ensures we search within relevant categories for products matching semantic keywords
+
+        if (hasCategories && searchConditions.length > 0) {
+          // BEST CASE: Both categories and semantic keywords
+          // Find products in relevant categories that match semantic keywords
           whereClause.AND!.push({
             category: {
               in: filters.categories!
             }
           })
-          // Search terms are optional for relevance boost (handled in orderBy later)
+          whereClause.AND!.push({
+            OR: searchConditions  // Match ANY semantic keyword
+          })
+        } else if (hasCategories) {
+          // Only categories - show all products in those categories
+          whereClause.AND!.push({
+            category: {
+              in: filters.categories!
+            }
+          })
         } else if (searchConditions.length > 0) {
-          // No categories - require search term match
+          // Only keywords - search across ALL categories
           whereClause.AND!.push({
             OR: searchConditions
           })

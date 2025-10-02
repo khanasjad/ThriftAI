@@ -180,7 +180,7 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
               fontSize: '0.75rem',
               fontWeight: '600'
             }}>
-              {product.category.replace(/_/g, ' ')}
+              {product.category?.replace(/_/g, ' ') || 'General'}
             </span>
           </div>
           <div style={{
@@ -189,8 +189,8 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
             fontSize: '0.875rem',
             color: 'var(--text-secondary)'
           }}>
-            <span>Brand: {product.brand}</span>
-            <span>Condition: {product.condition}</span>
+            <span>Brand: {product.brand || 'Unknown'}</span>
+            <span>Condition: {product.condition || 'Good'}</span>
             <span>Price: ${displayPrice}</span>
           </div>
         </div>

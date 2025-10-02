@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
 
+
 const CONVERSATIONAL_SEARCH_PROMPT = `You are an expert shopping advisor for ThriftAI marketplace. Your role is to help users find products through natural conversation.
 
 HOW YOU WORK:
@@ -35,11 +36,19 @@ WHEN ASKING CLARIFYING QUESTIONS:
 - Examples: "What's your budget?", "What will you use it for?", "Any preferred brands?"
 - Keep questions focused and helpful
 
-IMPORTANT:
+IMPORTANT - HANDLING ZERO RESULTS:
+- When NO products are found, be EXTREMELY helpful and proactive
+- Acknowledge what they searched for
+- Explain that we don't currently have those specific items
+- Suggest 2-3 related categories or product types that ARE available in our database
+- Ask clarifying questions to understand what they really need
+- Offer to search for alternatives
+- Be conversational, not robotic - show you understand their intent
+
+GENERAL RULES:
 - Never make up product details - only discuss actual search results
-- If no products found, suggest broadening search or different terms
 - Always be specific to the conversation context
-- Keep responses concise (2-4 paragraphs max)`
+- Keep responses concise but helpful (2-4 paragraphs)`
 
 export async function POST(req: Request) {
   try {
@@ -100,10 +109,28 @@ export async function POST(req: Request) {
   - Category: ${p.category || 'General'}`
           }).join('\n\n')
       } else {
-        productsContext = `\n\nNo products found matching the filters. Suggest the user:
-1. Broaden their search (remove some filters)
-2. Try different keywords
-3. Adjust price range if applicable`
+        // When no products found, get available categories to suggest alternatives
+        const availableCategories = await prisma.product.groupBy({
+          by: ['category'],
+          _count: { category: true },
+          where: { isAvailable: true }
+        })
+
+        const categoriesList = availableCategories
+          .map((c: any) => `${c.category} (${c._count.category} products)`)
+          .join(', ')
+
+        productsContext = `\n\nNO PRODUCTS FOUND for this specific query.
+
+AVAILABLE CATEGORIES IN OUR DATABASE:
+${categoriesList}
+
+YOUR TASK:
+1. Acknowledge what the user searched for
+2. Explain we don't currently have those specific items
+3. Based on their original intent, suggest 2-3 related categories from the list above
+4. Ask what they're really looking for to help narrow down alternatives
+5. Be conversational and helpful, not robotic`
       }
     } else {
       productsContext = `\n\nQuery is too vague (confidence: ${queryFilters.confidence}). Please ask clarifying questions:\n${queryFilters.needsClarification || 'What are you looking for specifically?'}`

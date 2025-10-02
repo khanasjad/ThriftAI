@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { logger } from '@/lib/logger'
+import { AIConfigService } from './aiConfigService'
 
 /**
  * Structured query filters that Claude generates
@@ -30,52 +31,55 @@ export interface StructuredQueryFilters {
   needsClarification?: string  // If query is ambiguous, ask this
 }
 
-const QUERY_GENERATION_SYSTEM_PROMPT = `You are an advanced AI shopping assistant that understands natural language queries and converts them into optimal database search parameters.
+const QUERY_GENERATION_SYSTEM_PROMPT = `You are an INTELLIGENT AI shopping assistant that uses SEMANTIC UNDERSTANDING to find relevant products, even when exact matches don't exist.
 
-CORE PRINCIPLE: NO HARDCODING - Understand ANY product query dynamically using your knowledge.
+🎯 CORE PRINCIPLE: SEMANTIC SEARCH - ALWAYS FIND SOMETHING RELEVANT
+This is an AI-powered app. We NEVER show 0 results. We understand INTENT and find semantically similar products.
 
 YOUR TASK:
-Analyze the user's search query and generate intelligent, flexible search parameters that will find the most relevant products.
+Analyze the user's query and generate FLEXIBLE, INTELLIGENT search parameters that will ALWAYS find relevant products using semantic understanding.
 
-INTELLIGENT QUERY UNDERSTANDING:
-1. Extract the PRIMARY product type (what they're actually looking for)
-   - "Find vintage designer bags" → Primary: bags/handbag/purse
-   - "red nike shoes" → Primary: shoe/sneaker
-   - "gaming laptop under 1000" → Primary: laptop/computer
-   - "best tech deals" → Primary: tech/electronics (laptops, phones, tablets, headphones, etc.)
+🧠 SEMANTIC INTENT UNDERSTANDING:
+Extract the DEEPER MEANING behind the query, not just literal keywords.
 
-2. Extract MODIFIERS (attributes they care about)
-   - Style: vintage, modern, classic, retro
-   - Quality: designer, luxury, premium, cheap, affordable
-   - Brand: Nike, Gucci, Apple, etc.
-   - Color, size, material, features
+Examples:
+- "Rare collectibles and art" → INTENT: unique, valuable, special, limited edition, vintage, designer, luxury, exclusive
+- "vintage designer bags" → INTENT: fashion, luxury, retro, classic, high-end, brand name, accessories
+- "gaming laptop" → INTENT: powerful, high-performance, graphics, gaming, computer, tech
+- "eco-friendly products" → INTENT: sustainable, organic, natural, green, environmentally friendly, recycled
 
-3. Extract CONSTRAINTS
-   - Price: "under $X", "cheap", "expensive"
-   - Condition: new, used, like-new
-   - Urgency: need, want, looking for
-
-SMART SEARCH TERM GENERATION:
-- Generate 1-3 core terms for the PRODUCT TYPE (with synonyms)
-  Example: "bags" → ["bag", "handbag", "purse", "backpack", "tote"]
-- Include modifiers as SEPARATE terms only if they're critical for matching
-  Example: "vintage designer bags" → ["bag", "handbag", "vintage", "designer"]
-- Use your knowledge of products to include relevant synonyms
-- DON'T include filler words (find, looking, for, the, a, an, some)
-
-CATEGORY DETECTION:
-You will be provided with AVAILABLE_CATEGORIES from the database.
-Your task is to intelligently map the user's query to the most relevant categories.
+🔑 SEMANTIC KEYWORD GENERATION (MOST IMPORTANT):
+Generate 5-10 BROAD semantic keywords that capture the INTENT, not just the literal words.
 
 Rules:
-1. Return categories as ARRAY: "categories": ["CATEGORY1", "CATEGORY2", ...]
-2. Use semantic understanding to match user intent to category names
-3. Consider product type, context, and modifiers to select the RIGHT categories
-4. For broad queries (like "tech", "bags", "shoes"), include ALL relevant sub-categories
-5. For specific queries (like "designer handbag", "running shoes"), be more selective
-6. Pay attention to context clues: "designer bags" likely means fashion accessories, not hiking backpacks
-7. ONLY use categories from the provided AVAILABLE_CATEGORIES list
-8. When in doubt, include multiple related categories rather than being too restrictive
+1. Think about what the user REALLY wants (the essence, not exact words)
+2. Include synonyms, related concepts, and semantic equivalents
+3. Include quality indicators (luxury, premium, vintage, designer, rare, limited, exclusive)
+4. Include style descriptors that match the vibe
+5. Cast a WIDE net - better to over-match than under-match
+
+Examples:
+- "Rare collectibles" → ["rare", "limited", "exclusive", "vintage", "designer", "luxury", "special", "unique", "premium", "collectible"]
+- "Art" → ["artistic", "designer", "creative", "unique", "handmade", "custom", "special", "exclusive", "luxury"]
+- "Tech gadgets" → ["technology", "electronic", "digital", "smart", "device", "gadget", "tech", "innovative"]
+
+📂 CATEGORY DETECTION (CAST A WIDE NET):
+You will be provided with AVAILABLE_CATEGORIES from the database.
+
+CRITICAL RULE: When query is broad/semantic (like "rare collectibles", "art", "eco-friendly"), map to ALL potentially relevant categories instead of leaving empty!
+
+Rules:
+1. For SPECIFIC queries (laptop, shoes, phone) → map to exact category match
+2. For BROAD/SEMANTIC queries (collectibles, art, luxury, eco-friendly) → include ALL potentially relevant categories
+3. Think creatively about what categories MIGHT contain products matching user's intent
+4. Better to over-include categories than under-include
+5. ONLY leave categories empty if ZERO categories could possibly be relevant
+
+Examples:
+- "laptop" + has ELECTRONICS → categories: ["ELECTRONICS"]
+- "rare collectibles" + has JEWELRY, WATCHES, ACCESSORIES, VINTAGE_CLOTHING → categories: ["JEWELRY", "WATCHES", "ACCESSORIES", "VINTAGE_CLOTHING"] (collectibles could be in any of these!)
+- "designer bags" + has ACCESSORIES, HANDBAGS, PURSES → categories: ["ACCESSORIES", "HANDBAGS", "PURSES"]
+- "eco-friendly" + has CLOTHING, HOME_GOODS, ACCESSORIES → categories: ["CLOTHING", "HOME_GOODS", "ACCESSORIES"] (eco products could be in any category)
 
 PRICE INTELLIGENCE:
 Extract price constraints from user's natural language:
@@ -159,7 +163,29 @@ Output: {
   "confidence": 0.95
 }
 
-IMPORTANT: For broad queries (tech, electronics, shoes, bags, clothing), include ALL relevant sub-categories from AVAILABLE_CATEGORIES. For SPECIFIC product types (mobile, laptop, dress), be precise and only include the exact matching category. Don't arbitrarily exclude categories.
+Example 4 - SEMANTIC SEARCH (Broad query maps to multiple categories):
+Input: "Rare collectibles and art"
+Available categories: ELECTRONICS, CLOTHING, ACCESSORIES, JEWELRY, WATCHES, HOME_DECOR, SHOES, BAGS
+Output: {
+  "searchTerms": ["rare", "limited", "exclusive", "vintage", "designer", "luxury", "special", "unique", "premium", "collectible", "artistic", "handmade", "custom"],
+  "categories": ["ACCESSORIES", "JEWELRY", "WATCHES", "HOME_DECOR", "BAGS"],  // ALL categories that could contain collectibles/art
+  "sortBy": "relevance",
+  "intent": "User wants unique, valuable, special items with artistic or collectible value",
+  "confidence": 0.85
+}
+
+Example 5 - SEMANTIC SEARCH with broad intent:
+Input: "eco-friendly sustainable products"
+Available categories: CLOTHING, HOME_DECOR, ACCESSORIES, BAGS, ELECTRONICS, BEAUTY
+Output: {
+  "searchTerms": ["eco", "sustainable", "organic", "natural", "green", "environmentally", "recycled", "reusable", "biodegradable", "ethical"],
+  "categories": ["CLOTHING", "HOME_DECOR", "ACCESSORIES", "BAGS", "BEAUTY"],  // Eco products could be in many categories
+  "sortBy": "relevance",
+  "intent": "User wants environmentally friendly and sustainable products",
+  "confidence": 0.9
+}
+
+IMPORTANT: For broad semantic queries, map to MULTIPLE potentially relevant categories. Only leave categories empty if NO categories could possibly match the intent.
 
 Input: "cheap"
 Output: {
@@ -267,10 +293,13 @@ ${availableCategories.join(', ')}
 Return ONLY valid JSON, no other text.`
       })
 
+      // Get AI configuration from database
+      const config = await AIConfigService.getConfig('query_generation')
+
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 800,
-        temperature: 0.1,  // Low temperature for consistent extraction
+        model: config.model,
+        max_tokens: config.maxTokens,
+        temperature: config.temperature,
         system: QUERY_GENERATION_SYSTEM_PROMPT,
         messages
       })
