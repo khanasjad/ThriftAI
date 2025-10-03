@@ -64,6 +64,11 @@
             "date": 1759418288419,
             "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/combined-2025-10-02.log.7",
             "hash": "bdc8f7056b8fe2574d99333766094dd09bbd42bb0f08dc987eadc5882ae38174"
+        },
+        {
+            "date": 1759498294489,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/combined-2025-10-03.log",
+            "hash": "4539d91347ff2b9ec94f846d6e128ff618ce7862cd7bba6afeba746c7137e07a"
         }
     ],
     "hashType": "sha256"

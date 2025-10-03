@@ -219,6 +219,9 @@ model Product {
   seller                Seller?             @relation(fields: [sellerId], references: [id])
   reviews               Review[]
   swipeActions          SwipeAction[]
+  veritasScore          VeritasScore?
+  veritasHistory        VeritasScoreHistory[]
+  competitorAnalyses    VeritasCompetitorAnalysis[]
 
   @@index([isAvailable])
   @@index([category])
@@ -845,6 +848,222 @@ model SystemConfiguration {
   @@map("system_configurations")
 }
 
+/// Veritas Score™ - Universal Product Quality Assessment System
+///
+/// The IMDB of Products - Works for ALL product conditions:
+/// - NEW products (factory sealed, open-box)
+/// - REFURBISHED products (certified, third-party)
+/// - USED products (like new, excellent, good, fair)
+/// - RENTAL products (equipment, tools)
+/// - SUBSCRIPTION devices (upgrade programs)
+///
+/// Provides a single, objective quality score (0-100) based on:
+/// - 8 quality categories (Product Quality, Seller Trust, Market Value, etc.)
+/// - 121 verified parameters (26 currently implemented)
+/// - Multi-source data validation
+/// - Transparent, algorithm-driven methodology
+///
+/// Example Scores:
+/// - New iPhone (sealed): 82/100 - Full price, full warranty
+/// - Certified Refurb iPhone: 89/100 - Best value + quality combo
+/// - Used iPhone (excellent): 85/100 - Great deal, some wear
+model VeritasScore {
+  id                    String                 @id @default(cuid())
+  productId             String                 @unique @map("product_id")
+
+  /// Score Serial Number (SSN): Unique identifier for this score
+  /// Format: VS-{CATEGORY}-{SCORE}-{CONFIDENCE}-{DATE}
+  /// Example: VS-ELE-089-92-20251003
+  /// Enables tracking, verification, and blockchain integration
+  ssn                   String                 @unique @map("ssn")
+
+  /// Overall Veritas Score (0-100)
+  /// Weighted average of 8 category scores
+  /// - S Grade (95-100): Exceptional
+  /// - A Grade (85-94): Excellent (often certified refurbished!)
+  /// - B Grade (75-84): Good
+  /// - C Grade (65-74): Fair
+  /// - D Grade (50-64): Below Average
+  /// - F Grade (0-49): Poor
+  overallScore          Decimal                @map("overall_score") @db.Decimal(5, 2)
+
+  /// Confidence Level (0-100%)
+  /// How reliable is this score based on data availability
+  /// High confidence (85%+): Score is very accurate
+  /// Medium confidence (65-84%): Score is reasonably accurate
+  /// Low confidence (<65%): Limited data, use caution
+  confidence            Decimal                @map("confidence") @db.Decimal(5, 2)
+
+  /// Data Quality Score (0-100%)
+  /// Percentage of parameters with available data
+  /// 100% = all 121 parameters evaluated
+  /// <70% = significant missing data
+  dataQualityScore      Decimal                @map("data_quality_score") @db.Decimal(5, 2)
+
+  calculatedAt          DateTime               @default(now()) @map("calculated_at") @db.Timestamp(6)
+  lastUpdatedAt         DateTime               @updatedAt @map("last_updated_at") @db.Timestamp(6)
+  nextUpdateDue         DateTime?              @map("next_update_due") @db.Timestamp(6)
+  calculationVersion    String                 @default("v2.0") @map("calculation_version") @db.VarChar(10)
+
+  /// Array of parameter codes with missing data
+  /// Used to identify areas for seller improvement
+  /// Example: ["ST_RATING", "PQ_WARRANTY"]
+  missingDataFields     String[]               @default([]) @map("missing_data_fields")
+
+  product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categories            VeritasCategory[]
+  competitorComparisons VeritasCompetitorComparison[]
+
+  @@index([overallScore(sort: Desc)], map: "idx_veritas_score_overall")
+  @@index([productId])
+  @@index([calculatedAt])
+  @@index([confidence])
+  @@map("veritas_scores")
+}
+
+/// Veritas Score Category - One of 8 Quality Dimensions
+///
+/// Each product is evaluated across 8 categories:
+/// 1. PRODUCT_QUALITY (25%): Condition, authenticity, functionality
+/// 2. SELLER_TRUST (20%): Reputation, response time, reliability
+/// 3. MARKET_VALUE (15%): Price vs. market, discount, value
+/// 4. SUSTAINABILITY (12%): Environmental impact, reuse benefit
+/// 5. SECURITY_SAFETY (5%): Payment security, buyer protection
+/// 6. USER_EXPERIENCE (5%): Listing quality, customer service
+/// 7. PRODUCT_SPECIFICATION (13%): Tech specs, feature completeness
+/// 8. COMPANY_PERFORMANCE (5%): Brand reputation, news sentiment
+///
+/// Category scores adapt based on product condition:
+/// - NEW: Emphasize authenticity, warranty
+/// - REFURBISHED: Emphasize certification, OEM parts
+/// - USED: Emphasize actual condition vs. description
+model VeritasCategory {
+  id              String             @id @default(cuid())
+  veritasScoreId  String             @map("veritas_score_id")
+
+  /// One of 8 category types (see enum below)
+  categoryName    VeritasCategoryType @map("category_name")
+
+  /// Category Score (0-100)
+  /// Weighted average of all parameters in this category
+  categoryScore   Decimal            @map("category_score") @db.Decimal(5, 2)
+
+  /// Category Weight (0.00-1.00, sums to 1.00 across all categories)
+  /// Product Quality: 0.25, Seller Trust: 0.20, etc.
+  weight          Decimal            @map("weight") @db.Decimal(3, 2)
+
+  /// Weighted Score = categoryScore × weight
+  /// This contributes to the overall Veritas Score
+  weightedScore   Decimal            @map("weighted_score") @db.Decimal(5, 2)
+
+  /// Category Confidence (0-100%)
+  /// Based on parameter availability and data quality
+  confidence      Decimal            @map("confidence") @db.Decimal(5, 2)
+
+  calculatedAt    DateTime           @default(now()) @map("calculated_at") @db.Timestamp(6)
+  veritasScore    VeritasScore       @relation(fields: [veritasScoreId], references: [id], onDelete: Cascade)
+  parameters      VeritasParameter[]
+
+  @@index([veritasScoreId])
+  @@index([categoryName])
+  @@map("veritas_categories")
+}
+
+model VeritasParameter {
+  id               String          @id @default(cuid())
+  categoryId       String          @map("category_id")
+  parameterName    String          @map("parameter_name") @db.VarChar(100)
+  parameterCode    String          @map("parameter_code") @db.VarChar(50)
+  rawValue         String?         @map("raw_value")
+  normalizedValue  Decimal         @map("normalized_value") @db.Decimal(5, 2)
+  weight           Decimal         @map("weight") @db.Decimal(3, 2)
+  weightedScore    Decimal         @map("weighted_score") @db.Decimal(5, 2)
+  dataSource       String          @map("data_source") @db.VarChar(50)
+  confidence       Decimal         @map("confidence") @db.Decimal(5, 2)
+  isMissing        Boolean         @default(false) @map("is_missing")
+  calculatedAt     DateTime        @default(now()) @map("calculated_at") @db.Timestamp(6)
+  metadata         Json?           @map("metadata")
+  category         VeritasCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([parameterCode])
+  @@map("veritas_parameters")
+}
+
+model VeritasScoreHistory {
+  id           String   @id @default(cuid())
+  productId    String   @map("product_id")
+  overallScore Decimal  @map("overall_score") @db.Decimal(5, 2)
+  confidence   Decimal  @map("confidence") @db.Decimal(5, 2)
+  ssn          String   @map("ssn") @db.VarChar(50)
+  recordedAt   DateTime @default(now()) @map("recorded_at") @db.Timestamp(6)
+  changeReason String?  @map("change_reason") @db.VarChar(200)
+  deltaScore   Decimal? @map("delta_score") @db.Decimal(5, 2)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, recordedAt])
+  @@index([recordedAt])
+  @@map("veritas_score_history")
+}
+
+model VeritasCompetitorAnalysis {
+  id                   String   @id @default(cuid())
+  productId            String   @map("product_id")
+  competitorSource     String   @map("competitor_source") @db.VarChar(50)
+  competitorProductId  String?  @map("competitor_product_id")
+  competitorName       String   @map("competitor_name")
+  competitorPrice      Decimal  @map("competitor_price") @db.Decimal(10, 2)
+  competitorCondition  String?  @map("competitor_condition") @db.VarChar(50)
+  competitorRating     Decimal? @map("competitor_rating") @db.Decimal(3, 2)
+  priceDifferential    Decimal  @map("price_differential") @db.Decimal(10, 2)
+  priceDifferentialPct Decimal  @map("price_differential_pct") @db.Decimal(5, 2)
+  marketPosition       String   @map("market_position") @db.VarChar(20)
+  analyzedAt           DateTime @default(now()) @map("analyzed_at") @db.Timestamp(6)
+  expiresAt            DateTime @map("expires_at") @db.Timestamp(6)
+  product              Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([analyzedAt])
+  @@map("veritas_competitor_analysis")
+}
+
+model VeritasCompetitorComparison {
+  id                     String       @id @default(cuid())
+  veritasScoreId         String       @map("veritas_score_id")
+  averageMarketPrice     Decimal      @map("average_market_price") @db.Decimal(10, 2)
+  lowestMarketPrice      Decimal      @map("lowest_market_price") @db.Decimal(10, 2)
+  highestMarketPrice     Decimal      @map("highest_market_price") @db.Decimal(10, 2)
+  pricePercentile        Decimal      @map("price_percentile") @db.Decimal(3, 2)
+  valueScore             Decimal      @map("value_score") @db.Decimal(5, 2)
+  competitorCount        Int          @map("competitor_count")
+  marketPosition         String       @map("market_position") @db.VarChar(20)
+  priceRecommendation    String?      @map("price_recommendation")
+  lastComparisonAt       DateTime     @default(now()) @map("last_comparison_at") @db.Timestamp(6)
+  veritasScore           VeritasScore @relation(fields: [veritasScoreId], references: [id], onDelete: Cascade)
+
+  @@unique([veritasScoreId])
+  @@index([lastComparisonAt])
+  @@map("veritas_competitor_comparisons")
+}
+
+model VeritasParameterCache {
+  id             String   @id @default(cuid())
+  productId      String   @map("product_id")
+  parameterCode  String   @map("parameter_code") @db.VarChar(50)
+  cachedValue    Decimal  @map("cached_value") @db.Decimal(5, 2)
+  rawData        Json?    @map("raw_data")
+  dataSource     String   @map("data_source") @db.VarChar(50)
+  confidence     Decimal  @map("confidence") @db.Decimal(3, 2)
+  cachedAt       DateTime @default(now()) @map("cached_at") @db.Timestamp(6)
+  expiresAt      DateTime @map("expires_at") @db.Timestamp(6)
+  isValid        Boolean  @default(true) @map("is_valid")
+
+  @@unique([productId, parameterCode])
+  @@index([expiresAt])
+  @@index([productId])
+  @@map("veritas_parameter_cache")
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -983,4 +1202,48 @@ enum config_value_type {
   NUMBER
   BOOLEAN
   JSON
+}
+
+/// Veritas Score™ - 8 Quality Categories
+///
+/// Universal across ALL product conditions (new, refurbished, used, rental)
+/// Each category adapted based on product condition for accurate assessment
+///
+/// PRODUCT_QUALITY (25%): Physical condition, authenticity, functionality
+///   - NEW: Packaging, warranty, defect rate
+///   - REFURB: Certification level, OEM parts, testing
+///   - USED: Actual condition, wear, remaining lifespan
+///
+/// SELLER_TRUST (20%): Reputation, reliability, customer service
+///   - Authorized dealers: Higher baseline score
+///   - Certified refurbishers: Certification bonus
+///   - Individual sellers: Transaction history-based
+///
+/// MARKET_VALUE (15%): Price fairness, value for money
+///   - NEW: % below MSRP
+///   - REFURB: vs. expected depreciation
+///   - USED: vs. similar condition items
+///
+/// SUSTAINABILITY (12%): Environmental impact, circular economy
+///   - NEW: Lower score (encourages refurb/used)
+///   - REFURB: High score (professional restoration)
+///   - USED: Highest score (maximum reuse)
+///
+/// SECURITY_SAFETY (5%): Payment security, buyer protection
+///
+/// USER_EXPERIENCE (5%): Listing quality, customer service
+///
+/// PRODUCT_SPECIFICATION (13%): Category-specific tech specs
+///   - Adapts to product category (electronics, fashion, furniture, etc.)
+///
+/// COMPANY_PERFORMANCE (5%): Brand reputation, news sentiment, market data
+enum VeritasCategoryType {
+  PRODUCT_QUALITY
+  SELLER_TRUST
+  MARKET_VALUE
+  SUSTAINABILITY
+  SECURITY_SAFETY
+  USER_EXPERIENCE
+  PRODUCT_SPECIFICATION
+  COMPANY_PERFORMANCE
 }

@@ -19,6 +19,7 @@ interface PageContext {
   products?: any[]
   filters?: any
   totalResults?: number
+  isLoading?: boolean
 }
 
 interface ChatSidebarProps {
@@ -121,13 +122,17 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
 
       // Check if this is a NEW query that hasn't been analyzed yet
       // ALWAYS analyze - even with 0 results (AI should have a conversation)
+      // But DON'T analyze while results are still loading
+      const isLoadingResults = pageContext?.isLoading === true
       const shouldAnalyze = searchQuery &&
-                           searchQuery !== lastAnalyzedQuery
+                           searchQuery !== lastAnalyzedQuery &&
+                           !isLoadingResults
 
       console.log('🔍 AUTO-ANALYSIS CHECK:', {
         productsCount: products.length,
         searchQuery,
         lastAnalyzedQuery,
+        isLoadingResults,
         shouldAnalyze,
         isDifferent: searchQuery !== lastAnalyzedQuery,
         pageContext: !!pageContext,

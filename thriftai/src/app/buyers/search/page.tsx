@@ -716,7 +716,8 @@ export default function SearchResults() {
           pageContext={{
             searchQuery: displayQuery || query || '',
             products: [],
-            totalResults: 0
+            totalResults: 0,
+            isLoading: true
           }}
         />
         <div
@@ -753,7 +754,8 @@ export default function SearchResults() {
           pageContext={{
             searchQuery: displayQuery || query || '',
             products: [],
-            totalResults: 0
+            totalResults: 0,
+            isLoading: false
           }}
         />
         <div
