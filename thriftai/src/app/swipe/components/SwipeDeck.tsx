@@ -13,6 +13,7 @@ interface SwipeDeckProps {
   onSwipeLeft: (product: SwipeProduct) => void
   onSwipeRight: (product: SwipeProduct) => void
   onViewDetails: (product: SwipeProduct) => void
+  onAddToCart?: (product: SwipeProduct) => void
 }
 
 // TinderCard API type
@@ -26,7 +27,8 @@ export function SwipeDeck({
   currentIndex,
   onSwipeLeft,
   onSwipeRight,
-  onViewDetails
+  onViewDetails,
+  onAddToCart
 }: SwipeDeckProps) {
   // Show 1 card at a time
   const visibleCards = products.slice(currentIndex, currentIndex + 1)
@@ -137,6 +139,7 @@ export function SwipeDeck({
                   onSwipeLeft={() => handleSwipeLeft(product)}
                   onSwipeRight={() => handleSwipeRight(product)}
                   onViewDetails={() => onViewDetails(product)}
+                  onAddToCart={onAddToCart ? () => onAddToCart(product) : undefined}
                   index={cardIndex}
                   active={isTop}
                   cardRef={(el) => {

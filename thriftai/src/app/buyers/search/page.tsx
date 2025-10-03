@@ -14,6 +14,10 @@ import LeaderboardCard from '@/components/LeaderboardCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Star } from 'lucide-react'
+import { useCartStore } from '@/stores/cartStore'
+import { SwipeDeck } from '@/app/swipe/components/SwipeDeck'
+import type { SwipeProduct } from '@/lib/stores/swipeStore'
+import ProductDetailModal from '@/components/ProductDetailModal'
 
 interface Product {
   asin: string
@@ -136,7 +140,7 @@ export default function SearchResults() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const query = searchParams.get('q') || ''
-
+  const { addToCart, isLoading: cartLoading } = useCartStore()
 
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -147,13 +151,17 @@ export default function SearchResults() {
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [filters, setFilters] = useState<ProductFiltersState>(DEFAULT_FILTERS)
   const [availableFilters, setAvailableFilters] = useState<any>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'leaderboard'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'leaderboard' | 'swipe'>('grid')
   const [expandedLeaderboardCard, setExpandedLeaderboardCard] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [searchInProgress, setSearchInProgress] = useState(false)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const searchTriggeredRef = useRef(false)
   const [displayQuery, setDisplayQuery] = useState(query) // Track current display query
+  const [swipeIndex, setSwipeIndex] = useState(0)
+  const [likedProducts, setLikedProducts] = useState<Product[]>([])
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false)
 
   // Reset display query when URL query changes
   useEffect(() => {
@@ -457,6 +465,66 @@ export default function SearchResults() {
     setCurrentPage(1)
   }
 
+  // Convert Product to SwipeProduct format
+  const convertToSwipeProducts = (products: Product[]): SwipeProduct[] => {
+    return products.map(p => ({
+      id: p.asin,
+      name: p.title,
+      price: p.price?.current || 0,
+      originalPrice: p.price?.original,
+      images: p.images || [],
+      brand: p.brand,
+      category: p.category,
+      condition: p.specifications?.condition,
+      rating: p.reviews?.rating,
+      description: p.description
+    }))
+  }
+
+  // Swipe handlers
+  const handleSwipeLeft = (product: SwipeProduct) => {
+    console.log('Swiped left (pass):', product.name)
+    if (swipeIndex < (searchResults?.products.length || 0) - 1) {
+      setSwipeIndex(swipeIndex + 1)
+    }
+  }
+
+  const handleSwipeRight = (product: SwipeProduct) => {
+    console.log('Swiped right (like):', product.name)
+    // Find the original product and add to liked
+    const originalProduct = searchResults?.products.find(p => p.asin === product.id)
+    if (originalProduct && !likedProducts.some(p => p.asin === originalProduct.asin)) {
+      setLikedProducts([...likedProducts, originalProduct])
+    }
+    if (swipeIndex < (searchResults?.products.length || 0) - 1) {
+      setSwipeIndex(swipeIndex + 1)
+    }
+  }
+
+  const handleViewDetails = (product: SwipeProduct) => {
+    // Find the original product to get full details
+    const originalProduct = searchResults?.products.find(p => p.asin === product.id)
+    if (originalProduct) {
+      setSelectedProduct(originalProduct)
+      setIsProductModalOpen(true)
+    }
+  }
+
+  const handleAddToCart = async (product: SwipeProduct) => {
+    try {
+      console.log('Adding to cart from swipe:', product.name)
+      await addToCart(product.id, 1, session?.user?.id)
+      // Cart drawer will open automatically via the store
+    } catch (error) {
+      console.error('Failed to add to cart:', error)
+    }
+  }
+
+  // Reset swipe index when search results change or view mode changes
+  useEffect(() => {
+    setSwipeIndex(0)
+  }, [searchResults, viewMode])
+
   // Simple auth service for signup compatibility
   const authService = {
     signup: async (userData: any) => {
@@ -488,7 +556,7 @@ export default function SearchResults() {
     const hasVeritasScore = product.veritasScore !== undefined && product.veritasScore !== null
 
     return (
-      <div key={product.id || `${product.asin}-${index}`} className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
+      <div key={`${product.asin}-${index}`} className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
         {/* Product Image */}
         <div className="product-image-container">
           <img
@@ -602,9 +670,24 @@ export default function SearchResults() {
             {/* Add to Cart Button */}
             <button
               className="product-add-to-cart"
-              disabled={!product.availability.inStock}
+              disabled={!product.availability.inStock || cartLoading}
+              onClick={async () => {
+                try {
+                  await addToCart(
+                    product.asin,
+                    1,
+                    session?.user?.id
+                  )
+                } catch (error) {
+                  console.error('Failed to add to cart:', error)
+                }
+              }}
             >
-              {product.availability.inStock ? 'Add to Cart' : 'Out of Stock'}
+              {!product.availability.inStock
+                ? 'Out of Stock'
+                : cartLoading
+                ? 'Adding...'
+                : 'Add to Cart'}
             </button>
           </div>
         </div>
@@ -764,6 +847,16 @@ export default function SearchResults() {
               >
                 Leaderboard
               </button>
+              <button
+                className={`btn-modern btn-modern-sm ${
+                  viewMode === 'swipe' ? 'btn-modern-default' : 'btn-modern-outline'
+                }`}
+                onClick={() => {
+                  setViewMode('swipe')
+                }}
+              >
+                Swipe
+              </button>
             </div>
           </div>
         </div>
@@ -812,7 +905,40 @@ export default function SearchResults() {
                 )}
 
                 {/* Products */}
-                {viewMode === 'leaderboard' ? (
+                {viewMode === 'swipe' ? (
+                  <div className="w-full max-w-md mx-auto">
+                    <SwipeDeck
+                      products={convertToSwipeProducts(searchResults.products)}
+                      currentIndex={swipeIndex}
+                      onSwipeLeft={handleSwipeLeft}
+                      onSwipeRight={handleSwipeRight}
+                      onViewDetails={handleViewDetails}
+                      onAddToCart={handleAddToCart}
+                    />
+                    {likedProducts.length > 0 && (
+                      <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <h3 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">
+                          Liked Products ({likedProducts.length})
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {likedProducts.slice(0, 5).map((product) => (
+                            <span
+                              key={product.asin}
+                              className="text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 px-2 py-1 rounded"
+                            >
+                              {product.title.substring(0, 30)}...
+                            </span>
+                          ))}
+                          {likedProducts.length > 5 && (
+                            <span className="text-xs text-green-600 dark:text-green-400">
+                              +{likedProducts.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : viewMode === 'leaderboard' ? (
                   <div className="flex flex-col gap-4">
                     {/* Sort products by Veritas Score™ (descending) and render as leaderboard */}
                     {searchResults.products
@@ -944,6 +1070,18 @@ export default function SearchResults() {
             setShowLoginModal(true)
           }}
           onSignup={authService.signup}
+        />
+
+        <ProductDetailModal
+          product={selectedProduct}
+          isOpen={isProductModalOpen}
+          onClose={() => {
+            setIsProductModalOpen(false)
+            setSelectedProduct(null)
+          }}
+          onAddToCart={selectedProduct ? async () => {
+            await addToCart(selectedProduct.asin, 1, session?.user?.id)
+          } : undefined}
         />
       </div>
     </div>

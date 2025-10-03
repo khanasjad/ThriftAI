@@ -1,4 +1,7 @@
+'use client'
+
 import React, { useState, useEffect } from 'react';
+import CartBadge from './CartBadge';
 
 interface User {
   id: string;
@@ -69,6 +72,18 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
 
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto">
+            <li className="nav-item">
+              <a className="nav-link" href="/about" style={{
+                color: 'var(--text-primary)',
+                fontSize: '1rem',
+                fontWeight: 500,
+                padding: '0.5rem 1rem',
+                transition: 'color 0.2s ease',
+                cursor: 'pointer'
+              }}>
+                About Us
+              </a>
+            </li>
           </ul>
 
           {/* Login/Signup Buttons - shown when user is not logged in */}
@@ -104,6 +119,7 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
                 <i className="fas fa-user-plus nav-btn-icon"></i>
                 Get Started
               </button>
+              <CartBadge />
             </div>
           )}
 
@@ -165,6 +181,7 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
                   </li>
                 </ul>
               </div>
+              <CartBadge />
             </div>
           )}
         </div>

@@ -6,13 +6,14 @@ import TinderCard from 'react-tinder-card'
 import { motion, useMotionValue, useTransform } from 'framer-motion'
 import { formatPrice, calculateDiscount, cn, vibrate } from '@/lib/utils/cn'
 import { SwipeProduct } from '@/lib/stores/swipeStore'
-import { Star, Sparkles, ChevronLeft, ChevronRight, Heart, X } from 'lucide-react'
+import { Star, Sparkles, ChevronLeft, ChevronRight, Heart, X, ShoppingCart, Eye } from 'lucide-react'
 
 interface SwipeCardProps {
   product: SwipeProduct
   onSwipeLeft: () => void
   onSwipeRight: () => void
   onViewDetails: () => void
+  onAddToCart?: () => void
   style?: React.CSSProperties
   index: number
   active: boolean
@@ -24,6 +25,7 @@ export function SwipeCard({
   onSwipeLeft,
   onSwipeRight,
   onViewDetails,
+  onAddToCart,
   style,
   index,
   active,
@@ -112,7 +114,7 @@ export function SwipeCard({
         style={{
           boxShadow: '0 20px 60px rgba(102, 126, 234, 0.25), 0 8px 24px rgba(118, 75, 162, 0.15), 0 0 80px rgba(102, 126, 234, 0.1)',
           display: 'grid',
-          gridTemplateRows: '450px 1fr',
+          gridTemplateRows: '450px 1fr 140px',
           position: 'relative',
           transform: 'translateZ(0)',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -335,99 +337,187 @@ export function SwipeCard({
                 <span style={{ fontSize: '0.875rem', color: '#4b5563' }}>2 miles away</span>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Action Buttons - Modern 2025 Style */}
+        {/* Action Buttons - Fixed at Bottom (Grid Row 3) */}
+        <div style={{
+          gridRow: 3,
+          width: '100%',
+          backgroundColor: '#ffffff',
+          borderTop: '1px solid #f3f4f6',
+          padding: '16px 24px',
+          pointerEvents: 'auto',
+          touchAction: 'auto'
+        }}>
+          {/* Action Buttons - Modern 2025 Style */}
             <div style={{
               display: 'flex',
-              gap: '12px',
-              paddingTop: '16px',
-              position: 'sticky',
-              bottom: '0',
-              backgroundColor: '#ffffff',
-              paddingBottom: '24px',
-              marginLeft: '-24px',
-              marginRight: '-24px',
-              paddingLeft: '24px',
-              paddingRight: '24px',
-              borderTop: '1px solid #f3f4f6'
+              flexDirection: 'column',
+              gap: '12px'
             }}>
-              {/* Dislike Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSwipeLeft()
-                }}
-                style={{
-                  flex: 1,
-                  height: '56px',
-                  borderRadius: '16px',
-                  background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontSize: '1rem',
-                  fontWeight: '700',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 4px 16px rgba(255, 107, 107, 0.3)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(255, 107, 107, 0.4)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(255, 107, 107, 0.3)'
-                }}
-              >
-                <X className="w-6 h-6" strokeWidth={2.5} />
-                <span>Pass</span>
-              </button>
+              {/* Top Row: Add to Cart & View Details */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                {/* Add to Cart Button */}
+                {onAddToCart && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      onAddToCart()
+                    }}
+                    style={{
+                      flex: 1,
+                      height: '56px',
+                      borderRadius: '16px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <ShoppingCart className="w-5 h-5" strokeWidth={2.5} />
+                    <span>Add to Cart</span>
+                  </button>
+                )}
 
-              {/* Like Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSwipeRight()
-                }}
-                style={{
-                  flex: 1,
-                  height: '56px',
-                  borderRadius: '16px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontSize: '1rem',
-                  fontWeight: '700',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.4)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(102, 126, 234, 0.3)'
-                }}
-              >
-                <Heart className="w-6 h-6" strokeWidth={2.5} fill="currentColor" />
-                <span>Like</span>
-              </button>
+                {/* View Details Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onViewDetails()
+                  }}
+                  style={{
+                    flex: 1,
+                    height: '56px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.3)'
+                  }}
+                >
+                  <Eye className="w-5 h-5" strokeWidth={2.5} />
+                  <span>Details</span>
+                </button>
+              </div>
+
+              {/* Bottom Row: Pass & Like */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                {/* Dislike Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSwipeLeft()
+                  }}
+                  style={{
+                    flex: 1,
+                    height: '56px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 4px 16px rgba(255, 107, 107, 0.3)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(255, 107, 107, 0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(255, 107, 107, 0.3)'
+                  }}
+                >
+                  <X className="w-6 h-6" strokeWidth={2.5} />
+                  <span>Pass</span>
+                </button>
+
+                {/* Like Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSwipeRight()
+                  }}
+                  style={{
+                    flex: 1,
+                    height: '56px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(102, 126, 234, 0.3)'
+                  }}
+                >
+                  <Heart className="w-6 h-6" strokeWidth={2.5} fill="currentColor" />
+                  <span>Like</span>
+                </button>
+              </div>
             </div>
-          </div>
         </div>
       </div>
     </TinderCard>
