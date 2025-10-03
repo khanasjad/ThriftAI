@@ -18,6 +18,7 @@ import { useCartStore } from '@/stores/cartStore'
 import { SwipeDeck } from '@/app/swipe/components/SwipeDeck'
 import type { SwipeProduct } from '@/lib/stores/swipeStore'
 import ProductDetailModal from '@/components/ProductDetailModal'
+import VisualSearchUpload from '@/components/visual-search/VisualSearchUpload'
 
 interface Product {
   asin: string
@@ -151,7 +152,7 @@ export default function SearchResults() {
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [filters, setFilters] = useState<ProductFiltersState>(DEFAULT_FILTERS)
   const [availableFilters, setAvailableFilters] = useState<any>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'leaderboard' | 'swipe'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'leaderboard' | 'swipe' | 'visual'>('grid')
   const [expandedLeaderboardCard, setExpandedLeaderboardCard] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [searchInProgress, setSearchInProgress] = useState(false)
@@ -252,6 +253,16 @@ export default function SearchResults() {
     setSearchResults(aiSearchResponse)
     console.log('✅ Updated search grid with AI products')
   }, [availableFilters])
+
+  // Visual search handlers
+  const handleVisualSearchInitiated = useCallback((searchQuery: string, imageAnalysis: any) => {
+    console.log('🖼️ Visual search initiated:', searchQuery, imageAnalysis)
+    // Update the URL with the visual search query
+    router.push(`/buyers/search?q=${encodeURIComponent(searchQuery)}`)
+    setDisplayQuery(searchQuery)
+    // Switch back to grid view to show results
+    setViewMode('grid')
+  }, [router])
 
   // Adapt the user object to match what Navigation expects
   const appUser = session?.user ? {
@@ -849,6 +860,16 @@ export default function SearchResults() {
               </button>
               <button
                 className={`btn-modern btn-modern-sm ${
+                  viewMode === 'visual' ? 'btn-modern-default' : 'btn-modern-outline'
+                }`}
+                onClick={() => {
+                  setViewMode('visual')
+                }}
+              >
+                📷 Visual Search
+              </button>
+              <button
+                className={`btn-modern btn-modern-sm ${
                   viewMode === 'swipe' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
                 onClick={() => {
@@ -1010,6 +1031,15 @@ export default function SearchResults() {
                           />
                         )
                       })}
+                  </div>
+                ) : viewMode === 'visual' ? (
+                  <div className="w-full max-w-4xl mx-auto py-8">
+                    <VisualSearchUpload
+                      onSearchInitiated={handleVisualSearchInitiated}
+                      onImageAnalyzed={(analysis, imageUrl) => {
+                        console.log('Image analyzed:', analysis)
+                      }}
+                    />
                   </div>
                 ) : (
                   <div className={

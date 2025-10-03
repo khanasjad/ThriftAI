@@ -154,9 +154,16 @@ export default function VisualSearchUpload({
 
       console.log('Image analysis complete:', analysis)
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error analyzing image:', err)
-      setError(err instanceof Error ? err.message : 'Failed to analyze image')
+      const errorMessage = err?.message || 'Failed to analyze image'
+
+      // Show more helpful error message for API key issues
+      if (errorMessage.includes('Visual search requires Claude AI') || errorMessage.includes('ANTHROPIC_API_KEY')) {
+        setError('Visual search requires Claude AI to be configured. Please add your ANTHROPIC_API_KEY to the .env.local file to enable this feature.')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setIsAnalyzing(false)
     }

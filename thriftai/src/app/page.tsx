@@ -56,12 +56,31 @@ export default function Home() {
 
   const handleVisualSearch = async (file: File) => {
     try {
-      const formData = new FormData()
-      formData.append('image', file)
+      // Convert image to base64
+      const reader = new FileReader()
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1]
+          resolve(base64)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      const base64Data = await base64Promise
+      const imageFormat = file.type.split('/')[1] as 'jpeg' | 'png' | 'webp' | 'gif'
 
       const response = await fetch('/api/visual-search', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          imageData: base64Data,
+          imageFormat,
+          additionalText: '',
+          maxResults: 12
+        })
       })
 
       const data = await response.json()
@@ -69,10 +88,9 @@ export default function Home() {
         throw new Error(data.error)
       }
 
-      // Store results and navigate to visual search page
-      sessionStorage.setItem('visualSearchResults', JSON.stringify(data))
-      sessionStorage.setItem('visualSearchImage', file.name)
-      router.push('/visual-search')
+      // Navigate to search page with the generated query
+      const searchQuery = data.imageAnalysis?.searchQuery || 'visual search results'
+      router.push(`/buyers/search?q=${encodeURIComponent(searchQuery)}`)
     } catch (error) {
       console.error('Visual search error:', error)
       throw error
