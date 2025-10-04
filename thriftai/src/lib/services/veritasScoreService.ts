@@ -61,6 +61,27 @@
 
 import { prisma } from '@/lib/prisma'
 import { Prisma, VeritasCategoryType } from '@prisma/client'
+import { VERITAS_SCORE } from '@/config/constants'
+
+// Import FREE data source integrations
+import {
+  getPhoneSpecs,
+  checkAppleWarranty,
+  checkDellWarranty,
+  getRepairability,
+  searchEbayListings,
+  getEbaySeller,
+  calculateSellerTrustScore,
+  getMarketPriceStats,
+  checkEnergyStar,
+  calculateEnergyStarScore,
+  getStockByBrand,
+  calculateStockPerformanceScore,
+} from '@/lib/dataFetcher'
+
+// Import relational data fetchers
+import { companyProfileFetcher } from './veritas/companyProfileFetcher'
+import { sellerProfileFetcher } from './veritas/sellerProfileFetcher'
 
 // ============================================================================
 // Types and Interfaces
@@ -120,18 +141,19 @@ interface ProductData {
 }
 
 // ============================================================================
-// Category Weights Configuration (based on VERITAS_IMPLEMENTATION_PLAN.md)
+// Category Weights Configuration (from centralized constants)
 // ============================================================================
 
+// Use centralized VERITAS_SCORE weights from @/config/constants
 const CATEGORY_WEIGHTS: Record<VeritasCategoryType, number> = {
-  PRODUCT_QUALITY: 0.25,         // 25% - Physical condition, authenticity, specs
-  SELLER_TRUST: 0.20,            // 20% - Seller reputation, reliability
-  MARKET_VALUE: 0.15,            // 15% - Price fairness, market position
-  SUSTAINABILITY: 0.12,          // 12% - Environmental impact
-  SECURITY_SAFETY: 0.05,         // 5%  - Payment security, buyer protection
-  USER_EXPERIENCE: 0.05,         // 5%  - UI/UX, customer service
-  PRODUCT_SPECIFICATION: 0.13,   // 13% - Category-specific technical specs
-  COMPANY_PERFORMANCE: 0.05,     // 5%  - Brand reputation, news, market data
+  PRODUCT_QUALITY: VERITAS_SCORE.WEIGHTS.PRODUCT_QUALITY,
+  SELLER_TRUST: VERITAS_SCORE.WEIGHTS.SELLER_TRUST,
+  MARKET_VALUE: VERITAS_SCORE.WEIGHTS.MARKET_VALUE,
+  SUSTAINABILITY: VERITAS_SCORE.WEIGHTS.SUSTAINABILITY,
+  SECURITY_SAFETY: VERITAS_SCORE.WEIGHTS.SECURITY_SAFETY,
+  USER_EXPERIENCE: VERITAS_SCORE.WEIGHTS.USER_EXPERIENCE,
+  PRODUCT_SPECIFICATION: VERITAS_SCORE.WEIGHTS.PRODUCT_SPECIFICATION,
+  COMPANY_PERFORMANCE: VERITAS_SCORE.WEIGHTS.COMPANY_PERFORMANCE,
 }
 
 // ============================================================================
@@ -149,6 +171,9 @@ export class VeritasScoreService {
     if (!product) {
       throw new Error(`Product not found: ${productId}`)
     }
+
+    // Ensure product has linked relational data (company, seller profiles)
+    await this.ensureRelationalData(product)
 
     // Calculate each category score
     const categories: CategoryScore[] = [
@@ -280,8 +305,58 @@ export class VeritasScoreService {
       include: {
         reviews: true,
         seller: true,
+        companyProfile: true,
+        sellerProfile: true,
+        productSpec: true,
+        securityPolicy: true,
+        productQuality: true,
+        sustainability: true,
+        userExperience: true,
+        marketData: {
+          orderBy: { snapshotDate: 'desc' },
+          take: 1
+        }
       }
     }) as ProductData | null
+  }
+
+  /**
+   * Ensure product has linked relational data (company, seller profiles)
+   * This fetches and links shared data to avoid redundant API calls
+   */
+  private async ensureRelationalData(product: ProductData): Promise<void> {
+    const updates: any = {}
+
+    // 1. Company Profile - Link to shared brand data
+    if (product.brand && !product.companyProfileId) {
+      console.log(`[VeritasScore] Linking product ${product.id} to company profile for ${product.brand}`)
+      const companyProfileId = await companyProfileFetcher.getOrCreateProfile(product.brand)
+      updates.companyProfileId = companyProfileId
+    }
+
+    // 2. Seller Profile - Link to shared seller data
+    if (product.seller && !product.sellerProfileId) {
+      console.log(`[VeritasScore] Linking product ${product.id} to seller profile for ${product.seller.username}`)
+      const sellerProfileId = await sellerProfileFetcher.getOrCreateProfile(
+        product.seller.username,
+        'ebay' // Default to eBay, could be extracted from product metadata
+      )
+      updates.sellerProfileId = sellerProfileId
+    }
+
+    // Apply updates if any
+    if (Object.keys(updates).length > 0) {
+      await prisma.product.update({
+        where: { id: product.id },
+        data: updates
+      })
+
+      // Reload product data to get the linked profiles
+      const updatedProduct = await this.fetchProductData(product.id)
+      if (updatedProduct) {
+        Object.assign(product, updatedProduct)
+      }
+    }
   }
 
   // ==========================================================================
@@ -294,7 +369,87 @@ export class VeritasScoreService {
   private async calculateProductQuality(product: ProductData): Promise<CategoryScore> {
     const parameters: ParameterScore[] = []
 
-    // Physical Condition Parameters (6 parameters)
+    // Try to fetch warranty information (FREE APIs)
+    const isAppleProduct = product.brand?.toLowerCase() === 'apple'
+    const isDellProduct = product.brand?.toLowerCase() === 'dell'
+    const isLaptop = product.category.toLowerCase().includes('laptop') ||
+                     product.category.toLowerCase().includes('computer')
+
+    // Check for Apple warranty (if Apple product and has serial number)
+    if (isAppleProduct && product.serialNumber) {
+      try {
+        const warrantyResult = await checkAppleWarranty(product.serialNumber)
+
+        if (warrantyResult.success && warrantyResult.data) {
+          const warranty = warrantyResult.data
+
+          parameters.push(this.calculateParameter(
+            'Warranty Status',
+            'PQ_WARRANTY',
+            warranty.warrantyStatus,
+            () => warranty.warrantyStatus === 'Active' ? 95 : 70,
+            0.12,
+            'apple_warranty',
+            warrantyResult.cached ? 0.95 : 0.90
+          ))
+
+          parameters.push(this.calculateParameter(
+            'Product Authenticity',
+            'PQ_AUTHENTICITY',
+            warranty.isValid ? 'Verified' : 'Unverified',
+            () => warranty.isValid ? 100 : 50,
+            0.15,
+            'apple_warranty',
+            warrantyResult.cached ? 0.95 : 0.90
+          ))
+        } else {
+          // Fallback if warranty check failed
+          this.addDefaultWarrantyParams(parameters)
+        }
+      } catch (error) {
+        console.error('[VeritasScore] Failed to check Apple warranty:', error)
+        this.addDefaultWarrantyParams(parameters)
+      }
+    } else if (isDellProduct && isLaptop && product.serviceTag) {
+      // Check for Dell warranty (if Dell laptop and has service tag)
+      try {
+        const warrantyResult = await checkDellWarranty(product.serviceTag)
+
+        if (warrantyResult.success && warrantyResult.data) {
+          const warranty = warrantyResult.data
+
+          parameters.push(this.calculateParameter(
+            'Warranty Status',
+            'PQ_WARRANTY',
+            warranty.warrantyStatus,
+            () => warranty.warrantyStatus === 'Active' ? 95 : 70,
+            0.12,
+            'dell_warranty',
+            warrantyResult.cached ? 0.95 : 0.90
+          ))
+
+          parameters.push(this.calculateParameter(
+            'Product Authenticity',
+            'PQ_AUTHENTICITY',
+            warranty.isValid ? 'Verified' : 'Unverified',
+            () => warranty.isValid ? 100 : 50,
+            0.15,
+            'dell_warranty',
+            warrantyResult.cached ? 0.95 : 0.90
+          ))
+        } else {
+          this.addDefaultWarrantyParams(parameters)
+        }
+      } catch (error) {
+        console.error('[VeritasScore] Failed to check Dell warranty:', error)
+        this.addDefaultWarrantyParams(parameters)
+      }
+    } else {
+      // No warranty API available for this product
+      this.addDefaultWarrantyParams(parameters)
+    }
+
+    // Physical Condition Parameters
     parameters.push(this.calculateParameter(
       'Product Condition Score',
       'PQ_CONDITION',
@@ -355,9 +510,6 @@ export class VeritasScoreService {
       0.65
     ))
 
-    // Add more parameters... (truncated for brevity)
-    // This would include all 30 Product Quality parameters
-
     const categoryScore = this.calculateCategoryScore(parameters)
     const confidence = this.calculateCategoryConfidence(parameters)
 
@@ -371,33 +523,235 @@ export class VeritasScoreService {
     }
   }
 
+  private addDefaultWarrantyParams(parameters: ParameterScore[]): void {
+    parameters.push(this.calculateParameter(
+      'Warranty Status',
+      'PQ_WARRANTY',
+      null,
+      () => 70,
+      0.12,
+      'unknown',
+      0.50
+    ))
+
+    parameters.push(this.calculateParameter(
+      'Product Authenticity',
+      'PQ_AUTHENTICITY',
+      null,
+      () => 75,
+      0.15,
+      'unknown',
+      0.50
+    ))
+  }
+
   /**
    * Category 2: Seller Trust (25 parameters, 25% weight)
+   */
+  /**
+   * Category 2: Seller Trust (20% weight)
+   *
+   * NOW USING RELATIONAL DATA: Pulls from VeritasSellerProfile table
+   * - 1 API call per seller → shared across ALL products from that seller
+   * - Seller data cached for 7 days
    */
   private async calculateSellerTrust(product: ProductData): Promise<CategoryScore> {
     const parameters: ParameterScore[] = []
 
-    parameters.push(this.calculateParameter(
-      'Seller Rating',
-      'ST_RATING',
-      product.seller?.rating?.toString(),
-      (val) => (parseFloat(val || '0') / 5) * 100,
-      0.15,
-      'seller_data',
-      0.95
-    ))
+    // Check if product has linked seller profile (relational data)
+    if (product.sellerProfile) {
+      const seller = product.sellerProfile
 
-    parameters.push(this.calculateParameter(
-      'Response Time',
-      'ST_RESPONSE_TIME',
-      product.seller?.responseTimeHours?.toString(),
-      (val) => Math.max(0, 100 - (parseFloat(val || '24') / 48) * 100),
-      0.10,
-      'seller_data',
-      0.90
-    ))
+      // Seller Rating (normalized to 0-100)
+      const ratingScore = (Number(seller.sellerRating) / 5) * 100
+      parameters.push(this.calculateParameter(
+        'Seller Rating',
+        'ST_RATING',
+        `${Number(seller.sellerRating).toFixed(2)}/5.0 (${Number(seller.positiveFeedbackPct).toFixed(1)}% positive)`,
+        () => ratingScore,
+        0.30,
+        'seller_profile',
+        0.95 // High confidence from cached data
+      ))
 
-    // Add more Seller Trust parameters...
+      // Transaction Count (experience metric)
+      const experienceScore = Math.min(100, (seller.transactionCount / 1000) * 50 + 50)
+      parameters.push(this.calculateParameter(
+        'Seller Experience',
+        'ST_EXPERIENCE',
+        `${seller.transactionCount} transactions`,
+        () => experienceScore,
+        0.25,
+        'seller_profile',
+        0.95
+      ))
+
+      // Top Rated Seller Status
+      parameters.push(this.calculateParameter(
+        'Top Rated Seller',
+        'ST_TOP_RATED',
+        seller.isTopRated ? 'Yes' : 'No',
+        () => seller.isTopRated ? 100 : 70,
+        0.20,
+        'seller_profile',
+        0.95
+      ))
+
+      // Positive Feedback Percentage
+      parameters.push(this.calculateParameter(
+        'Positive Feedback %',
+        'ST_POSITIVE_PCT',
+        `${Number(seller.positiveFeedbackPct).toFixed(1)}%`,
+        () => Number(seller.positiveFeedbackPct),
+        0.15,
+        'seller_profile',
+        0.95
+      ))
+
+      // Seller Performance Index (composite metric)
+      parameters.push(this.calculateParameter(
+        'Seller Performance Index',
+        'ST_PERFORMANCE',
+        `${Number(seller.sellerPerformanceIndex).toFixed(1)}/100`,
+        () => Number(seller.sellerPerformanceIndex),
+        0.10,
+        'seller_profile',
+        0.90
+      ))
+
+      console.log(`[VeritasScore] Used CACHED seller data for ${seller.sellerIdentifier} (saved API call!)`)
+    } else {
+      // Fallback to old calculation if no seller profile linked
+      console.warn(`[VeritasScore] No seller profile linked for product ${product.id}, using fallback`)
+
+      // Try to fetch eBay seller data (FREE API) if seller username is available
+      if (product.seller?.ebayUsername) {
+        try {
+          const sellerResult = await getEbaySeller(product.seller.ebayUsername)
+
+          if (sellerResult.success && sellerResult.data) {
+            const sellerScore = calculateSellerTrustScore(sellerResult.data)
+            const seller = sellerResult.data
+
+            parameters.push(this.calculateParameter(
+              'Seller Rating',
+              'ST_RATING',
+              `${seller.positiveFeedbackPercent}% positive (${seller.feedbackScore} reviews)`,
+              () => sellerScore,
+              0.30,
+              'ebay',
+              sellerResult.cached ? 0.95 : 0.90
+            ))
+
+            parameters.push(this.calculateParameter(
+              'Seller Feedback Score',
+              'ST_FEEDBACK',
+              seller.feedbackScore.toString(),
+              () => Math.min(100, (seller.feedbackScore / 1000) * 50 + 50),
+              0.25,
+              'ebay',
+              sellerResult.cached ? 0.95 : 0.90
+            ))
+
+            parameters.push(this.calculateParameter(
+              'Top Rated Seller',
+              'ST_TOP_RATED',
+              seller.topRatedSeller ? 'Yes' : 'No',
+              () => seller.topRatedSeller ? 100 : 70,
+              0.20,
+              'ebay',
+              sellerResult.cached ? 0.95 : 0.90
+            ))
+
+            parameters.push(this.calculateParameter(
+              'Positive Feedback %',
+              'ST_POSITIVE_PCT',
+              `${seller.positiveFeedbackPercent}%`,
+              () => seller.positiveFeedbackPercent,
+              0.15,
+              'ebay',
+              sellerResult.cached ? 0.95 : 0.90
+            ))
+
+            parameters.push(this.calculateParameter(
+              'Seller Registration Age',
+              'ST_REG_AGE',
+              seller.registrationDate ? seller.registrationDate.toISOString().split('T')[0] : null,
+              () => this.assessSellerAge(seller.registrationDate),
+              0.10,
+              'ebay',
+              sellerResult.cached ? 0.95 : 0.90
+            ))
+
+            const categoryScore = this.calculateCategoryScore(parameters)
+            const confidence = this.calculateCategoryConfidence(parameters)
+
+            return {
+              categoryName: VeritasCategoryType.SELLER_TRUST,
+              categoryScore,
+              weight: CATEGORY_WEIGHTS.SELLER_TRUST,
+              weightedScore: categoryScore * CATEGORY_WEIGHTS.SELLER_TRUST,
+              confidence,
+              parameters
+            }
+          }
+        } catch (error) {
+          console.error('[VeritasScore] Failed to fetch eBay seller data:', error)
+          // Fall through to default calculation
+        }
+      }
+
+      // Default calculation (using local seller data or placeholders)
+      parameters.push(this.calculateParameter(
+        'Seller Rating',
+        'ST_RATING',
+        product.seller?.rating?.toString(),
+        (val) => (parseFloat(val || '0') / 5) * 100,
+        0.30,
+        'seller_data',
+        0.75
+      ))
+
+      parameters.push(this.calculateParameter(
+        'Response Time',
+        'ST_RESPONSE_TIME',
+        product.seller?.responseTimeHours?.toString(),
+        (val) => Math.max(0, 100 - (parseFloat(val || '24') / 48) * 100),
+        0.25,
+        'seller_data',
+        0.70
+      ))
+
+      parameters.push(this.calculateParameter(
+        'Seller Verification',
+        'ST_VERIFIED',
+        product.seller?.verified ? 'Verified' : 'Not Verified',
+        () => product.seller?.verified ? 90 : 60,
+        0.20,
+        'seller_data',
+        0.70
+      ))
+
+      parameters.push(this.calculateParameter(
+        'Seller Experience',
+        'ST_EXPERIENCE',
+        product.seller?.totalSales?.toString(),
+        (val) => Math.min(100, (parseFloat(val || '0') / 100) * 50 + 50),
+        0.15,
+        'seller_data',
+        0.65
+      ))
+
+      parameters.push(this.calculateParameter(
+        'Return Policy',
+        'ST_RETURN_POLICY',
+        product.seller?.hasReturnPolicy ? 'Yes' : 'No',
+        () => product.seller?.hasReturnPolicy ? 85 : 60,
+        0.10,
+        'seller_data',
+        0.70
+      ))
+    }
 
     const categoryScore = this.calculateCategoryScore(parameters)
     const confidence = this.calculateCategoryConfidence(parameters)
@@ -412,6 +766,19 @@ export class VeritasScoreService {
     }
   }
 
+  private assessSellerAge(registrationDate: Date | null | undefined): number {
+    if (!registrationDate) return 60
+
+    const ageInYears = (Date.now() - registrationDate.getTime()) / (365 * 24 * 60 * 60 * 1000)
+
+    // Longer seller history = higher trust
+    if (ageInYears >= 10) return 100
+    if (ageInYears >= 5) return 90
+    if (ageInYears >= 3) return 80
+    if (ageInYears >= 1) return 70
+    return 60
+  }
+
   /**
    * Category 3: Market Value (20 parameters, 20% weight)
    */
@@ -420,12 +787,94 @@ export class VeritasScoreService {
 
     const discountPercent = ((product.originalPrice - product.price) / product.originalPrice) * 100
 
+    // Try to fetch eBay market pricing data (FREE API)
+    try {
+      const ebayListingsResult = await searchEbayListings(product.name, {
+        condition: product.condition as 'New' | 'Used' | 'Refurbished',
+        maxResults: 20,
+        sortOrder: 'BestMatch'
+      })
+
+      if (ebayListingsResult.success && ebayListingsResult.data && ebayListingsResult.data.length > 0) {
+        const priceStats = getMarketPriceStats(ebayListingsResult.data)
+
+        // Compare current price to market average
+        const priceVsMarket = ((priceStats.average - product.price) / priceStats.average) * 100
+
+        parameters.push(this.calculateParameter(
+          'Price vs Market Average',
+          'MV_PRICE_MARKET',
+          `$${product.price} vs $${priceStats.average.toFixed(2)} avg`,
+          () => this.assessPriceVsMarket(product.price, priceStats.average),
+          0.25,
+          'ebay',
+          ebayListingsResult.cached ? 0.95 : 0.90
+        ))
+
+        parameters.push(this.calculateParameter(
+          'Market Price Position',
+          'MV_PRICE_POSITION',
+          `${priceVsMarket > 0 ? 'Below' : 'Above'} market by ${Math.abs(priceVsMarket).toFixed(1)}%`,
+          () => priceVsMarket > 0 ? Math.min(100, 70 + priceVsMarket) : Math.max(40, 70 + priceVsMarket),
+          0.20,
+          'ebay',
+          ebayListingsResult.cached ? 0.95 : 0.90
+        ))
+
+        parameters.push(this.calculateParameter(
+          'Competitive Pricing',
+          'MV_COMPETITIVE',
+          `${ebayListingsResult.data.length} comparable listings`,
+          () => this.assessCompetitivePricing(product.price, priceStats),
+          0.15,
+          'ebay',
+          ebayListingsResult.cached ? 0.95 : 0.90
+        ))
+
+        parameters.push(this.calculateParameter(
+          'Price Fairness Score',
+          'MV_FAIRNESS',
+          `Median: $${priceStats.median.toFixed(2)}`,
+          () => this.assessPriceFairness(product.price, priceStats.median),
+          0.20,
+          'ebay',
+          ebayListingsResult.cached ? 0.95 : 0.90
+        ))
+
+        parameters.push(this.calculateParameter(
+          'Discount Percentage',
+          'MV_DISCOUNT',
+          `${discountPercent.toFixed(1)}% off`,
+          (val) => Math.min(100, parseFloat(val || '0')),
+          0.20,
+          'price_calculation',
+          1.0
+        ))
+
+        const categoryScore = this.calculateCategoryScore(parameters)
+        const confidence = this.calculateCategoryConfidence(parameters)
+
+        return {
+          categoryName: VeritasCategoryType.MARKET_VALUE,
+          categoryScore,
+          weight: CATEGORY_WEIGHTS.MARKET_VALUE,
+          weightedScore: categoryScore * CATEGORY_WEIGHTS.MARKET_VALUE,
+          confidence,
+          parameters
+        }
+      }
+    } catch (error) {
+      console.error('[VeritasScore] Failed to fetch eBay market data:', error)
+      // Fall through to default calculation
+    }
+
+    // Default calculation (without eBay market data)
     parameters.push(this.calculateParameter(
       'Price vs Market Average',
       'MV_PRICE_MARKET',
       product.price.toString(),
       () => this.calculatePriceScore(product.price, product.originalPrice),
-      0.20,
+      0.25,
       'price_analysis',
       0.85
     ))
@@ -435,12 +884,40 @@ export class VeritasScoreService {
       'MV_DISCOUNT',
       discountPercent.toString(),
       (val) => Math.min(100, parseFloat(val || '0')),
-      0.15,
+      0.20,
       'price_calculation',
       1.0
     ))
 
-    // Add more Market Value parameters...
+    parameters.push(this.calculateParameter(
+      'Price Competitiveness',
+      'MV_COMPETITIVE',
+      product.price.toString(),
+      () => 75,
+      0.20,
+      'estimate',
+      0.60
+    ))
+
+    parameters.push(this.calculateParameter(
+      'Value for Money',
+      'MV_VALUE',
+      discountPercent.toFixed(1),
+      () => Math.min(100, 50 + discountPercent * 0.5),
+      0.20,
+      'calculation',
+      0.80
+    ))
+
+    parameters.push(this.calculateParameter(
+      'Price Fairness',
+      'MV_FAIRNESS',
+      product.price.toString(),
+      () => 80,
+      0.15,
+      'estimate',
+      0.65
+    ))
 
     const categoryScore = this.calculateCategoryScore(parameters)
     const confidence = this.calculateCategoryConfidence(parameters)
@@ -455,33 +932,210 @@ export class VeritasScoreService {
     }
   }
 
+  private assessPriceVsMarket(currentPrice: number, marketAverage: number): number {
+    const difference = ((marketAverage - currentPrice) / marketAverage) * 100
+
+    // Better score if price is below market average
+    if (difference >= 30) return 100 // 30%+ below market
+    if (difference >= 20) return 95  // 20-30% below
+    if (difference >= 10) return 85  // 10-20% below
+    if (difference >= 0) return 75   // At or slightly below market
+    if (difference >= -10) return 65 // Slightly above market
+    if (difference >= -20) return 50 // 10-20% above
+    return 40 // More than 20% above market
+  }
+
+  private assessCompetitivePricing(currentPrice: number, stats: { lowest: number; highest: number; average: number }): number {
+    const priceRange = stats.highest - stats.lowest
+    const pricePosition = (currentPrice - stats.lowest) / priceRange
+
+    // Score based on position in price range (lower = better)
+    if (pricePosition <= 0.25) return 100 // Bottom 25%
+    if (pricePosition <= 0.40) return 90  // Bottom 40%
+    if (pricePosition <= 0.60) return 75  // Middle range
+    if (pricePosition <= 0.80) return 60  // Upper-middle
+    return 50 // Top 20%
+  }
+
+  private assessPriceFairness(currentPrice: number, marketMedian: number): number {
+    const difference = Math.abs(((currentPrice - marketMedian) / marketMedian) * 100)
+
+    // Score based on deviation from median
+    if (difference <= 5) return 100   // Within 5% of median
+    if (difference <= 10) return 90   // Within 10%
+    if (difference <= 15) return 80   // Within 15%
+    if (difference <= 25) return 70   // Within 25%
+    if (difference <= 40) return 60   // Within 40%
+    return 50 // More than 40% deviation
+  }
+
   /**
    * Category 4: Sustainability (15 parameters, 15% weight)
    */
   private async calculateSustainability(product: ProductData): Promise<CategoryScore> {
     const parameters: ParameterScore[] = []
 
+    // Try to fetch Energy Star certification (FREE API)
+    if (product.brand) {
+      try {
+        const energyStarResult = await checkEnergyStar(
+          product.name,
+          product.brand
+        )
+
+        if (energyStarResult.success && energyStarResult.data) {
+          const energyScore = calculateEnergyStarScore(energyStarResult.data)
+
+          parameters.push(this.calculateParameter(
+            'Energy Star Certification',
+            'SUS_ENERGY_STAR',
+            energyStarResult.data.certified ? 'Certified' : 'Not Certified',
+            () => energyScore,
+            0.15,
+            'energy_star',
+            energyStarResult.cached ? 0.95 : 0.90
+          ))
+        } else {
+          // Fallback if not Energy Star certified
+          parameters.push(this.calculateParameter(
+            'Energy Star Certification',
+            'SUS_ENERGY_STAR',
+            'Unknown',
+            () => 60,
+            0.15,
+            'energy_star',
+            0.50
+          ))
+        }
+      } catch (error) {
+        console.error('[VeritasScore] Failed to check Energy Star:', error)
+        parameters.push(this.calculateParameter(
+          'Energy Star Certification',
+          'SUS_ENERGY_STAR',
+          null,
+          () => 60,
+          0.15,
+          'energy_star',
+          0.50
+        ))
+      }
+    } else {
+      parameters.push(this.calculateParameter(
+        'Energy Star Certification',
+        'SUS_ENERGY_STAR',
+        null,
+        () => 60,
+        0.15,
+        'energy_star',
+        0.50
+      ))
+    }
+
+    // Try to fetch Repairability Score from iFixit (FREE API)
+    try {
+      const repairabilityResult = await getRepairability(product.name)
+
+      if (repairabilityResult.success && repairabilityResult.data) {
+        const repair = repairabilityResult.data
+
+        // Repairability Score (0-10 scale, normalize to 0-100)
+        parameters.push(this.calculateParameter(
+          'Repairability Score',
+          'SUS_REPAIRABILITY',
+          repair.repairabilityScore ? `${repair.repairabilityScore}/10` : null,
+          () => repair.repairabilityScore ? (repair.repairabilityScore / 10) * 100 : 60,
+          0.20,
+          'ifixit',
+          repairabilityResult.cached ? 0.95 : 0.90
+        ))
+
+        // Parts Availability
+        parameters.push(this.calculateParameter(
+          'Replacement Parts Availability',
+          'SUS_PARTS_AVAILABLE',
+          repair.partsAvailable ? 'Available' : 'Limited',
+          () => repair.partsAvailable ? 90 : 50,
+          0.10,
+          'ifixit',
+          repairabilityResult.cached ? 0.95 : 0.90
+        ))
+      } else {
+        // Fallback if iFixit data not available
+        parameters.push(this.calculateParameter(
+          'Repairability Score',
+          'SUS_REPAIRABILITY',
+          null,
+          () => 65,
+          0.20,
+          'ifixit',
+          0.50
+        ))
+
+        parameters.push(this.calculateParameter(
+          'Replacement Parts Availability',
+          'SUS_PARTS_AVAILABLE',
+          null,
+          () => 65,
+          0.10,
+          'ifixit',
+          0.50
+        ))
+      }
+    } catch (error) {
+      console.error('[VeritasScore] Failed to fetch repairability:', error)
+      parameters.push(this.calculateParameter(
+        'Repairability Score',
+        'SUS_REPAIRABILITY',
+        null,
+        () => 65,
+        0.20,
+        'ifixit',
+        0.50
+      ))
+
+      parameters.push(this.calculateParameter(
+        'Replacement Parts Availability',
+        'SUS_PARTS_AVAILABLE',
+        null,
+        () => 65,
+        0.10,
+        'ifixit',
+        0.50
+      ))
+    }
+
+    // Carbon Footprint Reduction (secondhand/refurb inherently better)
     parameters.push(this.calculateParameter(
       'Carbon Footprint Reduction',
       'SUS_CARBON',
-      'thrift',
-      () => 85, // Thrift items inherently score high
-      0.20,
+      product.condition || 'thrift',
+      () => this.assessCarbonReduction(product.condition),
+      0.25,
       'sustainability_calculation',
       0.90
     ))
 
+    // Circular Economy Contribution
     parameters.push(this.calculateParameter(
       'Circular Economy Contribution',
       'SUS_CIRCULAR',
       'reuse',
       () => 90,
-      0.15,
+      0.20,
       'sustainability_calculation',
       0.90
     ))
 
-    // Add more Sustainability parameters...
+    // E-Waste Prevention
+    parameters.push(this.calculateParameter(
+      'E-Waste Prevention',
+      'SUS_EWASTE',
+      'reuse',
+      () => 85,
+      0.10,
+      'sustainability_calculation',
+      0.85
+    ))
 
     const categoryScore = this.calculateCategoryScore(parameters)
     const confidence = this.calculateCategoryConfidence(parameters)
@@ -585,6 +1239,102 @@ export class VeritasScoreService {
   private async calculateProductSpecification(product: ProductData): Promise<CategoryScore> {
     const parameters: ParameterScore[] = []
 
+    // Try to fetch real phone specifications from GSMArena (FREE API)
+    const isPhone = product.category.toLowerCase().includes('phone') ||
+                    product.category.toLowerCase().includes('mobile')
+
+    if (isPhone) {
+      try {
+        const specsResult = await getPhoneSpecs(product.name)
+
+        if (specsResult.success && specsResult.data) {
+          const specs = specsResult.data
+
+          // Processor Score
+          parameters.push(this.calculateParameter(
+            'Processor Specifications',
+            'PS_PROCESSOR',
+            specs.processor || null,
+            () => specs.processor ? 95 : 50,
+            0.20,
+            'gsmarena',
+            specsResult.cached ? 0.95 : 0.90
+          ))
+
+          // RAM Score
+          parameters.push(this.calculateParameter(
+            'Memory Specifications',
+            'PS_RAM',
+            specs.ram || null,
+            () => specs.ram ? 95 : 50,
+            0.20,
+            'gsmarena',
+            specsResult.cached ? 0.95 : 0.90
+          ))
+
+          // Display Score
+          parameters.push(this.calculateParameter(
+            'Display Specifications',
+            'PS_DISPLAY',
+            specs.displaySize || null,
+            () => specs.displaySize ? 95 : 50,
+            0.15,
+            'gsmarena',
+            specsResult.cached ? 0.95 : 0.90
+          ))
+
+          // Battery Score
+          parameters.push(this.calculateParameter(
+            'Battery Specifications',
+            'PS_BATTERY',
+            specs.batteryCapacity || null,
+            () => specs.batteryCapacity ? 95 : 50,
+            0.15,
+            'gsmarena',
+            specsResult.cached ? 0.95 : 0.90
+          ))
+
+          // Camera Score
+          parameters.push(this.calculateParameter(
+            'Camera Specifications',
+            'PS_CAMERA',
+            specs.mainCamera || null,
+            () => specs.mainCamera ? 95 : 50,
+            0.15,
+            'gsmarena',
+            specsResult.cached ? 0.95 : 0.90
+          ))
+
+          // OS Score
+          parameters.push(this.calculateParameter(
+            'Operating System',
+            'PS_OS',
+            specs.os || null,
+            () => specs.os ? 95 : 50,
+            0.15,
+            'gsmarena',
+            specsResult.cached ? 0.95 : 0.90
+          ))
+
+          const categoryScore = this.calculateCategoryScore(parameters)
+          const confidence = this.calculateCategoryConfidence(parameters)
+
+          return {
+            categoryName: VeritasCategoryType.PRODUCT_SPECIFICATION,
+            categoryScore,
+            weight: CATEGORY_WEIGHTS.PRODUCT_SPECIFICATION,
+            weightedScore: categoryScore * CATEGORY_WEIGHTS.PRODUCT_SPECIFICATION,
+            confidence,
+            parameters
+          }
+        }
+      } catch (error) {
+        console.error('[VeritasScore] Failed to fetch phone specs:', error)
+        // Fall through to default calculation
+      }
+    }
+
+    // Default calculation for non-phones or if spec fetch failed
     // Category Completeness
     parameters.push(this.calculateParameter(
       'Category Specification Completeness',
@@ -656,64 +1406,158 @@ export class VeritasScoreService {
   /**
    * Category 8: Company Performance (5% weight)
    * Brand reputation, news sentiment, and market performance
+   *
+   * NOW USING RELATIONAL DATA: Pulls from VeritasCompanyProfile table
+   * - 1 API call per company → shared across ALL products from that brand
+   * - Stock data cached for 1 hour, brand data cached for 30 days
    */
   private async calculateCompanyPerformance(product: ProductData): Promise<CategoryScore> {
     const parameters: ParameterScore[] = []
 
-    // Brand Reputation Score
-    parameters.push(this.calculateParameter(
-      'Brand Reputation',
-      'CP_BRAND_REP',
-      product.brand,
-      () => this.assessBrandReputation(product.brand),
-      0.30,
-      'brand_analysis',
-      0.85
-    ))
+    // Check if product has linked company profile (relational data)
+    if (product.companyProfile) {
+      const company = product.companyProfile
 
-    // News Sentiment
-    parameters.push(this.calculateParameter(
-      'News Sentiment Score',
-      'CP_NEWS_SENTIMENT',
-      product.brand,
-      () => this.assessNewsSentiment(product.brand),
-      0.25,
-      'news_api',
-      0.70
-    ))
+      // Brand Reputation (from cached company profile)
+      parameters.push(this.calculateParameter(
+        'Brand Reputation',
+        'CP_BRAND_REP',
+        company.brandName,
+        () => Number(company.brandReputationScore),
+        0.35,
+        'company_profile',
+        0.95 // High confidence from cached data
+      ))
 
-    // Market Performance
-    parameters.push(this.calculateParameter(
-      'Market Performance',
-      'CP_MARKET_PERF',
-      product.brand,
-      () => this.assessMarketPerformance(product.brand),
-      0.20,
-      'market_data',
-      0.65
-    ))
+      // Stock Performance (if publicly traded)
+      if (company.stockPrice) {
+        const stockDisplay = `${company.stockSymbol}: $${Number(company.stockPrice).toFixed(2)} (${Number(company.stockChange) > 0 ? '+' : ''}${Number(company.stockChange).toFixed(2)}%)`
 
-    // Public Domain Presence
-    parameters.push(this.calculateParameter(
-      'Public Domain Presence',
-      'CP_PUBLIC_PRESENCE',
-      product.brand,
-      () => this.assessPublicPresence(product.brand),
-      0.15,
-      'web_analysis',
-      0.80
-    ))
+        // Calculate stock score from change percentage
+        const changePercent = Number(company.stockChange)
+        const stockScore = 70 + Math.min(30, Math.max(-30, changePercent * 3))
 
-    // Stock Performance (if publicly traded)
-    parameters.push(this.calculateParameter(
-      'Stock Performance',
-      'CP_STOCK_PERF',
-      product.brand,
-      () => this.assessStockPerformance(product.brand),
-      0.10,
-      'stock_api',
-      0.60
-    ))
+        parameters.push(this.calculateParameter(
+          'Stock Performance',
+          'CP_STOCK_PERF',
+          stockDisplay,
+          () => stockScore,
+          0.25,
+          'alpha_vantage',
+          0.95 // High confidence from cached API data
+        ))
+
+        // Market Performance based on stock data
+        parameters.push(this.calculateParameter(
+          'Market Performance',
+          'CP_MARKET_PERF',
+          `${Number(company.marketShare).toFixed(1)}% market share`,
+          () => Number(company.marketShare),
+          0.20,
+          'company_profile',
+          0.90
+        ))
+      } else {
+        // Not publicly traded
+        parameters.push(this.calculateParameter(
+          'Stock Performance',
+          'CP_STOCK_PERF',
+          'Not publicly traded',
+          () => 70,
+          0.25,
+          'n/a',
+          0.50
+        ))
+
+        parameters.push(this.calculateParameter(
+          'Market Performance',
+          'CP_MARKET_PERF',
+          company.brandName,
+          () => Number(company.marketShare),
+          0.20,
+          'company_profile',
+          0.70
+        ))
+      }
+
+      // News Sentiment (from company profile)
+      parameters.push(this.calculateParameter(
+        'News Sentiment Score',
+        'CP_NEWS_SENTIMENT',
+        `${Number(company.newsSentimentScore).toFixed(1)}/100`,
+        () => Number(company.newsSentimentScore),
+        0.15,
+        'company_profile',
+        0.85
+      ))
+
+      // Public Domain Presence (media coverage + social sentiment)
+      const publicPresenceScore = (Number(company.mediaCoverage) + Number(company.socialSentiment)) / 2
+      parameters.push(this.calculateParameter(
+        'Public Domain Presence',
+        'CP_PUBLIC_PRESENCE',
+        `${Number(company.mediaCoverage).toFixed(1)} media, ${Number(company.socialSentiment).toFixed(1)} social`,
+        () => publicPresenceScore,
+        0.05,
+        'company_profile',
+        0.85
+      ))
+
+      console.log(`[VeritasScore] Used CACHED company data for ${company.brandName} (saved API call!)`)
+    } else {
+      // Fallback to old calculation if no company profile linked
+      console.warn(`[VeritasScore] No company profile linked for product ${product.id}, using fallback`)
+
+      parameters.push(this.calculateParameter(
+        'Brand Reputation',
+        'CP_BRAND_REP',
+        product.brand,
+        () => this.assessBrandReputation(product.brand),
+        0.35,
+        'brand_analysis',
+        0.70
+      ))
+
+      parameters.push(this.calculateParameter(
+        'Stock Performance',
+        'CP_STOCK_PERF',
+        product.brand || 'Unknown',
+        () => 70,
+        0.25,
+        'n/a',
+        0.50
+      ))
+
+      parameters.push(this.calculateParameter(
+        'Market Performance',
+        'CP_MARKET_PERF',
+        product.brand,
+        () => this.assessMarketPerformance(product.brand),
+        0.20,
+        'market_data',
+        0.60
+      ))
+
+      parameters.push(this.calculateParameter(
+        'News Sentiment Score',
+        'CP_NEWS_SENTIMENT',
+        product.brand,
+        () => this.assessNewsSentiment(product.brand),
+        0.15,
+        'news_api',
+        0.65
+      ))
+
+      parameters.push(this.calculateParameter(
+        'Public Domain Presence',
+        'CP_PUBLIC_PRESENCE',
+        product.brand,
+        () => this.assessPublicPresence(product.brand),
+        0.05,
+        'web_analysis',
+        0.70
+      ))
+    }
 
     const categoryScore = this.calculateCategoryScore(parameters)
     const confidence = this.calculateCategoryConfidence(parameters)
@@ -1048,6 +1892,28 @@ export class VeritasScoreService {
     }
 
     return publiclyTraded[brand] || 70 // 70 if not publicly traded or unknown
+  }
+
+  // ==========================================================================
+  // Sustainability Helpers
+  // ==========================================================================
+
+  private assessCarbonReduction(condition: string | null | undefined): number {
+    // Secondhand/refurbished products have lower carbon footprint than new
+    const conditionScores: Record<string, number> = {
+      'New': 40,              // New manufacturing has high carbon cost
+      'Certified Refurb': 95, // Best - professionally restored
+      'Refurbished': 90,      // Very good - restored
+      'Like New': 92,         // Excellent - minimal use
+      'Excellent': 88,        // Great condition
+      'Very Good': 85,        // Good reuse
+      'Good': 82,             // Still good reuse
+      'Fair': 78,             // Acceptable reuse
+      'Used': 80,             // Generic used
+      'Poor': 70,             // May not last long
+    }
+
+    return conditionScores[condition || 'Used'] || 80
   }
 }
 

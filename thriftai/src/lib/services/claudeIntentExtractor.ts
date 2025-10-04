@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { logger } from '@/lib/logger'
-import { productConfig } from '@/lib/config/productConfig'
+import { productConfig } from '@/config/productConfig'
 
 export interface StructuredIntent {
   // IMPORTANT: Corrected and normalized query (fixes typos, variations)

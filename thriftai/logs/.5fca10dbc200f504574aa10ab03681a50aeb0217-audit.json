@@ -39,6 +39,11 @@
             "date": 1759498294483,
             "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-03.log",
             "hash": "3105ab3a4ae328c2fd49723389511834990a2f9d7a729d3d8e27f258c982b0dc"
+        },
+        {
+            "date": 1759602816290,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-04.log",
+            "hash": "1299e2dfa13010dfb55ac801c39aa7c8f94df41a61b0c28cb512a904d0c7c9ba"
         }
     ],
     "hashType": "sha256"

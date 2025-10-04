@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // Product Categories Configuration
 export interface CategoryConfig {
@@ -80,7 +81,9 @@ export class ProductConfiguration {
       }
     } catch (error) {
       // Database table might not exist yet, use defaults
-      console.log('Using default categories configuration')
+      logger.info('Using default categories configuration', {
+        component: 'ProductConfiguration'
+      })
     }
 
     // Default categories if database is empty or unavailable
@@ -144,7 +147,9 @@ export class ProductConfiguration {
       }
     } catch (error) {
       // Database table might not exist yet, use defaults
-      console.log('Using default conditions configuration')
+      logger.info('Using default conditions configuration', {
+        component: 'ProductConfiguration'
+      })
     }
 
     // Default conditions if database is empty or unavailable
@@ -186,7 +191,9 @@ export class ProductConfiguration {
       }
     } catch (error) {
       // Database table might not exist yet, use defaults
-      console.log('Using default brands configuration')
+      logger.info('Using default brands configuration', {
+        component: 'ProductConfiguration'
+      })
     }
 
     // Default brands if database is empty or unavailable
