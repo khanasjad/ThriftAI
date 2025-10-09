@@ -74,6 +74,21 @@
             "date": 1759602816292,
             "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/combined-2025-10-04.log",
             "hash": "a7c2b327b3f3d0cda856e0816f7c51e9369485fa0c30f74032c30f4bcdde4c79"
+        },
+        {
+            "date": 1759851181704,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/combined-2025-10-07.log",
+            "hash": "0cebb96c2268c4d94ab318bc6347780a34d850e5708d36dc6d9fcc82640cb20c"
+        },
+        {
+            "date": 1759930122103,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/combined-2025-10-08.log",
+            "hash": "8a7e420f080f68b4e51f6ac8b39ba93cd33cf99df91fe85fd893927e7235472f"
+        },
+        {
+            "date": 1760021988621,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/combined-2025-10-09.log",
+            "hash": "0dbf7cb1a6fbe10fc16f9c6c6114c84c36ef545868d707d556b0a3100b218017"
         }
     ],
     "hashType": "sha256"

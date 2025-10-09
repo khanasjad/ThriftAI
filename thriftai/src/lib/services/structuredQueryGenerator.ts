@@ -7,8 +7,11 @@ import { AIConfigService } from './aiConfigService'
  * These are SAFE to use in parameterized database queries
  */
 export interface StructuredQueryFilters {
-  // Text search
-  searchTerms: string[]  // Keywords to search for
+  // Text search - SMART SEPARATION OF REQUIRED VS OPTIONAL
+  searchTerms: string[]  // ALL keywords (for backward compatibility)
+  requiredTerms?: string[]  // Core nouns that MUST match (e.g., "bag", "handbag", "purse")
+  optionalTerms?: string[]  // Qualifiers that are nice to have (e.g., "vintage", "designer")
+  excludeTerms?: string[]  // Terms to EXCLUDE from results (e.g., "headphone" when searching for "phone")
 
   // Filters - dynamically typed based on database configuration
   categories?: string[]  // CHANGED: Now array of categories for broader matching
@@ -49,19 +52,31 @@ Examples:
 - "eco-friendly products" → INTENT: sustainable, organic, natural, green, environmentally friendly, recycled
 
 🔑 SEMANTIC KEYWORD GENERATION (MOST IMPORTANT):
-Generate 5-10 BROAD semantic keywords that capture the INTENT, not just the literal words.
+Separate keywords into REQUIRED (core nouns) vs OPTIONAL (qualifiers).
+
+**REQUIRED TERMS** (core nouns - what the product IS):
+- The main product type and its synonyms
+- MUST include at least ONE of these for the result to be relevant
+- Examples: "bag", "handbag", "purse", "tote" (for bags query)
+- Examples: "laptop", "computer", "notebook" (for laptop query)
+- Examples: "phone", "smartphone", "mobile" (for phone query)
+
+**OPTIONAL TERMS** (qualifiers - nice to have but not essential):
+- Descriptive modifiers: vintage, designer, luxury, premium, cheap, affordable
+- Style descriptors: classic, modern, retro, minimalist
+- Quality indicators: rare, exclusive, limited, special
+- These boost relevance but are NOT required for a match
 
 Rules:
-1. Think about what the user REALLY wants (the essence, not exact words)
-2. Include synonyms, related concepts, and semantic equivalents
-3. Include quality indicators (luxury, premium, vintage, designer, rare, limited, exclusive)
-4. Include style descriptors that match the vibe
-5. Cast a WIDE net - better to over-match than under-match
+1. Required = synonyms of the CORE PRODUCT TYPE (nouns)
+2. Optional = everything else (adjectives, qualifiers, attributes)
+3. If no clear product type, put semantic keywords in required terms
+4. Cast a WIDE net for synonyms but keep required focused on product type
 
 Examples:
-- "Rare collectibles" → ["rare", "limited", "exclusive", "vintage", "designer", "luxury", "special", "unique", "premium", "collectible"]
-- "Art" → ["artistic", "designer", "creative", "unique", "handmade", "custom", "special", "exclusive", "luxury"]
-- "Tech gadgets" → ["technology", "electronic", "digital", "smart", "device", "gadget", "tech", "innovative"]
+- "vintage designer bags" → required: ["bag", "handbag", "purse", "tote"], optional: ["vintage", "designer", "luxury", "retro", "classic"]
+- "cheap laptops" → required: ["laptop", "computer", "notebook"], optional: ["cheap", "affordable", "budget"]
+- "rare collectibles" → required: ["collectible", "rare", "limited", "exclusive", "vintage"], optional: ["special", "unique", "premium"]
 
 📂 CATEGORY DETECTION (PRAGMATIC MAPPING):
 You will be provided with AVAILABLE_CATEGORIES from the database.
@@ -144,7 +159,10 @@ SORT INTELLIGENCE:
 
 RESPONSE FORMAT (JSON only, no other text):
 {
-  "searchTerms": ["keyword1", "keyword2", "synonym1"],
+  "searchTerms": ["all", "keywords", "combined"],
+  "requiredTerms": ["core", "product", "type", "synonyms"],
+  "optionalTerms": ["qualifiers", "modifiers", "attributes"],
+  "excludeTerms": ["words", "to", "exclude"],  // IMPORTANT: Exclude confusing similar products
   "categories": ["CATEGORY_FROM_AVAILABLE_LIST"],
   "minPrice": null,
   "maxPrice": null,
@@ -156,6 +174,150 @@ RESPONSE FORMAT (JSON only, no other text):
   "intent": "Clear description of what user wants",
   "confidence": 0.0-1.0
 }
+
+🚫 ULTRA-INTELLIGENT BRAND EXCLUSION SYSTEM:
+
+**🔴 ABSOLUTE REQUIREMENT**: When user searches "[PRODUCT] [BRAND]", they want ONLY that brand. Exclude EVERY competitor!
+
+**CRITICAL PATTERN RECOGNITION**: You must DEEPLY understand brand ecosystems and automatically exclude competitors.
+
+**⚠️ COMMON FAILURE MODE**: Missing brands like Google, Huawei, Xiaomi, Framework, etc. in laptop searches!
+→ FIX: Always think of 15-30+ competitor brands, not just 5-10!
+
+## 🧠 STEP 1: DETECT BRAND INTENT
+Analyze the query to detect if a BRAND is mentioned (explicitly or implicitly):
+- Explicit brand: "apple laptop", "samsung phone", "nike shoes"
+- Implicit brand: "iphone" (implies Apple), "macbook" (implies Apple), "galaxy" (implies Samsung)
+- Product-only: "laptop", "phone", "shoes" (no brand = don't exclude by brand)
+
+## 🎯 STEP 2: BRAND ECOSYSTEM MAPPING (Zero Hardcoding - Pure Intelligence)
+
+When you detect a brand, think through the COMPETITIVE LANDSCAPE:
+
+### ELECTRONICS BRAND ECOSYSTEMS:
+
+**Apple Ecosystem** (Closed, proprietary):
+- Products: iPhone, iPad, Mac, MacBook, Apple Watch, AirPods
+- Operating Systems: iOS, macOS
+- Competitors: ALL non-Apple brands in the same category
+- Example: "apple laptop" → exclude Dell, HP, Lenovo, Asus, Acer, Microsoft Surface, Samsung, LG, Razer, MSI, Toshiba, Sony
+
+**Android Ecosystem** (Open, multiple manufacturers):
+- Products: Phones, tablets from Samsung, Google, OnePlus, Xiaomi, Oppo, Vivo, Motorola, LG, etc.
+- Operating System: Android
+- Competitors: Apple (iPhone, iPad)
+- Example: "samsung phone" → exclude Apple, iPhone, iOS
+
+**Windows Ecosystem** (Laptops/PCs):
+- Manufacturers: Dell, HP, Lenovo, Asus, Acer, Microsoft Surface, Samsung, LG, Razer, MSI
+- Operating System: Windows
+- Competitors: Apple (Mac, MacBook), Chromebooks
+- Example: "dell laptop" → exclude Apple, Mac, MacBook, Chromebook
+
+## 🔬 STEP 3: INTELLIGENT EXCLUSION RULES
+
+### Rule 1: CATEGORY + BRAND = Exclude ALL competing brands in that category
+**Pattern**: When user specifies BOTH product type AND brand, they want ONLY that brand.
+
+**ULTRA-CRITICAL INSTRUCTION**: Think of EVERY POSSIBLE competitor brand in that category and exclude them ALL!
+
+**Laptop Manufacturers (Complete List)**: Apple, Dell, HP, Lenovo, Asus, Acer, Microsoft, Samsung, LG, Sony, Toshiba, Razer, MSI, Gigabyte, Alienware (Dell), Google (Pixelbook), Huawei, Xiaomi, Framework, System76, Purism, Fujitsu, Panasonic, Vaio
+
+**Phone Manufacturers (Complete List)**: Apple, Samsung, Google, OnePlus, Xiaomi, Oppo, Vivo, Motorola, LG, Huawei, Honor, Realme, Nokia, Sony, Asus, ZTE, TCL, Blackberry
+
+**Process for "laptop [BRAND]" queries**:
+1. User wants ONLY [BRAND] laptops
+2. Think: "What are ALL other laptop brands?"
+3. Exclude EVERY brand that is NOT the requested brand
+4. Also exclude OS keywords (Windows, PC, Chrome OS, Linux) if requesting Apple
+5. Also exclude OS keywords (macOS, Mac) if requesting Windows brands
+
+Examples with COMPLETE exclusion lists:
+- "laptop apple" → requiredTerms: ["laptop", "macbook", "mac"], brands: ["Apple"], excludeTerms: ["dell", "hp", "lenovo", "asus", "acer", "microsoft", "surface", "samsung", "lg", "sony", "toshiba", "razer", "msi", "gigabyte", "alienware", "google", "pixelbook", "chromebook", "huawei", "xiaomi", "framework", "vaio", "windows", "pc", "linux", "laptop bag", "laptop stand"]
+
+- "phone samsung" → requiredTerms: ["phone", "galaxy"], brands: ["Samsung"], excludeTerms: ["iphone", "apple", "ios", "google", "pixel", "oneplus", "xiaomi", "oppo", "vivo", "motorola", "lg", "huawei", "honor", "realme", "nokia", "sony", "asus", "headphone"]
+
+- "laptop dell" → requiredTerms: ["laptop"], brands: ["Dell"], excludeTerms: ["apple", "mac", "macbook", "macos", "hp", "lenovo", "asus", "acer", "microsoft", "surface", "samsung", "google", "chromebook"]
+
+### Rule 2: BRAND-IMPLIED PRODUCT = Exclude ALL competing brands
+**Pattern**: Product name implies brand (like "iphone" implies Apple)
+
+Examples:
+- "iphone" → requiredTerms: ["iphone"], brands: ["Apple"], excludeTerms: ["android", "samsung", "galaxy", "google", "pixel", "oneplus", "xiaomi", "oppo", "vivo", "motorola", "lg", "huawei", "headphone", "earphone"]
+- "macbook" → requiredTerms: ["macbook", "mac"], brands: ["Apple"], excludeTerms: ["dell", "hp", "lenovo", "asus", "windows", "pc", "chromebook", "laptop bag", "laptop stand"]
+- "galaxy" → requiredTerms: ["galaxy"], brands: ["Samsung"], excludeTerms: ["iphone", "apple", "ios"]
+- "pixel" (in phone context) → requiredTerms: ["pixel"], brands: ["Google"], excludeTerms: ["iphone", "apple", "samsung", "galaxy"]
+
+### Rule 3: SIMILAR-SOUNDING WORDS = Exclude confusing products
+**Pattern**: Exclude products that sound similar but are completely different
+
+Examples:
+- "phone" → excludeTerms: ["headphone", "earphone", "telephone", "microphone"]
+- "watch" (traditional) → excludeTerms: ["smartwatch", "apple watch"] (unless "smart" in query)
+- "shoes" → excludeTerms: ["shoelaces", "shoe cleaner", "shoe polish", "shoe rack"]
+- "laptop" → excludeTerms: ["laptop bag", "laptop stand", "laptop sleeve", "laptop charger"]
+
+### Rule 4: GENERIC SEARCHES = Minimal exclusions (only confusing terms)
+**Pattern**: No brand specified = don't exclude brands, only exclude similar-sounding non-products
+
+Examples:
+- "laptop" (no brand) → excludeTerms: ["laptop bag", "laptop stand", "laptop sleeve"], brands: [] (show all brands)
+- "phone" (no brand) → excludeTerms: ["headphone", "earphone"], brands: [] (show all brands)
+- "shoes" (no brand) → excludeTerms: ["shoelaces", "shoe cleaner"], brands: [] (show all brands)
+
+## 💡 STEP 4: APPLY ULTRA-INTELLIGENCE (DYNAMIC REASONING, NOT MEMORIZATION)
+
+**META-COGNITIVE PROCESS**: For EVERY brand-specific query, use this reasoning framework:
+
+### STEP 4A: Brand Detection & Intent Analysis
+1. Is a brand mentioned (explicitly or implicitly)?
+   - Explicit: "apple laptop", "samsung phone", "nike shoes"
+   - Implicit: "iphone" = Apple, "macbook" = Apple, "galaxy" = Samsung
+   - YES → Continue to Step 4B
+   - NO → Only exclude similar-sounding non-products, skip to Step 4E
+
+### STEP 4B: Category Identification
+2. What product category is this?
+   - Electronics → Laptops, Phones, Tablets, etc.
+   - Footwear → Sneakers, Boots, Sandals, etc.
+   - Fashion → Bags, Clothing, Accessories, etc.
+   - Identify the SPECIFIC subcategory (e.g., "laptop" not just "electronics")
+
+### STEP 4C: Competitor Universe Mapping (CRITICAL!)
+3. **Think expansively**: "What are ALL brands that make [CATEGORY] products?"
+   - Don't just use the examples I provided!
+   - Think of major brands, minor brands, regional brands, emerging brands
+   - For laptops: Think of ALL computer manufacturers (Apple, Dell, HP, Lenovo, Asus, Acer, Microsoft, Samsung, LG, Sony, Toshiba, Razer, MSI, Google, Huawei, Xiaomi, Framework, Vaio, Fujitsu, Panasonic, Alienware, etc.)
+   - For phones: Think of ALL phone makers (Apple, Samsung, Google, OnePlus, Xiaomi, Oppo, Vivo, Motorola, LG, Huawei, Honor, Realme, Nokia, Sony, Asus, etc.)
+   - For shoes: Think of ALL footwear brands (Nike, Adidas, Puma, Reebok, New Balance, Under Armour, Asics, Skechers, Vans, Converse, etc.)
+
+### STEP 4D: Generate Comprehensive Exclusion List
+4. **Create exhaustive excludeTerms**:
+   - Start with the complete brand list from Step 4C
+   - Remove the user's requested brand
+   - Add operating system keywords if relevant (Windows/macOS/Android/iOS/Chrome OS)
+   - Add form factor keywords if relevant (desktop, tablet, etc.)
+   - Add accessory keywords (laptop bag, phone case, etc.)
+   - Result: excludeTerms contains 15-30+ terms for brand searches
+
+### STEP 4E: Validation Check
+5. **Self-check**: "Did I exclude EVERY major competitor?"
+   - If user wants "laptop apple", did I exclude: Dell? HP? Lenovo? Asus? Acer? Microsoft? Samsung? LG? Sony? Google? Huawei?
+   - If ANY major brand is missing → Add it!
+   - Better to over-exclude than under-exclude
+
+### STEP 4F: Final Intent Statement
+6. Write clear intent showing understanding:
+   - "User wants ONLY Apple laptops, excluding all other manufacturers including Dell, HP, Lenovo, Asus, Microsoft, Google, Samsung, etc."
+
+## ⚡ CRITICAL SUCCESS METRICS:
+✅ "laptop apple" should return ZERO Dell, HP, Lenovo, Asus products
+✅ "phone samsung" should return ZERO iPhone products
+✅ "iphone" should return ZERO Android phones from any brand
+✅ "laptop" (no brand) should return ALL laptop brands
+✅ "phone" (no brand) should return ALL phone brands
+
+**DEFAULT**: excludeTerms: [] unless there's a clear competitor or confusing similar-sounding product
 
 If query is too vague or ambiguous:
 {
@@ -171,7 +333,9 @@ Example 1 - Specific product with price:
 Input: "Find me vintage designer bags under $200"
 Available categories: HANDBAGS, BACKPACKS, ACCESSORIES, ELECTRONICS, CLOTHING
 Output: {
-  "searchTerms": ["vintage", "designer", "bag", "handbag", "luxury", "retro", "classic"],
+  "searchTerms": ["bag", "handbag", "purse", "tote", "vintage", "designer", "luxury", "retro", "classic"],
+  "requiredTerms": ["bag", "handbag", "purse", "tote"],
+  "optionalTerms": ["vintage", "designer", "luxury", "retro", "classic"],
   "categories": ["HANDBAGS", "BACKPACKS", "ACCESSORIES"],  // All bag-related categories
   "maxPrice": 200,
   "condition": [],  // CRITICAL: "vintage" is NOT a condition, it's a style descriptor!
@@ -183,7 +347,9 @@ Output: {
 Example 2 - Broad category query:
 Input: "Best tech deals under $100"
 Output: {
-  "searchTerms": ["tech", "electronics"],
+  "searchTerms": ["tech", "electronics", "gadget", "device"],
+  "requiredTerms": ["tech", "electronics", "gadget", "device"],
+  "optionalTerms": [],
   "categories": ["LAPTOPS", "SMARTPHONES", "TABLETS", "SMARTWATCHES", "HEADPHONES", "CAMERAS", "GAMING_CONSOLES", "KEYBOARDS", "MICE", "MONITORS"],  // ALL tech categories from AVAILABLE_CATEGORIES
   "maxPrice": 100,
   "sortBy": "price",
@@ -196,6 +362,9 @@ Example 3 - Specific product type:
 Input: "mobile"
 Output: {
   "searchTerms": ["phone", "smartphone", "mobile", "cell"],
+  "requiredTerms": ["phone", "smartphone", "mobile", "cell"],
+  "optionalTerms": [],
+  "excludeTerms": ["headphone", "earphone"],  // CRITICAL: Exclude headphones when searching for phones!
   "categories": ["SMARTPHONES"],  // ONLY smartphones, NOT laptops or other electronics
   "condition": [],
   "sortBy": "relevance",
@@ -203,18 +372,65 @@ Output: {
   "confidence": 0.95
 }
 
-Example 4 - SEMANTIC SEARCH (Broad query maps to multiple categories):
+Example 4 - BRAND-SPECIFIC SEARCH - Brand-Implied Product:
+Input: "iphone"
+Output: {
+  "searchTerms": ["iphone", "apple iphone"],
+  "requiredTerms": ["iphone"],  // MUST have "iphone" in the name
+  "optionalTerms": ["apple", "ios"],
+  "excludeTerms": ["android", "samsung", "google", "pixel", "lg", "motorola", "oneplus", "xiaomi", "huawei", "oppo", "vivo", "headphone"],  // CRITICAL: Exclude ALL Android brands + headphones!
+  "categories": ["SMARTPHONES", "ELECTRONICS"],
+  "brands": ["Apple"],  // Filter by Apple brand
+  "condition": [],
+  "sortBy": "relevance",
+  "intent": "User wants iPhone specifically, not Android phones",
+  "confidence": 0.95
+}
+
+Example 4b - CATEGORY + BRAND SEARCH (ULTRA CRITICAL - Most Common Pattern):
+Input: "laptop apple"
+Output: {
+  "searchTerms": ["laptop", "macbook", "mac", "apple laptop"],
+  "requiredTerms": ["laptop", "macbook", "mac"],  // Core product types
+  "optionalTerms": ["apple", "pro", "air", "macos"],
+  "excludeTerms": ["dell", "hp", "lenovo", "asus", "acer", "microsoft", "surface", "samsung", "lg", "razer", "msi", "toshiba", "sony", "google", "pixelbook", "chromebook", "huawei", "xiaomi", "framework", "vaio", "fujitsu", "panasonic", "alienware", "gigabyte", "windows", "pc", "linux", "laptop bag", "laptop stand", "laptop sleeve"],  // CRITICAL: Exclude ALL non-Apple laptop brands! Notice Google is included!
+  "categories": ["ELECTRONICS", "LAPTOPS"],
+  "brands": ["Apple"],  // ONLY Apple products
+  "condition": [],
+  "sortBy": "relevance",
+  "intent": "User wants ONLY Apple laptops (MacBook), excluding ALL other manufacturers: Dell, HP, Lenovo, Asus, Acer, Microsoft, Samsung, LG, Sony, Google, Huawei, and all others",
+  "confidence": 0.95
+}
+
+Example 4c - CATEGORY + BRAND SEARCH - Another Pattern:
+Input: "phone samsung"
+Output: {
+  "searchTerms": ["phone", "samsung", "galaxy"],
+  "requiredTerms": ["phone", "galaxy", "samsung"],
+  "optionalTerms": ["android"],
+  "excludeTerms": ["iphone", "apple", "ios", "headphone", "earphone"],  // Exclude Apple phones + confusing terms
+  "categories": ["SMARTPHONES", "ELECTRONICS"],
+  "brands": ["Samsung"],
+  "condition": [],
+  "sortBy": "relevance",
+  "intent": "User wants Samsung phones only, not iPhone or other brands",
+  "confidence": 0.95
+}
+
+Example 5 - SEMANTIC SEARCH (Broad query maps to multiple categories):
 Input: "Rare collectibles and art"
 Available categories: ELECTRONICS, CLOTHING, ACCESSORIES, JEWELRY, WATCHES, HOME_DECOR, SHOES, BAGS
 Output: {
-  "searchTerms": ["rare", "limited", "exclusive", "vintage", "designer", "luxury", "special", "unique", "premium", "collectible", "artistic", "handmade", "custom"],
+  "searchTerms": ["collectible", "rare", "limited", "exclusive", "vintage", "designer", "luxury", "special", "unique", "premium", "artistic", "handmade", "custom"],
+  "requiredTerms": ["collectible", "rare", "limited", "exclusive", "vintage"],
+  "optionalTerms": ["designer", "luxury", "special", "unique", "premium", "artistic", "handmade", "custom"],
   "categories": ["ACCESSORIES", "JEWELRY", "WATCHES", "HOME_DECOR", "BAGS"],  // ALL categories that could contain collectibles/art
   "sortBy": "relevance",
   "intent": "User wants unique, valuable, special items with artistic or collectible value",
   "confidence": 0.85
 }
 
-Example 5 - SEMANTIC SEARCH with broad intent:
+Example 6 - SEMANTIC SEARCH with broad intent:
 Input: "eco-friendly sustainable products"
 Available categories: CLOTHING, HOME_DECOR, ACCESSORIES, BAGS, ELECTRONICS, BEAUTY
 Output: {

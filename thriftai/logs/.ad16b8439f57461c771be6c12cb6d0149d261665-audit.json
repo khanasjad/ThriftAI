@@ -29,6 +29,16 @@
             "date": 1759606319817,
             "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-04.log",
             "hash": "4307fad568c6dc6b7fb1bd00f2558e8d843032c13ec665a6e140bb94e136bf1b"
+        },
+        {
+            "date": 1759766374159,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-06.log",
+            "hash": "f4cf5d346566b320edd37342d6ef17c328970c20829c9858feb111418f421998"
+        },
+        {
+            "date": 1760020471034,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-09.log",
+            "hash": "8424352f661967c3c2952ea91eea0f4bc2551f9ea1f97a267db5365b5b29ec6f"
         }
     ],
     "hashType": "sha256"

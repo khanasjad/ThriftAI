@@ -16,6 +16,7 @@
     "test:search": "npx tsx tests/run-search-validation.ts",
     "test:scrapers": "npx tsx scripts/test-scrapers.ts",
     "scrape:products": "npx tsx scripts/scrape-products.ts",
+    "scrape:enrich": "npx tsx scripts/scrape-and-enrich-products.ts",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:reset": "npx prisma db push && npm run db:seed"
   },

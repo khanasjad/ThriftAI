@@ -20,6 +20,7 @@ export interface StructuredIntent {
     priorityFactors?: ('price' | 'quality' | 'brand' | 'shipping')[]
   }
   keywords: string[]
+  excludeKeywords?: string[] // Keywords to EXCLUDE from results (e.g., "headphone" when searching for "phone")
   useCase?: string
   intent: string
   confidence: number
@@ -40,6 +41,7 @@ Your task is to:
 2. Handle variations (e.g., "tshirt", "t-shirt", "tee" all mean t-shirt)
 3. Remove filler words like "looking for", "I want", "show me"
 4. Extract structured filters and preferences
+5. DISTINGUISH similar products (phone ≠ headphone, bag ≠ handbag, watch ≠ smartwatch)
 
 Return a JSON object with this EXACT structure:
 
@@ -59,6 +61,7 @@ Return a JSON object with this EXACT structure:
     "priorityFactors": ["price", "quality", "brand", "shipping"]
   },
   "keywords": ["keyword1", "keyword2"],
+  "excludeKeywords": ["term1", "term2"],
   "useCase": "gaming" | "work" | "school" | "casual" | null,
   "intent": "brief description of what user wants",
   "confidence": 0.0 to 1.0
@@ -72,23 +75,34 @@ CRITICAL RULES:
    - "iphone", "i phone", "i-phone" → "iphone"
    - Remove filler: "looking for tshirt" → "t-shirt"
 
-2. hardFilters are STRICT - products MUST match these
-3. softPreferences are nice-to-have - boost scoring but not required
+2. DISTINGUISH similar products - use excludeKeywords to exclude confusing matches:
+   - "phone" → keywords: ["phone", "smartphone", "mobile"], excludeKeywords: ["headphone", "earphone"]
+   - "headphone" → keywords: ["headphone", "earphone", "headset"], excludeKeywords: []
+   - "bag" → keywords: ["bag", "backpack"], excludeKeywords: ["handbag"] (unless user wants handbag)
+   - "watch" → keywords: ["watch", "timepiece"], excludeKeywords: ["smartwatch"] (unless user wants smartwatch)
 
-4. Extract budget from patterns like:
+3. hardFilters are STRICT - products MUST match these
+4. softPreferences are nice-to-have - boost scoring but not required
+
+5. Extract budget from patterns like:
    - "under $100" → maxPrice: 100
    - "between $50 and $200" → minPrice: 50, maxPrice: 200
    - "around $500" → minPrice: 400, maxPrice: 600
 
-5. Map categories correctly:
+6. Map categories correctly:
    - tech, laptop, phone, electronics → ELECTRONICS
    - clothes, shirt, pants, dress → CLOTHING
    - shoes, sneakers, boots → SHOES
    - bags, watch, jewelry → ACCESSORIES
 
-6. Extract brands from the query (Apple, Nike, Samsung, etc.)
-7. Determine quality tier from words like "cheap/budget", "good/decent", "premium/best"
-8. Keywords should be the main product types (not stop words)
+7. Extract brands from the query (Apple, Nike, Samsung, etc.)
+8. Determine quality tier from words like "cheap/budget", "good/decent", "premium/best"
+9. Keywords should be the main product types (not stop words)
+
+EXAMPLES:
+- Query: "phone" → keywords: ["phone", "smartphone", "mobile", "iphone", "android"], excludeKeywords: ["headphone", "earphone"]
+- Query: "headphone" → keywords: ["headphone", "earphone", "headset", "earbud"], excludeKeywords: []
+- Query: "iphone" → keywords: ["iphone", "iphone 15", "iphone 14", "iphone 13"], excludeKeywords: ["headphone"]
 
 Be intelligent about typos and variations. Users often misspell or use different formats.`
 
@@ -117,7 +131,7 @@ export class ClaudeIntentExtractor {
   async extractIntent(context: ConversationContext): Promise<StructuredIntent> {
     if (!this.isAvailable || !this.anthropic) {
       logger.info('Using fallback intent extraction (no Claude API)')
-      return this.fallbackExtraction(context)
+      return await this.fallbackExtraction(context)
     }
 
     try {
@@ -136,7 +150,7 @@ export class ClaudeIntentExtractor {
         : `User: ${context.currentQuery}`
 
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-haiku-20240307', // Using Haiku for fast, cost-effective intent extraction
+        model: 'claude-3-5-haiku-20241022', // Using Haiku 3.5 for fast, cost-effective intent extraction
         max_tokens: 1024,
         temperature: 0.1, // Low temperature for consistent extraction
         system: INTENT_EXTRACTION_PROMPT,
@@ -157,7 +171,7 @@ export class ClaudeIntentExtractor {
       const jsonMatch = content.text.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
         logger.warn('No JSON found in Claude response, using fallback')
-        return this.fallbackExtraction(context)
+        return await this.fallbackExtraction(context)
       }
 
       const intent = JSON.parse(jsonMatch[0]) as StructuredIntent
@@ -176,14 +190,14 @@ export class ClaudeIntentExtractor {
         errorStack: error instanceof Error ? error.stack : undefined,
         apiKeyConfigured: !!this.anthropic
       })
-      return this.fallbackExtraction(context)
+      return await this.fallbackExtraction(context)
     }
   }
 
   /**
    * Fallback extraction using regex patterns when Claude API is unavailable
    */
-  private fallbackExtraction(context: ConversationContext): StructuredIntent {
+  private async fallbackExtraction(context: ConversationContext): Promise<StructuredIntent> {
     const allText = [
       ...context.messages.filter(m => m.role === 'user').map(m => m.content),
       context.currentQuery

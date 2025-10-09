@@ -25,24 +25,47 @@ export default function Home() {
 
   const handleSearch = async (query: string) => {
     try {
-      // Use chat search (which we know works) as primary method
-      const response = await fetch('/api/buyers/chat-search', {
+      // Use Claude-powered intelligent search
+      // Claude analyzes query + results, provides reasoning
+      // Falls back gracefully if Claude unavailable
+      const response = await fetch('/api/claude-intelligent-search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, limit: 20 }),
       })
 
       if (response.ok) {
         const data = await response.json()
+
+        // Check if it's an error response
         if (data.error) {
+          // If rate limited, try the basic intelligent search
+          if (response.status === 429) {
+            console.log('Claude rate limited, using basic search')
+            const fallbackResponse = await fetch('/api/intelligent-search-lite', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query, limit: 20 }),
+            })
+
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json()
+              sessionStorage.setItem('searchResults', JSON.stringify(fallbackData))
+              sessionStorage.setItem('searchQuery', query)
+              sessionStorage.setItem('searchMethod', 'intelligent-lite')
+              router.push(`/buyers/search?q=${encodeURIComponent(query)}`)
+              return
+            }
+          }
           throw new Error(data.error)
         }
+
         // Store search results and navigate
         sessionStorage.setItem('searchResults', JSON.stringify(data))
         sessionStorage.setItem('searchQuery', query)
-        // Navigate to search results page
+        sessionStorage.setItem('searchMethod', data.metadata.claudeEnhanced ? 'claude-intelligent' : 'intelligent-lite')
         router.push(`/buyers/search?q=${encodeURIComponent(query)}`)
       } else {
         throw new Error('Search failed')

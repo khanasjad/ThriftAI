@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Claude Semantic Search</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #ffffff;
+        }
+        h1 {
+            color: #10b981;
+        }
+        .test-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        input, button {
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+        input {
+            width: 60%;
+            background: #2a2a2a;
+            color: #fff;
+        }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background: #059669;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success { background: #064e3b; color: #6ee7b7; }
+        .status.error { background: #7f1d1d; color: #fca5a5; }
+        .status.loading { background: #1e3a8a; color: #93c5fd; }
+        pre {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .metric {
+            display: inline-block;
+            background: #1e293b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 5px;
+        }
+        .metric strong {
+            color: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧠 Claude Semantic Search Tester</h1>
+
+    <div class="test-section">
+        <h2>📊 System Status</h2>
+        <div id="systemStatus" class="status loading">Checking system status...</div>
+        <div id="statusDetails"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Test Search</h2>
+        <div>
+            <input type="text" id="searchInput" placeholder="Enter search query (e.g., 'laptop for gaming')" value="vintage designer handbag under $500">
+            <button id="searchBtn" onclick="testSearch()">Search</button>
+        </div>
+        <div id="searchStatus"></div>
+        <div id="searchResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>💡 Test Queries</h2>
+        <button onclick="setQuery('looking for vintage designer bag under $500')">Typo + Price Test</button>
+        <button onclick="setQuery('tshrt for men')">Typo Test</button>
+        <button onclick="setQuery('best tech deals')">Intent Test</button>
+        <button onclick="setQuery('sustainable fashion')">Semantic Test</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/claude-search/status`);
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('systemStatus');
+                const detailsDiv = document.getElementById('statusDetails');
+
+                if (data.status === 'ready') {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ System Ready';
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '⚠️  System Not Ready';
+                }
+
+                detailsDiv.innerHTML = `
+                    <div class="metric"><strong>Claude API:</strong> ${data.requirements.claudeApiKey}</div>
+                    <div class="metric"><strong>OpenAI API:</strong> ${data.requirements.openaiApiKey}</div>
+                    <div class="metric"><strong>Embeddings:</strong> ${data.requirements.embeddings}</div>
+                    <div class="metric"><strong>Products:</strong> ${data.embeddingStats.totalProducts.toLocaleString()}</div>
+                    <div class="metric"><strong>With Embeddings:</strong> ${data.embeddingStats.withEmbeddings.toLocaleString()} (${data.embeddingStats.percentageComplete}%)</div>
+                `;
+
+                if (data.nextSteps && data.nextSteps.length > 0) {
+                    detailsDiv.innerHTML += '<h3>Next Steps:</h3><ul>' +
+                        data.nextSteps.map(step => `<li>${step}</li>`).join('') +
+                        '</ul>';
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('systemStatus');
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Failed to check status: ' + error.message;
+            }
+        }
+
+        async function testSearch() {
+            const query = document.getElementById('searchInput').value;
+            const btn = document.getElementById('searchBtn');
+            const statusDiv = document.getElementById('searchStatus');
+            const resultsDiv = document.getElementById('searchResults');
+
+            if (!query.trim()) {
+                alert('Please enter a search query');
+                return;
+            }
+
+            btn.disabled = true;
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '🔄 Searching...';
+            resultsDiv.innerHTML = '';
+
+            const startTime = Date.now();
+
+            try {
+                const response = await fetch(`${API_BASE}/api/claude-search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        limit: 5
+                    })
+                });
+
+                const data = await response.json();
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+
+                if (response.ok && !data.error) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = `✅ Search completed in ${duration}ms`;
+
+                    resultsDiv.innerHTML = `
+                        <h3>Query Analysis</h3>
+                        ${data.query ? `
+                            <div class="metric"><strong>Original:</strong> "${data.query.original}"</div>
+                            <div class="metric"><strong>Normalized:</strong> "${data.query.normalized}"</div>
+                            <div class="metric"><strong>Intent:</strong> ${data.query.intent}</div>
+                            <div class="metric"><strong>Confidence:</strong> ${(data.query.confidence * 100).toFixed(1)}%</div>
+                        ` : ''}
+
+                        ${data.insights ? `
+                            <h3>Claude Insights</h3>
+                            <p><strong>Analysis:</strong> ${data.insights.overallAnalysis}</p>
+                            ${data.insights.topRecommendation ? `<p><strong>Top Pick:</strong> ${data.insights.topRecommendation}</p>` : ''}
+                            ${data.insights.priceInsight ? `<p><strong>Price:</strong> ${data.insights.priceInsight}</p>` : ''}
+                            ${data.insights.qualityInsight ? `<p><strong>Quality:</strong> ${data.insights.qualityInsight}</p>` : ''}
+                        ` : ''}
+
+                        <h3>Results (${data.results ? data.results.length : 0})</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Search failed';
+                    resultsDiv.innerHTML = `
+                        <h3>Error</h3>
+                        <p><strong>Message:</strong> ${data.error || data.message}</p>
+                        ${data.fallback ? `<p><strong>Fallback:</strong> ${data.fallback}</p>` : ''}
+                        ${data.guidance ? `<pre>${JSON.stringify(data.guidance, null, 2)}</pre>` : ''}
+                    `;
+                }
+            } catch (error) {
+                const endTime = Date.now();
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Request failed: ' + error.message;
+                resultsDiv.innerHTML = `<p>Duration: ${endTime - startTime}ms</p>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function setQuery(query) {
+            document.getElementById('searchInput').value = query;
+        }
+
+        // Check status on load
+        checkStatus();
+
+        // Add enter key support
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') testSearch();
+        });
+    </script>
+</body>
+</html>

@@ -162,14 +162,66 @@ export const VERITAS_SCORE = {
 
   // Category Weights (must sum to 1.0)
   WEIGHTS: {
-    PRODUCT_QUALITY: 0.25,      // 25%
-    SELLER_TRUST: 0.20,         // 20%
-    MARKET_VALUE: 0.15,         // 15%
-    SUSTAINABILITY: 0.12,       // 12%
-    PRODUCT_SPECIFICATION: 0.13, // 13%
-    SECURITY_SAFETY: 0.05,      // 5%
-    USER_EXPERIENCE: 0.05,      // 5%
-    COMPANY_PERFORMANCE: 0.05,  // 5%
+    PRODUCT_QUALITY: 0.22,           // 22% (reduced from 25%)
+    SELLER_TRUST: 0.18,              // 18% (reduced from 20%)
+    MARKET_VALUE: 0.13,              // 13% (reduced from 15%)
+    SUSTAINABILITY: 0.10,            // 10% (reduced from 12%)
+    PRODUCT_SPECIFICATION: 0.30,     // 30% (INCREASED from 13% - users care most about specs!)
+    SECURITY_SAFETY: 0.03,           // 3% (reduced from 5%)
+    USER_EXPERIENCE: 0.02,           // 2% (reduced from 5%)
+    COMPANY_PERFORMANCE: 0.02,       // 2% (reduced from 5%)
+  },
+
+  // Product Specification Sub-Weights (within 30%)
+  SPECIFICATION_WEIGHTS: {
+    GENERIC_QUALITY: 0.13,           // 13% of total (40% of spec weight) - Completeness, Accuracy, Detail
+    CATEGORY_SPECIFIC: 0.17,         // 17% of total (60% of spec weight) - Category-specific parameters
+  },
+
+  // Category-Specific Parameters (25 key specs per category)
+  CATEGORY_SPECS: {
+    ELECTRONICS: [
+      'processor', 'ram', 'storage', 'screenSize', 'screenResolution',
+      'batteryCapacity', 'batteryHealth', 'camera', 'connectivity', 'ports',
+      'gpu', 'os', 'refreshRate', 'weight', 'dimensions',
+      'wireless', 'sensors', 'audioOutput', 'expandability', 'thermalDesign',
+      'powerConsumption', 'displayType', 'touchscreen', 'stylus', 'biometrics'
+    ],
+    CLOTHING: [
+      'size', 'fit', 'material', 'brand', 'fabricComposition',
+      'careInstructions', 'color', 'pattern', 'style', 'season',
+      'neckline', 'sleeveLength', 'length', 'waistType', 'closure',
+      'pockets', 'lining', 'stretch', 'transparency', 'weight',
+      'breathability', 'waterResistance', 'uvProtection', 'antiWrinkle', 'odorResistance'
+    ],
+    FURNITURE: [
+      'dimensions', 'weight', 'weightCapacity', 'material', 'finish',
+      'color', 'style', 'assembly', 'numberOfSeats', 'storageCap',
+      'adjustability', 'foldable', 'stackable', 'indoor_outdoor', 'fireResistance',
+      'waterResistance', 'stainResistance', 'petFriendly', 'childSafe', 'warranty',
+      'cushionType', 'frameType', 'legType', 'backSupport', 'armrests'
+    ],
+    APPLIANCES: [
+      'energyRating', 'powerConsumption', 'capacity', 'dimensions', 'weight',
+      'noiseLevel', 'speed', 'programs', 'temperature', 'timer',
+      'display', 'remoteControl', 'connectivity', 'safety', 'warranty',
+      'efficiency', 'cycleTime', 'waterUsage', 'certifications', 'childLock',
+      'selfCleaning', 'sensor', 'inverter', 'compressor', 'defrost'
+    ],
+    BOOKS: [
+      'isbn', 'author', 'publisher', 'publicationYear', 'edition',
+      'language', 'pages', 'format', 'binding', 'dimensions',
+      'weight', 'illustrations', 'genre', 'ageRange', 'grade',
+      'seriesName', 'volumeNumber', 'translator', 'foreword', 'index',
+      'bibliography', 'printQuality', 'paperType', 'fontSize', 'readingLevel'
+    ],
+    SPORTS: [
+      'sport', 'skill level', 'size', 'weight', 'material',
+      'brand', 'certifications', 'safetyRating', 'ageRange', 'weatherResistance',
+      'durability', 'gripType', 'cushioning', 'breathability', 'flexibility',
+      'shockAbsorption', 'tractio', 'waterproof', 'ventilation', 'adjustability',
+      'storageSize', 'portability', 'teamOrIndividual', 'indoorOutdoor', 'season'
+    ],
   },
 
   // Data Quality Thresholds

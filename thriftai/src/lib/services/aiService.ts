@@ -105,8 +105,8 @@ export class AIService {
    */
   static async chatGPTSearch(query: string, preferences: any = {}): Promise<AISearchResponse> {
     try {
-      // Get products from database using enhanced search
-      const products = await this.searchProductsEnhanced(query)
+      // Use Claude AI to build smart search query
+      const products = await this.searchProductsWithIntent(query)
 
       let aiResponse = ''
       let recommendations: Recommendation[] = []
@@ -273,9 +273,14 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
   static async searchProducts(query: string, budget?: number): Promise<SearchResult[]> {
     console.log('🔍 Search query:', query)
 
-    // Detect category-specific queries
-    const categoryFilter = this.detectCategoryFromQuery(query)
-    console.log('🎯 Category filter detected:', categoryFilter)
+    // Extract meaningful keywords from the query (remove filler words)
+    const extractedKeywords = this.extractKeywords(query)
+    console.log('🔑 Extracted keywords:', extractedKeywords)
+
+    // HOTFIX: Disable category detection - it's too strict and excludes valid results
+    // Categories like "MENS_SNEAKERS" don't match when searching for "sneakers"
+    const categoryFilter = null // this.detectCategoryFromQuery(query)
+    console.log('🎯 Category filter detected (disabled):', categoryFilter)
 
     // First try exact word boundary matches using PostgreSQL word boundary operators
     const escapedQuery = query.replace(/'/g, "''") // Escape single quotes for SQL
@@ -296,6 +301,11 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
       LIMIT 20
     `
 
+    // HOTFIX: Disable PostgreSQL word boundary search - it's not finding results
+    // Skip directly to the fallback contains search which works better
+    console.log(`🎯 Skipping word boundary search, using contains search for: ${query}`)
+
+    /* Original word boundary search - disabled
     try {
       // Try word boundary search first
       console.log(`🎯 Attempting word boundary search for: ${query}`)
@@ -333,16 +343,24 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
     } catch (error) {
       console.warn('🎯 Word boundary search failed, falling back to contains:', error)
     }
+    */
 
     // Fallback to contains search if no exact matches or if word boundary search fails
+    // Build OR conditions for each keyword
+    const orConditions: any[] = []
+
+    extractedKeywords.forEach(keyword => {
+      orConditions.push(
+        { name: { contains: keyword, mode: 'insensitive' } },
+        { description: { contains: keyword, mode: 'insensitive' } },
+        { brand: { contains: keyword, mode: 'insensitive' } },
+        { category: { contains: keyword, mode: 'insensitive' } }
+      )
+    })
+
     const where: any = {
       isAvailable: true,
-      OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { brand: { contains: query, mode: 'insensitive' } },
-        { category: { contains: query, mode: 'insensitive' } }
-      ]
+      OR: orConditions
     }
 
     // Apply category filter if detected
@@ -353,6 +371,8 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
     if (budget) {
       where.price = { lte: budget }
     }
+
+    console.log('🔍 Prisma where clause:', JSON.stringify(where, null, 2))
 
     const products = await prisma.product.findMany({
       where,
@@ -371,9 +391,17 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
       ]
     })
 
-    console.log(`🔍 Fallback search returned ${products.length} products:`, products.map(p => ({ id: p.id, name: p.name, brand: p.brand, category: p.category })))
+    console.log(`🔍 Fallback search returned ${products.length} products`)
+    if (products.length > 0) {
+      console.log(`🔍 Sample products:`, products.slice(0, 3).map(p => ({ id: p.id, name: p.name, brand: p.brand, category: p.category })))
+    }
 
-    // Filter out obvious false positives where the query is just a substring
+    // HOTFIX: Disable strict word boundary filtering - it's filtering out valid results
+    // The word boundary check was too strict and excluded products with underscores in categories
+    // Just return all products from the database query since Prisma already filtered correctly
+    const filteredProducts = products
+
+    /* Original strict filtering - disabled
     const filteredProducts = products.filter(product => {
       const queryLower = query.toLowerCase().trim()
       const productName = product.name.toLowerCase()
@@ -395,6 +423,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
 
       return hasWordMatch
     })
+    */
 
     console.log(`🔍 After filtering false positives: ${filteredProducts.length} products remain`)
 
@@ -418,6 +447,205 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
    * Detect category from search query
    * Maps query keywords to specific product categories
    */
+  /**
+   * Extract meaningful keywords from search query
+   * Remove filler words and split into searchable terms
+   */
+  /**
+   * Search products using Claude AI to understand intent
+   */
+  private static async searchProductsWithIntent(query: string): Promise<SearchResult[]> {
+    console.log('🤖 Using Claude AI to understand search intent:', query)
+
+    // Use Claude to extract intent
+    const intent = await this.extractSearchIntent(query)
+    console.log('🎯 Search intent:', intent)
+
+    // Build smart query based on intent
+    const andConditions: any[] = []
+
+    // Required terms - at least ONE must match (OR logic within the group)
+    if (intent.requiredTerms.length > 0) {
+      const requiredOr: any[] = []
+      intent.requiredTerms.forEach(term => {
+        requiredOr.push(
+          { name: { contains: term, mode: 'insensitive' } },
+          { description: { contains: term, mode: 'insensitive' } },
+          { category: { contains: term, mode: 'insensitive' } }
+        )
+      })
+      andConditions.push({ OR: requiredOr })
+    }
+
+    // Optional terms are NOT added to the query - they're only used for intent understanding
+    // Products are filtered based on required terms only, making optional terms truly optional
+
+    const where: any = {
+      isAvailable: true
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions
+    }
+
+    console.log('🔍 Smart where clause:', JSON.stringify(where, null, 2))
+
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        seller: {
+          select: {
+            businessName: true,
+            rating: true
+          }
+        }
+      },
+      take: 20,
+      orderBy: [
+        { price: 'asc' },
+        { createdAt: 'desc' }
+      ]
+    })
+
+    console.log(`🎯 Smart search found ${products.length} products`)
+
+    return products.map(p => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      brand: p.brand || undefined,
+      category: p.category,
+      condition: p.condition || undefined,
+      imageUrl: p.imageUrl || undefined,
+      seller: p.seller ? {
+        businessName: p.seller.businessName,
+        rating: p.seller.rating
+      } : undefined
+    }))
+  }
+
+  /**
+   * Use Claude AI to extract search intent
+   */
+  private static async extractSearchIntent(query: string): Promise<{
+    requiredTerms: string[]
+    optionalTerms: string[]
+    category?: string
+  }> {
+    // If no Claude, fall back to simple extraction
+    if (!this.anthropic) {
+      return {
+        requiredTerms: [],
+        optionalTerms: this.extractKeywords(query)
+      }
+    }
+
+    try {
+      const message = await this.anthropic.messages.create({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 200,
+        messages: [{
+          role: "user",
+          content: `Analyze this search query and extract:
+1. REQUIRED terms (core nouns: what the user is looking for - like "bag", "phone", "laptop")
+2. OPTIONAL terms (qualifiers: vintage, designer, cheap, etc.)
+
+Query: "${query}"
+
+Respond ONLY with JSON:
+{
+  "requiredTerms": ["array of required terms with synonyms"],
+  "optionalTerms": ["array of optional qualifier terms"]
+}
+
+Example:
+Query: "Find vintage designer bags"
+Response: {"requiredTerms": ["bag", "handbag", "purse", "tote"], "optionalTerms": ["vintage", "designer"]}
+
+Query: "Best tech deals under $100"
+Response: {"requiredTerms": ["electronics", "tech", "gadget", "device"], "optionalTerms": []}`
+        }]
+      })
+
+      const content = message.content[0]
+      if (content.type === 'text') {
+        const jsonMatch = content.text.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const intent = JSON.parse(jsonMatch[0])
+          console.log('🤖 Claude extracted intent:', intent)
+          return intent
+        }
+      }
+    } catch (error) {
+      console.warn('Claude intent extraction failed, using fallback:', error)
+    }
+
+    // Fallback to simple extraction
+    return {
+      requiredTerms: [],
+      optionalTerms: this.extractKeywords(query)
+    }
+  }
+
+  private static extractKeywords(query: string): string[] {
+    // Filler words to remove
+    const fillerWords = [
+      'find', 'get', 'show', 'me', 'search', 'for', 'looking', 'want', 'need',
+      'buy', 'purchase', 'shop', 'browse', 'the', 'a', 'an', 'some', 'any',
+      'best', 'good', 'great', 'top', 'cheap', 'affordable', 'under', 'deals'
+    ]
+
+    // Category/keyword mappings to expand search terms
+    const categoryMappings: Record<string, string[]> = {
+      'tech': ['tech', 'electronics', 'gadget', 'device'],
+      'phone': ['phone', 'iphone', 'samsung', 'mobile'],
+      'laptop': ['laptop', 'macbook', 'computer', 'notebook'],
+      'bag': ['bag', 'handbag', 'purse', 'tote'],
+      'bags': ['bag', 'handbag', 'purse', 'tote'],
+      'shoe': ['shoe', 'sneaker', 'boot', 'footwear'],
+      'shoes': ['shoe', 'sneaker', 'boot', 'footwear'],
+      'watch': ['watch', 'timepiece'],
+      'jacket': ['jacket', 'coat', 'outerwear'],
+    }
+
+    // Split query into words and filter out filler words
+    let words = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(word => {
+        // Remove empty strings and filler words
+        return word.length > 0 && !fillerWords.includes(word)
+      })
+      .filter(word => {
+        // Remove $ symbols and numbers like "$100"
+        return !/^\$?\d+$/.test(word)
+      })
+
+    // Expand keywords using category mappings
+    const expandedWords: string[] = []
+    words.forEach(word => {
+      if (categoryMappings[word]) {
+        // Add all mapped terms
+        expandedWords.push(...categoryMappings[word])
+      } else {
+        // Keep the original word
+        expandedWords.push(word)
+      }
+    })
+
+    // Remove duplicates
+    const uniqueWords = [...new Set(expandedWords)]
+
+    // If no keywords extracted, use the original query
+    if (uniqueWords.length === 0) {
+      return [query]
+    }
+
+    console.log('🔍 Keywords extracted from query:', uniqueWords)
+    return uniqueWords
+  }
+
   private static detectCategoryFromQuery(query: string): string | null {
     const queryLower = query.toLowerCase().trim()
 

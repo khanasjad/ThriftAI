@@ -1,20 +1,53 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DynamicContent from './DynamicContent';
+import PriceRangeSlider from './PriceRangeSlider';
 
 interface HeroSectionProps {
   onSearch: (query: string) => Promise<void>;
   onVisualSearch: (file: File) => Promise<void>;
 }
 
+interface PriceRange {
+  min: number;
+  max: number;
+}
+
+const SEARCH_SUGGESTIONS = [
+  { text: 'Find vintage designer bags', icon: 'fas fa-handbag' },
+  { text: 'Best tech deals under $100', icon: 'fas fa-laptop' },
+  { text: 'Sustainable fashion options', icon: 'fas fa-leaf' },
+  { text: 'Rare collectibles and art', icon: 'fas fa-palette' },
+  { text: 'Home decor inspiration', icon: 'fas fa-home' },
+];
+
 const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) => {
   const router = useRouter();
+
+  // State management
   const [query, setQuery] = useState('');
+  const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 1000 });
   const [isLoading, setIsLoading] = useState(false);
   const [isVisualLoading, setIsVisualLoading] = useState(false);
   const [showDynamicContent, setShowDynamicContent] = useState(false);
   const [dynamicContentType, setDynamicContentType] = useState<string>('');
 
+  /**
+   * Build search query with price range filters
+   */
+  const buildSearchQuery = (baseQuery: string, range: PriceRange): string => {
+    if (range.min > 0) {
+      return `${baseQuery} between $${range.min} and $${range.max}`;
+    }
+    if (range.max < 1000) {
+      return `${baseQuery} under $${range.max}`;
+    }
+    return baseQuery;
+  };
+
+  /**
+   * Handle search submission
+   */
   const handleSearch = async () => {
     if (!query.trim()) {
       alert('Please enter a search query');
@@ -23,7 +56,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
 
     setIsLoading(true);
     try {
-      await onSearch(query);
+      const searchQuery = buildSearchQuery(query, priceRange);
+      await onSearch(searchQuery);
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
@@ -31,6 +65,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
     }
   };
 
+  /**
+   * Handle Enter key press in search textarea
+   */
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -38,6 +75,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
     }
   };
 
+  /**
+   * Handle visual search image upload
+   */
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -54,19 +94,20 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
       alert('Visual search failed. Please try again.');
     } finally {
       setIsVisualLoading(false);
-      e.target.value = ''; // Clear the input
+      e.target.value = '';
     }
   };
 
-  const askClaude = (suggestion: string) => {
+  /**
+   * Set query from suggestion
+   */
+  const selectSuggestion = (suggestion: string) => {
     setQuery(suggestion);
   };
 
-  const openAdvancedFilters = () => {
-    setDynamicContentType('filters');
-    setShowDynamicContent(true);
-  };
-
+  /**
+   * Navigation handlers
+   */
   const showRecommendations = () => {
     setDynamicContentType('recommendations');
     setShowDynamicContent(true);
@@ -85,18 +126,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
     setShowDynamicContent(false);
   };
 
-  const suggestions = [
-    { text: 'Find vintage designer bags', icon: 'fas fa-handbag' },
-    { text: 'Best tech deals under $100', icon: 'fas fa-laptop' },
-    { text: 'Sustainable fashion options', icon: 'fas fa-leaf' },
-    { text: 'Rare collectibles and art', icon: 'fas fa-palette' },
-    { text: 'Home decor inspiration', icon: 'fas fa-home' }
-  ];
-
   return (
     <main className="hero-modern animate-fade-in">
       <div className="hero-content">
-        {/* Modern Hero Title */}
+        {/* Hero Title */}
         <h1 className="hero-title">
           Discover amazing finds with{' '}
           <span className="text-gradient-primary">Veritas.ai</span>
@@ -107,29 +140,32 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
           and sustainable treasures across the thrift marketplace.
         </p>
 
-        {/* Modern Search Interface */}
+        {/* Search Interface */}
         <div className="search-container-modern animate-slide-up">
           <div className="search-input-area">
             <textarea
               className="search-textarea"
-              placeholder="What treasures are you looking for today? Try: 'Find me a vintage leather jacket under $50' or 'Show me sustainable home decor'..."
+              placeholder="What treasures are you looking for today? Try: 'Find me a vintage leather jacket' or 'Show me sustainable home decor'..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={handleKeyPress}
+              aria-label="Search query"
             />
 
             <div className="search-button-container">
+              {/* Visual Search Button */}
               <button
                 className="search-btn-modern search-btn-secondary file-input-container"
                 type="button"
                 onClick={() => document.getElementById('visual-search-input')?.click()}
                 disabled={isVisualLoading}
                 title="Search by image"
+                aria-label="Visual search"
               >
                 {isVisualLoading ? (
-                  <i className="fas fa-spinner fa-spin"></i>
+                  <i className="fas fa-spinner fa-spin" />
                 ) : (
-                  <i className="fas fa-camera"></i>
+                  <i className="fas fa-camera" />
                 )}
                 <input
                   id="visual-search-input"
@@ -138,113 +174,101 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                   onChange={handleImageUpload}
                   disabled={isVisualLoading}
                   className="file-input-hidden"
+                  aria-label="Upload image for visual search"
                 />
               </button>
 
+              {/* Search Button */}
               <button
                 className="search-btn-modern search-btn-primary"
                 type="button"
                 onClick={handleSearch}
                 disabled={isLoading}
                 title="Search"
+                aria-label="Submit search"
               >
                 {isLoading ? (
-                  <i className="fas fa-spinner fa-spin"></i>
+                  <i className="fas fa-spinner fa-spin" />
                 ) : (
-                  <i className="fas fa-arrow-right"></i>
+                  <i className="fas fa-arrow-right" />
                 )}
               </button>
             </div>
           </div>
 
-          {/* Modern Suggestions */}
+          {/* Price Range Slider */}
+          <PriceRangeSlider
+            priceRange={priceRange}
+            onPriceRangeChange={setPriceRange}
+          />
+
+          {/* Search Suggestions */}
           <div className="suggestions-container">
-            {suggestions.map((suggestion, index) => (
+            {SEARCH_SUGGESTIONS.map((suggestion, index) => (
               <button
                 key={index}
                 className="suggestion-chip"
-                onClick={() => askClaude(suggestion.text)}
+                onClick={() => selectSuggestion(suggestion.text)}
+                aria-label={`Search for ${suggestion.text}`}
               >
-                <i className={suggestion.icon}></i>
+                <i className={suggestion.icon} />
                 {suggestion.text}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Modern Feature Grid */}
+        {/* Feature Grid */}
         <div className="container mt-5">
           <div className="row g-4 justify-content-center">
-            <div className="col-lg-3 col-md-6">
+            {/* Personal Curator */}
+            <div className="col-lg-4 col-md-6">
               <button
                 className="card-modern text-center animate-scale-in animate-delay-100"
-                onClick={openAdvancedFilters}
-                type="button"
-                aria-label="Open advanced filters"
-              >
-                <div className="feature-card-icon">
-                  <i className="fas fa-sliders-h"></i>
-                </div>
-                <h3 className="feature-card-title">
-                  Smart Filters
-                </h3>
-                <p className="feature-card-description">
-                  Advanced filtering with AI-powered recommendations based on your style and budget
-                </p>
-              </button>
-            </div>
-
-            <div className="col-lg-3 col-md-6">
-              <button
-                className="card-modern text-center animate-scale-in animate-delay-200"
                 onClick={showRecommendations}
                 type="button"
-                aria-label="Show personal recommendations"
+                aria-label="Open personal recommendations"
               >
                 <div className="feature-card-icon">
-                  <i className="fas fa-magic"></i>
+                  <i className="fas fa-magic" />
                 </div>
-                <h3 className="feature-card-title">
-                  Personal Curator
-                </h3>
+                <h3 className="feature-card-title">Personal Curator</h3>
                 <p className="feature-card-description">
                   Get personalized recommendations tailored to your taste and shopping history
                 </p>
               </button>
             </div>
 
-            <div className="col-lg-3 col-md-6">
+            {/* Trending Finds */}
+            <div className="col-lg-4 col-md-6">
               <button
-                className="card-modern text-center animate-scale-in animate-delay-300"
+                className="card-modern text-center animate-scale-in animate-delay-200"
                 onClick={showTrending}
                 type="button"
                 aria-label="Show trending finds"
               >
                 <div className="feature-card-icon">
-                  <i className="fas fa-fire"></i>
+                  <i className="fas fa-fire" />
                 </div>
-                <h3 className="feature-card-title">
-                  Trending Finds
-                </h3>
+                <h3 className="feature-card-title">Trending Finds</h3>
                 <p className="feature-card-description">
                   Discover what's hot right now and find trending items before they're gone
                 </p>
               </button>
             </div>
 
-            <div className="col-lg-3 col-md-6">
+            {/* Price Intelligence */}
+            <div className="col-lg-4 col-md-6">
               <button
-                className="card-modern text-center animate-scale-in animate-delay-400"
+                className="card-modern text-center animate-scale-in animate-delay-300"
                 onClick={showPriceComparison}
                 type="button"
                 aria-label="Show price intelligence"
               >
                 <div className="feature-card-icon">
-                  <i className="fas fa-chart-line"></i>
+                  <i className="fas fa-chart-line" />
                 </div>
-                <h3 className="feature-card-title">
-                  Price Intelligence
-                </h3>
+                <h3 className="feature-card-title">Price Intelligence</h3>
                 <p className="feature-card-description">
                   Compare prices across platforms and get alerts for the best deals and savings
                 </p>
@@ -259,7 +283,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
             <DynamicContent
               type={dynamicContentType}
               onHide={hideDynamicContent}
-              onSearch={askClaude}
+              onSearch={selectSuggestion}
             />
           </div>
         )}

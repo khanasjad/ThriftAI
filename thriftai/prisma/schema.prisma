@@ -153,92 +153,86 @@ model Seller {
 }
 
 model Product {
-  id                    String              @id @default(cuid())
+  id                    String                      @id @default(cuid())
   name                  String
   category              String
   brand                 String?
   price                 Float
-  originalPrice         Float               @default(0.0)
+  originalPrice         Float                       @default(0.0)
   condition             String?
   description           String?
   imageUrl              String?
   storeId               String?
   size                  String?
-  isAvailable           Boolean             @default(true)
+  isAvailable           Boolean                     @default(true)
   sellerId              String?
-
-  // Veritas Score™ Relational Foreign Keys
-  companyProfileId      String?             // Link to brand data (Apple, Sony, etc.)
-  productSpecId         String?             // Link to model specs (iPhone 15 Pro Max)
-  sellerProfileId       String?             // Link to seller trust data
-  securityPolicyId      String?             // Link to platform security policies
-
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  cartAdditionCount     Int                 @default(0)
-  certifications        String[]            @default([])
-  clickCount            Int                 @default(0)
-  estimatedDeliveryDays Int                 @default(5)
-  hasFreeReturns        Boolean             @default(false)
-  hasFreeShipping       Boolean             @default(false)
-  hasWarranty           Boolean             @default(false)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  cartAdditionCount     Int                         @default(0)
+  certifications        String[]                    @default([])
+  clickCount            Int                         @default(0)
+  estimatedDeliveryDays Int                         @default(5)
+  hasFreeReturns        Boolean                     @default(false)
+  hasFreeShipping       Boolean                     @default(false)
+  hasWarranty           Boolean                     @default(false)
   height                Float?
-  isAuthentic           Boolean             @default(true)
+  isAuthentic           Boolean                     @default(true)
   lastCartAddedAt       DateTime?
   lastPurchasedAt       DateTime?
   lastViewedAt          DateTime?
   length                Float?
-  lowStockThreshold     Int                 @default(5)
-  popularityScore       Float               @default(0.0)
-  purchaseCount         Int                 @default(0)
-  qualityScore          Float               @default(0.0)
-  relevanceScore        Float               @default(0.0)
-  returnPeriodDays      Int                 @default(30)
-  searchKeywords        String[]            @default([])
-  shippingCost          Float               @default(0.0)
-  stockQuantity         Int                 @default(0)
-  tags                  String[]            @default([])
-  trendingScore         Float               @default(0.0)
-  viewCount             Int                 @default(0)
+  lowStockThreshold     Int                         @default(5)
+  popularityScore       Float                       @default(0.0)
+  purchaseCount         Int                         @default(0)
+  qualityScore          Float                       @default(0.0)
+  relevanceScore        Float                       @default(0.0)
+  returnPeriodDays      Int                         @default(30)
+  searchKeywords        String[]                    @default([])
+  shippingCost          Float                       @default(0.0)
+  stockQuantity         Int                         @default(0)
+  tags                  String[]                    @default([])
+  trendingScore         Float                       @default(0.0)
+  viewCount             Int                         @default(0)
   warrantyMonths        Int?
   weight                Float?
   width                 Float?
-  wishlistCount         Int                 @default(0)
-  aiScore               Decimal?            @map("ai_score") @db.Decimal(5, 2)
-  aiScoreBreakdown      Json?               @map("ai_score_breakdown")
-  aiConfidence          Decimal?            @map("ai_confidence") @db.Decimal(3, 2)
-  lastScoredAt          DateTime?           @map("last_scored_at") @db.Timestamp(6)
-  companyMetrics        Json?               @map("company_metrics")
-  dynamicSpecs          Json?               @map("dynamic_specs")
-  globalRank            Int?                @map("global_rank")
-  categoryRank          Int?                @map("category_rank")
-  priceTierRank         Int?                @map("price_tier_rank")
-  price_tier            String?             @db.VarChar(20)
-  leaderboardBadges     String[]            @default([]) @map("leaderboard_badges")
-  embeddingUpdatedAt    DateTime?           @map("embedding_updated_at") @db.Timestamp(6)
+  wishlistCount         Int                         @default(0)
+  aiScore               Decimal?                    @map("ai_score") @db.Decimal(5, 2)
+  aiScoreBreakdown      Json?                       @map("ai_score_breakdown")
+  aiConfidence          Decimal?                    @map("ai_confidence") @db.Decimal(3, 2)
+  lastScoredAt          DateTime?                   @map("last_scored_at") @db.Timestamp(6)
+  companyMetrics        Json?                       @map("company_metrics")
+  dynamicSpecs          Json?                       @map("dynamic_specs")
+  globalRank            Int?                        @map("global_rank")
+  categoryRank          Int?                        @map("category_rank")
+  priceTierRank         Int?                        @map("price_tier_rank")
+  price_tier            String?                     @db.VarChar(20)
+  leaderboardBadges     String[]                    @default([]) @map("leaderboard_badges")
+  embeddingJson         String?                     @map("embedding_json")
+  embeddingUpdatedAt    DateTime?                   @map("embedding_updated_at") @db.Timestamp(6)
+  companyProfileId      String?
+  productSpecId         String?
+  securityPolicyId      String?
+  sellerProfileId       String?
   cartItems             CartItem[]
   orderItems            OrderItem[]
   aiSummary             ProductAISummary?
   analytics             ProductAnalytics[]
   comparisons           ProductComparison[]
-  legacyEmbedding       ProductEmbedding?   @relation("LegacyEmbedding")
+  legacyEmbedding       ProductEmbedding?           @relation("LegacyEmbedding")
   views                 ProductView[]
-  seller                Seller?             @relation(fields: [sellerId], references: [id])
+  companyProfile        VeritasCompanyProfile?      @relation(fields: [companyProfileId], references: [id])
+  productSpec           VeritasProductSpec?         @relation(fields: [productSpecId], references: [id])
+  securityPolicy        VeritasSecurityPolicy?      @relation(fields: [securityPolicyId], references: [id])
+  seller                Seller?                     @relation(fields: [sellerId], references: [id])
+  sellerProfile         VeritasSellerProfile?       @relation(fields: [sellerProfileId], references: [id])
   reviews               Review[]
   swipeActions          SwipeAction[]
-
-  // Veritas Score™ Relational Architecture
-  veritasScore          VeritasScore?
-  veritasHistory        VeritasScoreHistory[]
   competitorAnalyses    VeritasCompetitorAnalysis[]
-
-  // NEW: 8-Table Relational System
-  companyProfile        VeritasCompanyProfile?  @relation(fields: [companyProfileId], references: [id])
-  productSpec           VeritasProductSpec?     @relation(fields: [productSpecId], references: [id])
-  sellerProfile         VeritasSellerProfile?   @relation(fields: [sellerProfileId], references: [id])
-  securityPolicy        VeritasSecurityPolicy?  @relation(fields: [securityPolicyId], references: [id])
-  productQuality        VeritasProductQuality?
   marketData            VeritasMarketData[]
+  productQuality        VeritasProductQuality?
+  veritasHistory        VeritasScoreHistory[]
+  veritasScore          VeritasScore?
   sustainability        VeritasSustainability?
   userExperience        VeritasUserExperience?
 
@@ -891,15 +885,13 @@ model SystemConfiguration {
 /// - Certified Refurb iPhone: 89/100 - Best value + quality combo
 /// - Used iPhone (excellent): 85/100 - Great deal, some wear
 model VeritasScore {
-  id                    String                 @id @default(cuid())
-  productId             String                 @unique @map("product_id")
-
+  id                    String                       @id @default(cuid())
+  productId             String                       @unique @map("product_id")
   /// Score Serial Number (SSN): Unique identifier for this score
   /// Format: VS-{CATEGORY}-{SCORE}-{CONFIDENCE}-{DATE}
   /// Example: VS-ELE-089-92-20251003
   /// Enables tracking, verification, and blockchain integration
-  ssn                   String                 @unique @map("ssn")
-
+  ssn                   String                       @unique @map("ssn")
   /// Overall Veritas Score (0-100)
   /// Weighted average of 8 category scores
   /// - S Grade (95-100): Exceptional
@@ -908,34 +900,29 @@ model VeritasScore {
   /// - C Grade (65-74): Fair
   /// - D Grade (50-64): Below Average
   /// - F Grade (0-49): Poor
-  overallScore          Decimal                @map("overall_score") @db.Decimal(5, 2)
-
+  overallScore          Decimal                      @map("overall_score") @db.Decimal(5, 2)
   /// Confidence Level (0-100%)
   /// How reliable is this score based on data availability
   /// High confidence (85%+): Score is very accurate
   /// Medium confidence (65-84%): Score is reasonably accurate
   /// Low confidence (<65%): Limited data, use caution
-  confidence            Decimal                @map("confidence") @db.Decimal(5, 2)
-
+  confidence            Decimal                      @map("confidence") @db.Decimal(5, 2)
   /// Data Quality Score (0-100%)
   /// Percentage of parameters with available data
   /// 100% = all 121 parameters evaluated
   /// <70% = significant missing data
-  dataQualityScore      Decimal                @map("data_quality_score") @db.Decimal(5, 2)
-
-  calculatedAt          DateTime               @default(now()) @map("calculated_at") @db.Timestamp(6)
-  lastUpdatedAt         DateTime               @updatedAt @map("last_updated_at") @db.Timestamp(6)
-  nextUpdateDue         DateTime?              @map("next_update_due") @db.Timestamp(6)
-  calculationVersion    String                 @default("v2.0") @map("calculation_version") @db.VarChar(10)
-
+  dataQualityScore      Decimal                      @map("data_quality_score") @db.Decimal(5, 2)
+  calculatedAt          DateTime                     @default(now()) @map("calculated_at") @db.Timestamp(6)
+  lastUpdatedAt         DateTime                     @updatedAt @map("last_updated_at") @db.Timestamp(6)
+  nextUpdateDue         DateTime?                    @map("next_update_due") @db.Timestamp(6)
+  calculationVersion    String                       @default("v2.0") @map("calculation_version") @db.VarChar(10)
   /// Array of parameter codes with missing data
   /// Used to identify areas for seller improvement
   /// Example: ["ST_RATING", "PQ_WARRANTY"]
-  missingDataFields     String[]               @default([]) @map("missing_data_fields")
-
-  product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  missingDataFields     String[]                     @default([]) @map("missing_data_fields")
   categories            VeritasCategory[]
-  competitorComparisons VeritasCompetitorComparison[]
+  competitorComparisons VeritasCompetitorComparison?
+  product               Product                      @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([overallScore(sort: Desc)], map: "idx_veritas_score_overall")
   @@index([productId])
@@ -961,31 +948,25 @@ model VeritasScore {
 /// - REFURBISHED: Emphasize certification, OEM parts
 /// - USED: Emphasize actual condition vs. description
 model VeritasCategory {
-  id              String             @id @default(cuid())
-  veritasScoreId  String             @map("veritas_score_id")
-
+  id             String              @id @default(cuid())
+  veritasScoreId String              @map("veritas_score_id")
   /// One of 8 category types (see enum below)
-  categoryName    VeritasCategoryType @map("category_name")
-
+  categoryName   VeritasCategoryType @map("category_name")
   /// Category Score (0-100)
   /// Weighted average of all parameters in this category
-  categoryScore   Decimal            @map("category_score") @db.Decimal(5, 2)
-
+  categoryScore  Decimal             @map("category_score") @db.Decimal(5, 2)
   /// Category Weight (0.00-1.00, sums to 1.00 across all categories)
   /// Product Quality: 0.25, Seller Trust: 0.20, etc.
-  weight          Decimal            @map("weight") @db.Decimal(3, 2)
-
+  weight         Decimal             @map("weight") @db.Decimal(3, 2)
   /// Weighted Score = categoryScore × weight
   /// This contributes to the overall Veritas Score
-  weightedScore   Decimal            @map("weighted_score") @db.Decimal(5, 2)
-
+  weightedScore  Decimal             @map("weighted_score") @db.Decimal(5, 2)
   /// Category Confidence (0-100%)
   /// Based on parameter availability and data quality
-  confidence      Decimal            @map("confidence") @db.Decimal(5, 2)
-
-  calculatedAt    DateTime           @default(now()) @map("calculated_at") @db.Timestamp(6)
-  veritasScore    VeritasScore       @relation(fields: [veritasScoreId], references: [id], onDelete: Cascade)
-  parameters      VeritasParameter[]
+  confidence     Decimal             @map("confidence") @db.Decimal(5, 2)
+  calculatedAt   DateTime            @default(now()) @map("calculated_at") @db.Timestamp(6)
+  veritasScore   VeritasScore        @relation(fields: [veritasScoreId], references: [id], onDelete: Cascade)
+  parameters     VeritasParameter[]
 
   @@index([veritasScoreId])
   @@index([categoryName])
@@ -993,20 +974,20 @@ model VeritasCategory {
 }
 
 model VeritasParameter {
-  id               String          @id @default(cuid())
-  categoryId       String          @map("category_id")
-  parameterName    String          @map("parameter_name") @db.VarChar(100)
-  parameterCode    String          @map("parameter_code") @db.VarChar(50)
-  rawValue         String?         @map("raw_value")
-  normalizedValue  Decimal         @map("normalized_value") @db.Decimal(5, 2)
-  weight           Decimal         @map("weight") @db.Decimal(3, 2)
-  weightedScore    Decimal         @map("weighted_score") @db.Decimal(5, 2)
-  dataSource       String          @map("data_source") @db.VarChar(50)
-  confidence       Decimal         @map("confidence") @db.Decimal(5, 2)
-  isMissing        Boolean         @default(false) @map("is_missing")
-  calculatedAt     DateTime        @default(now()) @map("calculated_at") @db.Timestamp(6)
-  metadata         Json?           @map("metadata")
-  category         VeritasCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id              String          @id @default(cuid())
+  categoryId      String          @map("category_id")
+  parameterName   String          @map("parameter_name") @db.VarChar(100)
+  parameterCode   String          @map("parameter_code") @db.VarChar(50)
+  rawValue        String?         @map("raw_value")
+  normalizedValue Decimal         @map("normalized_value") @db.Decimal(5, 2)
+  weight          Decimal         @map("weight") @db.Decimal(3, 2)
+  weightedScore   Decimal         @map("weighted_score") @db.Decimal(5, 2)
+  dataSource      String          @map("data_source") @db.VarChar(50)
+  confidence      Decimal         @map("confidence") @db.Decimal(5, 2)
+  isMissing       Boolean         @default(false) @map("is_missing")
+  calculatedAt    DateTime        @default(now()) @map("calculated_at") @db.Timestamp(6)
+  metadata        Json?           @map("metadata")
+  category        VeritasCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@index([categoryId])
   @@index([parameterCode])
@@ -1051,40 +1032,380 @@ model VeritasCompetitorAnalysis {
 }
 
 model VeritasCompetitorComparison {
-  id                     String       @id @default(cuid())
-  veritasScoreId         String       @map("veritas_score_id")
-  averageMarketPrice     Decimal      @map("average_market_price") @db.Decimal(10, 2)
-  lowestMarketPrice      Decimal      @map("lowest_market_price") @db.Decimal(10, 2)
-  highestMarketPrice     Decimal      @map("highest_market_price") @db.Decimal(10, 2)
-  pricePercentile        Decimal      @map("price_percentile") @db.Decimal(3, 2)
-  valueScore             Decimal      @map("value_score") @db.Decimal(5, 2)
-  competitorCount        Int          @map("competitor_count")
-  marketPosition         String       @map("market_position") @db.VarChar(20)
-  priceRecommendation    String?      @map("price_recommendation")
-  lastComparisonAt       DateTime     @default(now()) @map("last_comparison_at") @db.Timestamp(6)
-  veritasScore           VeritasScore @relation(fields: [veritasScoreId], references: [id], onDelete: Cascade)
+  id                  String       @id @default(cuid())
+  veritasScoreId      String       @unique @map("veritas_score_id")
+  averageMarketPrice  Decimal      @map("average_market_price") @db.Decimal(10, 2)
+  lowestMarketPrice   Decimal      @map("lowest_market_price") @db.Decimal(10, 2)
+  highestMarketPrice  Decimal      @map("highest_market_price") @db.Decimal(10, 2)
+  pricePercentile     Decimal      @map("price_percentile") @db.Decimal(3, 2)
+  valueScore          Decimal      @map("value_score") @db.Decimal(5, 2)
+  competitorCount     Int          @map("competitor_count")
+  marketPosition      String       @map("market_position") @db.VarChar(20)
+  priceRecommendation String?      @map("price_recommendation")
+  lastComparisonAt    DateTime     @default(now()) @map("last_comparison_at") @db.Timestamp(6)
+  veritasScore        VeritasScore @relation(fields: [veritasScoreId], references: [id], onDelete: Cascade)
 
-  @@unique([veritasScoreId])
   @@index([lastComparisonAt])
   @@map("veritas_competitor_comparisons")
 }
 
 model VeritasParameterCache {
-  id             String   @id @default(cuid())
-  productId      String   @map("product_id")
-  parameterCode  String   @map("parameter_code") @db.VarChar(50)
-  cachedValue    Decimal  @map("cached_value") @db.Decimal(5, 2)
-  rawData        Json?    @map("raw_data")
-  dataSource     String   @map("data_source") @db.VarChar(50)
-  confidence     Decimal  @map("confidence") @db.Decimal(3, 2)
-  cachedAt       DateTime @default(now()) @map("cached_at") @db.Timestamp(6)
-  expiresAt      DateTime @map("expires_at") @db.Timestamp(6)
-  isValid        Boolean  @default(true) @map("is_valid")
+  id            String   @id @default(cuid())
+  productId     String   @map("product_id")
+  parameterCode String   @map("parameter_code") @db.VarChar(50)
+  cachedValue   Decimal  @map("cached_value") @db.Decimal(5, 2)
+  rawData       Json?    @map("raw_data")
+  dataSource    String   @map("data_source") @db.VarChar(50)
+  confidence    Decimal  @map("confidence") @db.Decimal(3, 2)
+  cachedAt      DateTime @default(now()) @map("cached_at") @db.Timestamp(6)
+  expiresAt     DateTime @map("expires_at") @db.Timestamp(6)
+  isValid       Boolean  @default(true) @map("is_valid")
 
   @@unique([productId, parameterCode])
   @@index([expiresAt])
   @@index([productId])
   @@map("veritas_parameter_cache")
+}
+
+/// Table 1: Company Performance Data (Company Level)
+/// Cardinality: 1 company → MANY products
+/// Update Frequency: Stock data hourly, brand data monthly
+/// Data Sources: Alpha Vantage (stock), financial APIs, news APIs
+/// Cache Strategy: Stock 1 hour, brand 30 days
+model VeritasCompanyProfile {
+  id                   String    @id @default(cuid())
+  brandName            String    @unique
+  brandReputationScore Decimal   @default(70) @db.Decimal(5, 2)
+  brandRecognition     Decimal   @default(70) @db.Decimal(5, 2)
+  customerLoyaltyIndex Decimal   @default(70) @db.Decimal(5, 2)
+  marketPerformance    Decimal?  @db.Decimal(5, 2)
+  stockSymbol          String?
+  stockPrice           Decimal?  @db.Decimal(10, 2)
+  stockChange          Decimal?  @db.Decimal(5, 2)
+  marketCap            Decimal?  @db.Decimal(15, 2)
+  marketShare          Decimal?  @db.Decimal(5, 2)
+  newsSentimentScore   Decimal   @default(70) @db.Decimal(5, 2)
+  mediaCoverage        Decimal   @default(70) @db.Decimal(5, 2)
+  socialSentiment      Decimal   @default(70) @db.Decimal(5, 2)
+  publicPresenceScore  Decimal   @default(70) @db.Decimal(5, 2)
+  avgReviewScore       Decimal?  @db.Decimal(3, 2)
+  industryAwards       Int       @default(0)
+  esgScore             Decimal?  @db.Decimal(5, 2)
+  innovationIndex      Decimal?  @db.Decimal(5, 2)
+  globalPresence       Int?
+  lastStockUpdate      DateTime?
+  lastBrandUpdate      DateTime?
+  dataSourceUrls       Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  products             Product[]
+
+  @@index([brandName])
+  @@index([stockSymbol])
+  @@index([lastStockUpdate])
+  @@map("veritas_company_profiles")
+}
+
+/// Table 2: Product Specifications (Model Level)
+/// Cardinality: 1 model → MANY units
+/// Update Frequency: 90 days (specs rarely change)
+/// Data Sources: GSMArena, manufacturer spec sheets
+/// Cache Strategy: 90 days (specs are static per model)
+model VeritasProductSpec {
+  id                  String    @id @default(cuid())
+  modelIdentifier     String    @unique
+  modelName           String
+  modelYear           Int?
+  variant             String?
+  modelNumber         String?
+  regionalVariant     String?
+  processor           String?
+  processorCores      String?
+  ram                 String?
+  storage             String?
+  displaySize         String?
+  displayResolution   String?
+  displayType         String?
+  displayRefreshRate  String?
+  mainCamera          String?
+  frontCamera         String?
+  batteryCapacity     String?
+  os                  String?
+  connectivity        String?
+  dimensions          String?
+  weight              String?
+  buildMaterials      String?
+  waterResistance     String?
+  specCompleteness    Decimal   @default(70) @db.Decimal(5, 2)
+  specAccuracy        Decimal   @default(70) @db.Decimal(5, 2)
+  featureMatchScore   Decimal   @default(70) @db.Decimal(5, 2)
+  featureCompleteness Decimal   @default(70) @db.Decimal(5, 2)
+  upgradeIndicator    String?
+  gsmarenaUrl         String?
+  officialSpecUrl     String?
+  dataSourceUrls      Json?
+  lastSpecUpdate      DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  products            Product[]
+
+  @@index([modelIdentifier])
+  @@index([modelName])
+  @@index([modelYear])
+  @@map("veritas_product_specs")
+}
+
+/// Table 3: Seller Trust Profile (Seller Level)
+/// Cardinality: 1 seller → MANY listings
+/// Update Frequency: 7 days
+/// Data Sources: eBay API, platform seller data
+/// Cache Strategy: 7 days
+model VeritasSellerProfile {
+  id                     String    @id @default(cuid())
+  sellerIdentifier       String    @unique
+  sellerPlatform         String
+  sellerRating           Decimal   @default(0) @db.Decimal(3, 2)
+  transactionCount       Int       @default(0)
+  positiveFeedbackPct    Decimal   @default(0) @db.Decimal(5, 2)
+  accountAgeDays         Int       @default(0)
+  isVerified             Boolean   @default(false)
+  isTopRated             Boolean   @default(false)
+  sellerBadges           String[]  @default([])
+  sellerLocation         String?
+  avgResponseTimeHours   Decimal?  @db.Decimal(5, 2)
+  responseRate           Decimal   @default(0) @db.Decimal(5, 2)
+  serviceQualityScore    Decimal   @default(70) @db.Decimal(5, 2)
+  communicationScore     Decimal   @default(70) @db.Decimal(5, 2)
+  disputeRate            Decimal   @default(0) @db.Decimal(5, 2)
+  refundRate             Decimal   @default(0) @db.Decimal(5, 2)
+  chargebackRate         Decimal   @default(0) @db.Decimal(5, 2)
+  cancellationRate       Decimal   @default(0) @db.Decimal(5, 2)
+  repeatCustomerRate     Decimal   @default(0) @db.Decimal(5, 2)
+  onTimeShippingPct      Decimal   @default(0) @db.Decimal(5, 2)
+  accurateDescPct        Decimal   @default(0) @db.Decimal(5, 2)
+  packagingQuality       Decimal   @default(70) @db.Decimal(5, 2)
+  itemAsDescribedPct     Decimal   @default(0) @db.Decimal(5, 2)
+  damageRate             Decimal   @default(0) @db.Decimal(5, 2)
+  returnRequestRate      Decimal   @default(0) @db.Decimal(5, 2)
+  sellerPerformanceIndex Decimal   @default(70) @db.Decimal(5, 2)
+  ebaySellerUrl          String?
+  platformProfileUrl     String?
+  dataSourceUrls         Json?
+  lastDataUpdate         DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  products               Product[]
+
+  @@index([sellerIdentifier])
+  @@index([sellerPlatform])
+  @@index([sellerPerformanceIndex])
+  @@index([isTopRated])
+  @@map("veritas_seller_profiles")
+}
+
+/// Table 4: Security & Safety Policies (Platform Level)
+/// Cardinality: 1 platform → ALL products
+/// Update Frequency: 90 days (policies change rarely)
+/// Data Sources: Platform security policies, compliance checks
+/// Cache Strategy: 90 days
+model VeritasSecurityPolicy {
+  id                  String    @id @default(cuid())
+  platformName        String    @unique
+  paymentSecurity     Decimal   @default(70) @db.Decimal(5, 2)
+  fraudProtection     Decimal   @default(70) @db.Decimal(5, 2)
+  paymentEncryption   Decimal   @default(70) @db.Decimal(5, 2)
+  supportedPayments   String[]  @default([])
+  buyerProtection     Decimal   @default(70) @db.Decimal(5, 2)
+  disputeResolution   Decimal   @default(70) @db.Decimal(5, 2)
+  moneyBackGuarantee  Boolean   @default(false)
+  maxProtectionAmount Decimal?  @db.Decimal(10, 2)
+  dataPrivacy         Decimal   @default(70) @db.Decimal(5, 2)
+  deviceSecurity      Decimal   @default(70) @db.Decimal(5, 2)
+  gdprCompliant       Boolean   @default(false)
+  pciCompliant        Boolean   @default(false)
+  sslEncryption       Boolean   @default(true)
+  platformReputation  Decimal   @default(70) @db.Decimal(5, 2)
+  platformAge         Int?
+  trustpilotScore     Decimal?  @db.Decimal(3, 2)
+  bbbRating           String?
+  privacyPolicyUrl    String?
+  termsOfServiceUrl   String?
+  buyerProtectionUrl  String?
+  lastPolicyUpdate    DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  products            Product[]
+
+  @@index([platformName])
+  @@map("veritas_security_policies")
+}
+
+/// Table 5: Product Quality Data (Product Level - Unique per listing)
+/// Cardinality: 1 product → 1 quality record
+/// Update Frequency: 1 day (condition doesn't change often)
+/// Data Sources: Product listing, AI vision, warranty APIs
+model VeritasProductQuality {
+  id                     String    @id @default(cuid())
+  productId              String    @unique
+  conditionScore         Decimal   @default(70) @db.Decimal(5, 2)
+  visualDefects          Decimal   @default(70) @db.Decimal(5, 2)
+  functionalCompleteness Decimal   @default(70) @db.Decimal(5, 2)
+  wearTearLevel          Decimal   @default(70) @db.Decimal(5, 2)
+  missingComponents      Decimal   @default(90) @db.Decimal(5, 2)
+  materialQuality        Decimal   @default(70) @db.Decimal(5, 2)
+  authenticationStatus   String?
+  serialNumber           String?
+  serialVerified         Boolean   @default(false)
+  counterfeitRisk        Decimal   @default(0) @db.Decimal(5, 2)
+  documentationComplete  Boolean   @default(false)
+  imeiVerified           Boolean?
+  hardwareFunctionality  Decimal   @default(70) @db.Decimal(5, 2)
+  softwarePerformance    Decimal   @default(70) @db.Decimal(5, 2)
+  batteryHealth          Decimal?  @db.Decimal(5, 2)
+  screenQuality          Decimal?  @db.Decimal(5, 2)
+  cameraFunctionality    Decimal?  @db.Decimal(5, 2)
+  productAgeDays         Int?
+  usageHours             Int?
+  previousOwnerCount     Int?
+  repairHistory          Json?
+  manufacturingDate      DateTime?
+  warrantyStatus         String?
+  warrantyMonths         Int?
+  warrantyProvider       String?
+  returnPolicyDays       Int?
+  supportAvailability    Decimal   @default(70) @db.Decimal(5, 2)
+  photoAnalysisScore     Decimal?  @db.Decimal(5, 2)
+  descriptionNLPScore    Decimal?  @db.Decimal(5, 2)
+  warrantyApiData        Json?
+  aiVisionReport         Json?
+  lastQualityCheck       DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  product                Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([authenticationStatus])
+  @@index([warrantyStatus])
+  @@map("veritas_product_quality")
+}
+
+/// Table 6: Market Data (Time-Series - Multiple records per product)
+/// Cardinality: 1 product → MANY snapshots
+/// Update Frequency: 1 hour (pricing changes frequently)
+/// Data Sources: eBay market data, price tracking APIs
+model VeritasMarketData {
+  id                   String   @id @default(cuid())
+  productId            String
+  snapshotDate         DateTime @default(now())
+  currentPrice         Decimal  @db.Decimal(10, 2)
+  marketAvgPrice       Decimal? @db.Decimal(10, 2)
+  priceVsMarket        Decimal? @db.Decimal(5, 2)
+  discountPct          Decimal  @default(0) @db.Decimal(5, 2)
+  valueForMoneyIndex   Decimal? @db.Decimal(5, 2)
+  priceCompetitiveness Decimal? @db.Decimal(5, 2)
+  competitorCount      Int      @default(0)
+  lowestCompPrice      Decimal? @db.Decimal(10, 2)
+  highestCompPrice     Decimal? @db.Decimal(10, 2)
+  medianCompPrice      Decimal? @db.Decimal(10, 2)
+  pricePercentile      Decimal? @db.Decimal(5, 2)
+  bestPriceIndicator   Boolean  @default(false)
+  priceStability       Decimal? @db.Decimal(5, 2)
+  shippingCost         Decimal  @default(0) @db.Decimal(10, 2)
+  taxAmount            Decimal? @db.Decimal(10, 2)
+  hiddenFees           Decimal  @default(0) @db.Decimal(10, 2)
+  warrantyValue        Decimal? @db.Decimal(10, 2)
+  totalCost            Decimal? @db.Decimal(10, 2)
+  priceTrend           String?
+  demandLevel          Decimal? @db.Decimal(5, 2)
+  supplyAvailability   Int?
+  seasonalFactor       Decimal? @db.Decimal(5, 2)
+  ebayListings         Json?
+  priceHistory         Json?
+  createdAt            DateTime @default(now())
+  product              Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([snapshotDate])
+  @@index([currentPrice])
+  @@map("veritas_market_data")
+}
+
+/// Table 7: Sustainability Data (Product + Certification Hybrid)
+/// Cardinality: 1 product → 1 sustainability record
+/// Update Frequency: 30 days (certifications change rarely)
+/// Data Sources: iFixit, Energy Star, lifecycle databases
+model VeritasSustainability {
+  id                    String    @id @default(cuid())
+  productId             String    @unique
+  carbonFootprintKg     Decimal?  @db.Decimal(10, 2)
+  carbonReduction       Decimal   @default(70) @db.Decimal(5, 2)
+  eWastePrevention      Decimal   @default(70) @db.Decimal(5, 2)
+  resourceConservation  Decimal   @default(70) @db.Decimal(5, 2)
+  manufacturingImpact   Decimal?  @db.Decimal(5, 2)
+  reuseFactor           Decimal   @default(70) @db.Decimal(5, 2)
+  recyclingPotential    Decimal   @default(70) @db.Decimal(5, 2)
+  refurbQuality         Decimal   @default(70) @db.Decimal(5, 2)
+  upcyclingPotential    Decimal?  @db.Decimal(5, 2)
+  expectedLifespanYears Int?
+  repairabilityScore    Decimal?  @db.Decimal(4, 1)
+  softwareSupportYears  Int?
+  partsAvailable        Boolean   @default(false)
+  repairDifficulty      String?
+  energyStarCertified   Boolean   @default(false)
+  energyStarRating      String?
+  epeatRating           String?
+  refurbCertification   String?
+  otherCertifications   String[]  @default([])
+  ifixitUrl             String?
+  energyStarUrl         String?
+  epeatUrl              String?
+  dataSourceUrls        Json?
+  lastCertCheck         DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  product               Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([energyStarCertified])
+  @@index([repairabilityScore])
+  @@map("veritas_sustainability")
+}
+
+/// Table 8: User Experience Data (Listing Level)
+/// Cardinality: 1 product → 1 UX record
+/// Update Frequency: 7 days (listing quality stable)
+/// Data Sources: Content analysis, AI image analysis
+model VeritasUserExperience {
+  id                   String    @id @default(cuid())
+  productId            String    @unique
+  pageQuality          Decimal   @default(70) @db.Decimal(5, 2)
+  descriptionComplete  Decimal   @default(70) @db.Decimal(5, 2)
+  transparencyScore    Decimal   @default(70) @db.Decimal(5, 2)
+  descriptionWordCount Int?
+  hasKeySpecs          Boolean   @default(false)
+  imageQuality         Decimal   @default(70) @db.Decimal(5, 2)
+  imageCount           Int       @default(0)
+  hasMultipleAngles    Boolean   @default(false)
+  imageResolution      String?
+  hasVideoContent      Boolean   @default(false)
+  checkoutEase         Decimal   @default(70) @db.Decimal(5, 2)
+  navigationQuality    Decimal   @default(70) @db.Decimal(5, 2)
+  mobileOptimized      Boolean   @default(true)
+  pageLoadSpeed        Decimal?  @db.Decimal(5, 2)
+  supportAccessibility Decimal   @default(70) @db.Decimal(5, 2)
+  faqQuality           Decimal   @default(70) @db.Decimal(5, 2)
+  chatAvailable        Boolean   @default(false)
+  phoneSupport         Boolean   @default(false)
+  contentAnalysisScore Decimal?  @db.Decimal(5, 2)
+  imageAIScore         Decimal?  @db.Decimal(5, 2)
+  lastUXCheck          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  product              Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([pageQuality])
+  @@map("veritas_user_experience")
 }
 
 enum Gender {
@@ -1233,31 +1554,31 @@ enum config_value_type {
 /// Each category adapted based on product condition for accurate assessment
 ///
 /// PRODUCT_QUALITY (25%): Physical condition, authenticity, functionality
-///   - NEW: Packaging, warranty, defect rate
-///   - REFURB: Certification level, OEM parts, testing
-///   - USED: Actual condition, wear, remaining lifespan
+/// - NEW: Packaging, warranty, defect rate
+/// - REFURB: Certification level, OEM parts, testing
+/// - USED: Actual condition, wear, remaining lifespan
 ///
 /// SELLER_TRUST (20%): Reputation, reliability, customer service
-///   - Authorized dealers: Higher baseline score
-///   - Certified refurbishers: Certification bonus
-///   - Individual sellers: Transaction history-based
+/// - Authorized dealers: Higher baseline score
+/// - Certified refurbishers: Certification bonus
+/// - Individual sellers: Transaction history-based
 ///
 /// MARKET_VALUE (15%): Price fairness, value for money
-///   - NEW: % below MSRP
-///   - REFURB: vs. expected depreciation
-///   - USED: vs. similar condition items
+/// - NEW: % below MSRP
+/// - REFURB: vs. expected depreciation
+/// - USED: vs. similar condition items
 ///
 /// SUSTAINABILITY (12%): Environmental impact, circular economy
-///   - NEW: Lower score (encourages refurb/used)
-///   - REFURB: High score (professional restoration)
-///   - USED: Highest score (maximum reuse)
+/// - NEW: Lower score (encourages refurb/used)
+/// - REFURB: High score (professional restoration)
+/// - USED: Highest score (maximum reuse)
 ///
 /// SECURITY_SAFETY (5%): Payment security, buyer protection
 ///
 /// USER_EXPERIENCE (5%): Listing quality, customer service
 ///
 /// PRODUCT_SPECIFICATION (13%): Category-specific tech specs
-///   - Adapts to product category (electronics, fashion, furniture, etc.)
+/// - Adapts to product category (electronics, fashion, furniture, etc.)
 ///
 /// COMPANY_PERFORMANCE (5%): Brand reputation, news sentiment, market data
 enum VeritasCategoryType {
@@ -1269,478 +1590,4 @@ enum VeritasCategoryType {
   USER_EXPERIENCE
   PRODUCT_SPECIFICATION
   COMPANY_PERFORMANCE
-}
-
-// ============================================================================
-// VERITAS SCORE™ - RELATIONAL DATABASE ARCHITECTURE
-// ============================================================================
-//
-// Complex 8-table system optimized for data reuse and performance:
-//
-// DATA LEVELS (from shared to unique):
-// 1. PLATFORM → all products on same platform
-// 2. COMPANY → all products from same brand
-// 3. MODEL → all units of same model
-// 4. SELLER → all listings from same seller
-// 5. PRODUCT → unique per listing
-// 6. MARKET → time-series pricing data
-//
-// PERFORMANCE OPTIMIZATION:
-// - Apple stock price: 1 fetch → 10,000 Apple products
-// - iPhone 15 Pro specs: 1 fetch → 5,000 units
-// - eBay seller data: 1 fetch → 500 listings
-// - 99.4% reduction in API calls
-//
-// See: VERITAS_DATA_LEVEL_ANALYSIS.md for complete documentation
-// ============================================================================
-
-/// Table 1: Company Performance Data (Company Level)
-/// Cardinality: 1 company → MANY products
-/// Update Frequency: Stock data hourly, brand data monthly
-/// Data Sources: Alpha Vantage (stock), financial APIs, news APIs
-/// Cache Strategy: Stock 1 hour, brand 30 days
-model VeritasCompanyProfile {
-  id                    String    @id @default(cuid())
-  brandName             String    @unique // "Apple", "Sony", "Dell"
-
-  // Brand Reputation (35% of Company Performance)
-  brandReputationScore  Decimal   @default(70) @db.Decimal(5, 2) // 0-100
-  brandRecognition      Decimal   @default(70) @db.Decimal(5, 2) // % global recognition
-  customerLoyaltyIndex  Decimal   @default(70) @db.Decimal(5, 2) // NPS-based
-
-  // Market Performance (25%)
-  marketPerformance     Decimal?  @db.Decimal(5, 2) // Growth rate
-  stockSymbol           String?   // "AAPL", "SONY", etc.
-  stockPrice            Decimal?  @db.Decimal(10, 2)
-  stockChange           Decimal?  @db.Decimal(5, 2) // % change
-  marketCap             Decimal?  @db.Decimal(15, 2) // USD
-  marketShare           Decimal?  @db.Decimal(5, 2) // % of market
-
-  // News & Sentiment (25%)
-  newsSentimentScore    Decimal   @default(70) @db.Decimal(5, 2) // -100 to +100
-  mediaCoverage         Decimal   @default(70) @db.Decimal(5, 2) // Volume score
-  socialSentiment       Decimal   @default(70) @db.Decimal(5, 2) // Social media
-
-  // Public Domain Data (15%)
-  publicPresenceScore   Decimal   @default(70) @db.Decimal(5, 2)
-  avgReviewScore        Decimal?  @db.Decimal(3, 2) // 0-5 stars
-  industryAwards        Int       @default(0)
-  esgScore              Decimal?  @db.Decimal(5, 2) // Environmental/Social/Governance
-  innovationIndex       Decimal?  @db.Decimal(5, 2)
-  globalPresence        Int?      // Countries served
-
-  // Metadata
-  lastStockUpdate       DateTime? // Stock data refreshed hourly
-  lastBrandUpdate       DateTime? // Brand data refreshed monthly
-  dataSourceUrls        Json?     // Links to data sources
-
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Relations
-  products              Product[] // All products from this brand
-
-  @@index([brandName])
-  @@index([stockSymbol])
-  @@index([lastStockUpdate])
-  @@map("veritas_company_profiles")
-}
-
-/// Table 2: Product Specifications (Model Level)
-/// Cardinality: 1 model → MANY units
-/// Update Frequency: 90 days (specs rarely change)
-/// Data Sources: GSMArena, manufacturer spec sheets
-/// Cache Strategy: 90 days (specs are static per model)
-model VeritasProductSpec {
-  id                    String    @id @default(cuid())
-  modelIdentifier       String    @unique // "iPhone_15_Pro_Max_256GB"
-
-  // Model & Version (20% of Product Specification)
-  modelName             String    // "iPhone 15 Pro Max"
-  modelYear             Int?      // 2024
-  variant               String?   // "256GB, Titanium Blue"
-  modelNumber           String?   // "A2894"
-  regionalVariant       String?   // "US", "EU", "Global"
-
-  // Hardware Details (15% - from GSMArena)
-  processor             String?   // "A17 Pro chip"
-  processorCores        String?   // "Hexa-core"
-  ram                   String?   // "8GB"
-  storage               String?   // "256GB"
-  displaySize           String?   // "6.7 inches"
-  displayResolution     String?   // "2796 x 1290"
-  displayType           String?   // "Super Retina XDR"
-  displayRefreshRate    String?   // "120Hz ProMotion"
-  mainCamera            String?   // "48MP"
-  frontCamera           String?   // "12MP"
-  batteryCapacity       String?   // "4,422 mAh"
-  os                    String?   // "iOS 17"
-  connectivity          String?   // "5G, Wi-Fi 6E"
-  dimensions            String?   // "160.9 x 77.6 x 8.25 mm"
-  weight                String?   // "221 g"
-  buildMaterials        String?   // "Titanium frame, glass back"
-  waterResistance       String?   // "IP68"
-
-  // Technical Specifications (35%)
-  specCompleteness      Decimal   @default(70) @db.Decimal(5, 2) // How complete is spec sheet
-  specAccuracy          Decimal   @default(70) @db.Decimal(5, 2) // Verified by manufacturer
-
-  // Category-Specific Features (30%)
-  featureMatchScore     Decimal   @default(70) @db.Decimal(5, 2)
-  featureCompleteness   Decimal   @default(70) @db.Decimal(5, 2)
-  upgradeIndicator      String?   // "Latest", "Mid-range", "Budget"
-
-  // Data sources
-  gsmarenaUrl           String?   // Link to GSMArena page
-  officialSpecUrl       String?   // Link to manufacturer spec sheet
-  dataSourceUrls        Json?     // Additional sources
-
-  lastSpecUpdate        DateTime? // Last time specs were verified
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Relations
-  products              Product[] // All units of this model
-
-  @@index([modelIdentifier])
-  @@index([modelName])
-  @@index([modelYear])
-  @@map("veritas_product_specs")
-}
-
-/// Table 3: Seller Trust Profile (Seller Level)
-/// Cardinality: 1 seller → MANY listings
-/// Update Frequency: 7 days
-/// Data Sources: eBay API, platform seller data
-/// Cache Strategy: 7 days
-model VeritasSellerProfile {
-  id                    String    @id @default(cuid())
-  sellerIdentifier      String    @unique // eBay username, platform seller ID
-  sellerPlatform        String    // "ebay", "amazon", "apple_certified"
-
-  // Seller Reputation (40% of Seller Trust)
-  sellerRating          Decimal   @default(0) @db.Decimal(3, 2) // 0-5 stars
-  transactionCount      Int       @default(0)
-  positiveFeedbackPct   Decimal   @default(0) @db.Decimal(5, 2) // 0-100%
-  accountAgeDays        Int       @default(0)
-  isVerified            Boolean   @default(false)
-  isTopRated            Boolean   @default(false)
-  sellerBadges          String[]  @default([])
-  sellerLocation        String?
-
-  // Response & Service (25%)
-  avgResponseTimeHours  Decimal?  @db.Decimal(5, 2)
-  responseRate          Decimal   @default(0) @db.Decimal(5, 2) // 0-100%
-  serviceQualityScore   Decimal   @default(70) @db.Decimal(5, 2)
-  communicationScore    Decimal   @default(70) @db.Decimal(5, 2)
-
-  // Transaction History (20%)
-  disputeRate           Decimal   @default(0) @db.Decimal(5, 2) // %
-  refundRate            Decimal   @default(0) @db.Decimal(5, 2) // %
-  chargebackRate        Decimal   @default(0) @db.Decimal(5, 2) // %
-  cancellationRate      Decimal   @default(0) @db.Decimal(5, 2) // %
-  repeatCustomerRate    Decimal   @default(0) @db.Decimal(5, 2) // %
-
-  // Reliability Indicators (15%)
-  onTimeShippingPct     Decimal   @default(0) @db.Decimal(5, 2)
-  accurateDescPct       Decimal   @default(0) @db.Decimal(5, 2)
-  packagingQuality      Decimal   @default(70) @db.Decimal(5, 2)
-  itemAsDescribedPct    Decimal   @default(0) @db.Decimal(5, 2)
-  damageRate            Decimal   @default(0) @db.Decimal(5, 2)
-  returnRequestRate     Decimal   @default(0) @db.Decimal(5, 2)
-
-  // Composite score
-  sellerPerformanceIndex Decimal  @default(70) @db.Decimal(5, 2) // 0-100
-
-  // Data sources
-  ebaySellerUrl         String?
-  platformProfileUrl    String?
-  dataSourceUrls        Json?
-
-  lastDataUpdate        DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Relations
-  products              Product[] // All listings from this seller
-
-  @@index([sellerIdentifier])
-  @@index([sellerPlatform])
-  @@index([sellerPerformanceIndex])
-  @@index([isTopRated])
-  @@map("veritas_seller_profiles")
-}
-
-/// Table 4: Security & Safety Policies (Platform Level)
-/// Cardinality: 1 platform → ALL products
-/// Update Frequency: 90 days (policies change rarely)
-/// Data Sources: Platform security policies, compliance checks
-/// Cache Strategy: 90 days
-model VeritasSecurityPolicy {
-  id                    String    @id @default(cuid())
-  platformName          String    @unique // "ebay", "apple.com", "amazon"
-
-  // Payment Security (40%)
-  paymentSecurity       Decimal   @default(70) @db.Decimal(5, 2)
-  fraudProtection       Decimal   @default(70) @db.Decimal(5, 2)
-  paymentEncryption     Decimal   @default(70) @db.Decimal(5, 2)
-  supportedPayments     String[]  @default([]) // ["credit_card", "paypal", "apple_pay"]
-
-  // Buyer Protection (30%)
-  buyerProtection       Decimal   @default(70) @db.Decimal(5, 2)
-  disputeResolution     Decimal   @default(70) @db.Decimal(5, 2)
-  moneyBackGuarantee    Boolean   @default(false)
-  maxProtectionAmount   Decimal?  @db.Decimal(10, 2)
-
-  // Data Security (20%)
-  dataPrivacy           Decimal   @default(70) @db.Decimal(5, 2)
-  deviceSecurity        Decimal   @default(70) @db.Decimal(5, 2)
-  gdprCompliant         Boolean   @default(false)
-  pciCompliant          Boolean   @default(false)
-  sslEncryption         Boolean   @default(true)
-
-  // Platform Trust (10%)
-  platformReputation    Decimal   @default(70) @db.Decimal(5, 2)
-  platformAge           Int?      // Years in operation
-  trustpilotScore       Decimal?  @db.Decimal(3, 2) // 0-5
-  bbbRating             String?   // "A+", "A", etc.
-
-  // Policy URLs
-  privacyPolicyUrl      String?
-  termsOfServiceUrl     String?
-  buyerProtectionUrl    String?
-
-  lastPolicyUpdate      DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Relations
-  products              Product[] // All products on this platform
-
-  @@index([platformName])
-  @@map("veritas_security_policies")
-}
-
-/// Table 5: Product Quality Data (Product Level - Unique per listing)
-/// Cardinality: 1 product → 1 quality record
-/// Update Frequency: 1 day (condition doesn't change often)
-/// Data Sources: Product listing, AI vision, warranty APIs
-model VeritasProductQuality {
-  id                    String    @id @default(cuid())
-  productId             String    @unique
-
-  // Physical Condition (45%)
-  conditionScore        Decimal   @default(70) @db.Decimal(5, 2) // 0-100
-  visualDefects         Decimal   @default(70) @db.Decimal(5, 2) // AI vision analysis
-  functionalCompleteness Decimal  @default(70) @db.Decimal(5, 2)
-  wearTearLevel         Decimal   @default(70) @db.Decimal(5, 2)
-  missingComponents     Decimal   @default(90) @db.Decimal(5, 2)
-  materialQuality       Decimal   @default(70) @db.Decimal(5, 2)
-
-  // Authenticity & Verification (20%)
-  authenticationStatus  String?   // "verified", "certified", "unverified"
-  serialNumber          String?
-  serialVerified        Boolean   @default(false)
-  counterfeitRisk       Decimal   @default(0) @db.Decimal(5, 2) // 0-100 (lower is better)
-  documentationComplete Boolean   @default(false)
-  imeiVerified          Boolean?  // For phones
-
-  // Functional Testing (15%)
-  hardwareFunctionality Decimal   @default(70) @db.Decimal(5, 2)
-  softwarePerformance   Decimal   @default(70) @db.Decimal(5, 2)
-  batteryHealth         Decimal?  @db.Decimal(5, 2) // 0-100%
-  screenQuality         Decimal?  @db.Decimal(5, 2)
-  cameraFunctionality   Decimal?  @db.Decimal(5, 2)
-
-  // Age & History (10%)
-  productAgeDays        Int?
-  usageHours            Int?
-  previousOwnerCount    Int?
-  repairHistory         Json?     // Array of repairs
-  manufacturingDate     DateTime?
-
-  // Warranty & Support (10%)
-  warrantyStatus        String?   // "active", "expired", "n/a"
-  warrantyMonths        Int?
-  warrantyProvider      String?   // "manufacturer", "seller", "third_party"
-  returnPolicyDays      Int?
-  supportAvailability   Decimal   @default(70) @db.Decimal(5, 2)
-
-  // AI Analysis
-  photoAnalysisScore    Decimal?  @db.Decimal(5, 2) // AI vision confidence
-  descriptionNLPScore   Decimal?  @db.Decimal(5, 2) // NLP analysis
-
-  // Data sources
-  warrantyApiData       Json?     // Apple/Dell API response
-  aiVisionReport        Json?     // Vision AI analysis
-
-  lastQualityCheck      DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Relations
-  product               Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-  @@index([authenticationStatus])
-  @@index([warrantyStatus])
-  @@map("veritas_product_quality")
-}
-
-/// Table 6: Market Data (Time-Series - Multiple records per product)
-/// Cardinality: 1 product → MANY snapshots
-/// Update Frequency: 1 hour (pricing changes frequently)
-/// Data Sources: eBay market data, price tracking APIs
-model VeritasMarketData {
-  id                    String    @id @default(cuid())
-  productId             String
-  snapshotDate          DateTime  @default(now())
-
-  // Price Positioning (40%)
-  currentPrice          Decimal   @db.Decimal(10, 2)
-  marketAvgPrice        Decimal?  @db.Decimal(10, 2)
-  priceVsMarket         Decimal?  @db.Decimal(5, 2) // % above/below market
-  discountPct           Decimal   @default(0) @db.Decimal(5, 2)
-  valueForMoneyIndex    Decimal?  @db.Decimal(5, 2)
-  priceCompetitiveness  Decimal?  @db.Decimal(5, 2)
-
-  // Competitive Analysis (30%)
-  competitorCount       Int       @default(0)
-  lowestCompPrice       Decimal?  @db.Decimal(10, 2)
-  highestCompPrice      Decimal?  @db.Decimal(10, 2)
-  medianCompPrice       Decimal?  @db.Decimal(10, 2)
-  pricePercentile       Decimal?  @db.Decimal(5, 2) // Where price ranks (0-100)
-  bestPriceIndicator    Boolean   @default(false)
-  priceStability        Decimal?  @db.Decimal(5, 2) // Low volatility = high score
-
-  // Total Cost of Ownership (20%)
-  shippingCost          Decimal   @default(0) @db.Decimal(10, 2)
-  taxAmount             Decimal?  @db.Decimal(10, 2)
-  hiddenFees            Decimal   @default(0) @db.Decimal(10, 2)
-  warrantyValue         Decimal?  @db.Decimal(10, 2)
-  totalCost             Decimal?  @db.Decimal(10, 2) // price + shipping + fees
-
-  // Market Dynamics (10%)
-  priceTrend            String?   // "rising", "falling", "stable"
-  demandLevel           Decimal?  @db.Decimal(5, 2) // Sales velocity
-  supplyAvailability    Int?      // # of similar listings
-  seasonalFactor        Decimal?  @db.Decimal(5, 2)
-
-  // Market comparison data
-  ebayListings          Json?     // Array of comp listings
-  priceHistory          Json?     // Historical prices
-
-  createdAt             DateTime  @default(now())
-
-  // Relations
-  product               Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-  @@index([snapshotDate])
-  @@index([currentPrice])
-  @@map("veritas_market_data")
-}
-
-/// Table 7: Sustainability Data (Product + Certification Hybrid)
-/// Cardinality: 1 product → 1 sustainability record
-/// Update Frequency: 30 days (certifications change rarely)
-/// Data Sources: iFixit, Energy Star, lifecycle databases
-model VeritasSustainability {
-  id                    String    @id @default(cuid())
-  productId             String    @unique
-
-  // Environmental Impact (40%)
-  carbonFootprintKg     Decimal?  @db.Decimal(10, 2) // kg CO2
-  carbonReduction       Decimal   @default(70) @db.Decimal(5, 2) // vs. new
-  eWastePrevention      Decimal   @default(70) @db.Decimal(5, 2)
-  resourceConservation  Decimal   @default(70) @db.Decimal(5, 2)
-  manufacturingImpact   Decimal?  @db.Decimal(5, 2)
-
-  // Circular Economy (30%)
-  reuseFactor           Decimal   @default(70) @db.Decimal(5, 2)
-  recyclingPotential    Decimal   @default(70) @db.Decimal(5, 2)
-  refurbQuality         Decimal   @default(70) @db.Decimal(5, 2)
-  upcyclingPotential    Decimal?  @db.Decimal(5, 2)
-
-  // Product Longevity (20%)
-  expectedLifespanYears Int?
-  repairabilityScore    Decimal?  @db.Decimal(4, 1) // 0-10 (iFixit)
-  softwareSupportYears  Int?
-  partsAvailable        Boolean   @default(false)
-  repairDifficulty      String?   // "easy", "moderate", "difficult"
-
-  // Certifications (10%)
-  energyStarCertified   Boolean   @default(false)
-  energyStarRating      String?   // "Most Efficient", "Certified"
-  epeatRating           String?   // "Gold", "Silver", "Bronze"
-  refurbCertification   String?   // "apple_certified", "manufacturer", "third_party"
-  otherCertifications   String[]  @default([])
-
-  // Data sources
-  ifixitUrl             String?
-  energyStarUrl         String?
-  epeatUrl              String?
-  dataSourceUrls        Json?
-
-  lastCertCheck         DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Relations
-  product               Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-  @@index([energyStarCertified])
-  @@index([repairabilityScore])
-  @@map("veritas_sustainability")
-}
-
-/// Table 8: User Experience Data (Listing Level)
-/// Cardinality: 1 product → 1 UX record
-/// Update Frequency: 7 days (listing quality stable)
-/// Data Sources: Content analysis, AI image analysis
-model VeritasUserExperience {
-  id                    String    @id @default(cuid())
-  productId             String    @unique
-
-  // Listing Quality (40%)
-  pageQuality           Decimal   @default(70) @db.Decimal(5, 2)
-  descriptionComplete   Decimal   @default(70) @db.Decimal(5, 2)
-  transparencyScore     Decimal   @default(70) @db.Decimal(5, 2)
-  descriptionWordCount  Int?
-  hasKeySpecs           Boolean   @default(false)
-
-  // Visual Presentation (30%)
-  imageQuality          Decimal   @default(70) @db.Decimal(5, 2)
-  imageCount            Int       @default(0)
-  hasMultipleAngles     Boolean   @default(false)
-  imageResolution       String?   // "high", "medium", "low"
-  hasVideoContent       Boolean   @default(false)
-
-  // Purchase Experience (20%)
-  checkoutEase          Decimal   @default(70) @db.Decimal(5, 2)
-  navigationQuality     Decimal   @default(70) @db.Decimal(5, 2)
-  mobileOptimized       Boolean   @default(true)
-  pageLoadSpeed         Decimal?  @db.Decimal(5, 2) // seconds
-
-  // Customer Support (10%)
-  supportAccessibility  Decimal   @default(70) @db.Decimal(5, 2)
-  faqQuality            Decimal   @default(70) @db.Decimal(5, 2)
-  chatAvailable         Boolean   @default(false)
-  phoneSupport          Boolean   @default(false)
-
-  // AI Analysis
-  contentAnalysisScore  Decimal?  @db.Decimal(5, 2)
-  imageAIScore          Decimal?  @db.Decimal(5, 2)
-
-  lastUXCheck           DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Relations
-  product               Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-  @@index([pageQuality])
-  @@map("veritas_user_experience")
 }

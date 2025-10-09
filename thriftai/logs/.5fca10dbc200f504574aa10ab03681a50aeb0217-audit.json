@@ -44,6 +44,26 @@
             "date": 1759602816290,
             "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-04.log",
             "hash": "1299e2dfa13010dfb55ac801c39aa7c8f94df41a61b0c28cb512a904d0c7c9ba"
+        },
+        {
+            "date": 1759765463691,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-06.log",
+            "hash": "d0b98c339162f821bcc24a7eee4c301a997762a18dee03c8a8e8308fcf490483"
+        },
+        {
+            "date": 1759851181211,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-07.log",
+            "hash": "7b84fa5186d3395496d4d736fe468aafecbba5f3249c81d282502d55d9383b55"
+        },
+        {
+            "date": 1759930122101,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-08.log",
+            "hash": "a134f3a0bdf94e33917962279ea9ae69adc7f68c1192a3c021a8d9445aebc210"
+        },
+        {
+            "date": 1760021988619,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2025-10-09.log",
+            "hash": "d7be1910999409f52f3172a96f6fc69e4ce4b5606901c9e6dcc8bf8d9b346600"
         }
     ],
     "hashType": "sha256"

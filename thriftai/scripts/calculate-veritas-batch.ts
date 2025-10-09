@@ -17,9 +17,7 @@ async function calculateBatchScores(limit: number = 100) {
     const products = await prisma.product.findMany({
       where: {
         isAvailable: true,
-        veritasScore: {
-          none: {}
-        }
+        aiScore: null
       },
       take: limit,
       orderBy: { createdAt: 'desc' }

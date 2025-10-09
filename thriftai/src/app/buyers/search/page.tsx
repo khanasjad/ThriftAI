@@ -124,6 +124,20 @@ interface SearchResponse {
     overallInsight?: string
     recommendations?: string[]
   }
+  // Claude semantic search response format
+  query?: {
+    original: string
+    normalized: string
+    intent: string
+    confidence: number
+  }
+  results?: any[] // Claude results format
+  insights?: {
+    overallAnalysis: string
+    topRecommendation?: string
+    priceInsight?: string
+    qualityInsight?: string
+  }
 }
 
 const DEFAULT_FILTERS: ProductFiltersState = {
@@ -418,6 +432,79 @@ export default function SearchResults() {
     }
   }
 
+  // Normalize Claude search response to standard format
+  const normalizeClaudeResponse = (claudeData: any): SearchResponse => {
+    // If it's already in standard format, return as-is
+    if (claudeData.products && claudeData.metadata) {
+      return claudeData
+    }
+
+    // Convert Claude format to standard format
+    const products = (claudeData.results || []).map((result: any) => ({
+      asin: result.id,
+      title: result.name,
+      brand: result.brand || 'Various',
+      category: result.category,
+      price: {
+        current: result.price,
+        original: result.price,
+        currency: 'USD',
+        discountPercentage: 0
+      },
+      availability: {
+        inStock: true,
+        quantity: 1,
+        shippingDays: 5,
+        shippingCost: 0
+      },
+      reviews: {
+        rating: 4.0,
+        count: 0,
+        verified: true
+      },
+      images: result.imageUrl ? [result.imageUrl] : ['/placeholder-image.jpg'],
+      description: result.description || result.claudeReasoning || result.name,
+      seller: {
+        name: 'ThriftAI',
+        rating: 4.5,
+        verified: true
+      },
+      specifications: {
+        category: result.category,
+        condition: 'Used - Good'
+      },
+      // Claude-specific fields
+      intelligenceScore: result.matchScore,
+      reasoning: result.claudeReasoning
+    }))
+
+    return {
+      products,
+      metadata: {
+        total: products.length,
+        page: 1,
+        limit: products.length,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+        filters: {
+          availableCategories: [],
+          availableBrands: [],
+          priceRange: { min: 0, max: 1000 },
+          availableConditions: [],
+          availableSizes: []
+        }
+      },
+      query: claudeData.query,
+      insights: claudeData.insights,
+      aiInsights: {
+        intelligenceApplied: true,
+        queryUnderstanding: claudeData.query?.intent,
+        overallInsight: claudeData.insights?.overallAnalysis
+      }
+    }
+  }
+
   // Main search effect - only trigger when query changes or component mounts
   useEffect(() => {
     const currentQuery = searchParams.get('q')
@@ -427,6 +514,24 @@ export default function SearchResults() {
       setSearchResults(null)
       searchTriggeredRef.current = false
       return
+    }
+
+    // Check if we have Claude search results in sessionStorage
+    const storedResults = sessionStorage.getItem('searchResults')
+    const searchMethod = sessionStorage.getItem('searchMethod')
+
+    if (storedResults && searchMethod === 'claude') {
+      try {
+        const claudeData = JSON.parse(storedResults)
+        const normalizedData = normalizeClaudeResponse(claudeData)
+        setSearchResults(normalizedData)
+        setLoading(false)
+        sessionStorage.removeItem('searchResults') // Clear after reading
+        sessionStorage.removeItem('searchMethod')
+        return
+      } catch (err) {
+        console.error('Failed to parse Claude search results:', err)
+      }
     }
 
     // Reset search state when query changes
@@ -665,6 +770,16 @@ export default function SearchResults() {
             )}
           </div>
 
+          {/* Claude Reasoning */}
+          {product.reasoning && (
+            <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-xs text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700">
+              <div className="flex items-start gap-1">
+                <span className="flex-shrink-0">🧠</span>
+                <p className="flex-1">{product.reasoning}</p>
+              </div>
+            </div>
+          )}
+
           {/* Price Section */}
           <div className="product-pricing">
             <div className="product-price-row">
@@ -824,6 +939,74 @@ export default function SearchResults() {
           <h1 className="text-4xl font-light mb-4 page-header">
             Search Results for "{displayQuery}"
           </h1>
+
+          {/* Claude Insights Banner */}
+          {searchResults?.insights && (
+            <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-1">
+                  <span className="text-2xl">🧠</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                    Claude AI Analysis
+                  </h3>
+
+                  {/* Query Understanding */}
+                  {searchResults.query?.intent && (
+                    <p className="text-sm text-purple-800 dark:text-purple-200 mb-2">
+                      <strong>Intent:</strong> {searchResults.query.intent}
+                      {searchResults.query.confidence && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-800 text-xs">
+                          {Math.round(searchResults.query.confidence * 100)}% confident
+                        </span>
+                      )}
+                    </p>
+                  )}
+
+                  {/* Overall Analysis */}
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    {searchResults.insights.overallAnalysis}
+                  </p>
+
+                  {/* Insights Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {searchResults.insights.topRecommendation && (
+                      <div className="p-3 rounded bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700">
+                        <p className="text-xs font-semibold text-green-900 dark:text-green-100 mb-1">
+                          ⭐ Top Recommendation
+                        </p>
+                        <p className="text-xs text-green-800 dark:text-green-200">
+                          {searchResults.insights.topRecommendation}
+                        </p>
+                      </div>
+                    )}
+                    {searchResults.insights.priceInsight && (
+                      <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700">
+                        <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                          💰 Price Insight
+                        </p>
+                        <p className="text-xs text-blue-800 dark:text-blue-200">
+                          {searchResults.insights.priceInsight}
+                        </p>
+                      </div>
+                    )}
+                    {searchResults.insights.qualityInsight && (
+                      <div className="p-3 rounded bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700">
+                        <p className="text-xs font-semibold text-orange-900 dark:text-orange-100 mb-1">
+                          ✨ Quality Insight
+                        </p>
+                        <p className="text-xs text-orange-800 dark:text-orange-200">
+                          {searchResults.insights.qualityInsight}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <p className="text-lg page-subtitle">
               {searchResults?.metadata.total || 0} products found

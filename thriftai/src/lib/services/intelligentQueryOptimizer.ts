@@ -138,6 +138,33 @@ export class IntelligentQueryOptimizer {
       }
     }
 
+    // EXCLUDE keywords - prevent matching products with these terms
+    // Example: searching "phone" should exclude "headphone"
+    if (intent.excludeKeywords && intent.excludeKeywords.length > 0) {
+      const excludeConditions: any[] = []
+
+      intent.excludeKeywords.forEach(keyword => {
+        // Exclude if ANY field contains the excluded keyword
+        // Logic: NOT (name contains X OR description contains X OR brand contains X)
+        excludeConditions.push({
+          NOT: {
+            OR: [
+              { name: { contains: keyword, mode: 'insensitive' } },
+              { description: { contains: keyword, mode: 'insensitive' } },
+              { brand: { contains: keyword, mode: 'insensitive' } }
+            ]
+          }
+        })
+      })
+
+      // Apply all exclude conditions (must NOT match any of them)
+      if (where.AND) {
+        where.AND = [...where.AND, ...excludeConditions]
+      } else {
+        where.AND = excludeConditions
+      }
+    }
+
     return where
   }
 

@@ -48,63 +48,66 @@ export class SafeQueryExecutor {
         AND: []
       }
 
-      // NEW INTELLIGENT SEARCH LOGIC:
-      // When we have categories (from AI category mapping), prioritize them
-      // Search terms become OPTIONAL to boost relevance, not required
+      // NEW INTELLIGENT SEARCH LOGIC WITH REQUIRED VS OPTIONAL TERMS:
+      // Required terms = core product type (must match at least one)
+      // Optional terms = qualifiers (do not affect filtering, only for Claude's understanding)
+      // Categories = from AI category mapping
 
+      const hasRequiredTerms = filters.requiredTerms && filters.requiredTerms.length > 0
       const hasSearchTerms = filters.searchTerms && filters.searchTerms.length > 0
       const hasCategories = filters.categories && filters.categories.length > 0
 
-      if (hasSearchTerms || hasCategories) {
-        const normalizedTerms = hasSearchTerms
-          ? filters.searchTerms!.map(term => this.normalizeSearchTerm(term))
-          : []
-
+      if (hasRequiredTerms || hasSearchTerms || hasCategories) {
         logger.info('🤖 Using Claude AI-generated search terms', {
-          original: filters.searchTerms || [],
-          normalized: normalizedTerms,
+          requiredTerms: filters.requiredTerms || [],
+          optionalTerms: filters.optionalTerms || [],
+          searchTerms: filters.searchTerms || [],
           categories: filters.categories || []
         })
 
-        // Build search conditions for search terms
-        const searchConditions: Prisma.ProductWhereInput[] = []
-        normalizedTerms.forEach(term => {
-          searchConditions.push({
-            OR: [
-              { name: { contains: term, mode: 'insensitive' } },
-              { description: { contains: term, mode: 'insensitive' } },
-              { brand: { contains: term, mode: 'insensitive' } }
-            ]
+        // REQUIRED TERMS: At least ONE must match (OR logic within required group)
+        if (hasRequiredTerms) {
+          const requiredConditions: Prisma.ProductWhereInput[] = []
+          filters.requiredTerms!.forEach(term => {
+            const normalizedTerm = this.normalizeSearchTerm(term)
+            requiredConditions.push({
+              OR: [
+                { name: { contains: normalizedTerm, mode: 'insensitive' } },
+                { description: { contains: normalizedTerm, mode: 'insensitive' } },
+                { brand: { contains: normalizedTerm, mode: 'insensitive' } }
+              ]
+            })
           })
-        })
 
-        // SEMANTIC SEARCH LOGIC:
-        // For semantic queries, we need BOTH category filtering AND keyword matching
-        // Example: "rare collectibles" → categories: [JEWELRY, WATCHES, ACCESSORIES] + keywords: [rare, limited, exclusive, vintage, designer]
-        // This ensures we search within relevant categories for products matching semantic keywords
+          whereClause.AND!.push({
+            OR: requiredConditions  // At least ONE required term must match
+          })
+        }
+        // Fallback to old searchTerms if no required terms (backward compatibility)
+        else if (hasSearchTerms) {
+          const searchConditions: Prisma.ProductWhereInput[] = []
+          filters.searchTerms!.forEach(term => {
+            const normalizedTerm = this.normalizeSearchTerm(term)
+            searchConditions.push({
+              OR: [
+                { name: { contains: normalizedTerm, mode: 'insensitive' } },
+                { description: { contains: normalizedTerm, mode: 'insensitive' } },
+                { brand: { contains: normalizedTerm, mode: 'insensitive' } }
+              ]
+            })
+          })
 
-        if (hasCategories && searchConditions.length > 0) {
-          // BEST CASE: Both categories and semantic keywords
-          // Find products in relevant categories that match semantic keywords
+          whereClause.AND!.push({
+            OR: searchConditions  // Match ANY search term
+          })
+        }
+
+        // CATEGORY FILTER: Apply if categories detected
+        if (hasCategories) {
           whereClause.AND!.push({
             category: {
               in: filters.categories!
             }
-          })
-          whereClause.AND!.push({
-            OR: searchConditions  // Match ANY semantic keyword
-          })
-        } else if (hasCategories) {
-          // Only categories - show all products in those categories
-          whereClause.AND!.push({
-            category: {
-              in: filters.categories!
-            }
-          })
-        } else if (searchConditions.length > 0) {
-          // Only keywords - search across ALL categories
-          whereClause.AND!.push({
-            OR: searchConditions
           })
         }
       }
@@ -139,6 +142,23 @@ export class SafeQueryExecutor {
           condition: {
             in: filters.condition
           }
+        })
+      }
+
+      // EXCLUDE TERMS: Filter out products containing excluded keywords
+      // Example: searching "phone" excludes products with "headphone" in name/description/brand
+      if (filters.excludeTerms && filters.excludeTerms.length > 0) {
+        filters.excludeTerms.forEach(excludeTerm => {
+          const normalizedTerm = this.normalizeSearchTerm(excludeTerm)
+          whereClause.AND!.push({
+            NOT: {
+              OR: [
+                { name: { contains: normalizedTerm, mode: 'insensitive' } },
+                { description: { contains: normalizedTerm, mode: 'insensitive' } },
+                { brand: { contains: normalizedTerm, mode: 'insensitive' } }
+              ]
+            }
+          })
         })
       }
 
