@@ -1,87 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { logger } from '@/lib/logger'
 import { v4 as uuidv4 } from 'uuid'
 
+// GET - Get cart items for current session
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const sessionId = searchParams.get('sessionId')
-    const buyerId = searchParams.get('buyerId')
-    const session = await getServerSession(authOptions)
-
-    if (!sessionId && !buyerId) {
-      return NextResponse.json(
-        { error: 'Session ID or Buyer ID required' },
-        { status: 400 }
-      )
-    }
-
-    // Prioritize logged-in user's cart
-    const where: any = {}
-    if (session?.user?.id) {
-      where.buyerId = session.user.id
-    } else if (buyerId) {
-      where.buyerId = buyerId
-    } else {
-      where.sessionId = sessionId
-      where.buyerId = null
-    }
+    const sessionId = request.cookies.get('sessionId')?.value || uuidv4()
 
     const cartItems = await prisma.cartItem.findMany({
-      where,
+      where: {
+        sessionId
+      },
       include: {
         product: {
-          include: {
-            seller: {
-              select: {
-                businessName: true,
-                rating: true
-              }
-            }
+          select: {
+            id: true,
+            name: true,
+            brand: true,
+            price: true,
+            imageUrl: true,
+            condition: true,
+            isAvailable: true,
+            stockQuantity: true,
+            shippingCost: true
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: {
+        createdAt: 'desc'
+      }
     })
 
+    // Calculate totals
     const subtotal = cartItems.reduce((sum, item) => {
       return sum + (item.priceAtTime || item.product.price) * item.quantity
     }, 0)
 
-    const count = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+    const shipping = cartItems.reduce((sum, item) => {
+      return sum + (item.product.shippingCost || 0)
+    }, 0)
 
-    logger.info('📦 Cart fetched', {
-      sessionId,
-      buyerId: session?.user?.id || buyerId,
-      itemCount: cartItems.length,
-      totalQuantity: count,
-      subtotal
+    const total = subtotal + shipping
+
+    const response = NextResponse.json({
+      items: cartItems,
+      summary: {
+        itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+        subtotal: Math.round(subtotal * 100) / 100,
+        shipping: Math.round(shipping * 100) / 100,
+        total: Math.round(total * 100) / 100
+      }
     })
 
-    return NextResponse.json({
-      cart: cartItems,
-      items: cartItems, // backward compatibility
-      count,
-      subtotal,
-      total: subtotal
-    })
+    // Set session cookie if new
+    if (!request.cookies.get('sessionId')) {
+      response.cookies.set('sessionId', sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30 // 30 days
+      })
+    }
+
+    return response
   } catch (error) {
-    logger.error('❌ Cart fetch error', error)
+    console.error('Cart fetch error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch cart' },
       { status: 500 }
     )
   }
 }
 
+// POST - Add item to cart
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { productId, quantity = 1, sessionId, buyerId } = body
-    const session = await getServerSession(authOptions)
+    const { productId, quantity = 1 } = body
 
     if (!productId) {
       return NextResponse.json(
@@ -90,16 +85,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!sessionId && !buyerId) {
-      return NextResponse.json(
-        { error: 'Session ID or Buyer ID required' },
-        { status: 400 }
-      )
-    }
-
-    // Check if product exists
+    // Verify product exists and is available
     const product = await prisma.product.findUnique({
-      where: { id: productId }
+      where: { id: productId },
+      select: {
+        id: true,
+        price: true,
+        isAvailable: true,
+        stockQuantity: true
+      }
     })
 
     if (!product) {
@@ -116,12 +110,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if item already exists in cart
+    if (product.stockQuantity < quantity) {
+      return NextResponse.json(
+        { error: 'Insufficient stock' },
+        { status: 400 }
+      )
+    }
+
+    let sessionId = request.cookies.get('sessionId')?.value
+    if (!sessionId) {
+      sessionId = uuidv4()
+    }
+
+    // Check if item already in cart
     const existingItem = await prisma.cartItem.findFirst({
       where: {
-        productId,
-        ...(session?.user?.id ? { buyerId: session.user.id } :
-            buyerId ? { buyerId } : { sessionId, buyerId: null })
+        sessionId,
+        productId
       }
     })
 
@@ -132,123 +137,134 @@ export async function POST(request: NextRequest) {
       cartItem = await prisma.cartItem.update({
         where: { id: existingItem.id },
         data: {
-          quantity: existingItem.quantity + quantity,
-          priceAtTime: product.price
+          quantity: existingItem.quantity + quantity
         },
         include: {
           product: {
-            include: {
-              seller: {
-                select: {
-                  businessName: true,
-                  rating: true
-                }
-              }
+            select: {
+              id: true,
+              name: true,
+              brand: true,
+              price: true,
+              imageUrl: true,
+              condition: true
             }
           }
         }
-      })
-
-      logger.info('🔄 Cart item updated', {
-        cartItemId: cartItem.id,
-        productId,
-        newQuantity: cartItem.quantity
       })
     } else {
       // Create new cart item
       cartItem = await prisma.cartItem.create({
         data: {
-          id: uuidv4(),
+          sessionId,
           productId,
           quantity,
-          sessionId: sessionId || uuidv4(),
-          buyerId: session?.user?.id || buyerId || null,
           priceAtTime: product.price
         },
         include: {
           product: {
-            include: {
-              seller: {
-                select: {
-                  businessName: true,
-                  rating: true
-                }
-              }
+            select: {
+              id: true,
+              name: true,
+              brand: true,
+              price: true,
+              imageUrl: true,
+              condition: true
             }
           }
         }
       })
+    }
 
-      logger.info('➕ Cart item added', {
-        cartItemId: cartItem.id,
-        productId,
-        quantity
+    const response = NextResponse.json({
+      message: 'Item added to cart',
+      item: cartItem
+    })
+
+    // Set session cookie if new
+    if (!request.cookies.get('sessionId')) {
+      response.cookies.set('sessionId', sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30 // 30 days
       })
     }
 
-    // Update product analytics
-    await prisma.product.update({
-      where: { id: productId },
-      data: {
-        cartAdditionCount: { increment: 1 },
-        lastCartAddedAt: new Date()
-      }
-    })
-
-    return NextResponse.json({
-      success: true,
-      cartItem,
-      message: existingItem ? 'Cart updated' : 'Added to cart'
-    }, { status: 201 })
+    return response
   } catch (error) {
-    logger.error('❌ Add to cart error', error)
+    console.error('Add to cart error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to add item to cart' },
       { status: 500 }
     )
   }
 }
 
-// DELETE /api/cart?id=xxx - Remove item from cart
+// DELETE - Remove item from cart or clear cart
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const itemId = searchParams.get('itemId')
+    const sessionId = request.cookies.get('sessionId')?.value
 
-    if (!id) {
+    if (!sessionId) {
       return NextResponse.json(
-        { error: 'Cart item ID is required' },
+        { error: 'No cart session found' },
         { status: 400 }
       )
     }
 
-    await prisma.cartItem.delete({
-      where: { id }
-    })
+    if (itemId) {
+      // Delete specific item
+      await prisma.cartItem.delete({
+        where: {
+          id: itemId,
+          sessionId // Ensure user can only delete their own items
+        }
+      })
 
-    logger.info('🗑️ Cart item removed', { cartItemId: id })
+      return NextResponse.json({
+        message: 'Item removed from cart'
+      })
+    } else {
+      // Clear entire cart
+      await prisma.cartItem.deleteMany({
+        where: {
+          sessionId
+        }
+      })
 
-    return NextResponse.json({
-      success: true,
-      message: 'Item removed from cart'
-    })
+      return NextResponse.json({
+        message: 'Cart cleared'
+      })
+    }
   } catch (error) {
-    logger.error('❌ Remove cart item error', error)
+    console.error('Delete cart item error:', error)
     return NextResponse.json(
-      { error: 'Failed to remove item' },
+      { error: 'Failed to remove item from cart' },
       { status: 500 }
     )
   }
 }
 
-// PATCH /api/cart - Update cart item quantity
+// PATCH - Update cart item quantity
 export async function PATCH(request: NextRequest) {
   try {
-    const { id, quantity } = await request.json()
+    const body = await request.json()
+    const { itemId, quantity } = body
+    const sessionId = request.cookies.get('sessionId')?.value
 
-    if (!id || quantity === undefined) {
+    if (!sessionId) {
       return NextResponse.json(
-        { error: 'Cart item ID and quantity are required' },
+        { error: 'No cart session found' },
+        { status: 400 }
+      )
+    }
+
+    if (!itemId || quantity === undefined) {
+      return NextResponse.json(
+        { error: 'Item ID and quantity are required' },
         { status: 400 }
       )
     }
@@ -260,26 +276,49 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    // Update quantity
     const cartItem = await prisma.cartItem.update({
-      where: { id },
-      data: { quantity },
-      include: { product: true }
+      where: {
+        id: itemId,
+        sessionId // Ensure user can only update their own items
+      },
+      data: {
+        quantity
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            brand: true,
+            price: true,
+            imageUrl: true,
+            condition: true,
+            stockQuantity: true
+          }
+        }
+      }
     })
 
-    logger.info('📝 Cart item quantity updated', {
-      cartItemId: id,
-      newQuantity: quantity
-    })
+    // Check stock availability
+    if (cartItem.product.stockQuantity < quantity) {
+      return NextResponse.json(
+        {
+          error: 'Insufficient stock',
+          availableStock: cartItem.product.stockQuantity
+        },
+        { status: 400 }
+      )
+    }
 
     return NextResponse.json({
-      success: true,
-      cartItem,
-      message: 'Quantity updated'
+      message: 'Cart item updated',
+      item: cartItem
     })
   } catch (error) {
-    logger.error('❌ Update cart item error', error)
+    console.error('Update cart item error:', error)
     return NextResponse.json(
-      { error: 'Failed to update quantity' },
+      { error: 'Failed to update cart item' },
       { status: 500 }
     )
   }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
+import { MessageCircle, X, Send, Loader2, Volume2, VolumeX } from 'lucide-react'
 import ChatMessage, { ChatMessageData } from './ChatMessage'
 
 export default function ChatWidget() {
@@ -9,8 +9,10 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessageData[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [audioEnabled, setAudioEnabled] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -19,6 +21,15 @@ export default function ChatWidget() {
     }
   }, [messages, isOpen])
 
+  // Cleanup speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
+
   // Focus input when chat opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -26,23 +37,40 @@ export default function ChatWidget() {
     }
   }, [isOpen])
 
+  // Text-to-speech function
+  const speakMessage = (text: string) => {
+    if (!audioEnabled || typeof window === 'undefined') return
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel()
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.9 // Slightly slower for wise shopkeeper effect
+    utterance.pitch = 0.8 // Lower pitch for older voice
+    utterance.volume = 0.8
+
+    speechSynthesisRef.current = utterance
+    window.speechSynthesis.speak(utterance)
+  }
+
   // Initialize with welcome message
   useEffect(() => {
     if (messages.length === 0) {
+      const welcomeMessage = `Hey! I'm Gus 👋
+
+Been running this shop for 40 years - seen everything from vintage Gucci to questionable fashion choices. Tell me what you need and I'll help you find the good stuff.
+
+What're you hunting for today?`
+
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `Hi! I'm your AI Shopping Advisor. I can help you find the perfect products through conversation.
-
-What are you looking for today? Feel free to tell me about:
-• The type of product you need
-• Your budget
-• How you'll use it
-• Any specific preferences
-
-Let's find you the best deal!`,
+        content: welcomeMessage,
         timestamp: new Date()
       }])
+
+      // Speak welcome message
+      setTimeout(() => speakMessage(welcomeMessage), 500)
     }
   }, [])
 
@@ -88,6 +116,9 @@ Let's find you the best deal!`,
       }
 
       setMessages(prev => [...prev, assistantMessage])
+
+      // Speak the response
+      speakMessage(data.message)
     } catch (error) {
       console.error('Chat error:', error)
 
@@ -183,57 +214,108 @@ Let's find you the best deal!`,
               justifyContent: 'space-between'
             }}
           >
-            <div>
-              <h3
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Shopkeeper Avatar */}
+              <div
                 style={{
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-family-primary)',
-                  margin: 0,
-                  letterSpacing: '-0.01em'
+                  fontSize: '2.5rem',
+                  lineHeight: 1,
+                  animation: 'float-emoji 3s ease-in-out infinite'
                 }}
               >
-                AI Shopping Advisor
-              </h3>
-              <p
-                style={{
-                  fontSize: '0.75rem',
-                  color: 'var(--text-tertiary)',
-                  fontFamily: 'var(--font-family-primary)',
-                  margin: '0.125rem 0 0 0'
-                }}
-              >
-                Powered by Claude AI
-              </p>
+                👴
+              </div>
+              <div>
+                <h3
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-family-primary)',
+                    margin: 0,
+                    letterSpacing: '-0.01em'
+                  }}
+                >
+                  Gus - The Old Shopkeeper
+                </h3>
+                <p
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-family-primary)',
+                    margin: '0.125rem 0 0 0'
+                  }}
+                >
+                  40 years experience + AI magic ✨
+                </p>
+              </div>
             </div>
 
-            <button
-              onClick={() => setIsOpen(false)}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
-              }}
-              aria-label="Close chat"
-            >
-              <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {/* Audio Toggle */}
+              <button
+                onClick={() => {
+                  setAudioEnabled(!audioEnabled)
+                  if (audioEnabled) {
+                    window.speechSynthesis.cancel()
+                  }
+                }}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: audioEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                  border: `1px solid ${audioEnabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = audioEnabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = audioEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)'
+                }}
+                aria-label={audioEnabled ? 'Disable audio' : 'Enable audio'}
+                title={audioEnabled ? 'Voice ON' : 'Voice OFF'}
+              >
+                {audioEnabled ? (
+                  <Volume2 className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+                ) : (
+                  <VolumeX className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                )}
+              </button>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setIsOpen(false)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
+                }}
+                aria-label="Close chat"
+              >
+                <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}

@@ -2,16 +2,16 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
-import { Send, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Copy, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Send, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Copy, ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react'
 import ChatMessage, { ChatMessageData } from './ChatMessage'
 import { getChatConfig } from '@/config/search.config'
 
 const CONVERSATION_STARTERS = [
-  "Find me the best laptop under $700 for coding",
-  "I need running shoes with good cushioning",
-  "Show me vintage designer bags in excellent condition",
-  "Budget-friendly gaming headphones under $100",
-  "Professional camera for beginners"
+  "I need a laptop under $700",
+  "Looking for running shoes with good support",
+  "Show me some vintage designer items",
+  "What tech can I get for under $100?",
+  "I want a camera for a beginner"
 ]
 
 interface PageContext {
@@ -31,6 +31,24 @@ interface ChatSidebarProps {
 export default function ChatSidebar({ onCollapseChange, pageContext, onProductsFromAI }: ChatSidebarProps = {}) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+  const [audioEnabled, setAudioEnabled] = useState(true)
+  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null)
+
+  // Text-to-speech function
+  const speakMessage = (text: string) => {
+    if (!audioEnabled || typeof window === 'undefined') return
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel()
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.9 // Slightly slower for wise shopkeeper effect
+    utterance.pitch = 0.8 // Lower pitch for older voice
+    utterance.volume = 0.8
+
+    speechSynthesisRef.current = utterance
+    window.speechSynthesis.speak(utterance)
+  }
 
   // Detect theme changes
   useEffect(() => {
@@ -49,6 +67,15 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
     })
 
     return () => observer.disconnect()
+  }, [])
+
+  // Cleanup speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.speechSynthesis.cancel()
+      }
+    }
   }, [])
 
   // Notify parent when collapse state changes
@@ -217,6 +244,9 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
                 }
               ])
               setStreamingContent('') // Clear streaming state
+
+              // Speak the response
+              speakMessage(aiResponseText)
             }
           } catch (error) {
             console.error('❌ Auto-analysis submission error:', error)
@@ -250,9 +280,13 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
     const hasInitialized = sessionStorage.getItem('chatInitialized')
     if (!hasInitialized) {
       sessionStorage.setItem('chatInitialized', 'true')
+      setShowSuggestions(true)
+      // Speak Gus's welcome message with a slight delay to ensure audio context is ready
       setTimeout(() => {
-        setShowSuggestions(true)
-      }, 500)
+        speakMessage("Hey! I'm Gus. Been running this shop for 40 years - seen everything from vintage Gucci to questionable fashion choices. Tell me what you need and I'll help you find the good stuff.")
+      }, 1000)
+    } else {
+      setShowSuggestions(true)
     }
   }, [])
 
@@ -340,6 +374,9 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           { role: 'assistant', content: aiResponseText }
         ])
         setStreamingContent('')
+
+        // Speak the response
+        speakMessage(aiResponseText)
       } else {
         console.error('❌ No reader available from response')
       }
@@ -428,45 +465,89 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           flexShrink: 0
         }}
       >
-        <div className="flex items-center gap-3">
-          <div
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Gus Avatar */}
+            <div
+              style={{
+                fontSize: '3rem',
+                lineHeight: 1,
+                animation: 'float-emoji 3s ease-in-out infinite'
+              }}
+            >
+              👴
+            </div>
+            <div>
+              <h2
+                style={{
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  color: theme === 'light' ? '#111827' : 'var(--text-primary)',
+                  fontFamily: 'var(--font-family-primary)',
+                  margin: 0,
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                Gus - The Old Shopkeeper
+              </h2>
+              <p
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--accent-primary)',
+                  fontFamily: 'var(--font-family-primary)',
+                  margin: '0.125rem 0 0 0'
+                }}
+              >
+                {isTyping ? 'Thinking...' : '40 years experience + AI magic ✨'}
+              </p>
+            </div>
+          </div>
+
+          {/* Audio Toggle Button */}
+          <button
+            onClick={() => {
+              if (audioEnabled) {
+                // Test audio when disabling
+                speakMessage("Audio is now off")
+                setTimeout(() => {
+                  setAudioEnabled(false)
+                  window.speechSynthesis.cancel()
+                }, 100)
+              } else {
+                // Test audio when enabling
+                setAudioEnabled(true)
+                setTimeout(() => {
+                  speakMessage("Audio is now on. Hey, I'm Gus!")
+                }, 100)
+              }
+            }}
             style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              background: audioEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+              border: `1px solid ${audioEnabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+              transition: 'all 0.2s ease'
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = audioEnabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = audioEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)'
+            }}
+            aria-label={audioEnabled ? 'Disable audio' : 'Enable audio'}
+            title={audioEnabled ? 'Click to test voice & turn OFF' : 'Click to turn voice ON'}
           >
-            <Sparkles className="w-6 h-6" style={{ color: 'white' }} />
-          </div>
-          <div>
-            <h2
-              style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: theme === 'light' ? '#111827' : 'var(--text-primary)',
-                fontFamily: 'var(--font-family-primary)',
-                margin: 0,
-                letterSpacing: '-0.02em'
-              }}
-            >
-              AI Shopping Advisor
-            </h2>
-            <p
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--accent-primary)',
-                fontFamily: 'var(--font-family-primary)',
-                margin: '0.125rem 0 0 0'
-              }}
-            >
-              {isTyping ? 'Typing...' : 'Powered by Claude AI'}
-            </p>
-          </div>
+            {audioEnabled ? (
+              <Volume2 className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+            ) : (
+              <VolumeX className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+            )}
+          </button>
         </div>
       </div>
 
@@ -673,9 +754,37 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           </div>
         )}
 
+        {/* Gus Welcome Message */}
+        {showSuggestions && chatMessages.length === 0 && autoAnalysisMessages.length === 0 && !isLoading && (
+          <div
+            style={{
+              background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)',
+              border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.2)',
+              borderRadius: '12px',
+              padding: '1rem',
+              marginBottom: '1rem',
+              fontSize: '0.875rem',
+              color: theme === 'light' ? '#111827' : 'var(--text-primary)',
+              fontFamily: 'var(--font-family-primary)',
+              lineHeight: '1.6'
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              <strong>Hey! I'm Gus 👋</strong>
+            </p>
+            <p style={{ margin: '0.75rem 0 0 0' }}>
+              Been running this shop for 40 years - seen everything from vintage Gucci to questionable fashion choices.
+              Tell me what you need and I'll help you find the good stuff.
+            </p>
+            <p style={{ margin: '0.75rem 0 0 0', color: 'var(--text-secondary)' }}>
+              What're you hunting for today?
+            </p>
+          </div>
+        )}
+
         {/* Conversation Starters */}
         {showSuggestions && chatMessages.length === 0 && !isLoading && (
-          <div style={{ marginTop: '1rem' }}>
+          <div style={{ marginTop: '0.5rem' }}>
             <p
               style={{
                 fontSize: '0.75rem',

@@ -10,7 +10,7 @@ import { SwipeDeck } from './components/SwipeDeck'
 import { SwipeCart } from './components/SwipeCart'
 import { ProductDetailModal } from './components/ProductDetailModal'
 import { useSwipeStore, SwipeFilters } from '@/lib/stores/swipeStore'
-import { ShoppingBag, RotateCcw, Sparkles } from 'lucide-react'
+import { ShoppingBag, RotateCcw, Sparkles, Camera, Sliders } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function SwipePage() {
@@ -27,11 +27,13 @@ export default function SwipePage() {
     showCart,
     showProductDetail,
     selectedProduct,
+    swipeHistory,
     setSessionId,
     setFilters,
     setProducts,
     swipeLeft,
     swipeRight,
+    undoSwipe,
     toggleFilters,
     toggleCart,
     resetSession,
@@ -39,10 +41,11 @@ export default function SwipePage() {
     closeProductDetail
   } = useSwipeStore()
 
-  const [showWizard, setShowWizard] = useState(!sessionId)
+  const [showWizard, setShowWizard] = useState(false) // Always skip wizard
   const [initError, setInitError] = useState<string | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showSignupModal, setShowSignupModal] = useState(false)
+  const [showVisualSearch, setShowVisualSearch] = useState(false)
 
   // Adapt the user object to match what Navigation expects
   const appUser = session?.user ? {
@@ -55,6 +58,18 @@ export default function SwipePage() {
   const handleSignOut = () => {
     signOut()
   }
+
+  // Auto-initialize with default filters on mount
+  useEffect(() => {
+    if (!sessionId && !isLoading && !initError) {
+      const defaultFilters: SwipeFilters = {
+        categories: ['CLOTHING', 'ACCESSORIES', 'SHOES', 'ELECTRONICS', 'HOME'],
+        priceRange: { min: 0, max: 1000 },
+        styles: []
+      }
+      initializeSession(defaultFilters)
+    }
+  }, []) // Run once on mount
 
   // Initialize session with filters
   const initializeSession = async (selectedFilters: SwipeFilters) => {
@@ -203,7 +218,7 @@ export default function SwipePage() {
         <div className="container py-5" style={{ minHeight: 'calc(100vh - 200px)' }}>
         <div className="row justify-content-center">
           <div className="col-12 col-lg-8 col-xl-6">
-            {/* Header Section with Reset & Cart - Glass Morphism */}
+            {/* Header Section with Likes - Glass Morphism */}
             {!showWizard && (
               <div className="d-flex align-items-center justify-content-between mb-4" style={{
                 background: 'rgba(255, 255, 255, 0.7)',
@@ -220,41 +235,14 @@ export default function SwipePage() {
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
                       backgroundClip: 'text'
-                    }}>Swipe</span> to Shop
+                    }}>Discover</span> Amazing Deals
                   </h1>
-                  <p className="text-secondary mb-0">Find your next treasure</p>
+                  <p className="text-secondary mb-0">
+                    <Sparkles className="w-4 h-4" style={{display: 'inline', marginRight: '0.25rem'}} />
+                    Swipe to find your perfect match
+                  </p>
                 </div>
                 <div className="d-flex gap-2">
-                  <button
-                    onClick={() => {
-                      resetSession()
-                      setShowWizard(true)
-                    }}
-                    className="btn position-relative"
-                    style={{
-                      padding: '0.75rem 1.25rem',
-                      borderRadius: '12px',
-                      background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-                      border: '1px solid #d1d5db',
-                      color: '#1f2937',
-                      fontWeight: '600',
-                      fontSize: '0.9rem',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-1px)'
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)'
-                    }}
-                    aria-label="Reset filters"
-                  >
-                    <RotateCcw className="w-4 h-4" style={{display: 'inline', marginRight: '0.5rem'}} />
-                    Reset
-                  </button>
                   <button
                     onClick={toggleCart}
                     className="btn position-relative"
@@ -368,6 +356,8 @@ export default function SwipePage() {
                   onSwipeLeft={handleSwipeLeft}
                   onSwipeRight={handleSwipeRight}
                   onViewDetails={handleViewDetails}
+                  onUndo={undoSwipe}
+                  canUndo={swipeHistory.length > 0 && currentIndex > 0}
                 />
               )}
             </AnimatePresence>
@@ -377,6 +367,41 @@ export default function SwipePage() {
       </div>
 
         <Footer />
+
+        {/* Floating Action Buttons */}
+        {!showWizard && !isLoading && products.length > 0 && (
+          <div className="fixed bottom-32 right-6 z-50 flex flex-col gap-3">
+            {/* Camera/Visual Search Button */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/visual-search')}
+              className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl"
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                boxShadow: '0 8px 24px rgba(102, 126, 234, 0.4)'
+              }}
+              title="Visual Search"
+            >
+              <Camera className="w-6 h-6 text-white" strokeWidth={2.5} />
+            </motion.button>
+
+            {/* Filters Button */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowWizard(true)}
+              className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl"
+              style={{
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                boxShadow: '0 8px 24px rgba(240, 147, 251, 0.4)'
+              }}
+              title="Refine Filters"
+            >
+              <Sliders className="w-6 h-6 text-white" strokeWidth={2.5} />
+            </motion.button>
+          </div>
+        )}
 
         {/* Cart Drawer */}
         <SwipeCart open={showCart} onClose={toggleCart} />

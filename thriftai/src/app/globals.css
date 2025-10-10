@@ -179,12 +179,150 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Dark mode gradients */
-body {
+/* Category Emoji Animations */
+@keyframes float-emoji {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(5deg);
+  }
+}
+
+@keyframes pulse-emoji {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes wiggle-emoji {
+  0%, 100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+.category-emoji-container {
+  display: inline-block;
+  position: relative;
+}
+
+.category-emoji {
+  display: inline-block;
+  animation: float-emoji 3s ease-in-out infinite;
+  transition: all 0.3s ease;
+}
+
+.category-item-animated:hover .category-emoji {
+  animation: pulse-emoji 0.6s ease-in-out infinite, wiggle-emoji 0.4s ease-in-out infinite;
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.6));
+}
+
+/* Add stagger effect for different emojis */
+.category-emoji:nth-child(1) { animation-delay: 0s; }
+.category-emoji:nth-child(2) { animation-delay: 0.2s; }
+.category-emoji:nth-child(3) { animation-delay: 0.4s; }
+.category-emoji:nth-child(4) { animation-delay: 0.6s; }
+.category-emoji:nth-child(5) { animation-delay: 0.8s; }
+.category-emoji:nth-child(6) { animation-delay: 1s; }
+.category-emoji:nth-child(7) { animation-delay: 1.2s; }
+.category-emoji:nth-child(8) { animation-delay: 1.4s; }
+
+/* Animated Space Background */
+@keyframes stars-move {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-500px);
+  }
+}
+
+@keyframes stars-move-fast {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-400px);
+  }
+}
+
+@keyframes stars-move-slow {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-600px);
+  }
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: -1;
+  will-change: transform;
+}
+
+/* Layer 1: Small stars */
+body::before {
   background-image:
-    radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(6, 214, 160, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 40% 60%, rgba(0, 212, 255, 0.03) 0%, transparent 50%);
+    radial-gradient(2px 2px at 20% 30%, white, transparent),
+    radial-gradient(2px 2px at 60% 70%, white, transparent),
+    radial-gradient(1px 1px at 50% 50%, white, transparent),
+    radial-gradient(1px 1px at 80% 10%, white, transparent),
+    radial-gradient(2px 2px at 90% 60%, white, transparent),
+    radial-gradient(1px 1px at 33% 25%, white, transparent),
+    radial-gradient(1px 1px at 79% 83%, white, transparent),
+    radial-gradient(2px 2px at 10% 80%, white, transparent),
+    radial-gradient(1px 1px at 40% 15%, white, transparent),
+    radial-gradient(2px 2px at 70% 50%, white, transparent);
+  background-repeat: repeat;
+  background-size: 500px 500px;
+  background-position: 0 0;
+  animation: stars-move 60s linear infinite;
+  opacity: 0.3;
+}
+
+/* Layer 2: Medium and bright stars */
+body::after {
+  background-image:
+    radial-gradient(3px 3px at 15% 45%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(2px 2px at 75% 25%, rgba(16, 185, 129, 0.6), transparent),
+    radial-gradient(2px 2px at 45% 75%, rgba(6, 214, 160, 0.6), transparent),
+    radial-gradient(3px 3px at 85% 55%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 25% 85%, rgba(0, 212, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 55% 35%, white, transparent),
+    radial-gradient(2px 2px at 65% 95%, rgba(16, 185, 129, 0.4), transparent),
+    radial-gradient(3px 3px at 5% 15%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(2px 2px at 95% 65%, rgba(6, 214, 160, 0.5), transparent);
+  background-repeat: repeat;
+  background-size: 400px 400px;
+  background-position: 0 0;
+  animation: stars-move-fast 45s linear infinite;
+  opacity: 0.4;
+}
+
+/* Base gradient background */
+body {
+  background: #000000;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(6, 214, 160, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(0, 212, 255, 0.02) 0%, transparent 50%);
+  position: relative;
+  overflow-x: hidden;
 }
 
 /* Light mode styling */

@@ -90,20 +90,22 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
       .catch(err => console.error('Failed to fetch score thresholds:', err))
   }, [])
 
+  // Don't fetch Veritas Score - use the one from the product
+  // This prevents the score from changing when expanding the card
   useEffect(() => {
-    // Fetch Veritas Score when expanded
-    if (isExpanded && product.id && !veritasScore && !loadingVeritas) {
-      setLoadingVeritas(true)
-      fetch(`/api/products/${product.id}/veritas`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setVeritasScore(data.data)
-          }
-        })
-        .catch(err => console.error('Failed to fetch Veritas Score:', err))
-        .finally(() => setLoadingVeritas(false))
-    }
+    // Disabled: Fetching detailed analysis causes score to change unexpectedly
+    // if (isExpanded && product.id && !veritasScore && !loadingVeritas) {
+    //   setLoadingVeritas(true)
+    //   fetch(`/api/products/${product.id}/veritas`)
+    //     .then(res => res.json())
+    //     .then(data => {
+    //       if (data.success) {
+    //         setVeritasScore(data.data)
+    //       }
+    //     })
+    //     .catch(err => console.error('Failed to fetch Veritas Score:', err))
+    //     .finally(() => setLoadingVeritas(false))
+    // }
   }, [isExpanded, product.id, veritasScore, loadingVeritas])
 
   const getRecommendationColor = (rec?: string) => {
@@ -458,104 +460,10 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
               )}
             </div>
 
-            {/* Veritas Score™ Details */}
-            {veritasScore && (
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: '8px',
-                padding: '1rem',
-                gridColumn: '1 / -1'
-              }}>
-                <h4 style={{
-                  margin: '0 0 1rem 0',
-                  fontSize: '1.1rem',
-                  fontWeight: '700',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
-                  🏆 Veritas Score™ - Complete Analysis (121 Parameters)
-                  <span style={{
-                    fontSize: '1.5rem',
-                    color: getScoreColor(veritasScore.overallScore),
-                    marginLeft: 'auto'
-                  }}>
-                    {veritasScore.overallScore}/100
-                  </span>
-                </h4>
-
-                <div style={{ marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  <div>Confidence: {veritasScore.confidence}% | Data Completeness: {veritasScore.dataCompleteness}%</div>
-                  <div>Sources Used: {veritasScore.dataSourcesUsed?.length || 0} | Failed: {veritasScore.dataSourcesFailed?.length || 0}</div>
-                </div>
-
-                {/* Category Scores */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '0.75rem',
-                  marginBottom: '1rem'
-                }}>
-                  {Object.entries(veritasScore.categoryScores || {}).map(([category, score]) => (
-                    <div key={category} style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      padding: '0.75rem',
-                      borderRadius: '6px',
-                      borderLeft: `3px solid ${getScoreColor(score as number)}`
-                    }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem' }}>
-                        {category.replace(/([A-Z])/g, ' $1').trim()}
-                      </div>
-                      <div style={{
-                        fontSize: '1.25rem',
-                        fontWeight: '700',
-                        color: getScoreColor(score as number)
-                      }}>
-                        {score}/100
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Insights */}
-                {veritasScore.insights && veritasScore.insights.length > 0 && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: '600' }}>
-                      AI Insights
-                    </h5>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {veritasScore.insights.map((insight: string, i: number) => (
-                        <div key={i} style={{
-                          fontSize: '0.875rem',
-                          padding: '0.5rem',
-                          background: 'rgba(16, 185, 129, 0.1)',
-                          borderRadius: '6px',
-                          borderLeft: '3px solid var(--accent-primary)'
-                        }}>
-                          {insight}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {loadingVeritas && (
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: '8px',
-                padding: '2rem',
-                gridColumn: '1 / -1',
-                textAlign: 'center',
-                color: 'var(--text-secondary)'
-              }}>
-                🔄 Calculating Veritas Score™ (121 parameters)...
-              </div>
-            )}
+            {/* Veritas Score™ Details - Disabled to prevent score changes */}
 
             {/* AI Insights */}
-            {((product.veritasInsights && product.veritasInsights.length > 0) || (product.aiScoreBreakdown?.insights && product.aiScoreBreakdown.insights.length > 0)) && !veritasScore && (
+            {((product.veritasInsights && product.veritasInsights.length > 0) || (product.aiScoreBreakdown?.insights && product.aiScoreBreakdown.insights.length > 0)) && (
               <div style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 borderRadius: '8px',

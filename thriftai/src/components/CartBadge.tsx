@@ -1,54 +1,90 @@
 'use client'
 
+import { useEffect } from 'react'
 import { ShoppingCart } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
-import { useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function CartBadge() {
-  const router = useRouter()
-  const { data: session } = useSession()
-  const { count, isLoading, fetchCart } = useCartStore()
+  const { count, subtotal, fetchCart } = useCartStore()
 
   useEffect(() => {
     // Fetch cart on mount
-    const buyerId = session?.user?.id
-    fetchCart(buyerId)
-  }, [session?.user?.id, fetchCart])
+    fetchCart()
+  }, [fetchCart])
 
   return (
-    <button
-      onClick={() => router.push('/cart')}
-      className="btn-modern-secondary nav-btn"
+    <Link
+      href="/cart"
       style={{
-        width: '44px',
-        height: '44px',
-        padding: '0',
-        display: 'flex',
+        position: 'relative',
+        display: 'inline-flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: '50%',
-        position: 'relative'
+        gap: '0.5rem',
+        padding: '0.5rem 1rem',
+        background: 'rgba(16, 185, 129, 0.1)',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+        borderRadius: '8px',
+        color: 'var(--text-primary)',
+        textDecoration: 'none',
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+        fontSize: '0.875rem',
+        fontWeight: '500'
       }}
-      aria-label={`Shopping cart with ${count} items`}
-      title="Shopping Cart"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)'
+        e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.5)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'
+        e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)'
+      }}
     >
-      <ShoppingCart className="w-5 h-5" />
+      <ShoppingCart
+        style={{
+          width: '20px',
+          height: '20px',
+          color: 'var(--accent-primary)'
+        }}
+      />
 
       {count > 0 && (
-        <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" style={{
-          boxShadow: '0 2px 8px rgba(22, 163, 74, 0.4)'
-        }}>
-          {count > 99 ? '99+' : count}
-        </span>
+        <>
+          <span
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '20px',
+              height: '20px',
+              padding: '0 6px',
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              borderRadius: '10px',
+              color: 'white',
+              fontSize: '0.75rem',
+              fontWeight: '700',
+              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)',
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }}
+          >
+            {count}
+          </span>
+
+          <span style={{ color: 'var(--text-secondary)' }}>
+            ${subtotal.toFixed(2)}
+          </span>
+        </>
       )}
 
-      {isLoading && (
-        <span className="absolute inset-0 flex items-center justify-center">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-25"></span>
+      {count === 0 && (
+        <span style={{ color: 'var(--text-tertiary)' }}>
+          Cart
         </span>
       )}
-    </button>
+    </Link>
   )
 }

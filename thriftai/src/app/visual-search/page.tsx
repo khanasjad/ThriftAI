@@ -13,7 +13,6 @@ import {
   Image as ImageIcon,
   Sparkles,
   TrendingUp,
-  Leaf,
   Brain,
   Eye,
   Search,
@@ -55,14 +54,8 @@ const DEMO_FEATURES = [
   {
     icon: TrendingUp,
     title: 'Smart Ranking',
-    description: 'Results ranked by visual similarity, quality, and sustainability scores',
+    description: 'Results ranked by visual similarity, quality, and relevance scores',
     color: 'text-green-600'
-  },
-  {
-    icon: Leaf,
-    title: 'Sustainable Shopping',
-    description: 'Discover eco-friendly alternatives and reduce fashion waste',
-    color: 'text-emerald-600'
   }
 ]
 
@@ -151,7 +144,7 @@ export default function VisualSearchPage() {
           </p>
 
           {/* Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-8">
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600 mb-1">10M+</div>
               <div className="text-sm text-gray-600">Images Analyzed</div>
@@ -163,10 +156,6 @@ export default function VisualSearchPage() {
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600 mb-1">&lt;3s</div>
               <div className="text-sm text-gray-600">Search Time</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-emerald-600 mb-1">50k+</div>
-              <div className="text-sm text-gray-600">Sustainable Items</div>
             </div>
           </div>
         </div>
@@ -382,7 +371,7 @@ export default function VisualSearchPage() {
                       {
                         step: 4,
                         title: 'Ranked Results',
-                        description: 'Get results sorted by similarity and sustainability',
+                        description: 'Get results sorted by similarity and relevance',
                         icon: TrendingUp
                       }
                     ].map((step) => (
@@ -458,18 +447,9 @@ export default function VisualSearchPage() {
                       <div className="flex items-start gap-3">
                         <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
                         <div>
-                          <div className="font-medium">Better for Environment</div>
-                          <div className="text-sm text-gray-600">
-                            Extend item lifecycles through second-hand shopping
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
-                        <div>
                           <div className="font-medium">Affordable Fashion</div>
                           <div className="text-sm text-gray-600">
-                            Get designer looks at sustainable prices
+                            Get designer looks at great prices
                           </div>
                         </div>
                       </div>

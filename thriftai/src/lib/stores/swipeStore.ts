@@ -1,15 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-
-export interface SwipeFilters {
-  categories: string[]
-  priceRange: { min: number; max: number }
-  colors?: string[]
-  styles?: string[]
-  brands?: string[]
-  sizes?: string[]
-  condition?: string[]
-}
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 export interface SwipeProduct {
   id: string
@@ -18,114 +8,186 @@ export interface SwipeProduct {
   originalPrice?: number
   images: string[]
   brand?: string
-  category: string
   condition?: string
-  rating?: number
   description?: string
+  category?: string
+  rating?: number
+  reviewCount?: number
 }
 
-interface SwipeStore {
-  // Session
+export interface SwipeFilters {
+  categories: string[]
+  priceRange: { min: number; max: number }
+  styles: string[]
+}
+
+interface SwipeAction {
+  product: SwipeProduct
+  action: 'LIKE' | 'SKIP'
+  timestamp: number
+}
+
+interface SwipeStoreState {
+  // Session state
   sessionId: string | null
   filters: SwipeFilters | null
-
-  // Products
   products: SwipeProduct[]
   currentIndex: number
+
+  // Liked products
   likedProducts: SwipeProduct[]
 
-  // UI State
+  // Swipe history for undo functionality
+  swipeHistory: SwipeAction[]
+
+  // UI state
   isLoading: boolean
   showFilters: boolean
   showCart: boolean
   showProductDetail: boolean
   selectedProduct: SwipeProduct | null
 
-  // Actions
+  // Session actions
   setSessionId: (id: string) => void
   setFilters: (filters: SwipeFilters) => void
   setProducts: (products: SwipeProduct[]) => void
+  resetSession: () => void
+
+  // Swipe actions
   swipeLeft: () => void
   swipeRight: (product: SwipeProduct) => void
-  resetSession: () => void
-  toggleFilters: () => void
-  toggleCart: () => void
+  undoSwipe: () => void
+
+  // Liked product actions
+  addToLiked: (product: SwipeProduct) => void
   removeFromLiked: (productId: string) => void
   clearLiked: () => void
+  isLiked: (productId: string) => boolean
+
+  // UI actions
+  toggleFilters: () => void
+  toggleCart: () => void
   openProductDetail: (product: SwipeProduct) => void
   closeProductDetail: () => void
 }
 
-export const useSwipeStore = create<SwipeStore>()(
+export const useSwipeStore = create<SwipeStoreState>()(
   persist(
     (set, get) => ({
-      // Initial state
+      // Session state
       sessionId: null,
       filters: null,
       products: [],
       currentIndex: 0,
+
+      // Liked products
       likedProducts: [],
+
+      // Swipe history
+      swipeHistory: [],
+
+      // UI state
       isLoading: false,
       showFilters: false,
       showCart: false,
       showProductDetail: false,
       selectedProduct: null,
 
-      // Actions
+      // Session actions
       setSessionId: (id) => set({ sessionId: id }),
 
       setFilters: (filters) => set({ filters }),
 
       setProducts: (products) => set({ products, currentIndex: 0 }),
 
-      swipeLeft: () => {
-        const { currentIndex, products } = get()
-        if (currentIndex < products.length - 1) {
-          set({ currentIndex: currentIndex + 1 })
-        }
-      },
-
-      swipeRight: (product) => {
-        const { currentIndex, products, likedProducts } = get()
-
-        // Add to liked products (avoid duplicates)
-        const isAlreadyLiked = likedProducts.some(p => p.id === product.id)
-        const newLiked = isAlreadyLiked
-          ? likedProducts
-          : [...likedProducts, product]
-
-        // Move to next product
-        if (currentIndex < products.length - 1) {
-          set({
-            currentIndex: currentIndex + 1,
-            likedProducts: newLiked
-          })
-        } else {
-          set({ likedProducts: newLiked })
-        }
-      },
-
       resetSession: () => set({
         sessionId: null,
         filters: null,
         products: [],
         currentIndex: 0,
-        likedProducts: [],
-        showFilters: false,
-        showCart: false,
-        showProductDetail: false,
-        selectedProduct: null
+        swipeHistory: []
       }),
 
+      // Swipe actions
+      swipeLeft: () => {
+        const { currentIndex, products, swipeHistory } = get()
+        if (currentIndex < products.length) {
+          const product = products[currentIndex]
+          set({
+            currentIndex: currentIndex + 1,
+            swipeHistory: [...swipeHistory, { product, action: 'SKIP', timestamp: Date.now() }]
+          })
+        }
+      },
+
+      swipeRight: (product) => {
+        const { currentIndex, likedProducts, swipeHistory } = get()
+        // Add to liked if not already liked
+        if (!likedProducts.some(p => p.id === product.id)) {
+          set({
+            currentIndex: currentIndex + 1,
+            likedProducts: [...likedProducts, product],
+            swipeHistory: [...swipeHistory, { product, action: 'LIKE', timestamp: Date.now() }]
+          })
+        } else {
+          set({
+            currentIndex: currentIndex + 1,
+            swipeHistory: [...swipeHistory, { product, action: 'LIKE', timestamp: Date.now() }]
+          })
+        }
+      },
+
+      undoSwipe: () => {
+        const { currentIndex, swipeHistory, likedProducts } = get()
+        if (swipeHistory.length === 0 || currentIndex === 0) return
+
+        const lastAction = swipeHistory[swipeHistory.length - 1]
+        const newHistory = swipeHistory.slice(0, -1)
+
+        // If it was a LIKE, remove from liked products
+        let newLikedProducts = likedProducts
+        if (lastAction.action === 'LIKE') {
+          newLikedProducts = likedProducts.filter(p => p.id !== lastAction.product.id)
+        }
+
+        set({
+          currentIndex: currentIndex - 1,
+          swipeHistory: newHistory,
+          likedProducts: newLikedProducts
+        })
+      },
+
+      // Liked product actions
+      addToLiked: (product) => {
+        set((state) => {
+          // Avoid duplicates
+          if (state.likedProducts.some(p => p.id === product.id)) {
+            return state
+          }
+          return {
+            likedProducts: [...state.likedProducts, product]
+          }
+        })
+      },
+
+      removeFromLiked: (productId) => {
+        set((state) => ({
+          likedProducts: state.likedProducts.filter(p => p.id !== productId)
+        }))
+      },
+
+      clearLiked: () => {
+        set({ likedProducts: [] })
+      },
+
+      isLiked: (productId) => {
+        return get().likedProducts.some(p => p.id === productId)
+      },
+
+      // UI actions
       toggleFilters: () => set((state) => ({ showFilters: !state.showFilters })),
 
       toggleCart: () => set((state) => ({ showCart: !state.showCart })),
-
-      removeFromLiked: (productId) => set((state) => ({
-        likedProducts: state.likedProducts.filter(p => p.id !== productId)
-      })),
-
-      clearLiked: () => set({ likedProducts: [] }),
 
       openProductDetail: (product) => set({
         showProductDetail: true,
@@ -138,13 +200,16 @@ export const useSwipeStore = create<SwipeStore>()(
       })
     }),
     {
-      name: 'swipe-storage', // Storage key
+      name: 'swipe-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialPersist: true,
       partialize: (state) => ({
-        // Only persist these fields
+        likedProducts: state.likedProducts,
         sessionId: state.sessionId,
         filters: state.filters,
-        likedProducts: state.likedProducts,
-        currentIndex: state.currentIndex
+        products: state.products,
+        currentIndex: state.currentIndex,
+        swipeHistory: state.swipeHistory
       })
     }
   )

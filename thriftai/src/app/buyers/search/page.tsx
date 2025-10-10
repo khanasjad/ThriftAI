@@ -1204,13 +1204,13 @@ export default function SearchResults() {
 
                         return (
                           <LeaderboardCard
-                            key={product.asin}
+                            key={`leaderboard-${product.id}-${index}`}
                             product={leaderboardProduct}
                             rank={index + 1}
-                            isExpanded={expandedLeaderboardCard === product.asin}
+                            isExpanded={expandedLeaderboardCard === `${product.id}-${index}`}
                             onToggleExpand={() => {
                               setExpandedLeaderboardCard(
-                                expandedLeaderboardCard === product.asin ? null : product.asin
+                                expandedLeaderboardCard === `${product.id}-${index}` ? null : `${product.id}-${index}`
                               )
                             }}
                           />

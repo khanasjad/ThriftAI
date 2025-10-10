@@ -84,6 +84,18 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
                 About Us
               </a>
             </li>
+            <li className="nav-item">
+              <a className="nav-link" href="/sustainability" style={{
+                color: 'var(--text-primary)',
+                fontSize: '1rem',
+                fontWeight: 500,
+                padding: '0.5rem 1rem',
+                transition: 'color 0.2s ease',
+                cursor: 'pointer'
+              }}>
+                Sustainability
+              </a>
+            </li>
           </ul>
 
           {/* Login/Signup Buttons - shown when user is not logged in */}

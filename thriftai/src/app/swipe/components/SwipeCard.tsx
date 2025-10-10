@@ -155,6 +155,60 @@ export function SwipeCard({
             </div>
           </div>
 
+          {/* Engagement Badges - Top Left (outside frame) */}
+          <div className="absolute top-6 left-6 flex flex-col gap-2 z-20">
+            {/* Hot Deal Badge */}
+            {discount >= 50 && (
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                className="px-3 py-1.5 rounded-xl text-xs font-black backdrop-blur-sm border border-white/30 shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: '#fff',
+                  boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4)'
+                }}
+              >
+                🔥 HOT DEAL
+              </motion.div>
+            )}
+
+            {/* Top Rated Badge */}
+            {product.rating && product.rating >= 4.5 && (
+              <motion.div
+                initial={{ scale: 0, x: -20 }}
+                animate={{ scale: 1, x: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
+                className="px-3 py-1.5 rounded-xl text-xs font-black backdrop-blur-sm border border-white/30 shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                  color: '#78350f',
+                  boxShadow: '0 4px 16px rgba(251, 191, 36, 0.4)'
+                }}
+              >
+                ⭐ TOP RATED
+              </motion.div>
+            )}
+
+            {/* Limited Stock Badge (show randomly for engagement) */}
+            {Math.random() > 0.7 && (
+              <motion.div
+                initial={{ scale: 0, x: -20 }}
+                animate={{ scale: 1, x: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+                className="px-3 py-1.5 rounded-xl text-xs font-black backdrop-blur-sm border border-white/30 shadow-lg animate-pulse"
+                style={{
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  color: '#fff',
+                  boxShadow: '0 4px 16px rgba(249, 115, 22, 0.4)'
+                }}
+              >
+                ⚡ LIMITED STOCK
+              </motion.div>
+            )}
+          </div>
+
           {/* Discount Badge - Top Right (outside frame) */}
           {discount > 0 && (
             <div className="absolute top-6 right-6 bg-gradient-to-br from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-2xl text-sm font-black shadow-2xl z-20 backdrop-blur-sm border border-white/20" style={{
