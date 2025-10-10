@@ -778,17 +778,18 @@ Response: {"requiredTerms": ["electronics", "tech", "gadget", "device"], "option
           // Enhanced search across multiple fields with weighted scoring
           {
             OR: [
-              // High priority: Exact matches in product name
+              // High priority: Exact phrase match in product name
               { name: { contains: normalizedQuery, mode: 'insensitive' } },
 
-              // Medium priority: Brand matches
-              { brand: { contains: normalizedQuery, mode: 'insensitive' } },
+              // High priority: Individual word matches in product name
+              ...searchTerms.words.flatMap(word => [
+                { name: { contains: word, mode: 'insensitive' } },
+                { brand: { contains: word, mode: 'insensitive' } },
+                { description: { contains: word, mode: 'insensitive' } }
+              ]),
 
               // Enhanced: Search using keyword mapping
               ...this.buildKeywordSearchConditions(searchTerms, keywordMapping),
-
-              // Low priority: Description matches
-              { description: { contains: normalizedQuery, mode: 'insensitive' } },
 
               // Category matches (with configuration weighting)
               { category: { in: searchTerms.categories } }
@@ -826,13 +827,16 @@ Response: {"requiredTerms": ["electronics", "tech", "gadget", "device"], "option
 
       console.log(`🎯 Configuration-enhanced search found ${products.length} initial products`)
 
-      // Apply intelligent filtering using configuration
-      const filteredProducts = await this.applyIntelligentFiltering(
-        products,
-        normalizedQuery,
-        searchTerms,
-        excludedCategories
-      )
+      // Skip strict post-filtering if we have relevant categories
+      // The database query already filtered correctly
+      const filteredProducts = relevantCategories.length > 0
+        ? products // Trust the database query when we have category filters
+        : await this.applyIntelligentFiltering(
+            products,
+            normalizedQuery,
+            searchTerms,
+            excludedCategories
+          )
 
       console.log(`🔍 After intelligent filtering: ${filteredProducts.length} products remain`)
 

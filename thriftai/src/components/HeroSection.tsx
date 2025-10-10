@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DynamicContent from './DynamicContent';
 import PriceRangeSlider from './PriceRangeSlider';
+import { VoiceSearchButton } from './VoiceSearchButton';
 
 interface HeroSectionProps {
   onSearch: (query: string) => Promise<void>;
@@ -122,28 +123,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
   const [isVisualLoading, setIsVisualLoading] = useState(false);
   const [showDynamicContent, setShowDynamicContent] = useState(false);
   const [dynamicContentType, setDynamicContentType] = useState<string>('');
-  const [scrollOffset, setScrollOffset] = React.useState(0);
   const [selectedCategory, setSelectedCategory] = React.useState<CategoryItem | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = React.useState<string | null>(null);
   const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
-
-  // Continuous scrolling animation like a screensaver
-  React.useEffect(() => {
-    const scrollSpeed = 0.5; // pixels per frame
-    const itemHeight = 80; // approximate height of each item in pixels
-    const totalHeight = CATEGORIES.length * itemHeight;
-
-    const animate = () => {
-      setScrollOffset((prev) => {
-        const newOffset = prev + scrollSpeed;
-        // Reset when we've scrolled past all items
-        return newOffset >= totalHeight ? 0 : newOffset;
-      });
-    };
-
-    const animationFrame = setInterval(animate, 16); // ~60fps
-    return () => clearInterval(animationFrame);
-  }, []);
+  const [showSearchOptions, setShowSearchOptions] = React.useState(false);
+  const [selectedType, setSelectedType] = React.useState<string>('');
 
   /**
    * Build search query with price range filters
@@ -307,264 +291,599 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
 
   return (
     <main className="hero-modern animate-fade-in">
-      <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        {/* Category Navigation Sidebar - LEFT */}
-        <div
-          style={{
-            width: '320px',
-            flexShrink: 0,
-            position: 'sticky',
-            top: '100px',
-            maxHeight: 'calc(100vh - 120px)',
-            overflowY: 'auto'
-          }}
-        >
-          <div
-            className="card-modern p-4"
-            style={{
-              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)',
-              border: '2px solid rgba(139, 92, 246, 0.3)'
-            }}
-          >
-            {/* Header with Back Button */}
-            <div className="d-flex align-items-center gap-2 mb-3">
-              {(selectedCategory || selectedSubcategory) && (
-                <button
-                  onClick={goBack}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--accent)',
-                    cursor: 'pointer',
-                    padding: '0.25rem',
-                    fontSize: '1rem'
-                  }}
-                  title="Go back"
-                >
-                  <i className="fas fa-arrow-left" />
-                </button>
-              )}
-              <i className="fas fa-layer-group" style={{ color: '#ef4444', fontSize: '1.2rem' }} />
-              <h3 className="text-primary font-bold mb-0" style={{ fontSize: '1.1rem' }}>
-                {selectedSubcategory ? 'Product Types' : selectedCategory ? 'Subcategories' : '🎯 Browse Categories'}
-              </h3>
-            </div>
-
-            {/* Breadcrumb Search Terms */}
-            {searchTerms.length > 0 && (
-              <div className="mb-3" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {searchTerms.map((term, index) => (
-                  <span
-                    key={index}
-                    className="badge d-flex align-items-center gap-1"
-                    style={{
-                      background: 'var(--accent)',
-                      color: 'white',
-                      fontSize: '0.75rem',
-                      padding: '4px 8px',
-                      borderRadius: '12px'
-                    }}
-                  >
-                    {term}
-                    <button
-                      onClick={() => removeSearchTerm(index)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'white',
-                        cursor: 'pointer',
-                        padding: '0',
-                        marginLeft: '4px',
-                        fontSize: '0.9rem'
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <p className="text-secondary mb-3" style={{ fontSize: '0.875rem' }}>
-              {selectedCategory ? 'Click to refine your search' : 'Select a category to start'}
-            </p>
-
-            {/* Scrolling Content Area */}
-            <div
-              style={{
-                height: '500px',
-                overflow: 'hidden',
-                position: 'relative',
-                maskImage: selectedCategory || selectedSubcategory ? 'none' : 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)',
-                WebkitMaskImage: selectedCategory || selectedSubcategory ? 'none' : 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)'
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem',
-                  transform: selectedCategory || selectedSubcategory ? 'none' : `translateY(-${scrollOffset}px)`,
-                  transition: 'none',
-                  overflowY: selectedCategory || selectedSubcategory ? 'auto' : 'hidden',
-                  maxHeight: '500px'
-                }}
-              >
-                {/* Show Product Types if subcategory selected */}
-                {selectedCategory && selectedSubcategory ? (
-                  selectedCategory.subcategories
-                    ?.find(sub => sub.name === selectedSubcategory)
-                    ?.types.map((type, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleTypeClick(type)}
-                        className="text-start"
-                        style={{
-                          padding: '0.875rem',
-                          borderRadius: '12px',
-                          border: '1px solid var(--border-primary)',
-                          background: 'var(--bg-secondary)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.03)';
-                          e.currentTarget.style.border = '2px solid var(--accent)';
-                          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.border = '1px solid var(--border-primary)';
-                          e.currentTarget.style.background = 'var(--bg-secondary)';
-                        }}
-                      >
-                        <span className="text-primary font-semibold" style={{ fontSize: '0.9rem' }}>
-                          {type}
-                        </span>
-                      </button>
-                    ))
-                ) : selectedCategory ? (
-                  /* Show Subcategories if category selected */
-                  selectedCategory.subcategories?.map((sub, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSubcategoryClick(sub.name)}
-                      className="text-start"
-                      style={{
-                        padding: '0.875rem',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-primary)',
-                        background: 'var(--bg-secondary)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.03)';
-                        e.currentTarget.style.border = '2px solid var(--accent)';
-                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.border = '1px solid var(--border-primary)';
-                        e.currentTarget.style.background = 'var(--bg-secondary)';
-                      }}
-                    >
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className="text-primary font-semibold" style={{ fontSize: '0.9rem' }}>
-                          {sub.name}
-                        </span>
-                        <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.2)', color: 'var(--accent)', fontSize: '0.7rem' }}>
-                          {sub.types.length}
-                        </span>
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  /* Show Categories (scrolling) */
-                  [...CATEGORIES, ...CATEGORIES].map((category, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleCategoryClick(category)}
-                      className="text-start category-item-animated"
-                      style={{
-                        padding: '0.875rem',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-primary)',
-                        background: 'var(--bg-secondary)',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                        transition: 'all 0.2s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.05)';
-                        e.currentTarget.style.border = '2px solid var(--accent)';
-                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.border = '1px solid var(--border-primary)';
-                        e.currentTarget.style.background = 'var(--bg-secondary)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}
-                    >
-                      <div className="d-flex align-items-center gap-3 mb-2">
-                        <div className="category-emoji-container">
-                          <span className="category-emoji" style={{ fontSize: '2.5rem' }}>
-                            {category.emoji}
-                          </span>
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="d-flex align-items-center gap-2 mb-1">
-                            <span className="text-primary font-semibold" style={{ fontSize: '0.95rem' }}>
-                              {category.name}
-                            </span>
-                          </div>
-                          <span
-                            className="badge"
-                            style={{
-                              background: 'rgba(139, 92, 246, 0.2)',
-                              color: 'var(--accent)',
-                              fontSize: '0.7rem',
-                              padding: '2px 8px',
-                              borderRadius: '6px'
-                            }}
-                          >
-                            {category.subcategories?.length || 0} subcategories
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-              <div className="d-flex align-items-center gap-2">
-                <i className="fas fa-sparkles" style={{ color: 'var(--accent)' }} />
-                <span className="text-secondary" style={{ fontSize: '0.8rem' }}>
-                  {selectedCategory ? 'Drill down to find exactly what you want' : 'Click to explore categories'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <div style={{
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '0 1rem'
+      }}>
         {/* Main Content */}
-        <div style={{ flex: 1 }}>
-          <div className="hero-content">
+        <div style={{
+          width: '100%',
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
+          <div className="hero-content" style={{ margin: '0 auto', textAlign: 'center' }}>
             {/* Hero Title */}
             <h1 className="hero-title">
               Discover amazing finds with{' '}
               <span className="text-gradient-primary">Veritas.ai</span>
             </h1>
+          </div>
+        </div>
 
-            <p className="hero-subtitle">
-              Your intelligent shopping companion for finding unique items, incredible deals,
-              and hidden gems across the thrift marketplace.
-            </p>
+        {/* Modern Category Tiles - 2025 Mobile-First Design */}
+        <div style={{
+          width: '100%',
+          maxWidth: '1200px',
+          marginTop: '3rem',
+          margin: '3rem auto 0 auto'
+        }}>
+          {/* Header with Breadcrumb */}
+          <div style={{
+            marginBottom: '2rem',
+            position: 'relative'
+          }}>
+            {/* Decorative background */}
+            <div style={{
+              position: 'absolute',
+              top: '-20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '200px',
+              height: '200px',
+              background: 'radial-gradient(circle, rgba(102, 126, 234, 0.15) 0%, transparent 70%)',
+              filter: 'blur(40px)',
+              pointerEvents: 'none',
+              zIndex: 0
+            }} />
 
+            {/* Breadcrumb Navigation */}
+            {(selectedCategory || selectedSubcategory) && (
+              <div style={{
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+                justifyContent: 'center'
+              }}>
+                <button
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSelectedSubcategory(null);
+                    setSearchTerms([]);
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                    border: '1.5px solid rgba(102, 126, 234, 0.3)',
+                    borderRadius: '12px',
+                    padding: '0.5rem 1rem',
+                    color: '#667eea',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <i className="fas fa-arrow-left" style={{ fontSize: '0.75rem' }} />
+                  All Categories
+                </button>
+                {selectedCategory && (
+                  <>
+                    <span style={{
+                      color: 'rgba(102, 126, 234, 0.5)',
+                      fontSize: '1.25rem',
+                      fontWeight: 300
+                    }}>›</span>
+                    <span style={{
+                      color: 'var(--text-primary)',
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      padding: '0.375rem 0.75rem',
+                      background: 'rgba(102, 126, 234, 0.08)',
+                      borderRadius: '8px'
+                    }}>
+                      {selectedCategory.name}
+                    </span>
+                  </>
+                )}
+                {selectedSubcategory && (
+                  <>
+                    <span style={{
+                      color: 'rgba(102, 126, 234, 0.5)',
+                      fontSize: '1.25rem',
+                      fontWeight: 300
+                    }}>›</span>
+                    <span style={{
+                      color: 'var(--text-primary)',
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      padding: '0.375rem 0.75rem',
+                      background: 'rgba(102, 126, 234, 0.08)',
+                      borderRadius: '8px'
+                    }}>
+                      {selectedSubcategory}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Title */}
+            <div style={{
+              textAlign: 'center',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <h2 style={{
+                fontSize: 'clamp(2rem, 5vw, 3rem)',
+                fontWeight: 900,
+                marginBottom: '1rem',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                backgroundSize: '200% 200%',
+                animation: 'gradientShift 6s ease infinite',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.2
+              }}>
+                {selectedSubcategory
+                  ? 'Select Type'
+                  : selectedCategory
+                  ? selectedCategory.name
+                  : 'Browse by Category'}
+              </h2>
+              <p style={{
+                fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
+                color: 'var(--text-secondary)',
+                maxWidth: '650px',
+                margin: '0 auto',
+                fontWeight: 500,
+                lineHeight: 1.6,
+                opacity: 0.85
+              }}>
+                {selectedSubcategory
+                  ? 'Choose the specific type you\'re looking for'
+                  : selectedCategory
+                  ? 'Select a subcategory to refine your search'
+                  : 'Discover amazing products across our curated collections'}
+              </p>
+            </div>
+          </div>
+
+          {/* Responsive Category/Subcategory Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: !selectedCategory
+              ? 'repeat(8, 1fr)'  // 8 columns for main categories
+              : 'repeat(auto-fit, minmax(150px, 1fr))',  // Auto-fit for centered subcategories/types
+            gap: 'clamp(0.75rem, 1.5vw, 1rem)',
+            width: '100%',
+            justifyContent: 'center'
+          }}>
+            {/* Category tiles will be here - keeping existing code */}
+            {selectedCategory && selectedSubcategory ? (
+              selectedCategory.subcategories
+                ?.find(sub => sub.name === selectedSubcategory)
+                ?.types.map((type, index) => {
+                  const gradients = [
+                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                  ];
+                  const gradient = gradients[index % gradients.length];
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        handleTypeClick(type);
+                        setSelectedType(type);
+                        setShowSearchOptions(true);
+                      }}
+                      style={{
+                        position: 'relative',
+                        background: 'rgba(255, 255, 255, 0.7)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: '12px',
+                        padding: '1rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        overflow: 'visible',
+                        minHeight: '70px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.12)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                      }}
+                    >
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: gradient,
+                        opacity: 0.2,
+                        borderRadius: '14px'
+                      }} />
+                      <div style={{
+                        position: 'relative',
+                        fontSize: 'clamp(0.75rem, 1.7vw, 0.85rem)',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        textAlign: 'center',
+                        lineHeight: 1.3,
+                        wordBreak: 'break-word',
+                        zIndex: 1,
+                        padding: '0.75rem',
+                        maxWidth: '100%'
+                      }}>
+                        {type}
+                      </div>
+                    </button>
+                  );
+                })
+            ) : selectedCategory ? (
+              /* Show Subcategories */
+              selectedCategory.subcategories?.map((sub, index) => {
+                const gradients = [
+                  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                ];
+                const gradient = gradients[index % gradients.length];
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleSubcategoryClick(sub.name)}
+                    style={{
+                      position: 'relative',
+                      background: 'rgba(255, 255, 255, 0.7)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
+                      borderRadius: '12px',
+                      padding: '1rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      overflow: 'visible',
+                      minHeight: '85px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.12)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                    }}
+                  >
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: gradient,
+                      opacity: 0.2,
+                      borderRadius: '14px'
+                    }} />
+                    <div style={{
+                      position: 'relative',
+                      zIndex: 1,
+                      textAlign: 'center',
+                      width: '100%',
+                      padding: '1rem 0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <div style={{
+                        fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        lineHeight: 1.3,
+                        wordBreak: 'break-word',
+                        maxWidth: '100%'
+                      }}>
+                        {sub.name}
+                      </div>
+                      <div style={{
+                        fontSize: 'clamp(0.7rem, 1.5vw, 0.75rem)',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 500,
+                        opacity: 0.75
+                      }}>
+                        {sub.types.length} types
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              /* Show Categories */
+              CATEGORIES.map((category, index) => {
+                const gradients = [
+                  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                  'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+                  'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                  'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)'
+                ];
+                const gradient = gradients[index % gradients.length];
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleCategoryClick(category)}
+                    style={{
+                      position: 'relative',
+                      background: 'rgba(255, 255, 255, 0.7)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
+                      borderRadius: '12px',
+                      padding: '0.75rem 0.5rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      overflow: 'visible',
+                      minHeight: '75px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.12)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                    }}
+                    aria-label={`Browse ${category.name}`}
+                  >
+                    {/* Gradient Background */}
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: gradient,
+                      opacity: 0.2,
+                      transition: 'opacity 0.3s ease',
+                      borderRadius: '14px',
+                      zIndex: 0
+                    }} />
+
+                    {/* Category Name */}
+                    <div style={{
+                      position: 'relative',
+                      zIndex: 1,
+                      textAlign: 'center',
+                      width: '100%',
+                      padding: '0.5rem 0.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      <div style={{
+                        fontSize: 'clamp(0.7rem, 1.2vw, 0.8rem)',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)',
+                        lineHeight: 1.2,
+                        wordBreak: 'break-word',
+                        letterSpacing: '-0.01em',
+                        maxWidth: '100%'
+                      }}>
+                        {category.name}
+                      </div>
+                      <div style={{
+                        fontSize: 'clamp(0.65rem, 1vw, 0.7rem)',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 500,
+                        opacity: 0.75
+                      }}>
+                        {category.subcategories?.length || 0} categories
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Search Options Modal */}
+        {showSearchOptions && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem'
+          }}
+          onClick={() => setShowSearchOptions(false)}
+          >
+            <div
+              style={{
+                background: 'white',
+                borderRadius: '20px',
+                padding: '2rem',
+                maxWidth: '600px',
+                width: '100%',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                marginBottom: '0.5rem',
+                textAlign: 'center',
+                color: 'var(--text-primary)'
+              }}>
+                How would you like to search?
+              </h3>
+              <p style={{
+                textAlign: 'center',
+                color: 'var(--text-secondary)',
+                marginBottom: '2rem',
+                fontSize: '0.95rem'
+              }}>
+                {selectedCategory?.name} › {selectedSubcategory} › {selectedType}
+              </p>
+
+              <div style={{
+                display: 'grid',
+                gap: '1rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))'
+              }}>
+                {/* Leaderboard Search */}
+                <button
+                  onClick={() => {
+                    const searchQuery = selectedCategory && selectedSubcategory && selectedType
+                      ? `${selectedCategory.name} ${selectedSubcategory} ${selectedType}`
+                      : query;
+                    setQuery(searchQuery);
+                    setShowSearchOptions(false);
+                    handleSearch();
+                  }}
+                  style={{
+                    padding: '1.5rem 1rem',
+                    borderRadius: '16px',
+                    border: '2px solid rgba(102, 126, 234, 0.3)',
+                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.75rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(102, 126, 234, 0.3)';
+                    e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                  }}
+                >
+                  <i className="fas fa-trophy" style={{ fontSize: '2rem', color: '#667eea' }} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                      Leaderboard
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      Top rated products
+                    </div>
+                  </div>
+                </button>
+
+                {/* Swipe Search */}
+                <button
+                  onClick={() => {
+                    const searchQuery = selectedCategory && selectedSubcategory && selectedType
+                      ? `${selectedCategory.name} ${selectedSubcategory} ${selectedType}`
+                      : query;
+                    router.push(`/swipe?q=${encodeURIComponent(searchQuery)}`);
+                    setShowSearchOptions(false);
+                  }}
+                  style={{
+                    padding: '1.5rem 1rem',
+                    borderRadius: '16px',
+                    border: '2px solid rgba(239, 68, 68, 0.3)',
+                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.75rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.3)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  }}
+                >
+                  <i className="fas fa-fire" style={{ fontSize: '2rem', color: '#ef4444' }} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                      Swipe
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      Discover by swiping
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content - Search Interface */}
+        <div style={{
+          width: '100%',
+          maxWidth: '1200px',
+          margin: '3rem auto 0 auto'
+        }}>
+          <div className="hero-content" style={{ margin: '0 auto', textAlign: 'center' }}>
             {/* Search Interface */}
             <div className="search-container-modern animate-slide-up">
               <div className="search-input-area">
@@ -578,11 +897,16 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                 />
 
                 <div className="search-button-container">
-                  {/* Trending Button */}
+                    {/* Trending Button */}
                   <button
                     className="search-btn-modern search-btn-secondary"
                     type="button"
-                    onClick={() => router.push('/swipe')}
+                    onClick={() => {
+                      const swipePath = query.trim()
+                        ? `/swipe?q=${encodeURIComponent(query.trim())}`
+                        : '/swipe'
+                      router.push(swipePath)
+                    }}
                     title="Trending Finds"
                     aria-label="Trending finds"
                     style={{
@@ -618,6 +942,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                       aria-label="Upload image for visual search"
                     />
                   </button>
+
+                  {/* Voice Search Button */}
+                  <VoiceSearchButton
+                    onTranscript={(text) => setQuery(text)}
+                    className="search-btn-modern search-btn-secondary"
+                  />
 
                   {/* Search Button */}
                   <button
@@ -657,90 +987,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
           </div>
         </div>
 
-        {/* Best Deals Sidebar - RIGHT */}
-        <div
-          style={{
-            width: '320px',
-            flexShrink: 0,
-            position: 'sticky',
-            top: '100px',
-            maxHeight: 'calc(100vh - 120px)',
-            overflowY: 'auto'
-          }}
-        >
-          <div
-            className="card-modern p-4"
-            style={{
-              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%)',
-              border: '2px solid rgba(239, 68, 68, 0.3)'
-            }}
-          >
-            <div className="d-flex align-items-center gap-2 mb-3">
-              <i className="fas fa-tags" style={{ color: '#ef4444', fontSize: '1.2rem' }} />
-              <h3 className="text-primary font-bold mb-0" style={{ fontSize: '1.1rem' }}>
-                🔥 Best Deals
-              </h3>
-            </div>
-
-            <p className="text-secondary mb-3" style={{ fontSize: '0.875rem' }}>
-              AI-curated deals with biggest price drops
-            </p>
-
-            <button
-              onClick={showBestDeals}
-              className="w-100 text-start"
-              style={{
-                padding: '1rem',
-                borderRadius: '12px',
-                border: '1px solid var(--border-primary)',
-                background: 'var(--bg-secondary)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                marginBottom: '0.75rem'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.03)';
-                e.currentTarget.style.border = '2px solid #ef4444';
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(249, 115, 22, 0.2) 100%)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.border = '1px solid var(--border-primary)';
-                e.currentTarget.style.background = 'var(--bg-secondary)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <div className="d-flex align-items-center gap-3">
-                <div style={{ fontSize: '2rem' }}>💰</div>
-                <div className="flex-grow-1">
-                  <div className="text-primary font-semibold mb-1" style={{ fontSize: '0.95rem' }}>
-                    Today's Hot Deals
-                  </div>
-                  <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
-                    Up to 80% off retail prices
-                  </div>
-                </div>
-                <i className="fas fa-arrow-right" style={{ color: '#ef4444' }} />
-              </div>
-            </button>
-
-            <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
-              <div className="d-flex align-items-center gap-2 mb-2">
-                <i className="fas fa-fire" style={{ color: '#ef4444' }} />
-                <span className="text-primary font-semibold" style={{ fontSize: '0.85rem' }}>
-                  Trending Deals
-                </span>
-              </div>
-              <div className="text-secondary" style={{ fontSize: '0.75rem' }}>
-                • Designer handbags - 70% off<br />
-                • Vintage electronics - 60% off<br />
-                • Premium watches - 65% off<br />
-                • Home decor - 75% off
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </main>
   );

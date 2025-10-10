@@ -10,11 +10,14 @@ import { SwipeDeck } from './components/SwipeDeck'
 import { SwipeCart } from './components/SwipeCart'
 import { ProductDetailModal } from './components/ProductDetailModal'
 import { useSwipeStore, SwipeFilters } from '@/lib/stores/swipeStore'
-import { ShoppingBag, RotateCcw, Sparkles, Camera, Sliders } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { ShoppingBag, RotateCcw, Sparkles, Camera, Sliders, Mic } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useVoiceSearch } from '@/hooks/useVoiceSearch'
 
 export default function SwipePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchQuery = searchParams.get('q') || '' // Get search query from URL
   const { data: session, status } = useSession()
   const {
     sessionId,
@@ -59,20 +62,29 @@ export default function SwipePage() {
     signOut()
   }
 
+  // Voice search integration
+  const { isListening, startListening, stopListening } = useVoiceSearch({
+    onResult: (text) => {
+      // Navigate to swipe page with voice query
+      router.push(`/swipe?q=${encodeURIComponent(text)}`)
+    }
+  })
+
   // Auto-initialize with default filters on mount
   useEffect(() => {
-    if (!sessionId && !isLoading && !initError) {
+    // Always re-initialize when search query changes (even if there's a cached session)
+    if (!isLoading && !initError) {
       const defaultFilters: SwipeFilters = {
         categories: ['CLOTHING', 'ACCESSORIES', 'SHOES', 'ELECTRONICS', 'HOME'],
         priceRange: { min: 0, max: 1000 },
         styles: []
       }
-      initializeSession(defaultFilters)
+      initializeSession(defaultFilters, searchQuery)
     }
-  }, []) // Run once on mount
+  }, [searchQuery]) // Re-run if search query changes
 
-  // Initialize session with filters
-  const initializeSession = async (selectedFilters: SwipeFilters) => {
+  // Initialize session with filters and optional search query
+  const initializeSession = async (selectedFilters: SwipeFilters, query?: string) => {
     setShowWizard(false)
     useSwipeStore.setState({ isLoading: true })
     setInitError(null)
@@ -81,7 +93,10 @@ export default function SwipePage() {
       const response = await fetch('/api/swipe/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(selectedFilters)
+        body: JSON.stringify({
+          ...selectedFilters,
+          query: query || undefined // Pass search query to API
+        })
       })
 
       if (!response.ok) {
@@ -384,6 +399,61 @@ export default function SwipePage() {
               title="Visual Search"
             >
               <Camera className="w-6 h-6 text-white" strokeWidth={2.5} />
+            </motion.button>
+
+            {/* Voice Search Button */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => isListening ? stopListening() : startListening()}
+              className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl relative"
+              style={{
+                background: isListening
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                boxShadow: isListening
+                  ? '0 8px 24px rgba(239, 68, 68, 0.4)'
+                  : '0 8px 24px rgba(16, 185, 129, 0.4)'
+              }}
+              title={isListening ? 'Stop listening' : 'Voice Search'}
+            >
+              <Mic className="w-6 h-6 text-white" strokeWidth={2.5} />
+
+              {/* Listening pulse animation */}
+              <AnimatePresence>
+                {isListening && (
+                  <>
+                    <motion.div
+                      initial={{ scale: 1, opacity: 0.5 }}
+                      animate={{ scale: 1.8, opacity: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '50%',
+                        background: 'rgba(239, 68, 68, 0.4)',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                    <motion.div
+                      initial={{ scale: 1, opacity: 0.3 }}
+                      animate={{ scale: 2.2, opacity: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
+                      style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '50%',
+                        background: 'rgba(239, 68, 68, 0.3)',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                  </>
+                )}
+              </AnimatePresence>
             </motion.button>
 
             {/* Filters Button */}
