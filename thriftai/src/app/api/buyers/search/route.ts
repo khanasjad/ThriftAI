@@ -71,6 +71,11 @@ export async function GET(request: NextRequest) {
                 businessName: true,
                 rating: true
               }
+            },
+            veritasScore: {
+              include: {
+                categories: true
+              }
             }
           },
           skip,
@@ -80,8 +85,51 @@ export async function GET(request: NextRequest) {
         prisma.product.count({ where })
       ])
 
-      products = productResults
+      products = productResults.map(p => ({
+        ...p,
+        veritasScore: p.veritasScore ? {
+          ssn: p.veritasScore.ssn,
+          overallScore: Number(p.veritasScore.overallScore),
+          confidence: Number(p.veritasScore.confidence),
+          grade: calculateVeritasGrade(Number(p.veritasScore.overallScore)),
+          categories: p.veritasScore.categories.map(c => ({
+            name: c.categoryName,
+            score: Number(c.categoryScore),
+            weight: Number(c.weight)
+          }))
+        } : null
+      }))
       total = totalCount
+    }
+
+    // Enrich AI search results with Veritas scores from database
+    if (query && products.length > 0) {
+      const productIds = products.map(p => p.id)
+      const veritasScores = await prisma.veritasScore.findMany({
+        where: {
+          productId: { in: productIds }
+        },
+        include: {
+          categories: true
+        }
+      })
+
+      const scoresMap = new Map(veritasScores.map(s => [s.productId, s]))
+
+      products = products.map(p => ({
+        ...p,
+        veritasScore: scoresMap.has(p.id) ? {
+          ssn: scoresMap.get(p.id)!.ssn,
+          overallScore: Number(scoresMap.get(p.id)!.overallScore),
+          confidence: Number(scoresMap.get(p.id)!.confidence),
+          grade: calculateVeritasGrade(Number(scoresMap.get(p.id)!.overallScore)),
+          categories: scoresMap.get(p.id)!.categories.map(c => ({
+            name: c.categoryName,
+            score: Number(c.categoryScore),
+            weight: Number(c.weight)
+          }))
+        } : null
+      }))
     }
 
     return NextResponse.json({
@@ -93,6 +141,15 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit)
       }
     })
+
+    function calculateVeritasGrade(score: number): string {
+      if (score >= 95) return 'S'
+      if (score >= 85) return 'A'
+      if (score >= 75) return 'B'
+      if (score >= 65) return 'C'
+      if (score >= 50) return 'D'
+      return 'F'
+    }
     } catch (error) {
       if (error instanceof ZodError) {
         return NextResponse.json(

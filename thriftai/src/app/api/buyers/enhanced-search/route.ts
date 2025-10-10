@@ -354,11 +354,21 @@ export async function POST(request: NextRequest) {
           ux: veritasScore.pillars.userExperience.score,
           sustainability: veritasScore.pillars.sustainability.score
         },
-        // Include enriched 96-parameter data
-        dynamicSpecs: enrichedProduct.dynamicSpecs,
+        // ✅ Prefer database dynamicSpecs over enriched specs
+        dynamicSpecs: p.dynamicSpecs || enrichedProduct.dynamicSpecs,
         companyMetrics: enrichedProduct.companyMetrics
       }
     }))
+
+    // 🔍 DEBUG: Log dynamicSpecs for first product
+    if (rerankedProducts.length > 0) {
+      logger.info('🔍 First product dynamicSpecs check', {
+        productName: rerankedProducts[0].name,
+        hasDynamicSpecs: !!rerankedProducts[0].dynamicSpecs,
+        dynamicSpecsKeys: rerankedProducts[0].dynamicSpecs ? Object.keys(rerankedProducts[0].dynamicSpecs) : [],
+        dynamicSpecsCount: rerankedProducts[0].dynamicSpecs ? Object.keys(rerankedProducts[0].dynamicSpecs).length : 0
+      })
+    }
 
     logger.info('✅ Veritas Scores calculated for all products', {
       count: rerankedProducts.length,

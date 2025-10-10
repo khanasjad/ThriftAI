@@ -14,6 +14,7 @@ export interface SearchResult {
   category: string
   condition?: string
   imageUrl?: string
+  dynamicSpecs?: any  // ✅ Include database specifications
   seller?: {
     businessName: string
     rating: number
@@ -376,7 +377,16 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
 
     const products = await prisma.product.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        originalPrice: true,
+        brand: true,
+        category: true,
+        condition: true,
+        imageUrl: true,
+        dynamicSpecs: true,  // ✅ Include database specifications
         seller: {
           select: {
             businessName: true,
@@ -436,6 +446,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
       category: p.category,
       condition: p.condition || undefined,
       imageUrl: p.imageUrl || undefined,
+      dynamicSpecs: p.dynamicSpecs || undefined,  // ✅ Include specifications from database
       seller: p.seller ? {
         businessName: p.seller.businessName,
         rating: p.seller.rating
@@ -492,7 +503,16 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
 
     const products = await prisma.product.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        originalPrice: true,
+        brand: true,
+        category: true,
+        condition: true,
+        imageUrl: true,
+        dynamicSpecs: true,  // ✅ Include database specifications
         seller: {
           select: {
             businessName: true,
@@ -518,6 +538,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
       category: p.category,
       condition: p.condition || undefined,
       imageUrl: p.imageUrl || undefined,
+      dynamicSpecs: p.dynamicSpecs || undefined,  // ✅ Include specifications from database
       seller: p.seller ? {
         businessName: p.seller.businessName,
         rating: p.seller.rating
@@ -781,7 +802,17 @@ Response: {"requiredTerms": ["electronics", "tech", "gadget", "device"], "option
       // Execute search with enhanced ordering
       const products = await prisma.product.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          originalPrice: true,
+          brand: true,
+          category: true,
+          condition: true,
+          imageUrl: true,
+          description: true,
+          dynamicSpecs: true,  // ✅ Include database specifications
           seller: {
             select: {
               businessName: true,
@@ -818,6 +849,7 @@ Response: {"requiredTerms": ["electronics", "tech", "gadget", "device"], "option
         category: p.category,
         condition: p.condition || undefined,
         imageUrl: p.imageUrl || undefined,
+        dynamicSpecs: p.dynamicSpecs || undefined,  // ✅ Include specifications from database
         seller: p.seller ? {
           businessName: p.seller.businessName,
           rating: p.seller.rating
@@ -1063,7 +1095,16 @@ Response: {"requiredTerms": ["electronics", "tech", "gadget", "device"], "option
 
     const products = await prisma.product.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        originalPrice: true,
+        brand: true,
+        category: true,
+        condition: true,
+        imageUrl: true,
+        dynamicSpecs: true,  // ✅ Include database specifications
         seller: {
           select: {
             businessName: true,
@@ -1087,6 +1128,7 @@ Response: {"requiredTerms": ["electronics", "tech", "gadget", "device"], "option
       category: p.category,
       condition: p.condition || undefined,
       imageUrl: p.imageUrl || undefined,
+      dynamicSpecs: p.dynamicSpecs || undefined,  // ✅ Include specifications from database
       seller: p.seller ? {
         businessName: p.seller.businessName,
         rating: p.seller.rating

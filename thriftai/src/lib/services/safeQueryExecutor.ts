@@ -204,7 +204,27 @@ export class SafeQueryExecutor {
           orderBy,
           take: limit,
           skip: offset,
-          include: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            originalPrice: true,
+            brand: true,
+            category: true,
+            condition: true,
+            imageUrl: true,
+            size: true,
+            isAvailable: true,
+            aiScore: true,
+            aiConfidence: true,
+            globalRank: true,
+            categoryRank: true,
+            aiScoreBreakdown: true,
+            lastScoredAt: true,
+            leaderboardBadges: true,
+            createdAt: true,
+            dynamicSpecs: true,  // ✅ Include database specifications
             seller: {
               select: {
                 businessName: true,
@@ -253,9 +273,9 @@ export class SafeQueryExecutor {
 
         return {
           ...p,
-          images: p.images || (p.imageUrl ? [p.imageUrl] : ['/placeholder-image.jpg']),
-          title: p.title || p.name,
-          asin: p.asin || p.id,
+          images: p.imageUrl ? [p.imageUrl] : ['/placeholder-image.jpg'],
+          title: p.name,
+          asin: p.id,
           rating: rating,
           reviews: p.reviews || { rating: rating, count: 0 },
           availability: p.availability || { inStock: p.isAvailable !== false, quantity: p.quantity || 0 },
@@ -264,6 +284,7 @@ export class SafeQueryExecutor {
             condition: p.condition || 'Good',
             brand: p.brand || 'Unknown'
           },
+          dynamicSpecs: p.dynamicSpecs,  // ✅ Include database specifications
           price: {
             current: currentPrice,
             original: originalPrice,
@@ -353,9 +374,9 @@ export class SafeQueryExecutor {
 
         return {
           ...p,
-          images: p.images || (p.imageUrl ? [p.imageUrl] : ['/placeholder-image.jpg']),
-          title: p.title || p.name,
-          asin: p.asin || p.id,
+          images: p.imageUrl ? [p.imageUrl] : ['/placeholder-image.jpg'],
+          title: p.name,
+          asin: p.id,
           rating: rating,
           reviews: p.reviews || { rating: rating, count: 0 },
           availability: p.availability || { inStock: p.isAvailable !== false, quantity: p.quantity || 0 },
