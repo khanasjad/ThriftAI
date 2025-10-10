@@ -13,7 +13,7 @@
 
 import * as cheerio from 'cheerio'
 import { logger } from '@/lib/logger'
-import { rateLimitedFetch, RateLimitPresets } from '@/lib/utils/rateLimiter'
+import { waitForRateLimit } from '@/lib/utils/rateLimiter'
 
 export interface AmazonPriceData {
   productTitle: string
@@ -57,13 +57,14 @@ export async function scrapeAmazonMSRP(
     const searchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(searchQuery)}`
 
     // Fetch search results with rate limiting
-    const response = await rateLimitedFetch(searchUrl, {
+    await waitForRateLimit('amazon')
+    const response = await fetch(searchUrl, {
       headers: {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate, br'
       }
-    }, RateLimitPresets.amazon)
+    })
 
     if (!response.ok) {
       throw new Error(`Amazon returned ${response.status}`)

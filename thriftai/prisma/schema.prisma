@@ -235,6 +235,7 @@ model Product {
   veritasScore          VeritasScore?
   sustainability        VeritasSustainability?
   userExperience        VeritasUserExperience?
+  priceHistory          PriceHistory[]
 
   @@index([isAvailable])
   @@index([category])
@@ -1590,4 +1591,23 @@ enum VeritasCategoryType {
   USER_EXPERIENCE
   PRODUCT_SPECIFICATION
   COMPANY_PERFORMANCE
+}
+
+/// Price History - Track product price changes over time
+/// Enables price intelligence, trend analysis, and deal detection
+model PriceHistory {
+  id          String   @id @default(cuid())
+  productId   String   @map("product_id")
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  price       Float
+  source      String   // 'Internal' | 'Amazon' | 'eBay' | 'Manual'
+  recordedAt  DateTime @default(now()) @map("recorded_at")
+  changeType  String?  @map("change_type") // 'increase' | 'decrease' | 'stable'
+  changePct   Float?   @map("change_pct")   // Percentage change from previous price
+  metadata    Json?    // Additional data like seller info, condition, etc.
+
+  @@index([productId])
+  @@index([recordedAt])
+  @@index([source])
+  @@map("price_history")
 }

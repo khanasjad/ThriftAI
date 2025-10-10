@@ -424,7 +424,7 @@ export interface ComprehensiveVeritasScore {
 
   // Individual components
   warranty: WarrantyData
-  payment Security: PaymentSecurityData
+  paymentSecurity: PaymentSecurityData
   descriptionQuality: DescriptionQualityData
   resaleValue: ResaleValueData
   advancedQuality: AdvancedQualityData

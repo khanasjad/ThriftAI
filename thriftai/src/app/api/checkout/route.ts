@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       line_items: lineItems,
       mode: 'payment',
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
-      cancel_url: `${appUrl}/cart`,
+      cancel_url: `${appUrl}/checkout/cancel`,
       customer_email: session.user.email || undefined,
       client_reference_id: order.id,
       metadata: {

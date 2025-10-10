@@ -13,7 +13,6 @@
 
 import * as cheerio from 'cheerio'
 import { logger } from '@/lib/logger'
-import { rateLimitedFetch, RateLimitPresets } from '@/lib/utils/rateLimiter'
 
 export interface BBBRatingsData {
   businessName: string
