@@ -113,7 +113,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, on
           <div className="modal-header-modern">
             <h5 className="modal-title-modern text-gradient-primary">
               <i className="fas fa-user-plus me-2" style={{ color: '#10b981' }}></i>
-              Join ThriftAI
+              Join Veritas.ai
             </h5>
             <button
               type="button"

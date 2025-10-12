@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
-import { Send, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Copy, ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react'
+import { Send, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Copy, ChevronLeft, ChevronRight, Volume2, VolumeX, Mic, MicOff } from 'lucide-react'
 import ChatMessage, { ChatMessageData } from './ChatMessage'
 import { getChatConfig } from '@/config/search.config'
+import { ttsService } from '@/lib/services/ttsService'
+import { useVoiceChat } from '@/hooks/useVoiceChat'
 
 const CONVERSATION_STARTERS = [
   "I need a laptop under $700",
@@ -32,22 +34,34 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [audioEnabled, setAudioEnabled] = useState(true)
-  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const [voiceChatEnabled, setVoiceChatEnabled] = useState(false)
 
-  // Text-to-speech function
-  const speakMessage = (text: string) => {
+  // Voice chat with VAD
+  const voiceChat = useVoiceChat({
+    onTranscript: async (text) => {
+      console.log('🎤 Voice input:', text)
+      await sendMessage(text)
+    },
+    onError: (error) => {
+      console.error('Voice chat error:', error)
+    },
+    silenceThreshold: 1500  // 1.5 seconds of silence
+  })
+
+  // Text-to-speech function using new TTS service
+  const speakMessage = async (text: string) => {
     if (!audioEnabled || typeof window === 'undefined') return
 
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel()
-
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 0.9 // Slightly slower for wise shopkeeper effect
-    utterance.pitch = 0.8 // Lower pitch for older voice
-    utterance.volume = 0.8
-
-    speechSynthesisRef.current = utterance
-    window.speechSynthesis.speak(utterance)
+    try {
+      await ttsService.speak(text, {
+        provider: 'google', // Try Google Cloud TTS first (more natural)
+        rate: 0.88, // Slower for old man effect
+        pitch: 0.85, // Lower pitch for masculine old man voice
+        volume: 0.85
+      })
+    } catch (error) {
+      console.error('TTS error:', error)
+    }
   }
 
   // Detect theme changes
@@ -72,9 +86,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
   // Cleanup speech synthesis on unmount
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined') {
-        window.speechSynthesis.cancel()
-      }
+      ttsService.cancel()
     }
   }, [])
 
@@ -503,21 +515,59 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
             </div>
           </div>
 
-          {/* Audio Toggle Button */}
+          {/* Voice Chat Button with VAD */}
           <button
             onClick={() => {
+              if (voiceChat.isListening) {
+                voiceChat.stopListening()
+              } else {
+                voiceChat.startListening()
+              }
+            }}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              background: voiceChat.isListening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+              border: `1px solid ${voiceChat.isListening ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+              animation: voiceChat.isListening ? 'pulse 1.5s ease-in-out infinite' : 'none'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = voiceChat.isListening ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = voiceChat.isListening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'
+            }}
+            aria-label={voiceChat.isListening ? 'Stop voice chat' : 'Start voice chat'}
+            title={voiceChat.isListening ? '🎤 Listening... (Click to stop)' : '🎤 Click to talk to Gus'}
+          >
+            {voiceChat.isListening ? (
+              <Mic className="w-4 h-4" style={{ color: '#ef4444' }} />
+            ) : (
+              <MicOff className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+            )}
+          </button>
+
+          {/* Audio Toggle Button */}
+          <button
+            onClick={async () => {
               if (audioEnabled) {
                 // Test audio when disabling
-                speakMessage("Audio is now off")
+                await speakMessage("Audio is now off")
                 setTimeout(() => {
                   setAudioEnabled(false)
-                  window.speechSynthesis.cancel()
+                  ttsService.cancel()
                 }, 100)
               } else {
                 // Test audio when enabling
                 setAudioEnabled(true)
-                setTimeout(() => {
-                  speakMessage("Audio is now on. Hey, I'm Gus!")
+                setTimeout(async () => {
+                  await speakMessage("Audio is now on. Hey, I'm Gus!")
                 }, 100)
               }
             }}
@@ -540,7 +590,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
               e.currentTarget.style.background = audioEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)'
             }}
             aria-label={audioEnabled ? 'Disable audio' : 'Enable audio'}
-            title={audioEnabled ? 'Click to test voice & turn OFF' : 'Click to turn voice ON'}
+            title={audioEnabled ? 'Voice responses ON' : 'Voice responses OFF'}
           >
             {audioEnabled ? (
               <Volume2 className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
@@ -550,6 +600,57 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           </button>
         </div>
       </div>
+
+      {/* Voice Chat Indicator */}
+      {voiceChat.isListening && (
+        <div
+          style={{
+            padding: '12px 16px',
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
+            borderBottom: '1px solid rgba(239, 68, 68, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <div
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#ef4444',
+              animation: 'pulse 1s ease-in-out infinite'
+            }}
+          />
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#ef4444',
+              marginBottom: '4px'
+            }}>
+              🎤 Listening...
+            </div>
+            {voiceChat.transcript && (
+              <div style={{
+                fontSize: '12px',
+                color: theme === 'light' ? '#666' : 'var(--text-secondary)',
+                fontStyle: 'italic'
+              }}>
+                "{voiceChat.transcript}"
+              </div>
+            )}
+            {!voiceChat.transcript && (
+              <div style={{
+                fontSize: '11px',
+                color: theme === 'light' ? '#999' : 'var(--text-tertiary)'
+              }}>
+                Speak now... (stops automatically after 1.5s of silence)
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div

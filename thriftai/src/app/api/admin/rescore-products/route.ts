@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         companyMetrics: enrichedProduct.companyMetrics,
         dynamicSpecs: enrichedProduct.dynamicSpecs
       }
-    })
+    }))
 
     logger.info('✅ Veritas Scores calculated', {
       total: scoredProducts.length,

@@ -30,7 +30,7 @@ import { checkAppleWarranty, validateAppleSerial } from '@/lib/dataFetcher/apple
 import { checkDellWarranty, validateDellServiceTag } from '@/lib/dataFetcher/dellWarranty'
 import { getPhoneSpecs } from '@/lib/dataFetcher/gsmarena'
 import { getRepairability } from '@/lib/dataFetcher/ifixit'
-import { getEnergyStarCertification } from '@/lib/dataFetcher/energyStar'
+import { checkEnergyStar } from '@/lib/dataFetcher/energyStar'
 import { getStockByBrand, calculateStockPerformanceScore } from '@/lib/dataFetcher/alphaVantage'
 import { getAmazonPriceHistory } from '@/lib/scrapers/CamelCamelCamelScraper'
 
@@ -261,7 +261,7 @@ export class VeritasScoreCalculator {
     // Energy Star certification
     if (input.category.toLowerCase().includes('laptop') || input.category.toLowerCase().includes('monitor')) {
       promises.push(
-        getEnergyStarCertification(input.productName)
+        checkEnergyStar(input.productName, input.brand)
           .then(result => {
             if (result.success) {
               data.energyStar = result.data
@@ -538,7 +538,7 @@ export class VeritasScoreCalculator {
       carbonFootprintReduction: this.calculateCarbonReduction(input.condition),
       eWastePrevention: input.condition !== 'New',
       resourceConservation: input.condition === 'New' ? 40 : 90,
-      isEnergyStarCertified: energyStar?.isEnergyStar || false,
+      isEnergyStarCertified: energyStar?.certified || false,
       epeatRating: null,
     }
 
@@ -557,7 +557,7 @@ export class VeritasScoreCalculator {
     }
 
     const certifications = userInput.certifications || {
-      ecoCertifications: energyStar?.isEnergyStar ? ['Energy Star'] : [],
+      ecoCertifications: energyStar?.certified ? ['Energy Star'] : [],
       hasRefurbCertification: false,
     }
 

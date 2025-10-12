@@ -1,5 +1,5 @@
-// ThriftAI - Visual Search Page
-// AI-powered image search for thrift shopping
+// Veritas.ai - Visual Search Page
+// AI-powered image search for product discovery
 
 'use client'
 

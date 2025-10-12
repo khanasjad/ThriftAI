@@ -11,6 +11,7 @@ import ProductFilters, { ProductFiltersState } from '@/components/ProductFilters
 import Pagination, { QuickJumpPagination } from '@/components/Pagination'
 import ChatSidebar from '@/components/ChatSidebar'
 import LeaderboardCard from '@/components/LeaderboardCard'
+import ProductCard from '@/components/ProductCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Star } from 'lucide-react'
@@ -219,7 +220,7 @@ export default function SearchResults() {
         images: p.images || (p.imageUrl ? [p.imageUrl] : ['/placeholder-image.jpg']),
         description: p.description || p.title || 'AI-recommended product',
         seller: {
-          name: p.seller?.name || p.source || 'ThriftAI',
+          name: p.seller?.name || p.source || 'Veritas.ai',
           rating: p.seller?.rating || 4.5,
           verified: true
         },
@@ -465,7 +466,7 @@ export default function SearchResults() {
       images: result.imageUrl ? [result.imageUrl] : ['/placeholder-image.jpg'],
       description: result.description || result.claudeReasoning || result.name,
       seller: {
-        name: 'ThriftAI',
+        name: 'Veritas.ai',
         rating: 4.5,
         verified: true
       },
@@ -585,7 +586,7 @@ export default function SearchResults() {
   const convertToSwipeProducts = (products: Product[]): SwipeProduct[] => {
     return products.map(p => ({
       id: p.asin,
-      name: p.title,
+      name: p.title || p.name || 'Product',
       price: p.price?.current || 0,
       originalPrice: p.price?.original,
       images: p.images || [],
@@ -664,160 +665,25 @@ export default function SearchResults() {
   }
 
   const renderProduct = (product: Product, index: number) => {
-    // Safety checks for price structure
-    const currentPrice = product.price?.current ?? product.price ?? 0
-    const originalPrice = product.price?.original ?? currentPrice
-    const discount = product.price?.discountPercentage ?? 0
-    const savings = originalPrice - currentPrice
-    const hasVeritasScore = product.veritasScore !== undefined && product.veritasScore !== null
-
     return (
-      <div key={`${product.asin}-${index}`} className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
-        {/* Product Image */}
-        <div className="product-image-container">
-          <img
-            src={product.images[0] || '/placeholder-image.jpg'}
-            alt={product.title}
-            className="product-image"
-          />
-
-          {/* Top 3 Golden Star Badge */}
-          {index < 3 && (
-            <div style={{
-              position: 'absolute',
-              top: '0.5rem',
-              left: '0.5rem',
-              background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-              color: '#000',
-              padding: '0.25rem 0.5rem',
-              borderRadius: 'var(--radius-md)',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--font-bold)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              boxShadow: '0 2px 8px rgba(255, 215, 0, 0.4)',
-              zIndex: 2
-            }}>
-              <Star size={12} fill="#000" />
-              #{index + 1}
-            </div>
-          )}
-
-          {discount > 0 && (
-            <div className="product-discount-badge">
-              -{discount}%
-            </div>
-          )}
-          {!product.availability.inStock && (
-            <div className="product-out-of-stock">
-              <span>Out of Stock</span>
-            </div>
-          )}
-          {/* Veritas Score™ Badge */}
-          {hasVeritasScore && (
-            <div className="absolute top-2 left-2 flex flex-col gap-1">
-              <div className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                product.veritasScore! >= 80 ? 'bg-green-600' :
-                product.veritasScore! >= 70 ? 'bg-blue-600' :
-                product.veritasScore! >= 60 ? 'bg-yellow-600' : 'bg-gray-600'
-              }`}>
-                Veritas: {product.veritasScore!.toFixed(0)}
-              </div>
-              {product.isHighQuality && (
-                <div className="px-2 py-1 rounded-md text-xs font-semibold bg-purple-600">
-                  ⭐ Top Quality
-                </div>
-              )}
-              {product.leaderboardRank && product.leaderboardRank <= 100 && (
-                <div className="px-2 py-1 rounded-md text-xs font-semibold bg-orange-600">
-                  #{product.leaderboardRank} Global
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Product Info */}
-        <div className="product-info-container">
-          {/* Brand and Rating */}
-          <div className="product-brand-rating">
-            <span className="product-brand">
-              {product.brand}
-            </span>
-            <div className="product-rating">
-              <span className="product-star">{renderStars(product.reviews.rating)}</span>
-              <span>{product.reviews.rating}</span>
-            </div>
-          </div>
-
-          {/* Product Title */}
-          <h3 className="product-title">
-            {product.title.replace(/#\d+$/,'')}
-          </h3>
-
-          {/* Specifications */}
-          <div className="product-specs">
-            {product.specifications.size && (
-              <span className="product-spec-badge">
-                {product.specifications.size}
-              </span>
-            )}
-            {product.specifications.condition && (
-              <span className="product-spec-badge">
-                {product.specifications.condition}
-              </span>
-            )}
-          </div>
-
-          {/* Claude Reasoning */}
-          {product.reasoning && (
-            <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-xs text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700">
-              <div className="flex items-start gap-1">
-                <span className="flex-shrink-0">🧠</span>
-                <p className="flex-1">{product.reasoning}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Price Section */}
-          <div className="product-pricing">
-            <div className="product-price-row">
-              <span className="product-current-price">
-                ${currentPrice.toFixed(2)}
-              </span>
-              {discount > 0 && (
-                <span className="product-original-price">
-                  ${originalPrice.toFixed(2)}
-                </span>
-              )}
-            </div>
-
-            {/* Add to Cart Button */}
-            <button
-              className="product-add-to-cart"
-              disabled={!product.availability.inStock || cartLoading}
-              onClick={async () => {
-                try {
-                  await addToCart(
-                    product.asin,
-                    1,
-                    session?.user?.id
-                  )
-                } catch (error) {
-                  console.error('Failed to add to cart:', error)
-                }
-              }}
-            >
-              {!product.availability.inStock
-                ? 'Out of Stock'
-                : cartLoading
-                ? 'Adding...'
-                : 'Add to Cart'}
-            </button>
-          </div>
-        </div>
-      </div>
+      <ProductCard
+        key={`${product.asin}-${index}`}
+        product={product}
+        index={index}
+        viewMode={viewMode}
+        onAddToCart={async () => {
+          try {
+            await addToCart(
+              product.asin,
+              1,
+              session?.user?.id
+            )
+          } catch (error) {
+            console.error('Failed to add to cart:', error)
+          }
+        }}
+        cartLoading={cartLoading}
+      />
     )
   }
 
@@ -1132,7 +998,7 @@ export default function SearchResults() {
                               key={product.asin}
                               className="text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 px-2 py-1 rounded"
                             >
-                              {product.title.substring(0, 30)}...
+                              {(product.title || product.name || 'Product').substring(0, 30)}...
                             </span>
                           ))}
                           {likedProducts.length > 5 && (
@@ -1159,7 +1025,7 @@ export default function SearchResults() {
                         // Map search page Product to LeaderboardCard's expected format
                         const leaderboardProduct = {
                           id: product.asin,
-                          name: product.title,
+                          name: product.title || product.name || 'Product',
                           brand: product.brand,
                           category: product.category,
                           price: {

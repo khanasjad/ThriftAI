@@ -1,7 +1,7 @@
 {
-  "name": "Veritas.ai - Smart Thrift Shopping",
+  "name": "Veritas.ai - AI Product Quality Scoring",
   "short_name": "Veritas.ai",
-  "description": "AI-powered thrift marketplace with Veritas Score quality assessment",
+  "description": "AI-powered product quality scoring and best deal discovery platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0e1a",

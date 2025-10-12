@@ -2,17 +2,19 @@ import { getServerSession } from 'next-auth/next'
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // Note: No adapter needed for JWT sessions
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
+    // Only add Google provider if credentials are available
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [GoogleProvider({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        })]
+      : []),
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -83,37 +85,17 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
-    async signIn({ user, account, profile }) {
-      if (account?.provider === 'google') {
-        // Auto-create buyer profile for Google sign-ins
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email! },
-          include: { buyer: true }
-        })
-
-        if (existingUser && !existingUser.buyer) {
-          // Create buyer profile if it doesn't exist
-          await prisma.buyer.create({
-            data: {
-              id: `buyer_${existingUser.id}`,
-              userId: existingUser.id,
-              firstName: user.firstName || user.name?.split(' ')[0] || 'User',
-              lastName: user.lastName || user.name?.split(' ')[1] || '',
-              email: user.email!,
-              buyerType: 'CASUAL',
-              isActive: true,
-              emailVerified: true
-            }
-          })
-        }
-      }
+    async signIn({ user, account }) {
+      // For credentials provider, sign-in is handled in authorize()
+      // Google OAuth would require an adapter to work properly
       return true
     }
   },
   pages: {
     signIn: '/auth/signin',
     signUp: '/auth/signup'
-  }
+  },
+  secret: process.env.NEXTAUTH_SECRET || 'dev-secret-key-change-in-production'
 }
 
 export async function getSession() {

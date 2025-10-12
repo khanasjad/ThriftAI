@@ -99,7 +99,7 @@ export default function SustainabilityPage() {
             </h1>
           </div>
           <p className="page-subtitle">
-            {appUser ? 'Track your environmental contribution through secondhand shopping' : 'See the collective impact of our ThriftAI community'}
+            {appUser ? 'Track your environmental contribution through smart shopping' : 'See the collective impact of our Veritas.ai community'}
           </p>
         </div>
 

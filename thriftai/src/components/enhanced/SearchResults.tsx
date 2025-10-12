@@ -1,4 +1,4 @@
-// ThriftAI - Enhanced Search Results Component
+// Veritas.ai - Enhanced Search Results Component
 // AI-powered search results with intelligent ranking and insights
 
 'use client'

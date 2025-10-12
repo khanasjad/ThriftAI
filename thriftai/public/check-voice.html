@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Checker - ThriftAI</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .section {
+      margin: 25px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .section h2 {
+      margin-top: 0;
+      color: #667eea;
+      font-size: 18px;
+    }
+
+    .voice-list {
+      max-height: 300px;
+      overflow-y: auto;
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+
+    .voice-item {
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: monospace;
+    }
+
+    .voice-item.recommended {
+      background: #d4edda;
+      border-left: 3px solid #28a745;
+      font-weight: bold;
+    }
+
+    .voice-item.selected {
+      background: #cce5ff;
+      border-left: 3px solid #0066cc;
+      font-weight: bold;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    .status {
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+
+    .status.info {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status.warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .test-text {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 Voice Checker</h1>
+    <p class="subtitle">Diagnose which voice is being used and find American voices</p>
+
+    <div class="section">
+      <h2>🔍 Current Voice Detection</h2>
+      <button onclick="checkCurrentVoice()">Check Current Voice</button>
+      <button onclick="listAllVoices()">List All Available Voices</button>
+      <div id="currentVoiceStatus"></div>
+    </div>
+
+    <div class="section">
+      <h2>🇺🇸 Recommended American Voices</h2>
+      <div id="recommendedVoices">Loading...</div>
+    </div>
+
+    <div class="section">
+      <h2>🎧 Test Selected Voice</h2>
+      <input type="text" class="test-text" id="testText" value="Howdy partner! I'm Gus from Texas. Been running this shop for 40 years." />
+      <br><br>
+      <button onclick="testSelectedVoice()">Test Voice</button>
+      <button onclick="stopAudio()">Stop Audio</button>
+      <div id="testStatus"></div>
+    </div>
+
+    <div class="section">
+      <h2>📋 All Available Voices</h2>
+      <div id="allVoices" class="voice-list">Click "List All Available Voices" to see</div>
+    </div>
+
+    <div class="section">
+      <h2>💡 Setup Instructions</h2>
+      <div class="status info">
+        <strong>Option 1: Use Browser Voices (Free, works now)</strong><br>
+        The app will automatically select the best American voice from your browser.
+        <br><br>
+        <strong>Option 2: Setup Google Cloud TTS (Best quality)</strong><br>
+        1. Get API key: <a href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a><br>
+        2. Add to <code>.env.local</code>: <code>GOOGLE_CLOUD_TTS_API_KEY=your_key</code><br>
+        3. Restart server: <code>npm run dev</code>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedVoice = null
+    let currentAudio = null
+
+    function checkCurrentVoice() {
+      const voices = speechSynthesis.getVoices()
+
+      if (voices.length === 0) {
+        showStatus('currentVoiceStatus', 'error', '❌ No voices available. Refresh the page and try again.')
+        return
+      }
+
+      // Simulate the voice selection logic from ttsService - MALE ONLY
+      const bestAmericanMaleVoices = [
+        'Google US English Male',
+        'Microsoft David - English (United States)',
+        'Microsoft Mark - English (United States)',
+        'Microsoft Guy - English (United States)',
+        'Alex',  // Best Mac voice for old American man
+        'Fred',  // Deep male voice
+        'Daniel (Enhanced)',
+        'Daniel'
+      ]
+
+      // Try exact match - MALE voices only
+      selectedVoice = null
+      for (const voiceName of bestAmericanMaleVoices) {
+        selectedVoice = voices.find(v => v.name === voiceName)
+        if (selectedVoice) break
+      }
+
+      // Try American MALE voice with keywords
+      if (!selectedVoice) {
+        selectedVoice = voices.find(voice =>
+          (voice.lang === 'en-US' || voice.lang === 'en_US') &&
+          (voice.name.toLowerCase().includes('male') ||
+           voice.name.toLowerCase().includes('man') ||
+           voice.name.toLowerCase().includes('alex') ||
+           voice.name.toLowerCase().includes('fred') ||
+           voice.name.toLowerCase().includes('daniel') ||
+           voice.name.toLowerCase().includes('david') ||
+           voice.name.toLowerCase().includes('mark') ||
+           voice.name.toLowerCase().includes('guy') ||
+           voice.name.toLowerCase().includes('eric'))
+        )
+      }
+
+      // Exclude female voices explicitly
+      if (!selectedVoice) {
+        selectedVoice = voices.find(voice =>
+          (voice.lang === 'en-US' || voice.lang === 'en_US') &&
+          !voice.name.toLowerCase().includes('female') &&
+          !voice.name.toLowerCase().includes('woman') &&
+          !voice.name.toLowerCase().includes('samantha') &&
+          !voice.name.toLowerCase().includes('victoria') &&
+          !voice.name.toLowerCase().includes('karen')
+        )
+      }
+
+      // Any US voice
+      if (!selectedVoice) {
+        selectedVoice = voices.find(v => v.lang === 'en-US' || v.lang === 'en_US')
+      }
+
+      // Any English voice
+      if (!selectedVoice) {
+        selectedVoice = voices.find(v => v.lang.startsWith('en'))
+      }
+
+      if (selectedVoice) {
+        const isAmerican = selectedVoice.lang === 'en-US' || selectedVoice.lang === 'en_US'
+        const statusType = isAmerican ? 'success' : 'warning'
+        const emoji = isAmerican ? '✅' : '⚠️'
+
+        showStatus('currentVoiceStatus', statusType,
+          `${emoji} <strong>Selected Voice:</strong> ${selectedVoice.name}<br>
+          <strong>Language:</strong> ${selectedVoice.lang}<br>
+          <strong>Local:</strong> ${selectedVoice.localService ? 'Yes' : 'No (Online)'}<br>
+          <strong>Status:</strong> ${isAmerican ? 'American English ✅' : 'Not American English (may sound foreign)'}`
+        )
+      } else {
+        showStatus('currentVoiceStatus', 'error', '❌ No suitable voice found')
+      }
+
+      // Update recommended voices
+      showRecommendedVoices()
+    }
+
+    function showRecommendedVoices() {
+      const voices = speechSynthesis.getVoices()
+      const americanVoices = voices.filter(v =>
+        v.lang === 'en-US' || v.lang === 'en_US'
+      )
+
+      const container = document.getElementById('recommendedVoices')
+
+      if (americanVoices.length === 0) {
+        container.innerHTML = '<div class="status warning">⚠️ No American English voices found in your browser</div>'
+        return
+      }
+
+      let html = `<strong>Found ${americanVoices.length} American voices:</strong><div class="voice-list">`
+
+      americanVoices.forEach(voice => {
+        const isSelected = selectedVoice && voice.name === selectedVoice.name
+        const cssClass = isSelected ? 'voice-item selected' : 'voice-item recommended'
+        html += `<div class="${cssClass}">${isSelected ? '👉 ' : ''}${voice.name} (${voice.lang})</div>`
+      })
+
+      html += '</div>'
+      container.innerHTML = html
+    }
+
+    function listAllVoices() {
+      const voices = speechSynthesis.getVoices()
+      const container = document.getElementById('allVoices')
+
+      if (voices.length === 0) {
+        container.innerHTML = '<div class="status error">❌ No voices available</div>'
+        return
+      }
+
+      let html = ''
+      voices.forEach((voice, index) => {
+        const isAmerican = voice.lang === 'en-US' || voice.lang === 'en_US'
+        const cssClass = isAmerican ? 'voice-item recommended' : 'voice-item'
+        html += `<div class="${cssClass}">${index + 1}. ${voice.name} (${voice.lang}) ${isAmerican ? '🇺🇸' : ''}</div>`
+      })
+
+      container.innerHTML = html
+    }
+
+    function testSelectedVoice() {
+      if (!selectedVoice) {
+        checkCurrentVoice()
+        if (!selectedVoice) {
+          showStatus('testStatus', 'error', '❌ No voice selected. Click "Check Current Voice" first.')
+          return
+        }
+      }
+
+      const text = document.getElementById('testText').value
+
+      stopAudio()
+
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.voice = selectedVoice
+      utterance.rate = 0.88  // Slower for old man
+      utterance.pitch = 0.85 // Lower for masculine voice
+      utterance.volume = 0.85
+
+      utterance.onstart = () => {
+        showStatus('testStatus', 'info', `🎵 Playing: ${selectedVoice.name}`)
+      }
+
+      utterance.onend = () => {
+        showStatus('testStatus', 'success', `✅ Finished playing: ${selectedVoice.name}`)
+      }
+
+      utterance.onerror = (error) => {
+        showStatus('testStatus', 'error', `❌ Error: ${error.error}`)
+      }
+
+      speechSynthesis.speak(utterance)
+    }
+
+    function stopAudio() {
+      speechSynthesis.cancel()
+      showStatus('testStatus', 'info', '⏹️ Audio stopped')
+    }
+
+    function showStatus(elementId, type, message) {
+      const element = document.getElementById(elementId)
+      element.innerHTML = `<div class="status ${type}">${message}</div>`
+    }
+
+    // Load voices
+    speechSynthesis.getVoices()
+    speechSynthesis.onvoiceschanged = () => {
+      speechSynthesis.getVoices()
+      showRecommendedVoices()
+    }
+
+    // Auto-check on load
+    setTimeout(() => {
+      checkCurrentVoice()
+    }, 500)
+  </script>
+</body>
+</html>

@@ -72,12 +72,27 @@ export function useVoiceSearch({
         }
 
         recognition.onerror = (event: any) => {
-          const errorMessage = event.error === 'no-speech'
-            ? 'No speech detected. Please try again.'
-            : event.error === 'audio-capture'
+          // "no-speech" is normal - just means silence, not an error
+          if (event.error === 'no-speech') {
+            console.log('🎤 No speech detected (silence)')
+            setIsListening(false)
+            return
+          }
+
+          // "aborted" is normal when user stops
+          if (event.error === 'aborted') {
+            console.log('🎤 Voice recognition stopped')
+            setIsListening(false)
+            return
+          }
+
+          // Real errors
+          const errorMessage = event.error === 'audio-capture'
             ? 'Microphone not available. Please check permissions.'
             : event.error === 'not-allowed'
             ? 'Microphone access denied. Please enable microphone permissions.'
+            : event.error === 'network'
+            ? 'Network error. Check your internet connection.'
             : `Speech recognition error: ${event.error}`
 
           setError(errorMessage)

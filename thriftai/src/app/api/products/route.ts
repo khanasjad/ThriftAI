@@ -44,8 +44,29 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where })
     ])
 
+    // Parse imageUrl JSON strings into arrays for carousel
+    const productsWithImages = products.map(product => {
+      let images: string[] = []
+
+      // Try to parse imageUrl as JSON array
+      if (product.imageUrl) {
+        try {
+          const parsed = JSON.parse(product.imageUrl)
+          images = Array.isArray(parsed) ? parsed : [product.imageUrl]
+        } catch {
+          // If parsing fails, treat as single image
+          images = [product.imageUrl]
+        }
+      }
+
+      return {
+        ...product,
+        images
+      }
+    })
+
     return NextResponse.json({
-      products,
+      products: productsWithImages,
       pagination: {
         page,
         limit,

@@ -1,4 +1,4 @@
-// ThriftAI - Enhanced Product Card Component
+// Veritas.ai - Enhanced Product Card Component
 // Displays AI-analyzed products with comprehensive insights
 
 'use client'

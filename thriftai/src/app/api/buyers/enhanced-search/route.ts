@@ -501,9 +501,30 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Parse imageUrl JSON strings into arrays for carousel
+    const productsWithImages = rerankedProducts.map(product => {
+      let images: string[] = []
+
+      // Try to parse imageUrl as JSON array
+      if (product.imageUrl) {
+        try {
+          const parsed = JSON.parse(product.imageUrl)
+          images = Array.isArray(parsed) ? parsed : [product.imageUrl]
+        } catch {
+          // If parsing fails, treat as single image
+          images = [product.imageUrl]
+        }
+      }
+
+      return {
+        ...product,
+        images
+      }
+    })
+
     // Return results in format compatible with existing frontend
     return NextResponse.json({
-      products: rerankedProducts,
+      products: productsWithImages,
       metadata: {
         total: results.total,
         page: results.page,

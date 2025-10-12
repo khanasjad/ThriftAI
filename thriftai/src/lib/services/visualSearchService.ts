@@ -91,8 +91,8 @@ export async function analyzeImageForSearch(
 Focus on identifying key visual attributes that would help search for similar products in a thrift/resale marketplace.`
           }
         ]
-      }}
-    )
+      }]
+    })
 
     // Parse Claude's response
     const content = response.content[0]

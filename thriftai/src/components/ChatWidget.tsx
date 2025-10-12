@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, X, Send, Loader2, Volume2, VolumeX } from 'lucide-react'
 import ChatMessage, { ChatMessageData } from './ChatMessage'
+import { ttsService } from '@/lib/services/ttsService'
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false)
@@ -12,7 +13,6 @@ export default function ChatWidget() {
   const [audioEnabled, setAudioEnabled] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -24,9 +24,7 @@ export default function ChatWidget() {
   // Cleanup speech synthesis on unmount
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined') {
-        window.speechSynthesis.cancel()
-      }
+      ttsService.cancel()
     }
   }, [])
 
@@ -37,20 +35,20 @@ export default function ChatWidget() {
     }
   }, [isOpen])
 
-  // Text-to-speech function
-  const speakMessage = (text: string) => {
+  // Text-to-speech function using new TTS service
+  const speakMessage = async (text: string) => {
     if (!audioEnabled || typeof window === 'undefined') return
 
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel()
-
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 0.9 // Slightly slower for wise shopkeeper effect
-    utterance.pitch = 0.8 // Lower pitch for older voice
-    utterance.volume = 0.8
-
-    speechSynthesisRef.current = utterance
-    window.speechSynthesis.speak(utterance)
+    try {
+      await ttsService.speak(text, {
+        provider: 'google', // Try Google Cloud TTS first (more natural)
+        rate: 0.88, // Slower for old man effect
+        pitch: 0.85, // Lower pitch for masculine old man voice
+        volume: 0.85
+      })
+    } catch (error) {
+      console.error('TTS error:', error)
+    }
   }
 
   // Initialize with welcome message
@@ -257,7 +255,7 @@ What're you hunting for today?`
                 onClick={() => {
                   setAudioEnabled(!audioEnabled)
                   if (audioEnabled) {
-                    window.speechSynthesis.cancel()
+                    ttsService.cancel()
                   }
                 }}
                 style={{

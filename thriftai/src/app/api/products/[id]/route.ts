@@ -3,23 +3,27 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+
+    // Find product by ID
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
+        veritasScore: true,
         seller: {
           select: {
             businessName: true,
-            rating: true,
-            email: true,
-            city: true,
-            state: true
+            rating: true
           }
         },
         reviews: {
-          include: {
+          select: {
+            rating: true,
+            content: true,
+            createdAt: true,
             buyer: {
               select: {
                 firstName: true,
@@ -27,7 +31,9 @@ export async function GET(
               }
             }
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: {
+            createdAt: 'desc'
+          },
           take: 10
         }
       }
@@ -40,20 +46,46 @@ export async function GET(
       )
     }
 
-    // Calculate average rating
-    const avgRating = product.reviews.length > 0
-      ? product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length
-      : 0
+    // Parse imageUrl JSON string into array for carousel
+    let images: string[] = []
+    if (product.imageUrl) {
+      try {
+        const parsed = JSON.parse(product.imageUrl)
+        images = Array.isArray(parsed) ? parsed : [product.imageUrl]
+      } catch {
+        // If parsing fails, treat as single image
+        images = [product.imageUrl]
+      }
+    }
 
-    return NextResponse.json({
+    // Transform the product data
+    const transformedProduct = {
       ...product,
-      avgRating: Math.round(avgRating * 10) / 10,
-      reviewCount: product.reviews.length
-    })
+      images,
+      reviews: product.reviews.map(review => ({
+        rating: review.rating,
+        comment: review.content,
+        date: review.createdAt.toISOString().split('T')[0],
+        userName: review.buyer
+          ? `${review.buyer.firstName} ${review.buyer.lastName?.charAt(0)}.`
+          : 'Anonymous'
+      })),
+      rating: product.rating || 0,
+      reviewCount: product.reviews.length,
+      veritasScore: product.veritasScore
+        ? {
+            overallScore: Number(product.veritasScore.overallScore),
+            confidence: Number(product.veritasScore.confidence),
+            breakdown: product.veritasScore.breakdown as Record<string, number> || {}
+          }
+        : null
+    }
+
+    return NextResponse.json(transformedProduct)
   } catch (error) {
-    console.error('Product fetch error:', error)
+    console.error('Error fetching product:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch product details' },
       { status: 500 }
     )
   }

@@ -286,7 +286,7 @@ export const useCartStore = create<CartStore>()(
       }
     }),
     {
-      name: 'thriftai-cart-storage',
+      name: 'veritas-cart-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         // Only persist these fields

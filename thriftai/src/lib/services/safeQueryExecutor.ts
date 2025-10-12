@@ -74,7 +74,8 @@ export class SafeQueryExecutor {
               OR: [
                 { name: { contains: normalizedTerm, mode: 'insensitive' } },
                 { description: { contains: normalizedTerm, mode: 'insensitive' } },
-                { brand: { contains: normalizedTerm, mode: 'insensitive' } }
+                { brand: { contains: normalizedTerm, mode: 'insensitive' } },
+                { category: { contains: normalizedTerm, mode: 'insensitive' } }
               ]
             })
           })
@@ -92,7 +93,8 @@ export class SafeQueryExecutor {
               OR: [
                 { name: { contains: normalizedTerm, mode: 'insensitive' } },
                 { description: { contains: normalizedTerm, mode: 'insensitive' } },
-                { brand: { contains: normalizedTerm, mode: 'insensitive' } }
+                { brand: { contains: normalizedTerm, mode: 'insensitive' } },
+                { category: { contains: normalizedTerm, mode: 'insensitive' } }
               ]
             })
           })
@@ -155,7 +157,8 @@ export class SafeQueryExecutor {
               OR: [
                 { name: { contains: normalizedTerm, mode: 'insensitive' } },
                 { description: { contains: normalizedTerm, mode: 'insensitive' } },
-                { brand: { contains: normalizedTerm, mode: 'insensitive' } }
+                { brand: { contains: normalizedTerm, mode: 'insensitive' } },
+                { category: { contains: normalizedTerm, mode: 'insensitive' } }
               ]
             }
           })

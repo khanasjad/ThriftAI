@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThriftAI - Voice Tester</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .control-group {
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: #e0e0e0;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: #764ba2;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      background: #764ba2;
+    }
+
+    .value-display {
+      min-width: 45px;
+      text-align: center;
+      font-weight: 600;
+      color: #667eea;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    button {
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      grid-column: 1 / -1;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .preset-btn {
+      padding: 10px;
+      background: #f8f9fa;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .preset-btn:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .info-box strong {
+      color: #667eea;
+    }
+
+    .status {
+      text-align: center;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+
+    .status.playing {
+      background: #cce5ff;
+      color: #004085;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 Voice Tester</h1>
+    <p class="subtitle">Test and customize Gus's voice</p>
+
+    <div class="control-group">
+      <label for="provider">Voice Provider</label>
+      <select id="provider">
+        <option value="google">Google Cloud TTS (Natural)</option>
+        <option value="elevenlabs">ElevenLabs (Premium)</option>
+        <option value="webspeech">Web Speech API (Fallback)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Voice Presets</label>
+      <div class="preset-buttons">
+        <button class="preset-btn" onclick="applyPreset('wise')">👴 Wise Shopkeeper</button>
+        <button class="preset-btn" onclick="applyPreset('professional')">👔 Professional</button>
+        <button class="preset-btn" onclick="applyPreset('energetic')">⚡ Energetic</button>
+        <button class="preset-btn" onclick="applyPreset('calm')">😌 Calm</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label for="rate">Speech Rate (Speed)</label>
+      <div class="slider-group">
+        <input type="range" id="rate" min="0.5" max="2" step="0.05" value="0.88">
+        <span class="value-display" id="rateValue">0.88</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label for="pitch">Pitch (Voice Tone)</label>
+      <div class="slider-group">
+        <input type="range" id="pitch" min="0.5" max="2" step="0.05" value="0.85">
+        <span class="value-display" id="pitchValue">0.85</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label for="volume">Volume</label>
+      <div class="slider-group">
+        <input type="range" id="volume" min="0" max="1" step="0.05" value="0.85">
+        <span class="value-display" id="volumeValue">0.85</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label for="text">Test Message</label>
+      <textarea id="text" placeholder="Type or paste text to test...">Well howdy there! I'm Gus from Texas. Been running this here shop for 40 years - seen everything from vintage Gucci to questionable fashion choices. Tell me what you need and I'll help you find the good stuff, partner.</textarea>
+    </div>
+
+    <div class="button-group">
+      <button class="btn-primary" onclick="testVoice()">🔊 Test Voice</button>
+      <button class="btn-secondary" onclick="stopAudio()">⏹️ Stop</button>
+      <button class="btn-secondary" onclick="copySettings()">📋 Copy Settings</button>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="info-box">
+      <strong>💡 Tip:</strong> Try different presets and adjust the sliders to find the perfect voice.
+      Lower pitch = older/wiser sound. Slower rate = more authoritative.
+    </div>
+  </div>
+
+  <script>
+    let currentAudio = null
+
+    // Presets - UPDATED FOR OLD AMERICAN MAN
+    const presets = {
+      wise: { rate: 0.88, pitch: 0.85, volume: 0.85 },  // Old American man (current)
+      professional: { rate: 0.95, pitch: 0.9, volume: 0.9 },  // Mature American
+      energetic: { rate: 1.0, pitch: 0.95, volume: 1.0 },  // Upbeat but still male
+      calm: { rate: 0.8, pitch: 0.8, volume: 0.8 }  // Deep relaxed old man
+    }
+
+    function applyPreset(preset) {
+      const settings = presets[preset]
+      document.getElementById('rate').value = settings.rate
+      document.getElementById('pitch').value = settings.pitch
+      document.getElementById('volume').value = settings.volume
+      updateValueDisplays()
+    }
+
+    function updateValueDisplays() {
+      document.getElementById('rateValue').textContent = document.getElementById('rate').value
+      document.getElementById('pitchValue').textContent = document.getElementById('pitch').value
+      document.getElementById('volumeValue').textContent = document.getElementById('volume').value
+    }
+
+    // Update displays on slider change
+    document.getElementById('rate').oninput = updateValueDisplays
+    document.getElementById('pitch').oninput = updateValueDisplays
+    document.getElementById('volume').oninput = updateValueDisplays
+
+    async function testVoice() {
+      const provider = document.getElementById('provider').value
+      const rate = parseFloat(document.getElementById('rate').value)
+      const pitch = parseFloat(document.getElementById('pitch').value)
+      const volume = parseFloat(document.getElementById('volume').value)
+      const text = document.getElementById('text').value
+
+      if (!text.trim()) {
+        showStatus('error', 'Please enter some text to test')
+        return
+      }
+
+      showStatus('playing', '🎵 Playing...')
+
+      try {
+        const response = await fetch('http://localhost:3000/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, provider, rate, pitch })
+        })
+
+        if (response.ok) {
+          const audioBlob = await response.blob()
+          const audioUrl = URL.createObjectURL(audioBlob)
+
+          // Stop previous audio
+          stopAudio()
+
+          currentAudio = new Audio(audioUrl)
+          currentAudio.volume = volume
+
+          currentAudio.onended = () => {
+            showStatus('success', '✅ Playback completed')
+            setTimeout(() => hideStatus(), 2000)
+          }
+
+          currentAudio.onerror = (error) => {
+            showStatus('error', '❌ Audio playback error')
+          }
+
+          await currentAudio.play()
+        } else {
+          const error = await response.json()
+          showStatus('error', `❌ ${error.error || 'API Error'} - Using fallback Web Speech API`)
+
+          // Fallback to Web Speech API
+          useWebSpeechFallback(text, rate, pitch, volume)
+        }
+      } catch (error) {
+        console.error('TTS error:', error)
+        showStatus('error', '❌ Network error - Using fallback Web Speech API')
+
+        // Fallback to Web Speech API
+        useWebSpeechFallback(text, rate, pitch, volume)
+      }
+    }
+
+    function useWebSpeechFallback(text, rate, pitch, volume) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+
+        const utterance = new SpeechSynthesisUtterance(text)
+        utterance.rate = rate
+        utterance.pitch = pitch
+        utterance.volume = volume
+
+        // Try to select a better voice
+        const voices = window.speechSynthesis.getVoices()
+        const preferredVoice = voices.find(v =>
+          v.name.includes('Google') ||
+          v.name.includes('Microsoft') ||
+          v.name.includes('Natural')
+        )
+
+        if (preferredVoice) {
+          utterance.voice = preferredVoice
+        }
+
+        utterance.onend = () => {
+          showStatus('success', '✅ Playback completed (Web Speech API)')
+          setTimeout(() => hideStatus(), 2000)
+        }
+
+        window.speechSynthesis.speak(utterance)
+      } else {
+        showStatus('error', '❌ No audio support available')
+      }
+    }
+
+    function stopAudio() {
+      if (currentAudio) {
+        currentAudio.pause()
+        currentAudio.currentTime = 0
+        currentAudio = null
+      }
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+
+      showStatus('success', '⏹️ Audio stopped')
+      setTimeout(() => hideStatus(), 1500)
+    }
+
+    function copySettings() {
+      const provider = document.getElementById('provider').value
+      const rate = document.getElementById('rate').value
+      const pitch = document.getElementById('pitch').value
+      const volume = document.getElementById('volume').value
+
+      const settings = `{
+  provider: '${provider}',
+  rate: ${rate},
+  pitch: ${pitch},
+  volume: ${volume}
+}`
+
+      navigator.clipboard.writeText(settings).then(() => {
+        showStatus('success', '📋 Settings copied to clipboard!')
+        setTimeout(() => hideStatus(), 2000)
+      }).catch(() => {
+        showStatus('error', '❌ Failed to copy settings')
+      })
+    }
+
+    function showStatus(type, message) {
+      const status = document.getElementById('status')
+      status.className = `status ${type}`
+      status.textContent = message
+    }
+
+    function hideStatus() {
+      document.getElementById('status').style.display = 'none'
+    }
+
+    // Load voices for Web Speech API
+    if ('speechSynthesis' in window) {
+      speechSynthesis.getVoices()
+      speechSynthesis.onvoiceschanged = () => {
+        speechSynthesis.getVoices()
+      }
+    }
+  </script>
+</body>
+</html>

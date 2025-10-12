@@ -13,7 +13,7 @@ const envSchema = z.object({
 // Application configuration schema
 const appConfigSchema = z.object({
   app: z.object({
-    name: z.string().default('ThriftAI'),
+    name: z.string().default('Veritas.ai'),
     version: z.string().default('1.0.0'),
     environment: z.enum(['development', 'test', 'production']),
     port: z.number().min(1000).max(65535),
@@ -29,7 +29,7 @@ const appConfigSchema = z.object({
   auth: z.object({
     sessionMaxAge: z.number().min(300).max(604800).default(86400), // 1 day
     secret: z.string().min(32),
-    cookieName: z.string().default('thriftai-session'),
+    cookieName: z.string().default('veritas-session'),
   }),
   logging: z.object({
     level: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('info'),
@@ -54,7 +54,7 @@ export type AppConfig = z.infer<typeof appConfigSchema>
 // Configuration defaults that can be overridden by environment or database
 const defaultConfig: AppConfig = {
   app: {
-    name: 'ThriftAI',
+    name: 'Veritas.ai',
     version: '1.0.0',
     environment: 'development',
     port: 3000,
@@ -70,7 +70,7 @@ const defaultConfig: AppConfig = {
   auth: {
     sessionMaxAge: 86400,
     secret: '',
-    cookieName: 'thriftai-session',
+    cookieName: 'veritas-session',
   },
   logging: {
     level: 'info',

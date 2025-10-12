@@ -57,8 +57,8 @@ export default function CartPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          sessionId: localStorage.getItem('thriftai-cart-storage')
-            ? JSON.parse(localStorage.getItem('thriftai-cart-storage')!).state?.sessionId
+          sessionId: localStorage.getItem('veritas-cart-storage')
+            ? JSON.parse(localStorage.getItem('veritas-cart-storage')!).state?.sessionId
             : null
         })
       })

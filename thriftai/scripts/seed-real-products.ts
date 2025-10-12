@@ -403,7 +403,11 @@ async function main() {
           category: product.category,
           condition: product.condition,
           imageUrl: product.imageUrl,
-          sellerId: sellerId,
+          seller: {
+            connect: {
+              id: sellerId
+            }
+          },
           isAvailable: true,
 
           // Quality fields
@@ -443,7 +447,8 @@ async function main() {
       console.log(`✅ Added: ${product.name}`)
       saved++
     } catch (error: any) {
-      console.error(`❌ Failed to add ${product.name}:`, error.message)
+      console.error(`❌ Failed to add ${product.name}:`, error)
+      console.error('Full error details:', JSON.stringify(error, null, 2))
     }
   }
 
@@ -468,12 +473,11 @@ async function main() {
   console.log('   ✅ Complete 126-parameter data')
   console.log()
 
-  process.exit(0)
+  // Ensure proper cleanup before exit
+  await prisma.$disconnect()
 }
 
 main().catch((error) => {
-  console.error('Error seeding products:', error)
+  console.error('💥 Error seeding products:', error)
   process.exit(1)
-}).finally(async () => {
-  await prisma.$disconnect()
 })

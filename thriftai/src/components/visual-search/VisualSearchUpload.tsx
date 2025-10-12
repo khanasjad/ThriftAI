@@ -1,4 +1,4 @@
-// ThriftAI - Visual Search Upload Component
+// Veritas.ai - Visual Search Upload Component
 // AI-powered image upload and analysis for product search
 
 'use client'

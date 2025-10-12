@@ -1,7 +1,8 @@
 'use client'
 
-import { Trophy, TrendingUp, Star, DollarSign, Shield, Truck, Zap, Heart, ChevronDown, ChevronUp, Package } from 'lucide-react'
+import { Trophy, TrendingUp, Star, DollarSign, Shield, Truck, Zap, Heart, ChevronDown, ChevronUp, Package, Eye } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Product {
   id: string
@@ -74,6 +75,7 @@ interface ScoreThreshold {
 }
 
 export default function LeaderboardCard({ product, rank, isExpanded, onToggleExpand }: LeaderboardCardProps) {
+  const router = useRouter()
   const [thresholds, setThresholds] = useState<ScoreThreshold[]>([])
   const [veritasScore, setVeritasScore] = useState<any>(null)
   const [loadingVeritas, setLoadingVeritas] = useState(false)
@@ -215,7 +217,7 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
           </div>
         </div>
 
-        {/* Score Badge */}
+        {/* Score Badge & Actions */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -238,6 +240,40 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
               Veritas Score™
             </div>
           </div>
+
+          {/* View Details Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              router.push(`/products/${product.id}`)
+            }}
+            style={{
+              width: '44px',
+              height: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              border: 'none',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+            }}
+            title="View Full Details"
+            aria-label="View product details"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)'
+            }}
+          >
+            <Eye size={20} style={{ color: 'white' }} />
+          </button>
+
           {isExpanded ? (
             <ChevronUp size={24} style={{ color: 'var(--text-tertiary)' }} />
           ) : (

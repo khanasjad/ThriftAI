@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Star, Heart, Share2, BarChart3 } from 'lucide-react'
 
 interface Product {
@@ -67,6 +68,7 @@ export default function ProductCard({
   isInComparison = false,
   cartLoading = false
 }: ProductCardProps) {
+  const router = useRouter()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [imageLoaded, setImageLoaded] = useState(false)
 
@@ -110,8 +112,16 @@ export default function ProductCard({
     return 'bg-red-600'
   }
 
+  const handleCardClick = () => {
+    const productId = (product as any).id || product.asin
+    router.push(`/products/${productId}`)
+  }
+
   return (
-    <div className={viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'}>
+    <div
+      className={`${viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'} clickable-product-card`}
+      onClick={handleCardClick}
+    >
       {/* Product Image with Carousel */}
       <div className="product-image-container" style={{ position: 'relative' }}>
         {/* Image */}
@@ -324,7 +334,10 @@ export default function ProductCard({
           <button
             className="product-add-to-cart"
             disabled={!product.availability.inStock || cartLoading}
-            onClick={onAddToCart}
+            onClick={(e) => {
+              e.stopPropagation()
+              onAddToCart()
+            }}
           >
             {!product.availability.inStock
               ? 'Out of Stock'
@@ -336,6 +349,16 @@ export default function ProductCard({
       </div>
 
       <style jsx>{`
+        .clickable-product-card {
+          cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .clickable-product-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
         @keyframes shimmer {
           0% {
             background-position: -200% 0;

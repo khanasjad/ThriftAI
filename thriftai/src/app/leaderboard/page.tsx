@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Trophy, Filter, TrendingUp, Star, DollarSign, Shield, Truck, Zap, Heart, ChevronDown, ChevronUp, Package } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Trophy, Filter, TrendingUp, Star, DollarSign, Shield, Truck, Zap, Heart, ChevronDown, ChevronUp, Package, Eye } from 'lucide-react'
 
 interface Product {
   id: string
@@ -45,6 +46,7 @@ interface Product {
 }
 
 export default function LeaderboardPage() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null)
@@ -407,7 +409,7 @@ export default function LeaderboardPage() {
                     </div>
                   </div>
 
-                  {/* Score Badge */}
+                  {/* Score Badge & Actions */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -430,6 +432,40 @@ export default function LeaderboardPage() {
                         AI Score
                       </div>
                     </div>
+
+                    {/* View Details Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/products/${product.id}`)
+                      }}
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        border: 'none',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                      }}
+                      title="View Full Details"
+                      aria-label="View product details"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)'
+                      }}
+                    >
+                      <Eye size={20} style={{ color: 'white' }} />
+                    </button>
+
                     {expandedProduct === product.id ? (
                       <ChevronUp size={24} style={{ color: 'var(--text-tertiary)' }} />
                     ) : (
