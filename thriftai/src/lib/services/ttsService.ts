@@ -80,7 +80,14 @@ export class TTSService {
       })
 
       if (!response.ok) {
-        throw new Error(`TTS API returned ${response.status}`)
+        // Service unavailable (503) means API keys not configured - this is expected
+        if (response.status === 503) {
+          console.log(`ℹ️  ${provider.toUpperCase()} TTS not configured, using browser voice`)
+          return false
+        }
+        // Other errors
+        console.warn(`⚠️  TTS API returned ${response.status}, falling back to browser voice`)
+        return false
       }
 
       // Get audio blob

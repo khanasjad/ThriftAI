@@ -96,6 +96,32 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
                 Sustainability
               </a>
             </li>
+            <li className="nav-item">
+              <a className="nav-link" href="/affiliate-partners" style={{
+                color: 'var(--text-primary)',
+                fontSize: '1rem',
+                fontWeight: 500,
+                padding: '0.5rem 1rem',
+                transition: 'color 0.2s ease',
+                cursor: 'pointer'
+              }}>
+                <i className="fas fa-handshake" style={{ marginRight: '8px' }}></i>
+                Affiliate Partners
+              </a>
+            </li>
+            <li className="nav-item">
+              <a className="nav-link" href="/data-sources" style={{
+                color: 'var(--text-primary)',
+                fontSize: '1rem',
+                fontWeight: 500,
+                padding: '0.5rem 1rem',
+                transition: 'color 0.2s ease',
+                cursor: 'pointer'
+              }}>
+                <i className="fas fa-database" style={{ marginRight: '8px' }}></i>
+                Data Sources
+              </a>
+            </li>
           </ul>
 
           {/* Login/Signup Buttons - shown when user is not logged in */}
