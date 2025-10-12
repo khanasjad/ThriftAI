@@ -281,8 +281,8 @@ export class UniversalScoringEngine {
     // Specs completeness from dynamic parameters
     const specsCompleteness = legacyScores.components.specsQuality
 
-    // Company reputation from company metrics
-    let companyReputation = 50 // Default
+    // Company reputation from company metrics - ONLY use real data
+    let companyReputation = 0 // ✅ Default to 0 if no company data
     if (input.companyMetrics) {
       companyReputation = this.calculateCompanyReputation(input.companyMetrics)
     }
@@ -351,8 +351,8 @@ export class UniversalScoringEngine {
     // Warranties (from quality score components)
     const warranties = (input.hasWarranty ? 80 : 20) + (input.hasFreeReturns ? 20 : 0)
 
-    // Company legal compliance
-    let companyLegal = 75 // Default
+    // Company legal compliance - ONLY use real data
+    let companyLegal = 0 // ✅ Default to 0 if no company data
     if (input.companyMetrics) {
       companyLegal = this.calculateCompanyLegal(input.companyMetrics)
     }
@@ -414,8 +414,8 @@ export class UniversalScoringEngine {
     // Base sustainability from emotional score
     const environmentalImpact = legacyScores.components.emotional
 
-    // Ethical sourcing from company metrics
-    let ethicalSourcing = 50 // Default
+    // Ethical sourcing from company metrics - ONLY use real data
+    let ethicalSourcing = 0 // ✅ Default to 0 if no company data
     if (input.companyMetrics) {
       ethicalSourcing = this.calculateEthicalSourcing(input.companyMetrics)
     }
@@ -437,48 +437,74 @@ export class UniversalScoringEngine {
   }
 
   /**
-   * Calculate company reputation from company metrics
+   * Calculate company reputation from company metrics - ONLY from real data
    */
   private calculateCompanyReputation(metrics: CompanyMetrics): number {
-    let score = 50
+    // ✅ AUTHENTIC DATA ONLY - Only calculate if we have real data
+    let score = 0
+    let hasData = false
 
-    // Market cap indicates stability
-    if (metrics.marketCap) {
+    // Market cap indicates stability (real data)
+    if (metrics.marketCap !== undefined && metrics.marketCap !== null) {
+      score += 50 // Base score for having market cap data
       if (metrics.marketCap > 1000) score += 25 // > $1T
       else if (metrics.marketCap > 100) score += 20 // > $100B
       else if (metrics.marketCap > 10) score += 10 // > $10B
+      hasData = true
     }
 
-    // R&D investment shows innovation
-    if (metrics.rdInvestmentPercent) {
+    // R&D investment shows innovation (real data)
+    if (metrics.rdInvestmentPercent !== undefined && metrics.rdInvestmentPercent !== null) {
       if (metrics.rdInvestmentPercent > 15) score += 15
       else if (metrics.rdInvestmentPercent > 10) score += 10
+      else if (metrics.rdInvestmentPercent > 5) score += 5
+      hasData = true
     }
 
-    // Patent count shows IP strength
-    if (metrics.patentCount) {
+    // Patent count shows IP strength (real data)
+    if (metrics.patentCount !== undefined && metrics.patentCount !== null) {
       if (metrics.patentCount > 10000) score += 10
       else if (metrics.patentCount > 1000) score += 5
+      else if (metrics.patentCount > 100) score += 2
+      hasData = true
+    }
+
+    // If no reputation data at all, return 0
+    if (!hasData) {
+      return 0
     }
 
     return Math.min(100, score)
   }
 
   /**
-   * Calculate company legal compliance
+   * Calculate company legal compliance - ONLY from real data
    */
   private calculateCompanyLegal(metrics: CompanyMetrics): number {
-    let score = 90 // Start high
+    // ✅ AUTHENTIC DATA ONLY - Start at 0, only add points for real data
+    let score = 0
 
-    // Deduct for legal violations
-    if (metrics.legalViolationsCount) {
+    // Check if we have ANY legal data
+    const hasLegalData = metrics.legalViolationsCount !== undefined ||
+                        metrics.productRecallRate !== undefined ||
+                        metrics.supplyChainTransparency !== undefined
+
+    if (!hasLegalData) {
+      return 0 // No data = no score
+    }
+
+    // Start with base score only if we have data
+    score = 100 // Assume good until proven otherwise
+
+    // Deduct for legal violations (real data)
+    if (metrics.legalViolationsCount !== undefined && metrics.legalViolationsCount !== null) {
       if (metrics.legalViolationsCount > 5) score -= 40
       else if (metrics.legalViolationsCount > 2) score -= 20
       else score -= metrics.legalViolationsCount * 10
     }
 
-    // Deduct for recalls
-    if (metrics.productRecallRate) {
+    // Deduct for recalls (real data)
+    if (metrics.productRecallRate !== undefined && metrics.productRecallRate !== null) {
       if (metrics.productRecallRate > 0.03) score -= 30 // >3%
       else if (metrics.productRecallRate > 0.01) score -= 15 // >1%
     }
@@ -487,25 +513,37 @@ export class UniversalScoringEngine {
   }
 
   /**
-   * Calculate ethical sourcing score
+   * Calculate ethical sourcing score - ONLY from real data
    */
   private calculateEthicalSourcing(metrics: CompanyMetrics): number {
-    let score = 50
+    // ✅ AUTHENTIC DATA ONLY - Only calculate if we have real data
+    let score = 0
+    let hasData = false
 
-    // Fair labor practices
-    if (metrics.fairLaborScore) {
+    // Fair labor practices (real data)
+    if (metrics.fairLaborScore !== undefined && metrics.fairLaborScore !== null) {
       score = metrics.fairLaborScore
+      hasData = true
     }
 
-    // Diversity & inclusion
-    if (metrics.diversityScore && metrics.diversityScore > 70) {
-      score += 10
+    // Diversity & inclusion (real data)
+    if (metrics.diversityScore !== undefined && metrics.diversityScore !== null) {
+      if (metrics.diversityScore > 70) {
+        score += 10
+      }
+      hasData = true
     }
 
-    // Community investment
-    if (metrics.communityInvestmentPercent) {
+    // Community investment (real data)
+    if (metrics.communityInvestmentPercent !== undefined && metrics.communityInvestmentPercent !== null) {
       if (metrics.communityInvestmentPercent > 5) score += 15
       else if (metrics.communityInvestmentPercent > 2) score += 10
+      hasData = true
+    }
+
+    // If no ethical data at all, return 0
+    if (!hasData) {
+      return 0
     }
 
     return Math.min(100, score)

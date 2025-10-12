@@ -340,7 +340,7 @@ export class VeritasScoreCalculator {
       functionalCompleteness: 100,
       wearTearLevel: 1,
       missingComponents: [],
-      materialQuality: this.getBrandMaterialQuality(input.brand),
+      materialQuality: 80, // ✅ Default - NO brand-based estimate
       screenCondition: 100,
       bodyCaseCondition: 100,
       buttonPortFunctionality: 100,
@@ -383,12 +383,13 @@ export class VeritasScoreCalculator {
     const ageScore = this.scoreAgeHistory(ageHistory)
 
     // Weighted average (weights from documentation)
+    // ✅ REMOVED WARRANTY PLACEHOLDER - only use real data
     const categoryScore =
-      physicalScore * 0.45 +
-      authenticityScore * 0.20 +
+      physicalScore * 0.50 +        // Increased from 0.45
+      authenticityScore * 0.25 +     // Increased from 0.20
       functionalScore * 0.15 +
-      ageScore * 0.10 +
-      90 * 0.10 // Warranty placeholder
+      ageScore * 0.10
+      // REMOVED: 90 * 0.10 (warranty placeholder)
 
     return {
       physicalCondition,
@@ -403,6 +404,7 @@ export class VeritasScoreCalculator {
 
   /**
    * Calculate Seller Trust Score (20% weight, 25 parameters)
+   * ONLY uses real data - NO fake defaults
    */
   private async calculateSellerTrust(
     input: VeritasScoreInput,
@@ -410,62 +412,71 @@ export class VeritasScoreCalculator {
   ): Promise<SellerTrustScore> {
     const userInput = input.sellerTrust
 
-    const reputation = userInput.reputation || {
-      sellerRating: 5.0,
-      transactionCount: 100,
-      positiveFeedbackPercent: 100,
-      accountAgeYears: 5,
-      isVerifiedSeller: true,
-      isTopRatedSeller: true,
-      isPowerSeller: true,
-      sellerLocation: 'USA',
+    // ✅ ONLY use real data - NO fake defaults
+    const reputation = userInput.reputation || null
+    const responseService = userInput.responseService || null
+    const transactionHistory = userInput.transactionHistory || null
+    const reliability = userInput.reliability || null
+
+    // If NO seller data exists, return null/unavailable category
+    if (!reputation && !responseService && !transactionHistory && !reliability) {
+      return {
+        reputation: null as any,
+        responseService: null as any,
+        transactionHistory: null as any,
+        reliability: null as any,
+        categoryScore: 0,
+        confidence: 0,
+        dataQuality: 0,
+      }
     }
 
-    const responseService = userInput.responseService || {
-      responseTimeHours: 2,
-      responseRatePercent: 100,
-      customerServiceQuality: 100,
-      communicationClarity: 100,
-      acceptsReturns: true,
-      problemResolution: 100,
+    // Calculate score ONLY from available data
+    let categoryScore = 0
+    let totalWeight = 0
+    let dataPoints = 0
+
+    if (reputation) {
+      categoryScore += this.scoreSellerReputation(reputation) * 0.40
+      totalWeight += 0.40
+      dataPoints++
     }
 
-    const transactionHistory = userInput.transactionHistory || {
-      disputeRatePercent: 0.1,
-      refundRatePercent: 2,
-      chargebackRatePercent: 0,
-      cancellationRatePercent: 1,
-      lateShipmentRatePercent: 1,
-      itemNotAsDescribedPercent: 0.5,
+    if (responseService) {
+      categoryScore += this.scoreResponseService(responseService) * 0.25
+      totalWeight += 0.25
+      dataPoints++
     }
 
-    const reliability = userInput.reliability || {
-      onTimeShippingPercent: 99,
-      descriptionAccuracy: 100,
-      packagingQuality: 100,
-      providesTracking: true,
-      responsiveness: 10,
+    if (transactionHistory) {
+      categoryScore += this.scoreTransactionHistory(transactionHistory) * 0.20
+      totalWeight += 0.20
+      dataPoints++
     }
 
-    const categoryScore =
-      this.scoreSellerReputation(reputation) * 0.40 +
-      this.scoreResponseService(responseService) * 0.25 +
-      this.scoreTransactionHistory(transactionHistory) * 0.20 +
-      this.scoreReliability(reliability) * 0.15
+    if (reliability) {
+      categoryScore += this.scoreReliability(reliability) * 0.15
+      totalWeight += 0.15
+      dataPoints++
+    }
+
+    // Normalize score based on available data
+    const normalizedScore = totalWeight > 0 ? categoryScore / totalWeight : 0
 
     return {
-      reputation,
-      responseService,
-      transactionHistory,
-      reliability,
-      categoryScore: Math.round(categoryScore * 100) / 100,
-      confidence: 85,
-      dataQuality: 80,
+      reputation: reputation || ({} as any),
+      responseService: responseService || ({} as any),
+      transactionHistory: transactionHistory || ({} as any),
+      reliability: reliability || ({} as any),
+      categoryScore: Math.round(normalizedScore * 100) / 100,
+      confidence: dataPoints >= 3 ? 85 : dataPoints >= 2 ? 60 : dataPoints >= 1 ? 40 : 0,
+      dataQuality: dataPoints >= 3 ? 80 : dataPoints >= 2 ? 55 : dataPoints >= 1 ? 30 : 0,
     }
   }
 
   /**
    * Calculate Market Value Score (15% weight, 20 parameters)
+   * ONLY uses real data - NO fake defaults
    */
   private async calculateMarketValue(
     input: VeritasScoreInput,
@@ -474,52 +485,65 @@ export class VeritasScoreCalculator {
     const userInput = input.marketValue
     const priceHistory = externalData.priceHistory
 
-    const pricePositioning = userInput.pricePositioning || {
-      currentPrice: 0,
-      originalMSRP: 0,
-      priceVsMarketAverage: 0,
-      discountPercentage: 0,
-      valueForMoneyIndex: 0,
-      priceTrend30Days: 'Stable' as const,
-      lowestHistoricalPrice: 0,
+    // ✅ ONLY use real data - NO fake defaults
+    const pricePositioning = userInput.pricePositioning || null
+    const competitiveAnalysis = userInput.competitiveAnalysis || null
+    const totalCost = userInput.totalCost || null
+    const marketDynamics = userInput.marketDynamics || null
+
+    // If NO market data exists, return unavailable
+    if (!pricePositioning && !competitiveAnalysis && !totalCost && !marketDynamics) {
+      return {
+        pricePositioning: null as any,
+        competitiveAnalysis: null as any,
+        totalCost: null as any,
+        marketDynamics: null as any,
+        categoryScore: 0,
+        confidence: 0,
+        dataQuality: 0,
+      }
     }
 
-    const competitiveAnalysis = userInput.competitiveAnalysis || {
-      priceVsCompetitors: 0,
-      competitorCount: 0,
-      isBestPrice: false,
-      priceStabilityScore: 100,
-      marketAvailability: 0,
-      demandLevel: 50,
+    // Calculate score ONLY from available data
+    let categoryScore = 0
+    let totalWeight = 0
+    let dataPoints = 0
+
+    if (pricePositioning && pricePositioning.currentPrice > 0) {
+      categoryScore += this.scorePricePositioning(pricePositioning) * 0.40
+      totalWeight += 0.40
+      dataPoints++
     }
 
-    const totalCost = userInput.totalCost || {
-      shippingCost: 0,
-      taxAmount: 0,
-      hiddenFees: 0,
-      warrantyValue: 0,
+    if (competitiveAnalysis) {
+      categoryScore += this.scoreCompetitiveAnalysis(competitiveAnalysis) * 0.30
+      totalWeight += 0.30
+      dataPoints++
     }
 
-    const marketDynamics = userInput.marketDynamics || {
-      priceTrendDirection: 'Stable' as const,
-      seasonalPricing: 'Normal' as const,
-      supplyLevel: 'Normal' as const,
+    if (totalCost && pricePositioning) {
+      categoryScore += this.scoreTotalCost(totalCost, pricePositioning.currentPrice) * 0.20
+      totalWeight += 0.20
+      dataPoints++
     }
 
-    const categoryScore =
-      this.scorePricePositioning(pricePositioning) * 0.40 +
-      this.scoreCompetitiveAnalysis(competitiveAnalysis) * 0.30 +
-      this.scoreTotalCost(totalCost, pricePositioning.currentPrice) * 0.20 +
-      this.scoreMarketDynamics(marketDynamics) * 0.10
+    if (marketDynamics) {
+      categoryScore += this.scoreMarketDynamics(marketDynamics) * 0.10
+      totalWeight += 0.10
+      dataPoints++
+    }
+
+    // Normalize score based on available data
+    const normalizedScore = totalWeight > 0 ? categoryScore / totalWeight : 0
 
     return {
-      pricePositioning,
-      competitiveAnalysis,
-      totalCost,
-      marketDynamics,
-      categoryScore: Math.round(categoryScore * 100) / 100,
-      confidence: priceHistory ? 90 : 70,
-      dataQuality: priceHistory ? 85 : 65,
+      pricePositioning: pricePositioning || ({} as any),
+      competitiveAnalysis: competitiveAnalysis || ({} as any),
+      totalCost: totalCost || ({} as any),
+      marketDynamics: marketDynamics || ({} as any),
+      categoryScore: Math.round(normalizedScore * 100) / 100,
+      confidence: priceHistory ? 90 : dataPoints >= 2 ? 60 : dataPoints >= 1 ? 40 : 0,
+      dataQuality: priceHistory ? 85 : dataPoints >= 2 ? 55 : dataPoints >= 1 ? 30 : 0,
     }
   }
 
@@ -544,7 +568,7 @@ export class VeritasScoreCalculator {
 
     const circularEconomy = userInput.circularEconomy || {
       reuseFactor: this.calculateReuseFactor(input.condition),
-      recyclingPotential: this.getBrandRecyclability(input.brand),
+      recyclingPotential: 85, // ✅ Default - NO brand-based estimate
       refurbishmentQuality: input.condition === 'Like New' ? ('Professional' as const) : ('None' as const),
       secondHandMarketValue: 0,
     }
@@ -553,7 +577,7 @@ export class VeritasScoreCalculator {
       expectedRemainingLifeYears: this.calculateRemainingLife(input.condition),
       repairabilityScore: repairability?.score || 5,
       partsAvailability: repairability?.partsAvailable ? ('Excellent' as const) : ('Fair' as const),
-      softwareSupportYears: this.getBrandSoftwareSupport(input.brand),
+      softwareSupportYears: 3, // ✅ Default - NO brand-based estimate
     }
 
     const certifications = userInput.certifications || {
@@ -626,6 +650,7 @@ export class VeritasScoreCalculator {
 
   /**
    * Calculate User Experience Score (5% weight, 8 parameters)
+   * ONLY uses real data - NO fake defaults
    */
   private async calculateUserExperience(
     input: VeritasScoreInput,
@@ -633,40 +658,65 @@ export class VeritasScoreCalculator {
   ): Promise<UserExperienceScore> {
     const userInput = input.userExperience
 
-    const listingQuality = userInput.listingQuality || {
-      productPageQuality: 90,
-      descriptionCompleteness: 90,
-      transparencyScore: 90,
+    // ✅ ONLY use real data - NO fake defaults
+    const listingQuality = userInput.listingQuality || null
+    const visualPresentation = userInput.visualPresentation || null
+    const purchaseExperience = userInput.purchaseExperience || null
+    const customerSupport = userInput.customerSupport || null
+
+    // If NO UX data exists, return unavailable
+    if (!listingQuality && !visualPresentation && !purchaseExperience && !customerSupport) {
+      return {
+        listingQuality: null as any,
+        visualPresentation: null as any,
+        purchaseExperience: null as any,
+        customerSupport: null as any,
+        categoryScore: 0,
+        confidence: 0,
+        dataQuality: 0,
+      }
     }
 
-    const visualPresentation = userInput.visualPresentation || {
-      imageQualityScore: 90,
-      imageCount: 8,
+    // Calculate score ONLY from available data
+    let categoryScore = 0
+    let totalWeight = 0
+    let dataPoints = 0
+
+    if (listingQuality) {
+      categoryScore += this.scoreListingQuality(listingQuality) * 0.40
+      totalWeight += 0.40
+      dataPoints++
     }
 
-    const purchaseExperience = userInput.purchaseExperience || {
-      checkoutEase: 95,
-      navigationQuality: 95,
+    if (visualPresentation) {
+      categoryScore += this.scoreVisualPresentation(visualPresentation) * 0.30
+      totalWeight += 0.30
+      dataPoints++
     }
 
-    const customerSupport = userInput.customerSupport || {
-      supportAccessibility: 95,
+    if (purchaseExperience) {
+      categoryScore += this.scorePurchaseExperience(purchaseExperience) * 0.20
+      totalWeight += 0.20
+      dataPoints++
     }
 
-    const categoryScore =
-      this.scoreListingQuality(listingQuality) * 0.40 +
-      this.scoreVisualPresentation(visualPresentation) * 0.30 +
-      this.scorePurchaseExperience(purchaseExperience) * 0.20 +
-      this.scoreCustomerSupport(customerSupport) * 0.10
+    if (customerSupport) {
+      categoryScore += this.scoreCustomerSupport(customerSupport) * 0.10
+      totalWeight += 0.10
+      dataPoints++
+    }
+
+    // Normalize score based on available data
+    const normalizedScore = totalWeight > 0 ? categoryScore / totalWeight : 0
 
     return {
-      listingQuality,
-      visualPresentation,
-      purchaseExperience,
-      customerSupport,
-      categoryScore: Math.round(categoryScore * 100) / 100,
-      confidence: 92,
-      dataQuality: 90,
+      listingQuality: listingQuality || ({} as any),
+      visualPresentation: visualPresentation || ({} as any),
+      purchaseExperience: purchaseExperience || ({} as any),
+      customerSupport: customerSupport || ({} as any),
+      categoryScore: Math.round(normalizedScore * 100) / 100,
+      confidence: dataPoints >= 3 ? 92 : dataPoints >= 2 ? 70 : dataPoints >= 1 ? 45 : 0,
+      dataQuality: dataPoints >= 3 ? 90 : dataPoints >= 2 ? 65 : dataPoints >= 1 ? 40 : 0,
     }
   }
 
@@ -699,11 +749,12 @@ export class VeritasScoreCalculator {
       displaySpec: specs?.display || 'Unknown',
     }
 
+    // ✅ REMOVED MODEL & HARDWARE PLACEHOLDERS - only use real data
     const categoryScore =
-      this.scoreTechnicalSpecs(technicalSpecs) * 0.35 +
-      this.scoreCategoryFeatures(categoryFeatures) * 0.30 +
-      95 * 0.20 + // Model & Version placeholder
-      95 * 0.15 // Hardware Details placeholder
+      this.scoreTechnicalSpecs(technicalSpecs) * 0.55 +      // Increased from 0.35
+      this.scoreCategoryFeatures(categoryFeatures) * 0.45    // Increased from 0.30
+      // REMOVED: 95 * 0.20 (Model & Version placeholder)
+      // REMOVED: 95 * 0.15 (Hardware Details placeholder)
 
     return {
       technicalSpecs,
@@ -725,37 +776,67 @@ export class VeritasScoreCalculator {
     const userInput = input.companyPerformance
     const stock = externalData.stockPerformance
 
-    const brandReputation = userInput.brandReputation || {
-      brandReputationScore: this.getBrandTierScore(input.brand),
-      brandRecognitionPercent: this.getBrandRecognition(input.brand),
+    // ✅ ONLY use real data from stock API or user input
+    const brandReputation = userInput.brandReputation || null
+    const marketPerformance = userInput.marketPerformance || (stock ? {
+      stockPerformanceYoY: stock.changePercent || 0,
+    } : null)
+    const newsSentiment = userInput.newsSentiment || null
+    const customerSatisfaction = userInput.customerSatisfaction || null
+
+    // If NO company data exists, return unavailable
+    if (!brandReputation && !marketPerformance && !newsSentiment && !customerSatisfaction) {
+      return {
+        brandReputation: null as any,
+        marketPerformance: null as any,
+        newsSentiment: null as any,
+        customerSatisfaction: null as any,
+        categoryScore: 0,
+        confidence: 0,
+        dataQuality: 0,
+      }
     }
 
-    const marketPerformance = userInput.marketPerformance || {
-      stockPerformanceYoY: stock?.changePercent || 0,
+    // Calculate score ONLY from available data
+    let categoryScore = 0
+    let totalWeight = 0
+    let dataPoints = 0
+
+    if (brandReputation) {
+      categoryScore += this.scoreBrandReputation(brandReputation) * 0.35
+      totalWeight += 0.35
+      dataPoints++
     }
 
-    const newsSentiment = userInput.newsSentiment || {
-      newsSentimentScore: 85,
+    if (marketPerformance) {
+      categoryScore += this.scoreMarketPerformance(marketPerformance) * 0.25
+      totalWeight += 0.25
+      dataPoints++
     }
 
-    const customerSatisfaction = userInput.customerSatisfaction || {
-      customerSatisfactionIndex: this.getBrandCSAT(input.brand),
+    if (newsSentiment) {
+      categoryScore += this.scoreNewsSentiment(newsSentiment) * 0.25
+      totalWeight += 0.25
+      dataPoints++
     }
 
-    const categoryScore =
-      this.scoreBrandReputation(brandReputation) * 0.35 +
-      this.scoreMarketPerformance(marketPerformance) * 0.25 +
-      this.scoreNewsSentiment(newsSentiment) * 0.25 +
-      this.scoreCustomerSatisfaction(customerSatisfaction) * 0.15
+    if (customerSatisfaction) {
+      categoryScore += this.scoreCustomerSatisfaction(customerSatisfaction) * 0.15
+      totalWeight += 0.15
+      dataPoints++
+    }
+
+    // Normalize score based on available data
+    const normalizedScore = totalWeight > 0 ? categoryScore / totalWeight : 0
 
     return {
-      brandReputation,
-      marketPerformance,
-      newsSentiment,
-      customerSatisfaction,
-      categoryScore: Math.round(categoryScore * 100) / 100,
-      confidence: stock ? 90 : 75,
-      dataQuality: stock ? 85 : 70,
+      brandReputation: brandReputation || ({} as any),
+      marketPerformance: marketPerformance || ({} as any),
+      newsSentiment: newsSentiment || ({} as any),
+      customerSatisfaction: customerSatisfaction || ({} as any),
+      categoryScore: Math.round(normalizedScore * 100) / 100,
+      confidence: stock ? 90 : dataPoints >= 2 ? 60 : dataPoints >= 1 ? 40 : 0,
+      dataQuality: stock ? 85 : dataPoints >= 2 ? 55 : dataPoints >= 1 ? 30 : 0,
     }
   }
 
@@ -940,10 +1021,11 @@ export class VeritasScoreCalculator {
     return symbols[brand] || 'AAPL'
   }
 
-  private getBrandMaterialQuality(brand: string): number {
-    const premiumBrands = ['Apple', 'Sony', 'Samsung', 'Dell']
-    return premiumBrands.includes(brand) ? 95 : 80
-  }
+  // ❌ REMOVED - Brand-based estimate functions (fake data)
+  // These have been replaced with either:
+  // 1. Real data from APIs/database
+  // 2. Neutral defaults (not brand-specific)
+  // 3. Removed entirely
 
   private calculateProductAge(warrantyData: any): number {
     if (!warrantyData?.manufacturingDate) return 12
@@ -981,35 +1063,6 @@ export class VeritasScoreCalculator {
       'Poor': 0.5,
     }
     return map[condition] || 2
-  }
-
-  private getBrandRecyclability(brand: string): number {
-    const premiumBrands = ['Apple', 'Dell', 'HP']
-    return premiumBrands.includes(brand) ? 95 : 85
-  }
-
-  private getBrandSoftwareSupport(brand: string): number {
-    if (brand === 'Apple') return 6
-    if (brand === 'Samsung') return 4
-    return 3
-  }
-
-  private getBrandTierScore(brand: string): number {
-    const tier1 = ['Apple', 'Samsung', 'Sony']
-    const tier2 = ['Dell', 'HP', 'Lenovo', 'Microsoft']
-    if (tier1.includes(brand)) return 95
-    if (tier2.includes(brand)) return 85
-    return 70
-  }
-
-  private getBrandRecognition(brand: string): number {
-    const famous = ['Apple', 'Samsung', 'Microsoft', 'Dell']
-    return famous.includes(brand) ? 99 : 85
-  }
-
-  private getBrandCSAT(brand: string): number {
-    const highCSAT = ['Apple']
-    return highCSAT.includes(brand) ? 92 : 80
   }
 
   private generateInsights(data: any): VeritasScoreResult['insights'] {

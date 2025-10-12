@@ -179,10 +179,11 @@ export class ParameterEnrichmentService {
 
   /**
    * Get default company metrics when brand is unknown
+   * ✅ ONLY REAL DATA - Returns undefined for all unavailable fields
    */
   private getDefaultCompanyMetrics(): CompanyMetrics {
     return {
-      // Financial - neutral/unavailable
+      // Financial - unavailable
       stockPrice: undefined,
       stockPerformance30d: undefined,
       stockPerformance1y: undefined,
@@ -192,33 +193,36 @@ export class ParameterEnrichmentService {
       debtToEquity: undefined,
       creditRating: undefined,
 
-      // Growth - average estimates
-      rdInvestment: 5,
-      newProductLaunchRate: 3,
-      patentCount: 100,
-      marketShare: 5,
-      industryAwards: 1,
+      // Growth - unavailable (NO FAKE ESTIMATES!)
+      rdInvestment: undefined,
+      newProductLaunchRate: undefined,
+      patentCount: undefined,
+      marketShare: undefined,
+      industryAwards: undefined,
 
-      // ESG - average estimates
-      esgScore: 50,
-      carbonFootprint: 10,
-      renewableEnergy: 30,
-      wasteDiversion: 40,
-      waterEfficiency: 30,
-      supplierSustainability: 50,
-      circularEconomy: 1,
+      // ESG - unavailable (NO FAKE ESTIMATES!)
+      esgScore: undefined,
+      sustainabilityRating: undefined,
+      carbonFootprint: undefined,
+      renewableEnergy: undefined,
+      wasteDiversion: undefined,
+      waterEfficiency: undefined,
+      supplierSustainability: undefined,
+      circularEconomy: undefined,
 
-      // Social - average estimates
-      fairLabor: 65,
-      diversityInclusion: 60,
-      communityInvestment: 1.5,
+      // Social - unavailable (NO FAKE ESTIMATES!)
+      fairLabor: undefined,
+      laborPractices: undefined,
+      diversityInclusion: undefined,
+      communityInvestment: undefined,
 
-      // Risk - low risk defaults
-      legalViolations: 0,
-      productRecallRate: 0.5,
+      // Risk - unavailable (NO FAKE ESTIMATES!)
+      legalViolations: undefined,
+      productRecallRate: undefined,
+      supplyChainTransparency: undefined,
 
       lastUpdated: new Date().toISOString(),
-      dataSource: 'Default - Unknown Brand'
+      dataSource: 'No data available'
     }
   }
 

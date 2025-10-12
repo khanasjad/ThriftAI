@@ -167,60 +167,68 @@ export class CompanyMetricsService {
   /**
    * Fetch ESG metrics
    * Note: Real ESG data requires paid API access (MSCI, Sustainalytics, Bloomberg ESG)
-   * This is a placeholder that returns estimated data
+   * ✅ ONLY REAL DATA - Returns undefined for all fields until real API is integrated
    */
   private async fetchESGMetrics(brandName: string): Promise<Partial<CompanyMetrics>> {
-    // In production, integrate with ESG data providers
-    // For now, return estimates based on known company sustainability efforts
-    const esgData = this.getEstimatedESGData(brandName)
+    // ❌ NO FAKE ESTIMATES - ESG APIs are not integrated yet
+    // Return undefined for all ESG fields until we integrate:
+    // - Sustainalytics ESG Risk Rating API (~$1000/month)
+    // - MSCI ESG Ratings API (Enterprise pricing)
+    // - Bloomberg ESG Data (Enterprise pricing)
+    // - CSRHub API (Free tier: 10 requests/day)
 
     return {
-      esgScore: esgData.esgScore,
-      carbonFootprint: esgData.carbonFootprint,
-      renewableEnergy: esgData.renewableEnergy,
-      wasteDiversion: esgData.wasteDiversion,
-      waterEfficiency: esgData.waterEfficiency,
-      supplierSustainability: esgData.supplierSustainability,
-      circularEconomy: esgData.circularEconomy
+      esgScore: undefined,
+      sustainabilityRating: undefined,
+      carbonFootprint: undefined,
+      renewableEnergy: undefined,
+      wasteDiversion: undefined,
+      waterEfficiency: undefined,
+      supplierSustainability: undefined,
+      circularEconomy: undefined
     }
   }
 
   /**
    * Fetch growth and innovation metrics
-   * Note: Requires company filings, industry reports, or manual data entry
+   * ✅ ONLY REAL DATA - Returns undefined for all fields until real APIs are integrated
    */
   private async fetchGrowthMetrics(brandName: string): Promise<Partial<CompanyMetrics>> {
-    // In production, fetch from:
-    // - SEC EDGAR for R&D spending
-    // - USPTO for patents
-    // - Market research firms for market share
-    const growthData = this.getEstimatedGrowthData(brandName)
+    // ❌ NO FAKE ESTIMATES - Growth APIs are not integrated yet
+    // Return undefined for all growth fields until we integrate:
+    // - SEC EDGAR API for R&D spending (FREE)
+    // - USPTO PatentsView API for patent counts (FREE)
+    // - Market research APIs for market share (PAID)
 
     return {
-      rdInvestment: growthData.rdInvestment,
-      newProductLaunchRate: growthData.newProductLaunchRate,
-      patentCount: growthData.patentCount,
-      marketShare: growthData.marketShare,
-      industryAwards: growthData.industryAwards
+      rdInvestment: undefined,
+      newProductLaunchRate: undefined,
+      patentCount: undefined,
+      marketShare: undefined,
+      industryAwards: undefined
     }
   }
 
   /**
    * Fetch risk and compliance metrics
+   * ✅ ONLY REAL DATA - Returns undefined for all fields until real APIs are integrated
    */
   private async fetchRiskMetrics(brandName: string): Promise<Partial<CompanyMetrics>> {
-    // In production, fetch from:
-    // - Court records
-    // - CPSC (Consumer Product Safety Commission) for recalls
-    // - SEC filings for legal issues
-    const riskData = this.getEstimatedRiskData(brandName)
+    // ❌ NO FAKE ESTIMATES - Risk/compliance APIs are not integrated yet
+    // Return undefined for all risk fields until we integrate:
+    // - CPSC Recall Database for product recalls (FREE - already integrated elsewhere!)
+    // - Fair Trade API for labor practices (~$200/month)
+    // - Open Supply Hub for supply chain transparency (FREE)
+    // - Court records APIs for legal violations
 
     return {
-      fairLabor: riskData.fairLabor,
-      diversityInclusion: riskData.diversityInclusion,
-      communityInvestment: riskData.communityInvestment,
-      legalViolations: riskData.legalViolations,
-      productRecallRate: riskData.productRecallRate
+      fairLabor: undefined,
+      laborPractices: undefined,
+      diversityInclusion: undefined,
+      communityInvestment: undefined,
+      legalViolations: undefined,
+      productRecallRate: undefined,
+      supplyChainTransparency: undefined
     }
   }
 
@@ -270,6 +278,7 @@ export class CompanyMetricsService {
 
   /**
    * Get default metrics for brands without stock data
+   * ✅ ONLY REAL DATA - Returns undefined for all unavailable fields
    */
   private getDefaultMetrics(brandName: string): CompanyMetrics {
     return {
@@ -283,27 +292,36 @@ export class CompanyMetricsService {
       debtToEquity: undefined,
       creditRating: undefined,
 
-      // Growth - estimated
+      // Growth - not available
       rdInvestment: undefined,
       newProductLaunchRate: undefined,
       patentCount: undefined,
       marketShare: undefined,
       industryAwards: undefined,
 
-      // ESG - estimated
-      ...this.getEstimatedESGData(brandName),
+      // ESG - not available
+      esgScore: undefined,
+      sustainabilityRating: undefined,
+      carbonFootprint: undefined,
+      renewableEnergy: undefined,
+      wasteDiversion: undefined,
+      waterEfficiency: undefined,
+      supplierSustainability: undefined,
+      circularEconomy: undefined,
 
-      // Social - estimated
-      fairLabor: 70,
-      diversityInclusion: 65,
-      communityInvestment: 2,
+      // Social - not available
+      fairLabor: undefined,
+      laborPractices: undefined,
+      diversityInclusion: undefined,
+      communityInvestment: undefined,
 
-      // Risk - estimated
-      legalViolations: 0,
-      productRecallRate: 0.5,
+      // Risk - not available
+      legalViolations: undefined,
+      productRecallRate: undefined,
+      supplyChainTransparency: undefined,
 
       lastUpdated: new Date().toISOString(),
-      dataSource: 'Estimated'
+      dataSource: 'No data available'
     }
   }
 
@@ -327,105 +345,9 @@ export class CompanyMetricsService {
     }
   }
 
-  /**
-   * Get estimated ESG data based on brand reputation
-   */
-  private getEstimatedESGData(brandName: string): Partial<CompanyMetrics> {
-    // Known sustainability leaders
-    const sustainableLeaders = ['patagonia', 'tesla', 'apple', 'microsoft', 'google', 'nike']
-    const normalized = brandName.toLowerCase()
-    const isSustainable = sustainableLeaders.some(leader => normalized.includes(leader))
-
-    if (isSustainable) {
-      return {
-        esgScore: 80 + Math.floor(Math.random() * 15),
-        carbonFootprint: 0.5 + Math.random() * 2,
-        renewableEnergy: 70 + Math.floor(Math.random() * 30),
-        wasteDiversion: 75 + Math.floor(Math.random() * 20),
-        waterEfficiency: 15 + Math.random() * 10,
-        supplierSustainability: 70 + Math.floor(Math.random() * 25),
-        circularEconomy: 3 + Math.floor(Math.random() * 5)
-      }
-    }
-
-    // Average company
-    return {
-      esgScore: 50 + Math.floor(Math.random() * 25),
-      carbonFootprint: 5 + Math.random() * 15,
-      renewableEnergy: 20 + Math.floor(Math.random() * 40),
-      wasteDiversion: 40 + Math.floor(Math.random() * 30),
-      waterEfficiency: 30 + Math.random() * 20,
-      supplierSustainability: 45 + Math.floor(Math.random() * 30),
-      circularEconomy: 0 + Math.floor(Math.random() * 3)
-    }
-  }
-
-  /**
-   * Get estimated growth data
-   */
-  private getEstimatedGrowthData(brandName: string): {
-    rdInvestment: number
-    newProductLaunchRate: number
-    patentCount: number
-    marketShare: number
-    industryAwards: number
-  } {
-    const techCompanies = ['apple', 'microsoft', 'google', 'amazon', 'samsung', 'sony']
-    const normalized = brandName.toLowerCase()
-    const isTech = techCompanies.some(tech => normalized.includes(tech))
-
-    if (isTech) {
-      return {
-        rdInvestment: 15 + Math.random() * 10,
-        newProductLaunchRate: 10 + Math.floor(Math.random() * 20),
-        patentCount: 5000 + Math.floor(Math.random() * 50000),
-        marketShare: 15 + Math.random() * 25,
-        industryAwards: 5 + Math.floor(Math.random() * 20)
-      }
-    }
-
-    return {
-      rdInvestment: 3 + Math.random() * 7,
-      newProductLaunchRate: 5 + Math.floor(Math.random() * 10),
-      patentCount: 50 + Math.floor(Math.random() * 5000),
-      marketShare: 3 + Math.random() * 15,
-      industryAwards: 0 + Math.floor(Math.random() * 5)
-    }
-  }
-
-  /**
-   * Get estimated risk data
-   */
-  private getEstimatedRiskData(brandName: string): {
-    fairLabor: number
-    diversityInclusion: number
-    communityInvestment: number
-    legalViolations: number
-    productRecallRate: number
-  } {
-    // Known companies with good social practices
-    const socialLeaders = ['patagonia', 'ben & jerry', 'microsoft', 'salesforce']
-    const normalized = brandName.toLowerCase()
-    const isSocialLeader = socialLeaders.some(leader => normalized.includes(leader))
-
-    if (isSocialLeader) {
-      return {
-        fairLabor: 85 + Math.floor(Math.random() * 15),
-        diversityInclusion: 80 + Math.floor(Math.random() * 15),
-        communityInvestment: 3 + Math.random() * 5,
-        legalViolations: 0,
-        productRecallRate: 0.1 + Math.random() * 0.5
-      }
-    }
-
-    return {
-      fairLabor: 60 + Math.floor(Math.random() * 25),
-      diversityInclusion: 55 + Math.floor(Math.random() * 30),
-      communityInvestment: 1 + Math.random() * 3,
-      legalViolations: Math.floor(Math.random() * 3),
-      productRecallRate: 0.5 + Math.random() * 2
-    }
-  }
+  // ❌ REMOVED - All fake estimate functions (getEstimatedESGData, getEstimatedGrowthData, getEstimatedRiskData)
+  // These functions returned fake scores based on brand name assumptions
+  // All ESG/growth/risk data must come from real APIs only
 
   // ========================================
   // CACHE MANAGEMENT

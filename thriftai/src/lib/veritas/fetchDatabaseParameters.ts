@@ -236,7 +236,7 @@ export async function fetchAllDatabaseParameters(productId: string): Promise<Dat
   // Build response object
   const parameters: DatabaseParameters = {
     productQuality: {
-      // Direct from database
+      // ✅ ONLY use real database values - NO fake defaults
       name: product.name,
       condition: product.condition,
       brand: product.brand || 'Unknown',
@@ -244,17 +244,17 @@ export async function fetchAllDatabaseParameters(productId: string): Promise<Dat
       subcategory: product.subcategory || '',
       description: product.description || '',
       images: images,
-      conditionScore: quality?.conditionScore || 70,
-      visualDefects: quality?.visualDefects || 70,
-      functionalityScore: quality?.functionalityScore || 75,
-      authenticityScore: quality?.authenticityScore || 85,
-      packagingScore: quality?.packagingScore || 60,
-      accessoriesScore: quality?.accessoriesScore || 50,
-      warrantyScore: quality?.warrantyScore || 40,
-      returnPolicyScore: quality?.returnPolicyScore || 70,
-      ageScore: quality?.ageScore || 65,
-      wearScore: quality?.wearScore || 70,
-      cleanlinessScore: quality?.cleanlinessScore || 75,
+      conditionScore: quality?.conditionScore ?? null,
+      visualDefects: quality?.visualDefects ?? null,
+      functionalityScore: quality?.functionalityScore ?? null,
+      authenticityScore: quality?.authenticityScore ?? null,
+      packagingScore: quality?.packagingScore ?? null,
+      accessoriesScore: quality?.accessoriesScore ?? null,
+      warrantyScore: quality?.warrantyScore ?? null,
+      returnPolicyScore: quality?.returnPolicyScore ?? null,
+      ageScore: quality?.ageScore ?? null,
+      wearScore: quality?.wearScore ?? null,
+      cleanlinessScore: quality?.cleanlinessScore ?? null,
       // Computed from database
       imageQualityScore: images.length >= 5 ? 90 : (images.length >= 3 ? 70 : 50),
       descriptionCompleteness: (product.description?.split(' ').length || 0) >= 100 ? 90 :
@@ -263,135 +263,156 @@ export async function fetchAllDatabaseParameters(productId: string): Promise<Dat
     },
 
     sellerTrust: {
-      // Direct from database - Seller model
-      sellerRating: product.seller?.rating || 0,
-      totalSales: product.seller?.totalSales || 0,
-      isVerified: product.seller?.isVerified || false,
-      avgResponseTimeHours: product.seller?.avgResponseTimeHours || 24,
-      customerSatisfactionRate: product.seller?.customerSatisfactionRate || 0.85,
-      defectRate: product.seller?.defectRate || 0.03,
-      onTimeDeliveryRate: product.seller?.onTimeDeliveryRate || 0.92,
+      // ✅ ONLY use real database values - NO fake defaults
+      sellerRating: product.seller?.rating ?? 0,
+      totalSales: product.seller?.totalSales ?? 0,
+      isVerified: product.seller?.isVerified ?? false,
+      avgResponseTimeHours: product.seller?.avgResponseTimeHours ?? null,
+      customerSatisfactionRate: product.seller?.customerSatisfactionRate ?? null,
+      defectRate: product.seller?.defectRate ?? null,
+      onTimeDeliveryRate: product.seller?.onTimeDeliveryRate ?? null,
       // From VeritasSellerProfile model
-      refundRate: Number(sellerProfile?.refundRate || 0.05),
-      disputeRate: Number(sellerProfile?.disputeRate || 0.02),
-      sellerResponseRate: Number(sellerProfile?.responseRate || 0.90),
-      // Estimated values (not in Seller model)
-      positiveReviewRate: product.seller?.rating ? (product.seller.rating / 5) * 0.95 : 0.85,
-      neutralReviewRate: 0.10,
-      negativeReviewRate: product.seller?.rating ? (1 - (product.seller.rating / 5)) * 0.15 : 0.05,
+      refundRate: Number(sellerProfile?.refundRate ?? null),
+      disputeRate: Number(sellerProfile?.disputeRate ?? null),
+      sellerResponseRate: Number(sellerProfile?.responseRate ?? null),
+      // ✅ ONLY REAL DATA - Review distribution must come from actual review records
+      // These fields should be populated from a real Reviews table, not estimated
+      positiveReviewRate: sellerProfile?.positiveReviewRate ?? null,
+      neutralReviewRate: sellerProfile?.neutralReviewRate ?? null,
+      negativeReviewRate: sellerProfile?.negativeReviewRate ?? null,
       accountAgeMonths: sellerAccountAgeMonths,
-      totalReviewCount: product.seller?.totalSales ? Math.floor(product.seller.totalSales * 0.3) : 0,
-      // Computed from database
-      sellerReliabilityScore: Math.round(
-        (product.seller?.rating || 0) * 20 +
-        (product.seller?.onTimeDeliveryRate || 0.9) * 50 +
-        (1 - (product.seller?.defectRate || 0.03)) * 30
-      ),
-      communicationScore: sellerProfile?.communicationScore || Math.round(
-        (product.seller?.avgResponseTimeHours || 24) <= 2 ? 95 :
-        (product.seller?.avgResponseTimeHours || 24) <= 12 ? 80 : 65
-      ),
-      serviceQualityScore: sellerProfile?.serviceQualityScore || Math.round(
-        (product.seller?.customerSatisfactionRate || 0.85) * 100
-      ),
-      trustScore: Math.round(
-        ((product.seller?.isVerified ? 100 : 50) +
-         (product.seller?.rating || 0) * 20 +
-         (product.seller?.totalSales || 0) > 100 ? 90 : 70) / 3
-      ),
+      totalReviewCount: sellerProfile?.totalReviews ?? null,
+      // ✅ Computed from REAL database values only - NO fake fallbacks
+      sellerReliabilityScore: (product.seller?.rating !== null && product.seller?.rating !== undefined &&
+                               product.seller?.onTimeDeliveryRate !== null && product.seller?.onTimeDeliveryRate !== undefined &&
+                               product.seller?.defectRate !== null && product.seller?.defectRate !== undefined)
+        ? Math.round(
+            (product.seller.rating) * 20 +
+            (product.seller.onTimeDeliveryRate) * 50 +
+            (1 - product.seller.defectRate) * 30
+          )
+        : sellerProfile?.sellerReliabilityScore ?? null,
+      communicationScore: sellerProfile?.communicationScore ??
+                         (product.seller?.avgResponseTimeHours !== null && product.seller?.avgResponseTimeHours !== undefined
+                          ? Math.round(
+                              product.seller.avgResponseTimeHours <= 2 ? 95 :
+                              product.seller.avgResponseTimeHours <= 12 ? 80 : 65
+                            )
+                          : null),
+      serviceQualityScore: sellerProfile?.serviceQualityScore ??
+                          (product.seller?.customerSatisfactionRate !== null && product.seller?.customerSatisfactionRate !== undefined
+                           ? Math.round(product.seller.customerSatisfactionRate * 100)
+                           : null),
+      trustScore: (product.seller?.isVerified !== null && product.seller?.isVerified !== undefined &&
+                  product.seller?.rating !== null && product.seller?.rating !== undefined &&
+                  product.seller?.totalSales !== null && product.seller?.totalSales !== undefined)
+        ? Math.round(
+            ((product.seller.isVerified ? 100 : 50) +
+             (product.seller.rating) * 20 +
+             (product.seller.totalSales > 100 ? 90 : 70)) / 3
+          )
+        : null,
     },
 
     marketValue: {
-      // Direct from database - Product model
+      // ✅ ONLY use real database values - NO fake defaults
       currentPrice: product.price,
-      originalPrice: product.originalPrice || product.price,
+      originalPrice: product.originalPrice ?? product.price,
       currency: 'USD',
       inStock: product.isAvailable,
-      stockQuantity: product.stockQuantity || 0,
-      viewCount: product.viewCount || 0,
-      savedCount: product.wishlistCount || 0,
+      stockQuantity: product.stockQuantity ?? 0,
+      viewCount: product.viewCount ?? 0,
+      savedCount: product.wishlistCount ?? 0,
       // From VeritasMarketData model (if available)
-      clickThroughRate: Number(market?.priceCompetitiveness || 0) / 100,
+      clickThroughRate: market?.priceCompetitiveness ? Number(market.priceCompetitiveness) / 100 : null,
       conversionRate: product.purchaseCount > 0 && product.viewCount > 0
         ? product.purchaseCount / product.viewCount
-        : 0.05,
-      competitorCount: market?.competitorCount || 5,
-      avgCompetitorPrice: Number(market?.marketAvgPrice || avgCompetitorPrice),
-      // Computed from database
+        : null,
+      competitorCount: market?.competitorCount ?? null,
+      avgCompetitorPrice: market?.marketAvgPrice ? Number(market.marketAvgPrice) : null,
+      // Computed from database (using real data only)
       discountPercentage: discountPercentage,
-      priceCompetitiveness: priceCompetitiveness,
+      priceCompetitiveness: market?.avgCompetitorPrice ? priceCompetitiveness : null,
     },
 
     sustainability: {
-      // Direct from database - VeritasSustainability model
-      carbonReductionKg: Number(sustainability?.carbonFootprintKg || 5.0),
-      eWastePrevention: Number(sustainability?.eWastePrevention || 70) / 100,
+      // ✅ ONLY use real database values - NO fake defaults
+      carbonReductionKg: sustainability?.carbonFootprintKg ? Number(sustainability.carbonFootprintKg) : null,
+      eWastePrevention: sustainability?.eWastePrevention ? Number(sustainability.eWastePrevention) / 100 : null,
       isRecyclable: sustainability?.recyclingPotential ? Number(sustainability.recyclingPotential) > 70 : false,
-      packagingRecyclable: false, // Not in schema, estimated
-      sustainabilityScore: Number(sustainability?.carbonReduction || 65),
-      // Computed from database
-      circularEconomyContribution: Math.round(
-        (Number(sustainability?.carbonFootprintKg || 5.0) * 5) +
-        (Number(sustainability?.eWastePrevention || 70))
-      ),
-      resourceConservationScore: Number(sustainability?.resourceConservation || 70),
-      environmentalImpactScore: Math.round(
-        (Number(sustainability?.carbonReduction || 70) +
-         Number(sustainability?.eWastePrevention || 70) +
-         Number(sustainability?.resourceConservation || 70)) / 3
-      ),
+      packagingRecyclable: null, // Not in schema - needs real data
+      sustainabilityScore: sustainability?.carbonReduction ? Number(sustainability.carbonReduction) : null,
+      // ✅ Computed from REAL database values only - NO fake fallbacks
+      circularEconomyContribution: (sustainability?.carbonFootprintKg && sustainability?.eWastePrevention)
+        ? Math.round(
+            (Number(sustainability.carbonFootprintKg) * 5) +
+            (Number(sustainability.eWastePrevention))
+          )
+        : null,
+      resourceConservationScore: sustainability?.resourceConservation ? Number(sustainability.resourceConservation) : null,
+      environmentalImpactScore: (sustainability?.carbonReduction && sustainability?.eWastePrevention && sustainability?.resourceConservation)
+        ? Math.round(
+            (Number(sustainability.carbonReduction) +
+             Number(sustainability.eWastePrevention) +
+             Number(sustainability.resourceConservation)) / 3
+          )
+        : null,
     },
 
     security: {
-      // Direct from database - VeritasSecurityPolicy model
-      hasSecurePayment: security ? Number(security.paymentSecurity) > 70 : true,
-      hasBuyerProtection: security ? Number(security.buyerProtection) > 70 : true,
-      hasFraudProtection: security ? Number(security.fraudProtection) > 70 : true,
-      hasDataEncryption: security ? security.sslEncryption : true,
-      privacyPolicyScore: Number(security?.dataPrivacy || 75),
+      // ✅ ONLY use real database values - NO fake defaults
+      // Platform-level security features (reasonable to default to true if platform guarantees them)
+      hasSecurePayment: security ? Number(security.paymentSecurity) > 70 : null,
+      hasBuyerProtection: security ? Number(security.buyerProtection) > 70 : null,
+      hasFraudProtection: security ? Number(security.fraudProtection) > 70 : null,
+      hasDataEncryption: security?.sslEncryption ?? null,
+      privacyPolicyScore: security?.dataPrivacy ? Number(security.dataPrivacy) : null,
       securityScore: security ? Math.round(
         (Number(security.paymentSecurity) +
          Number(security.fraudProtection) +
          Number(security.buyerProtection) +
          Number(security.dataPrivacy)) / 4
-      ) : 80,
+      ) : null,
     },
 
     userExperience: {
-      // Direct from database - VeritasUserExperience model
-      pageQualityScore: Number(userExp?.pageQuality || 75),
-      imageCount: userExp?.imageCount || images.length,
-      descriptionLength: userExp?.descriptionWordCount || (product.description?.split(' ').length || 0),
-      hasVideo: userExp?.hasVideoContent || false,
-      has360View: false, // Not in schema
-      mobileOptimized: userExp?.mobileOptimized ?? true,
-      loadTimeMs: userExp?.pageLoadSpeed ? Number(userExp.pageLoadSpeed) * 1000 : 800,
-      checkoutEaseScore: Number(userExp?.checkoutEase || 85),
-      navigationScore: Number(userExp?.navigationQuality || 80),
-      overallUXScore: Math.round(
-        (Number(userExp?.pageQuality || 75) * 0.3) +
-        ((images.length >= 5 ? 90 : 70) * 0.3) +
-        (Number(userExp?.checkoutEase || 85) * 0.4)
-      ),
+      // ✅ ONLY use real database values - NO fake defaults
+      pageQualityScore: userExp?.pageQuality ? Number(userExp.pageQuality) : null,
+      imageCount: userExp?.imageCount ?? images.length, // Use actual image count as fallback
+      descriptionLength: userExp?.descriptionWordCount ?? (product.description?.split(' ').length || 0), // Use actual word count
+      hasVideo: userExp?.hasVideoContent ?? false,
+      has360View: null, // Not in schema - needs real data
+      mobileOptimized: userExp?.mobileOptimized ?? null,
+      loadTimeMs: userExp?.pageLoadSpeed ? Number(userExp.pageLoadSpeed) * 1000 : null,
+      checkoutEaseScore: userExp?.checkoutEase ? Number(userExp.checkoutEase) : null,
+      navigationScore: userExp?.navigationQuality ? Number(userExp.navigationQuality) : null,
+      // ✅ Computed from REAL database values only
+      overallUXScore: (userExp?.pageQuality && userExp?.checkoutEase)
+        ? Math.round(
+            (Number(userExp.pageQuality) * 0.3) +
+            ((images.length >= 5 ? 90 : 70) * 0.3) + // Real image count
+            (Number(userExp.checkoutEase) * 0.4)
+          )
+        : null,
     },
 
     specifications: {
-      // Direct from database - VeritasProductSpec model
+      // ✅ ONLY use real database values - NO fake defaults
       hasDetailedSpecs: specs ? Number(specs.specCompleteness) > 70 : false,
       specCount: specs ? (
         [specs.processor, specs.ram, specs.storage, specs.displaySize,
          specs.batteryCapacity, specs.mainCamera, specs.os].filter(Boolean).length
       ) : 0,
-      specCompleteness: Number(specs?.specCompleteness || 50),
+      specCompleteness: specs?.specCompleteness ? Number(specs.specCompleteness) : null,
       hasManufacturerInfo: !!product.brand,
       hasDimensions: !!(specs?.dimensions || product.length || product.width || product.height),
       hasWeight: !!(specs?.weight || product.weight),
     },
 
     company: {
-      // Direct from database - VeritasCompanyProfile model
-      brandRecognition: Number(company?.brandRecognition || 60),
-      brandReputation: Number(company?.brandReputationScore || 70),
+      // ✅ ONLY use real database values - NO fake defaults
+      brandRecognition: company?.brandRecognition ? Number(company.brandRecognition) : null,
+      brandReputation: company?.brandReputationScore ? Number(company.brandReputationScore) : null,
     },
 
     metadata: {

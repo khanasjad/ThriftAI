@@ -200,10 +200,11 @@ export class AIProductScorer {
    * Uses psychological pricing principles and competitive analysis
    */
   private calculatePriceValue(product: ProductData): number {
-    let score = 50 // Base score
+    let score = 0 // ✅ AUTHENTIC DATA ONLY - Start at 0
 
-    // Discount impact (loss aversion psychology)
+    // Discount impact (loss aversion psychology) - ONLY if we have real originalPrice
     if (product.originalPrice && product.originalPrice > product.price) {
+      score = 50 // Base score only when we have discount data
       const discountPercent = ((product.originalPrice - product.price) / product.originalPrice) * 100
 
       // Psychological thresholds: 20%, 30%, 50% discounts
@@ -239,11 +240,11 @@ export class AIProductScorer {
    * Based on seller reputation and product authenticity
    */
   private calculateTrustScore(product: ProductData): number {
-    let score = 30 // Base trust
+    let score = 0 // ✅ AUTHENTIC DATA ONLY - Start at 0
 
-    // Seller rating (critical factor)
+    // Seller rating (critical factor) - ONLY add score if we have real data
     if (product.sellerRating) {
-      score += (product.sellerRating / 5) * 30
+      score += (product.sellerRating / 5) * 60 // Increased weight since it's the primary trust indicator
     }
 
     // Seller history
@@ -278,7 +279,7 @@ export class AIProductScorer {
   private calculateQualityScore(product: ProductData): number {
     let score = 0
 
-    // Condition scoring
+    // Condition scoring - ONLY if we have real condition data
     const conditionScores = {
       'new': 100,
       'like-new': 85,
@@ -288,19 +289,13 @@ export class AIProductScorer {
     }
 
     if (product.condition) {
-      score = conditionScores[product.condition] || 50
-    } else {
-      score = 50 // Unknown condition
+      score = conditionScores[product.condition] || 0 // ✅ 0 for unknown, not 50
     }
+    // ✅ REMOVED: No fake 50 for unknown condition
 
-    // Brand premium
-    if (product.brand) {
-      // Premium brands get bonus (simplified - could use brand database)
-      const premiumBrands = ['Apple', 'Nike', 'Adidas', 'Sony', 'Samsung', 'Coach', 'Gucci']
-      if (premiumBrands.some(b => product.brand?.toLowerCase().includes(b.toLowerCase()))) {
-        score = Math.min(100, score + 15)
-      }
-    }
+    // ❌ REMOVED: Brand premium discrimination
+    // NO automatic bonuses for Apple/Nike/etc - all brands treated equally
+    // Quality should be based on CONDITION and SPECS only, not brand name
 
     // Certifications
     if (product.certifications && product.certifications.length > 0) {
@@ -367,14 +362,15 @@ export class AIProductScorer {
    * Shipping, delivery, and purchase ease
    */
   private calculateConvenience(product: ProductData): number {
-    let score = 40 // Base convenience
+    let score = 0 // ✅ AUTHENTIC DATA ONLY - Start at 0
 
-    // Shipping speed (major factor)
-    if (product.estimatedDeliveryDays) {
-      if (product.estimatedDeliveryDays <= 2) score += 30
-      else if (product.estimatedDeliveryDays <= 5) score += 20
-      else if (product.estimatedDeliveryDays <= 7) score += 10
-      else if (product.estimatedDeliveryDays > 14) score -= 10
+    // Shipping speed (major factor) - ONLY if we have real delivery data
+    if (product.estimatedDeliveryDays !== undefined && product.estimatedDeliveryDays !== null) {
+      if (product.estimatedDeliveryDays <= 2) score += 40
+      else if (product.estimatedDeliveryDays <= 5) score += 30
+      else if (product.estimatedDeliveryDays <= 7) score += 20
+      else if (product.estimatedDeliveryDays <= 14) score += 10
+      // No penalty, just no bonus for slow shipping
     }
 
     // Free shipping
@@ -401,13 +397,14 @@ export class AIProductScorer {
    * Scarcity and FOMO factors
    */
   private calculateUrgency(product: ProductData): number {
-    let score = 20 // Base urgency
+    let score = 0 // ✅ AUTHENTIC DATA ONLY - Start at 0
 
-    // Low stock creates urgency
-    if (product.stockLevel) {
-      if (product.stockLevel <= 5) score += 40
-      else if (product.stockLevel <= 10) score += 25
-      else if (product.stockLevel <= 20) score += 15
+    // Low stock creates urgency - ONLY if we have real stock data
+    if (product.stockLevel !== undefined && product.stockLevel !== null) {
+      if (product.stockLevel <= 5) score += 50
+      else if (product.stockLevel <= 10) score += 35
+      else if (product.stockLevel <= 20) score += 20
+      else score += 5 // Still in stock, slight bonus
     }
 
     // High recent activity
@@ -435,7 +432,16 @@ export class AIProductScorer {
    * How well the product matches search intent
    */
   private calculateRelevance(product: ProductData): number {
-    let score = 50 // Base relevance
+    let score = 0 // ✅ AUTHENTIC DATA ONLY - Start at 0
+
+    // If no search-related data exists, return 0
+    const hasSearchData = product.clickThroughRate || product.conversionRate || product.bounceRate
+    if (!hasSearchData) {
+      return 0
+    }
+
+    // Give base score only if we have some search metrics
+    score = 30
 
     // Click-through rate (strong signal)
     if (product.clickThroughRate) {
@@ -465,17 +471,14 @@ export class AIProductScorer {
    * Brand value, sustainability, and emotional factors
    */
   private calculateEmotionalAppeal(product: ProductData): number {
-    let score = 30 // Base appeal
+    let score = 0 // ✅ AUTHENTIC DATA ONLY - Start at 0
 
-    // Brand recognition
-    if (product.brand) {
-      // Simplified brand appeal (could use sentiment analysis)
-      score += 20
-    }
+    // ❌ REMOVED: No fake +20 just for having a brand name
+    // Brand alone means nothing without real brand metrics from company data
 
-    // Sustainability (growing importance in 2024)
+    // Sustainability (growing importance in 2024) - ONLY if explicitly marked
     if (product.sustainability) {
-      score += 30
+      score += 50 // Increased since it's a real sustainability indicator
     }
 
     // Country of origin preferences
