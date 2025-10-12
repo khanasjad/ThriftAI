@@ -71,6 +71,7 @@ export default function ProductCard({
   const router = useRouter()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const currentPrice = product.price?.current ?? product.price ?? 0
   const originalPrice = product.price?.original ?? currentPrice
@@ -80,14 +81,20 @@ export default function ProductCard({
 
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setImageLoaded(false)
-    setCurrentImageIndex((prev) => (prev === 0 ? product.images.length - 1 : prev - 1))
+    if (isTransitioning) return // Prevent rapid clicks
+    setIsTransitioning(true)
+    const nextIndex = currentImageIndex === 0 ? product.images.length - 1 : currentImageIndex - 1
+    setCurrentImageIndex(nextIndex)
+    setTimeout(() => setIsTransitioning(false), 300) // Match transition duration
   }
 
   const handleNextImage = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setImageLoaded(false)
-    setCurrentImageIndex((prev) => (prev === product.images.length - 1 ? 0 : prev + 1))
+    if (isTransitioning) return // Prevent rapid clicks
+    setIsTransitioning(true)
+    const nextIndex = currentImageIndex === product.images.length - 1 ? 0 : currentImageIndex + 1
+    setCurrentImageIndex(nextIndex)
+    setTimeout(() => setIsTransitioning(false), 300) // Match transition duration
   }
 
   const renderStars = (rating: number) => {
@@ -124,16 +131,28 @@ export default function ProductCard({
     >
       {/* Product Image with Carousel */}
       <div className="product-image-container" style={{ position: 'relative' }}>
-        {/* Image */}
-        <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-lg)' }}>
+        {/* Image Container with Fixed Aspect Ratio */}
+        <div style={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: 'var(--radius-lg)',
+          paddingBottom: '100%', // 1:1 aspect ratio
+          background: 'var(--bg-secondary)'
+        }}>
           <img
             src={product.images[currentImageIndex] || '/placeholder-image.jpg'}
             alt={product.title}
             className="product-image"
             onLoad={() => setImageLoaded(true)}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
               opacity: imageLoaded ? 1 : 0,
-              transition: 'opacity 0.3s ease'
+              transition: 'opacity 0.4s ease'
             }}
           />
 
@@ -152,39 +171,97 @@ export default function ProductCard({
               }}
             />
           )}
+
+          {/* Image Navigation Arrows - INSIDE fixed container */}
+          {hasMultipleImages && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                style={{
+                  position: 'absolute',
+                  left: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  backdropFilter: 'blur(4px)',
+                  border: 'none',
+                  color: 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                  zIndex: 10
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'
+                }}
+              >
+                <ChevronLeft className="w-5 h-5 text-white" />
+              </button>
+              <button
+                onClick={handleNextImage}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  backdropFilter: 'blur(4px)',
+                  border: 'none',
+                  color: 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                  zIndex: 10
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'
+                }}
+              >
+                <ChevronRight className="w-5 h-5 text-white" />
+              </button>
+
+              {/* Image Dots Indicator */}
+              <div style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: '4px',
+                zIndex: 10
+              }}>
+                {product.images.map((_, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      width: idx === currentImageIndex ? '16px' : '6px',
+                      height: '6px',
+                      borderRadius: '3px',
+                      background: idx === currentImageIndex ? 'white' : 'rgba(255, 255, 255, 0.5)',
+                      transition: 'all 0.3s'
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
-
-        {/* Image Navigation Arrows */}
-        {hasMultipleImages && (
-          <>
-            <button
-              onClick={handlePrevImage}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-all z-10"
-              style={{ backdropFilter: 'blur(4px)' }}
-            >
-              <ChevronLeft className="w-5 h-5 text-white" />
-            </button>
-            <button
-              onClick={handleNextImage}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-all z-10"
-              style={{ backdropFilter: 'blur(4px)' }}
-            >
-              <ChevronRight className="w-5 h-5 text-white" />
-            </button>
-
-            {/* Image Dots Indicator */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-              {product.images.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    idx === currentImageIndex ? 'bg-white w-4' : 'bg-white/50'
-                  }`}
-                />
-              ))}
-            </div>
-          </>
-        )}
 
         {/* Top Left Badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1 z-20">
