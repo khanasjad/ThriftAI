@@ -32,9 +32,9 @@ export class TTSService {
 
     const {
       provider = 'google', // Default to Google Cloud TTS
-      rate = 0.9, // Slightly slower for Gus's wise shopkeeper voice
-      pitch = 0.8, // Lower pitch for older voice
-      volume = 0.8
+      rate = 1.0, // Natural conversational speed
+      pitch = 1.0, // Natural American pitch
+      volume = 0.85
     } = options
 
     try {

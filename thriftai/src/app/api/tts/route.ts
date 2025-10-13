@@ -85,7 +85,7 @@ async function handleGoogleCloudTTS(
           input: { text },
           voice: {
             languageCode: 'en-US',
-            name: 'en-US-Wavenet-D', // American male voice (deep, mature, authoritative)
+            name: 'en-US-Journey-D', // Most natural conversational American male voice
             ssmlGender: 'MALE'
           },
           audioConfig: {

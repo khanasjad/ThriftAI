@@ -4199,6 +4199,25 @@ button,
   white-space: nowrap;
 }
 
+/* Desktop: Reset nav button width to auto */
+@media (min-width: 993px) {
+  .nav-btn {
+    width: auto !important;
+  }
+
+  .nav-user-btn {
+    width: auto !important;
+  }
+
+  .nav-actions .w-lg-auto {
+    width: auto !important;
+  }
+
+  .nav-item.dropdown.w-lg-auto {
+    width: auto !important;
+  }
+}
+
 .nav-btn-icon {
   font-size: var(--text-sm);
 }

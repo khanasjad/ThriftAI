@@ -354,6 +354,24 @@ Now provide a conversational response that:
       stack: error instanceof Error ? error.stack : undefined
     })
 
+    // Check if it's an Anthropic API credit error
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (errorMessage.includes('credit balance is too low') || errorMessage.includes('Anthropic API')) {
+      logger.warn('⚠️ Anthropic API credits depleted, returning friendly message')
+
+      // Return a friendly text stream instead of an error
+      return new Response(
+        `Hey! I'm Gus, your shopping advisor. Right now, my AI brain is taking a coffee break (API credits ran out), but I can still help you browse our products!\n\nTry using the search bar above to find what you need, or browse by category. All our products are scored with the Veritas Score™ to help you make smart choices.\n\nNeed help? Just search for things like "laptops under $500" or "vintage designer bags" and I'll show you what we've got!`,
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain',
+            'X-Content-Type-Options': 'nosniff'
+          }
+        }
+      )
+    }
+
     return new Response(
       JSON.stringify({
         error: 'Failed to process chat request',

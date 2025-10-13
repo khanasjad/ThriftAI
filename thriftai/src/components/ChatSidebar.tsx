@@ -55,8 +55,8 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
     try {
       await ttsService.speak(text, {
         provider: 'google', // Try Google Cloud TTS first (more natural)
-        rate: 0.88, // Slower for old man effect
-        pitch: 0.85, // Lower pitch for masculine old man voice
+        rate: 1.0, // Normal conversational speed - natural and human
+        pitch: 1.0, // Natural American pitch - warm and friendly
         volume: 0.85
       })
     } catch (error) {

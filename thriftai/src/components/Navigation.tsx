@@ -146,7 +146,9 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
               <button
                 className="btn-modern-secondary nav-btn w-100 w-lg-auto"
                 onClick={onShowLogin}
-                style={{ minHeight: '44px' }}
+                style={{
+                  minHeight: '44px'
+                }}
               >
                 <i className="fas fa-sign-in-alt nav-btn-icon"></i>
                 Sign In
@@ -154,7 +156,9 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
               <button
                 className="btn-modern-primary nav-btn w-100 w-lg-auto"
                 onClick={onShowSignup}
-                style={{ minHeight: '44px' }}
+                style={{
+                  minHeight: '44px'
+                }}
               >
                 <i className="fas fa-user-plus nav-btn-icon"></i>
                 Get Started
@@ -190,7 +194,9 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
                   type="button"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
-                  style={{ minHeight: '44px' }}
+                  style={{
+                    minHeight: '44px'
+                  }}
                 >
                   <div className="nav-user-avatar">
                     {user.firstName.charAt(0).toUpperCase()}
