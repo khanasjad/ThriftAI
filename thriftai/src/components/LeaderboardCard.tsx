@@ -340,9 +340,9 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                       overflow: 'hidden'
                     }}>
                       <div style={{
-                        width: product.veritasPillars ? `${value}%` : `${(value / 10) * 100}%`,
+                        width: product.veritasPillars ? `${value ?? 0}%` : `${((value ?? 0) / 10) * 100}%`,
                         height: '100%',
-                        background: product.veritasPillars ? getScoreColor(value) : getScoreColor(value * 10),
+                        background: product.veritasPillars ? getScoreColor(value ?? 0) : getScoreColor((value ?? 0) * 10),
                         borderRadius: '3px'
                       }} />
                     </div>
@@ -352,7 +352,7 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                       minWidth: '45px',
                       textAlign: 'right'
                     }}>
-                      {product.veritasPillars ? `${value.toFixed(0)}/100` : `${value.toFixed(1)}/10`}
+                      {product.veritasPillars ? `${(value ?? 0).toFixed(0)}/100` : `${(value ?? 0).toFixed(1)}/10`}
                     </span>
                   </div>
                 ))}

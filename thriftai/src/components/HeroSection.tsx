@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DynamicContent from './DynamicContent';
-import PriceRangeSlider from './PriceRangeSlider';
 import { VoiceSearchButton } from './VoiceSearchButton';
 
 interface HeroSectionProps {
   onSearch: (query: string) => Promise<void>;
   onVisualSearch: (file: File) => Promise<void>;
-}
-
-interface PriceRange {
-  min: number;
-  max: number;
 }
 
 interface CategoryItem {
@@ -118,7 +112,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
 
   // State management
   const [query, setQuery] = useState('');
-  const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 1000 });
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
   const [isLoading, setIsLoading] = useState(false);
   const [isVisualLoading, setIsVisualLoading] = useState(false);
   const [showDynamicContent, setShowDynamicContent] = useState(false);
@@ -128,19 +122,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
   const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
   const [showSearchOptions, setShowSearchOptions] = React.useState(false);
   const [selectedType, setSelectedType] = React.useState<string>('');
-
-  /**
-   * Build search query with price range filters
-   */
-  const buildSearchQuery = (baseQuery: string, range: PriceRange): string => {
-    if (range.min > 0) {
-      return `${baseQuery} between $${range.min} and $${range.max}`;
-    }
-    if (range.max < 1000) {
-      return `${baseQuery} under $${range.max}`;
-    }
-    return baseQuery;
-  };
 
   /**
    * Handle search submission
@@ -153,8 +134,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
 
     setIsLoading(true);
     try {
-      const searchQuery = buildSearchQuery(query, priceRange);
-      await onSearch(searchQuery);
+      await onSearch(query);
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
@@ -306,7 +286,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
         }}>
           <div className="hero-content" style={{ margin: '0 auto', textAlign: 'center' }}>
             {/* Hero Title */}
-            <h1 className="hero-title">
+            <h1 className="hero-title" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '1rem' }}>
               Discover amazing finds with{' '}
               <span className="text-gradient-primary">Veritas.ai</span>
             </h1>
@@ -317,12 +297,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
         <div style={{
           width: '100%',
           maxWidth: '1200px',
-          marginTop: '3rem',
-          margin: '3rem auto 0 auto'
+          marginTop: '1.5rem',
+          margin: '1.5rem auto 0 auto'
         }}>
           {/* Header with Breadcrumb */}
           <div style={{
-            marginBottom: '2rem',
+            marginBottom: '1rem',
             position: 'relative'
           }}>
             {/* Decorative background */}
@@ -432,9 +412,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
               zIndex: 1
             }}>
               <h2 style={{
-                fontSize: 'clamp(2rem, 5vw, 3rem)',
+                fontSize: 'clamp(1.5rem, 3.5vw, 2rem)',
                 fontWeight: 900,
-                marginBottom: '1rem',
+                marginBottom: '0.5rem',
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
                 backgroundSize: '200% 200%',
                 animation: 'gradientShift 6s ease infinite',
@@ -451,12 +431,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                   : 'Browse by Category'}
               </h2>
               <p style={{
-                fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
+                fontSize: 'clamp(0.8rem, 1.5vw, 0.9rem)',
                 color: 'var(--text-secondary)',
                 maxWidth: '650px',
                 margin: '0 auto',
                 fontWeight: 500,
-                lineHeight: 1.6,
+                lineHeight: 1.4,
                 opacity: 0.85
               }}>
                 {selectedSubcategory
@@ -469,15 +449,20 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
           </div>
 
           {/* Responsive Category/Subcategory Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: !selectedCategory
-              ? 'repeat(8, 1fr)'  // 8 columns for main categories
-              : 'repeat(auto-fit, minmax(150px, 1fr))',  // Auto-fit for centered subcategories/types
-            gap: 'clamp(0.75rem, 1.5vw, 1rem)',
-            width: '100%',
-            justifyContent: 'center'
-          }}>
+          <div
+            className={
+              !selectedCategory
+                ? 'category-grid-main'
+                : selectedSubcategory
+                  ? 'category-grid-types'
+                  : 'category-grid-sub'
+            }
+            style={{
+              display: 'grid',
+              gap: 'clamp(0.4rem, 0.8vw, 0.5rem)',
+              width: '100%',
+              justifyContent: 'center'
+            }}>
             {/* Category tiles will be here - keeping existing code */}
             {selectedCategory && selectedSubcategory ? (
               selectedCategory.subcategories
@@ -505,12 +490,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                         backdropFilter: 'blur(10px)',
                         WebkitBackdropFilter: 'blur(10px)',
                         border: '2px solid rgba(255, 255, 255, 0.3)',
-                        borderRadius: '12px',
-                        padding: '1rem',
+                        borderRadius: '10px',
+                        padding: '0.5rem',
                         cursor: 'pointer',
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         overflow: 'visible',
-                        minHeight: '70px',
+                        minHeight: '45px',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
@@ -535,14 +520,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                       }} />
                       <div style={{
                         position: 'relative',
-                        fontSize: 'clamp(0.75rem, 1.7vw, 0.85rem)',
+                        fontSize: 'clamp(0.7rem, 1.3vw, 0.75rem)',
                         fontWeight: 700,
                         color: 'var(--text-primary)',
                         textAlign: 'center',
-                        lineHeight: 1.3,
+                        lineHeight: 1.2,
                         wordBreak: 'break-word',
                         zIndex: 1,
-                        padding: '0.75rem',
+                        padding: '0.25rem',
                         maxWidth: '100%'
                       }}>
                         {type}
@@ -572,12 +557,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                       backdropFilter: 'blur(10px)',
                       WebkitBackdropFilter: 'blur(10px)',
                       border: '2px solid rgba(255, 255, 255, 0.3)',
-                      borderRadius: '12px',
-                      padding: '1rem',
+                      borderRadius: '10px',
+                      padding: '0.5rem',
                       cursor: 'pointer',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       overflow: 'visible',
-                      minHeight: '85px',
+                      minHeight: '50px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -605,25 +590,25 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                       zIndex: 1,
                       textAlign: 'center',
                       width: '100%',
-                      padding: '1rem 0.75rem',
+                      padding: '0.25rem 0.5rem',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.5rem'
+                      gap: '0.25rem'
                     }}>
                       <div style={{
-                        fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
+                        fontSize: 'clamp(0.7rem, 1.4vw, 0.8rem)',
                         fontWeight: 700,
                         color: 'var(--text-primary)',
-                        lineHeight: 1.3,
+                        lineHeight: 1.2,
                         wordBreak: 'break-word',
                         maxWidth: '100%'
                       }}>
                         {sub.name}
                       </div>
                       <div style={{
-                        fontSize: 'clamp(0.7rem, 1.5vw, 0.75rem)',
+                        fontSize: 'clamp(0.65rem, 1.2vw, 0.7rem)',
                         color: 'var(--text-secondary)',
                         fontWeight: 500,
                         opacity: 0.75
@@ -659,12 +644,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                       backdropFilter: 'blur(10px)',
                       WebkitBackdropFilter: 'blur(10px)',
                       border: '2px solid rgba(255, 255, 255, 0.3)',
-                      borderRadius: '12px',
-                      padding: '0.75rem 0.5rem',
+                      borderRadius: '10px',
+                      padding: '0.5rem 0.25rem',
                       cursor: 'pointer',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       overflow: 'visible',
-                      minHeight: '75px',
+                      minHeight: '50px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -700,18 +685,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                       zIndex: 1,
                       textAlign: 'center',
                       width: '100%',
-                      padding: '0.5rem 0.25rem',
+                      padding: '0.25rem 0.15rem',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.25rem'
+                      gap: '0.15rem'
                     }}>
                       <div style={{
-                        fontSize: 'clamp(0.7rem, 1.2vw, 0.8rem)',
+                        fontSize: 'clamp(0.65rem, 1vw, 0.7rem)',
                         fontWeight: 700,
                         color: 'var(--text-primary)',
-                        lineHeight: 1.2,
+                        lineHeight: 1.1,
                         wordBreak: 'break-word',
                         letterSpacing: '-0.01em',
                         maxWidth: '100%'
@@ -719,7 +704,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                         {category.name}
                       </div>
                       <div style={{
-                        fontSize: 'clamp(0.65rem, 1vw, 0.7rem)',
+                        fontSize: 'clamp(0.6rem, 0.85vw, 0.65rem)',
                         color: 'var(--text-secondary)',
                         fontWeight: 500,
                         opacity: 0.75
@@ -881,97 +866,163 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
         <div style={{
           width: '100%',
           maxWidth: '1200px',
-          margin: '3rem auto 0 auto'
+          margin: '1.5rem auto 0 auto'
         }}>
           <div className="hero-content" style={{ margin: '0 auto', textAlign: 'center' }}>
-            {/* Search Interface */}
+            {/* Search Interface - ChatGPT Style */}
             <div className="search-container-modern animate-slide-up">
-              <div className="search-input-area">
-                <textarea
-                  className="search-textarea"
-                  placeholder="What treasures are you looking for today? Try: 'Find me a vintage leather jacket' or 'Show me modern home decor'..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  aria-label="Search query"
-                />
-
-                <div className="search-button-container">
-                    {/* Trending Button */}
-                  <button
-                    className="search-btn-modern search-btn-secondary"
-                    type="button"
-                    onClick={() => {
-                      const swipePath = query.trim()
-                        ? `/swipe?q=${encodeURIComponent(query.trim())}`
-                        : '/swipe'
-                      router.push(swipePath)
-                    }}
-                    title="Trending Finds"
-                    aria-label="Trending finds"
-                    style={{
-                      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                      border: 'none',
-                      color: '#fff'
-                    }}
-                  >
-                    <i className="fas fa-fire" />
-                  </button>
-
-                  {/* Visual Search Button */}
-                  <button
-                    className="search-btn-modern search-btn-secondary file-input-container"
-                    type="button"
-                    onClick={() => document.getElementById('visual-search-input')?.click()}
-                    disabled={isVisualLoading}
-                    title="Search by image"
-                    aria-label="Visual search"
-                  >
-                    {isVisualLoading ? (
-                      <i className="fas fa-spinner fa-spin" />
-                    ) : (
-                      <i className="fas fa-camera" />
-                    )}
-                    <input
-                      id="visual-search-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={isVisualLoading}
-                      className="file-input-hidden"
-                      aria-label="Upload image for visual search"
-                    />
-                  </button>
-
-                  {/* Voice Search Button */}
-                  <VoiceSearchButton
-                    onTranscript={(text) => setQuery(text)}
-                    className="search-btn-modern search-btn-secondary"
+              <div className="search-input-area-redesigned">
+                {/* Text Input Section */}
+                <div className="search-text-section">
+                  <textarea
+                    className="search-textarea-redesigned"
+                    placeholder="What treasures are you looking for today? Try: 'Find me a vintage leather jacket' or 'Show me modern home decor'..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    aria-label="Search query"
                   />
+                </div>
 
-                  {/* Search Button */}
-                  <button
-                    className="search-btn-modern search-btn-primary"
-                    type="button"
-                    onClick={handleSearch}
-                    disabled={isLoading}
-                    title="Search"
-                    aria-label="Submit search"
-                  >
-                    {isLoading ? (
-                      <i className="fas fa-spinner fa-spin" />
-                    ) : (
-                      <i className="fas fa-arrow-right" />
-                    )}
-                  </button>
+                {/* Divider Line */}
+                <div className="search-divider" />
+
+                {/* Action Buttons Section */}
+                <div className="search-actions-section">
+                  <div className="search-button-group">
+                    {/* Trending/Swipe Button */}
+                    <button
+                      className="search-action-btn"
+                      type="button"
+                      onClick={() => {
+                        const swipePath = query.trim()
+                          ? `/swipe?q=${encodeURIComponent(query.trim())}`
+                          : '/swipe'
+                        router.push(swipePath)
+                      }}
+                      title="Swipe Mode"
+                      aria-label="Swipe through products"
+                    >
+                      <i className="fas fa-fire" />
+                    </button>
+
+                    {/* Visual Search Button */}
+                    <button
+                      className="search-action-btn file-input-container"
+                      type="button"
+                      onClick={() => document.getElementById('visual-search-input')?.click()}
+                      disabled={isVisualLoading}
+                      title="Search by image"
+                      aria-label="Visual search"
+                    >
+                      {isVisualLoading ? (
+                        <i className="fas fa-spinner fa-spin" />
+                      ) : (
+                        <i className="fas fa-camera" />
+                      )}
+                      <input
+                        id="visual-search-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isVisualLoading}
+                        className="file-input-hidden"
+                        aria-label="Upload image for visual search"
+                      />
+                    </button>
+
+                    {/* Voice Search Button */}
+                    <VoiceSearchButton
+                      onTranscript={(text) => setQuery(text)}
+                      className="search-action-btn"
+                    />
+
+                    {/* Search Submit Button */}
+                    <button
+                      className="search-submit-btn"
+                      type="button"
+                      onClick={handleSearch}
+                      disabled={isLoading}
+                      title="Search"
+                      aria-label="Submit search"
+                    >
+                      {isLoading ? (
+                        <i className="fas fa-spinner fa-spin" />
+                      ) : (
+                        <i className="fas fa-arrow-right" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Price Range Slider */}
-              <PriceRangeSlider
-                priceRange={priceRange}
-                onPriceRangeChange={setPriceRange}
-              />
+              {/* Ultra Compact Price Range Slider */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                marginTop: '0.5rem',
+                maxWidth: '500px',
+                margin: '0.5rem auto 0 auto',
+                padding: '0 1rem'
+              }}>
+                <span style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--text-secondary)',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap'
+                }}>
+                  Max: ${priceRange.max}
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1000"
+                  step="50"
+                  value={priceRange.max}
+                  onChange={(e) => setPriceRange({ min: 0, max: parseInt(e.target.value) })}
+                  style={{
+                    flex: 1,
+                    height: '4px',
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                    background: `linear-gradient(to right, #10b981 0%, #10b981 ${(priceRange.max / 1000) * 100}%, rgba(255, 255, 255, 0.1) ${(priceRange.max / 1000) * 100}%, rgba(255, 255, 255, 0.1) 100%)`,
+                    borderRadius: '2px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+              <style jsx>{`
+                input[type="range"]::-webkit-slider-thumb {
+                  -webkit-appearance: none;
+                  appearance: none;
+                  width: 16px;
+                  height: 16px;
+                  background: #10b981;
+                  border: 2px solid white;
+                  border-radius: 50%;
+                  cursor: pointer;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                  transition: transform 0.2s;
+                }
+                input[type="range"]::-webkit-slider-thumb:hover {
+                  transform: scale(1.2);
+                }
+                input[type="range"]::-moz-range-thumb {
+                  width: 16px;
+                  height: 16px;
+                  background: #10b981;
+                  border: 2px solid white;
+                  border-radius: 50%;
+                  cursor: pointer;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                  transition: transform 0.2s;
+                }
+                input[type="range"]::-moz-range-thumb:hover {
+                  transform: scale(1.2);
+                }
+              `}</style>
             </div>
 
             {/* Dynamic Content Area */}

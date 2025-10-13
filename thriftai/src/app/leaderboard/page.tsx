@@ -119,7 +119,7 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div style={{
+    <div className="leaderboard-container" style={{
       minHeight: '100vh',
       background: 'var(--bg-primary)',
       color: 'var(--text-primary)',
@@ -137,8 +137,8 @@ export default function LeaderboardPage() {
           gap: '1rem',
           marginBottom: '0.5rem'
         }}>
-          <Trophy size={40} style={{ color: '#fbbf24' }} />
-          <h1 style={{
+          <Trophy size={40} className="leaderboard-header-icon" style={{ color: '#fbbf24' }} />
+          <h1 className="leaderboard-title" style={{
             fontSize: '2.5rem',
             fontWeight: '700',
             margin: 0,
@@ -149,7 +149,7 @@ export default function LeaderboardPage() {
             Product Leaderboard
           </h1>
         </div>
-        <p style={{
+        <p className="leaderboard-subtitle" style={{
           fontSize: '1rem',
           color: 'var(--text-secondary)',
           margin: 0
@@ -159,7 +159,7 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Filters */}
-      <div style={{
+      <div className="leaderboard-filters" style={{
         maxWidth: '1400px',
         margin: '0 auto',
         background: 'var(--bg-secondary)',
@@ -182,7 +182,7 @@ export default function LeaderboardPage() {
           }}>Filters</h3>
         </div>
 
-        <div style={{
+        <div className="leaderboard-filters-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '1rem'
@@ -201,6 +201,7 @@ export default function LeaderboardPage() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
+              className="leaderboard-filter-input"
               style={{
                 width: '100%',
                 padding: '0.625rem',
@@ -233,6 +234,7 @@ export default function LeaderboardPage() {
               type="number"
               value={minPrice}
               onChange={(e) => setMinPrice(Number(e.target.value))}
+              className="leaderboard-filter-input"
               style={{
                 width: '100%',
                 padding: '0.625rem',
@@ -260,6 +262,7 @@ export default function LeaderboardPage() {
               type="number"
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
+              className="leaderboard-filter-input"
               style={{
                 width: '100%',
                 padding: '0.625rem',
@@ -286,6 +289,7 @@ export default function LeaderboardPage() {
             <select
               value={conditionFilter}
               onChange={(e) => setConditionFilter(e.target.value)}
+              className="leaderboard-filter-input"
               style={{
                 width: '100%',
                 padding: '0.625rem',
@@ -333,6 +337,7 @@ export default function LeaderboardPage() {
             {products.map((product, index) => (
               <div
                 key={product.id}
+                className="leaderboard-card"
                 style={{
                   background: 'var(--bg-secondary)',
                   borderRadius: '12px',
@@ -344,6 +349,7 @@ export default function LeaderboardPage() {
                 {/* Product Header */}
                 <div
                   onClick={() => toggleExpand(product.id)}
+                  className="leaderboard-card-header"
                   style={{
                     padding: '1.5rem',
                     cursor: 'pointer',
@@ -354,7 +360,7 @@ export default function LeaderboardPage() {
                   }}
                 >
                   {/* Rank */}
-                  <div style={{
+                  <div className="leaderboard-rank-circle" style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -372,21 +378,22 @@ export default function LeaderboardPage() {
                   </div>
 
                   {/* Product Info */}
-                  <div>
+                  <div className="leaderboard-product-info">
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '1rem',
-                      marginBottom: '0.5rem'
+                      marginBottom: '0.5rem',
+                      flexWrap: 'wrap'
                     }}>
-                      <h3 style={{
+                      <h3 className="leaderboard-product-name" style={{
                         margin: 0,
                         fontSize: '1.25rem',
                         fontWeight: '600'
                       }}>
                         {product.name}
                       </h3>
-                      <span style={{
+                      <span className="leaderboard-category-badge" style={{
                         padding: '0.25rem 0.75rem',
                         background: 'rgba(16, 185, 129, 0.15)',
                         color: 'var(--accent-primary)',
@@ -397,7 +404,7 @@ export default function LeaderboardPage() {
                         {product.category.replace(/_/g, ' ')}
                       </span>
                     </div>
-                    <div style={{
+                    <div className="leaderboard-product-meta" style={{
                       display: 'flex',
                       gap: '1.5rem',
                       fontSize: '0.875rem',
@@ -410,7 +417,7 @@ export default function LeaderboardPage() {
                   </div>
 
                   {/* Score Badge & Actions */}
-                  <div style={{
+                  <div className="leaderboard-score-section" style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '1rem'
@@ -418,14 +425,14 @@ export default function LeaderboardPage() {
                     <div style={{
                       textAlign: 'right'
                     }}>
-                      <div style={{
+                      <div className="leaderboard-score-number" style={{
                         fontSize: '2rem',
                         fontWeight: '700',
                         color: getScoreColor(product.aiScore)
                       }}>
                         {product.aiScore.toFixed(1)}
                       </div>
-                      <div style={{
+                      <div className="leaderboard-score-label" style={{
                         fontSize: '0.75rem',
                         color: 'var(--text-tertiary)'
                       }}>
@@ -439,9 +446,12 @@ export default function LeaderboardPage() {
                         e.stopPropagation()
                         router.push(`/products/${product.id}`)
                       }}
+                      className="leaderboard-view-btn"
                       style={{
                         width: '44px',
                         height: '44px',
+                        minWidth: '44px',
+                        minHeight: '44px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -450,7 +460,8 @@ export default function LeaderboardPage() {
                         borderRadius: '12px',
                         cursor: 'pointer',
                         transition: 'all 0.2s',
-                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                        flexShrink: 0
                       }}
                       title="View Full Details"
                       aria-label="View product details"
@@ -480,19 +491,19 @@ export default function LeaderboardPage() {
                     padding: '0 1.5rem 1.5rem',
                     borderTop: '1px solid rgba(255, 255, 255, 0.1)'
                   }}>
-                    <div style={{
+                    <div className="leaderboard-expanded-grid" style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                       gap: '1.5rem',
                       marginTop: '1.5rem'
                     }}>
                       {/* Score Components */}
-                      <div style={{
+                      <div className="leaderboard-detail-card" style={{
                         background: 'rgba(255, 255, 255, 0.03)',
                         borderRadius: '8px',
                         padding: '1rem'
                       }}>
-                        <h4 style={{
+                        <h4 className="leaderboard-detail-title" style={{
                           margin: '0 0 1rem 0',
                           fontSize: '1rem',
                           fontWeight: '600',
@@ -515,10 +526,10 @@ export default function LeaderboardPage() {
                             { label: 'Emotional', value: product.aiScoreBreakdown?.components?.emotional || 0, icon: Heart },
                             { label: 'Specs Quality', value: product.aiScoreBreakdown?.components?.specsQuality || 0, icon: Package }
                           ].map(({ label, value, icon: Icon }) => (
-                            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div key={label} className="leaderboard-score-component" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                               <Icon size={16} style={{ color: 'var(--text-tertiary)' }} />
                               <span style={{ flex: 1, fontSize: '0.875rem' }}>{label}</span>
-                              <div style={{
+                              <div className="leaderboard-score-bar" style={{
                                 width: '100px',
                                 height: '6px',
                                 background: 'rgba(255, 255, 255, 0.1)',
@@ -546,12 +557,12 @@ export default function LeaderboardPage() {
                       </div>
 
                       {/* Product Details */}
-                      <div style={{
+                      <div className="leaderboard-detail-card" style={{
                         background: 'rgba(255, 255, 255, 0.03)',
                         borderRadius: '8px',
                         padding: '1rem'
                       }}>
-                        <h4 style={{
+                        <h4 className="leaderboard-detail-title" style={{
                           margin: '0 0 1rem 0',
                           fontSize: '1rem',
                           fontWeight: '600'
@@ -595,12 +606,12 @@ export default function LeaderboardPage() {
                       </div>
 
                       {/* ESG Metrics */}
-                      <div style={{
+                      <div className="leaderboard-detail-card" style={{
                         background: 'rgba(255, 255, 255, 0.03)',
                         borderRadius: '8px',
                         padding: '1rem'
                       }}>
-                        <h4 style={{
+                        <h4 className="leaderboard-detail-title" style={{
                           margin: '0 0 1rem 0',
                           fontSize: '1rem',
                           fontWeight: '600'
@@ -628,12 +639,12 @@ export default function LeaderboardPage() {
                       </div>
 
                       {/* Product Specifications */}
-                      <div style={{
+                      <div className="leaderboard-detail-card" style={{
                         background: 'rgba(255, 255, 255, 0.03)',
                         borderRadius: '8px',
                         padding: '1rem'
                       }}>
-                        <h4 style={{
+                        <h4 className="leaderboard-detail-title" style={{
                           margin: '0 0 1rem 0',
                           fontSize: '1rem',
                           fontWeight: '600',

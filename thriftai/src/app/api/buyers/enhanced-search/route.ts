@@ -334,26 +334,69 @@ export async function POST(request: NextRequest) {
       stats: parameterEnrichmentService.getBatchStatistics(enrichedProducts)
     })
 
-    // Calculate Veritas Scores with enriched data
+    // Calculate Veritas Scores - USE DATABASE SCORES IF AVAILABLE
     rerankedProducts = await Promise.all(rerankedProducts.map(async (p, index) => {
       const enrichedProduct = enrichedProducts[index]
-      const veritasScore = await universalScoringEngine.calculateVeritasScore(enrichedProduct)
+
+      // ✅ USE DATABASE aiScore IF AVAILABLE (already calculated with new formula)
+      // Only recalculate if product doesn't have a score in database
+      let veritasData: any
+
+      if (p.aiScore && typeof p.aiScore === 'number') {
+        // Use existing database score
+        logger.info('📊 Using database aiScore for product', {
+          productId: p.id,
+          aiScore: p.aiScore
+        })
+
+        veritasData = {
+          veritasScore: p.aiScore,
+          veritasBadges: [],
+          veritasRecommendation: p.aiScore >= 80 ? 'strong-buy' : p.aiScore >= 65 ? 'buy' : p.aiScore >= 50 ? 'consider' : 'wait',
+          veritasConfidence: p.aiConfidence || 0.85,
+          veritasInsights: [],
+          veritasDataCompleteness: 0.90,
+          veritasPillars: p.aiScoreBreakdown ? {
+            quality: p.aiScoreBreakdown.components?.qualityScore || 0,
+            value: p.aiScoreBreakdown.components?.priceValue || 0,
+            trust: p.aiScoreBreakdown.components?.trustScore || 0,
+            ux: p.aiScoreBreakdown.components?.convenience || 0,
+            sustainability: p.aiScoreBreakdown.components?.emotional || 0
+          } : {
+            quality: 0,
+            value: 0,
+            trust: 0,
+            ux: 0,
+            sustainability: 0
+          }
+        }
+      } else {
+        // Calculate fresh score if not in database
+        logger.info('🔄 Calculating fresh Veritas Score for product', {
+          productId: p.id
+        })
+
+        const veritasScore = await universalScoringEngine.calculateVeritasScore(enrichedProduct)
+        veritasData = {
+          veritasScore: veritasScore.veritasScore,
+          veritasBadges: veritasScore.badges,
+          veritasRecommendation: veritasScore.recommendation,
+          veritasConfidence: veritasScore.confidence,
+          veritasInsights: veritasScore.insights,
+          veritasDataCompleteness: veritasScore.dataCompleteness,
+          veritasPillars: {
+            quality: veritasScore.pillars.productQuality.score,
+            value: veritasScore.pillars.valueProposition.score,
+            trust: veritasScore.pillars.trustAndSafety.score,
+            ux: veritasScore.pillars.userExperience.score,
+            sustainability: veritasScore.pillars.sustainability.score
+          }
+        }
+      }
 
       return {
         ...p,
-        veritasScore: veritasScore.veritasScore,
-        veritasBadges: veritasScore.badges,
-        veritasRecommendation: veritasScore.recommendation,
-        veritasConfidence: veritasScore.confidence,
-        veritasInsights: veritasScore.insights,
-        veritasDataCompleteness: veritasScore.dataCompleteness,
-        veritasPillars: {
-          quality: veritasScore.pillars.productQuality.score,
-          value: veritasScore.pillars.valueProposition.score,
-          trust: veritasScore.pillars.trustAndSafety.score,
-          ux: veritasScore.pillars.userExperience.score,
-          sustainability: veritasScore.pillars.sustainability.score
-        },
+        ...veritasData,
         // ✅ Prefer database dynamicSpecs over enriched specs
         dynamicSpecs: p.dynamicSpecs || enrichedProduct.dynamicSpecs,
         companyMetrics: enrichedProduct.companyMetrics

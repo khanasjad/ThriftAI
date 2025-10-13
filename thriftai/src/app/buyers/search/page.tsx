@@ -178,6 +178,7 @@ export default function SearchResults() {
   const [likedProducts, setLikedProducts] = useState<Product[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   // Reset display query when URL query changes
   useEffect(() => {
@@ -784,7 +785,7 @@ export default function SearchResults() {
         }}
       />
 
-      {/* Main Content Area - Add right margin when chat is expanded */}
+      {/* Main Content Area - Add right margin when chat is expanded (desktop only) */}
       <div
         className="flex-1 flex-container-col"
         style={{
@@ -802,7 +803,7 @@ export default function SearchResults() {
         <main className="container mx-auto px-4 py-8 min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-light mb-4 page-header">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-4 page-header">
             Search Results for "{displayQuery}"
           </h1>
 
@@ -874,13 +875,26 @@ export default function SearchResults() {
           )}
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-lg page-subtitle">
+            <p className="text-lg sm:text-xl page-subtitle font-semibold">
               {searchResults?.metadata.total || 0} products found
             </p>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium page-subtitle">View:</span>
+            <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
+              {/* Mobile Filters Button */}
               <button
-                className={`btn-modern btn-modern-sm ${
+                className="btn-modern btn-modern-sm btn-modern-outline view-mode-btn lg:hidden"
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+              >
+                Filters
+                {(filters.categories.length + filters.brands.length + filters.conditions.length + filters.sizes.length > 0) && (
+                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-600 rounded-full">
+                    {filters.categories.length + filters.brands.length + filters.conditions.length + filters.sizes.length}
+                  </span>
+                )}
+              </button>
+
+              <span className="text-base font-semibold page-subtitle hidden lg:inline">View:</span>
+              <button
+                className={`btn-modern btn-modern-sm view-mode-btn ${
                   viewMode === 'grid' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
                 onClick={() => {
@@ -890,7 +904,7 @@ export default function SearchResults() {
                 Grid
               </button>
               <button
-                className={`btn-modern btn-modern-sm ${
+                className={`btn-modern btn-modern-sm view-mode-btn ${
                   viewMode === 'list' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
                 onClick={() => {
@@ -900,7 +914,7 @@ export default function SearchResults() {
                 List
               </button>
               <button
-                className={`btn-modern btn-modern-sm ${
+                className={`btn-modern btn-modern-sm view-mode-btn ${
                   viewMode === 'leaderboard' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
                 onClick={() => {
@@ -909,34 +923,26 @@ export default function SearchResults() {
               >
                 Leaderboard
               </button>
-              <button
-                className={`btn-modern btn-modern-sm ${
-                  viewMode === 'visual' ? 'btn-modern-default' : 'btn-modern-outline'
-                }`}
-                onClick={() => {
-                  setViewMode('visual')
-                }}
-              >
-                📷 Visual Search
-              </button>
-              <button
-                className={`btn-modern btn-modern-sm ${
-                  viewMode === 'swipe' ? 'btn-modern-default' : 'btn-modern-outline'
-                }`}
-                onClick={() => {
-                  setViewMode('swipe')
-                }}
-              >
-                Swipe
-              </button>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Filters Sidebar */}
-          <div className="lg:w-1/5">
+          {/* Filters Sidebar - Hidden on mobile, shown as drawer */}
+          <div className={`filters-sidebar lg:w-1/5 ${showMobileFilters ? 'mobile-filters-open' : ''}`}>
             <div className="sticky top-4">
+              {/* Mobile Filters Header */}
+              <div className="lg:hidden flex items-center justify-between mb-4 p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold">Filters</h2>
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  className="text-2xl leading-none"
+                  style={{ minWidth: '44px', minHeight: '44px' }}
+                >
+                  ×
+                </button>
+              </div>
+
               <ProductFilters
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
@@ -946,6 +952,14 @@ export default function SearchResults() {
               />
             </div>
           </div>
+
+          {/* Mobile Filters Backdrop */}
+          {showMobileFilters && (
+            <div
+              className="mobile-filters-backdrop lg:hidden"
+              onClick={() => setShowMobileFilters(false)}
+            />
+          )}
 
           {/* Main Content */}
           <div className="lg:w-3/4">

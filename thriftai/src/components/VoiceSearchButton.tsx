@@ -46,65 +46,78 @@ export function VoiceSearchButton({ onTranscript, className = '' }: VoiceSearchB
         type="button"
         onClick={handleClick}
         className={`voice-search-button ${className}`}
-        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         style={{
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          border: 'none',
+          width: '36px',
+          height: '36px',
+          borderRadius: '8px',
+          border: isListening
+            ? '1px solid #10b981'
+            : '1px solid var(--border-secondary)',
           cursor: 'pointer',
           background: isListening
-            ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          boxShadow: isListening
-            ? '0 4px 12px rgba(239, 68, 68, 0.3)'
-            : '0 4px 12px rgba(102, 126, 234, 0.3)',
+            ? 'rgba(16, 185, 129, 0.1)'
+            : 'transparent',
+          color: isListening ? '#10b981' : 'var(--text-secondary)',
           transition: 'all 0.2s',
           overflow: 'visible'
+        }}
+        onMouseEnter={(e) => {
+          if (!isListening) {
+            e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
+            e.currentTarget.style.borderColor = '#10b981';
+            e.currentTarget.style.color = '#10b981';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isListening) {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.borderColor = 'var(--border-secondary)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }
         }}
         title={isListening ? 'Stop listening' : 'Start voice search'}
         aria-label={isListening ? 'Stop listening' : 'Start voice search'}
       >
         {isListening ? (
-          <MicOff className="w-5 h-5 text-white" strokeWidth={2.5} />
+          <MicOff className="w-4 h-4" strokeWidth={2.5} />
         ) : (
-          <Mic className="w-5 h-5 text-white" strokeWidth={2.5} />
+          <Mic className="w-4 h-4" strokeWidth={2.5} />
         )}
 
-        {/* Listening pulse animation */}
+        {/* Listening pulse animation - adjusted for square */}
         <AnimatePresence>
           {isListening && (
             <>
               <motion.div
                 initial={{ scale: 1, opacity: 0.5 }}
-                animate={{ scale: 1.8, opacity: 0 }}
+                animate={{ scale: 1.5, opacity: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 1.5, repeat: Infinity }}
                 style={{
                   position: 'absolute',
                   width: '100%',
                   height: '100%',
-                  borderRadius: '50%',
-                  background: 'rgba(239, 68, 68, 0.4)',
+                  borderRadius: '8px',
+                  background: 'rgba(16, 185, 129, 0.3)',
                   pointerEvents: 'none'
                 }}
               />
               <motion.div
                 initial={{ scale: 1, opacity: 0.3 }}
-                animate={{ scale: 2.2, opacity: 0 }}
+                animate={{ scale: 1.8, opacity: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
                 style={{
                   position: 'absolute',
                   width: '100%',
                   height: '100%',
-                  borderRadius: '50%',
-                  background: 'rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  background: 'rgba(16, 185, 129, 0.2)',
                   pointerEvents: 'none'
                 }}
               />

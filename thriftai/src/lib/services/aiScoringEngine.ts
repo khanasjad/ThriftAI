@@ -356,39 +356,55 @@ export class AIScoringEngine {
    * Calculate weighted final score
    */
   private calculateWeightedScore(breakdown: AIScoreBreakdown, weights: ScoringWeights): number {
+    // Helper function to safely get score value
+    const safeScore = (value: number | undefined | null): number => {
+      if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+        return value
+      }
+      return 0 // Default to 0 for invalid values
+    }
+
     let weightedSum = 0
     let totalWeight = 0
 
     // Existing parameters
-    weightedSum += breakdown.priceValue.score * weights.priceValue
-    weightedSum += breakdown.trustScore.score * weights.trustScore
-    weightedSum += breakdown.qualityScore.score * weights.qualityScore
-    weightedSum += breakdown.socialProof.score * weights.socialProof
-    weightedSum += breakdown.convenience.score * weights.convenience
-    weightedSum += breakdown.urgency.score * weights.urgency
-    weightedSum += breakdown.relevance.score * weights.relevance
-    weightedSum += breakdown.emotional.score * weights.emotional
+    weightedSum += safeScore(breakdown.priceValue.score) * weights.priceValue
+    weightedSum += safeScore(breakdown.trustScore.score) * weights.trustScore
+    weightedSum += safeScore(breakdown.qualityScore.score) * weights.qualityScore
+    weightedSum += safeScore(breakdown.socialProof.score) * weights.socialProof
+    weightedSum += safeScore(breakdown.convenience.score) * weights.convenience
+    weightedSum += safeScore(breakdown.urgency.score) * weights.urgency
+    weightedSum += safeScore(breakdown.relevance.score) * weights.relevance
+    weightedSum += safeScore(breakdown.emotional.score) * weights.emotional
 
     totalWeight += weights.priceValue + weights.trustScore + weights.qualityScore +
                    weights.socialProof + weights.convenience + weights.urgency +
                    weights.relevance + weights.emotional
 
     // Company parameters
-    weightedSum += breakdown.companyFinancialHealth.score * weights.companyFinancialHealth
-    weightedSum += breakdown.companyGrowth.score * weights.companyGrowth
-    weightedSum += breakdown.companySustainability.score * weights.companySustainability
-    weightedSum += breakdown.companySocialResponsibility.score * weights.companySocialResponsibility
-    weightedSum += breakdown.companyRisk.score * weights.companyRisk
+    weightedSum += safeScore(breakdown.companyFinancialHealth.score) * weights.companyFinancialHealth
+    weightedSum += safeScore(breakdown.companyGrowth.score) * weights.companyGrowth
+    weightedSum += safeScore(breakdown.companySustainability.score) * weights.companySustainability
+    weightedSum += safeScore(breakdown.companySocialResponsibility.score) * weights.companySocialResponsibility
+    weightedSum += safeScore(breakdown.companyRisk.score) * weights.companyRisk
 
     totalWeight += weights.companyFinancialHealth + weights.companyGrowth +
                    weights.companySustainability + weights.companySocialResponsibility +
                    weights.companyRisk
 
     // Dynamic parameters
-    weightedSum += breakdown.dynamicProductSpecs.score * weights.dynamicProductSpecs
+    weightedSum += safeScore(breakdown.dynamicProductSpecs.score) * weights.dynamicProductSpecs
     totalWeight += weights.dynamicProductSpecs
 
-    return Math.round((weightedSum / totalWeight) * 100) / 100 // Round to 2 decimals
+    const finalScore = totalWeight > 0 ? (weightedSum / totalWeight) : 0
+
+    // Final safeguard
+    if (isNaN(finalScore) || !isFinite(finalScore)) {
+      logger.warn('Final score calculation resulted in NaN or Infinity', { weightedSum, totalWeight })
+      return 0
+    }
+
+    return Math.round(finalScore * 100) / 100 // Round to 2 decimals
   }
 
   /**

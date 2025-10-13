@@ -171,8 +171,8 @@ export default function ProductDetailPage() {
     <div style={{
       minHeight: '100vh',
       background: 'var(--bg-primary)',
-      padding: '24px',
-      paddingTop: '80px'
+      padding: 'clamp(12px, 3vw, 24px)',
+      paddingTop: 'clamp(60px, 15vw, 80px)'
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* Back Button */}
@@ -594,8 +594,11 @@ export default function ProductDetailPage() {
                 {!isAvailable ? 'Out of Stock' : addingToCart ? 'Adding...' : 'Add to Cart'}
               </button>
               <button
+                className="product-action-icon-btn"
                 style={{
+                  minWidth: '56px',
                   width: '56px',
+                  minHeight: '56px',
                   height: '56px',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-primary)',
@@ -604,7 +607,8 @@ export default function ProductDetailPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  flexShrink: 0
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = '#ef4444'
@@ -616,8 +620,11 @@ export default function ProductDetailPage() {
                 <Heart size={24} color="var(--text-secondary)" />
               </button>
               <button
+                className="product-action-icon-btn"
                 style={{
+                  minWidth: '56px',
                   width: '56px',
+                  minHeight: '56px',
                   height: '56px',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-primary)',
@@ -625,7 +632,8 @@ export default function ProductDetailPage() {
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}
               >
                 <Share2 size={24} color="var(--text-secondary)" />

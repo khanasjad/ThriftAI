@@ -16,6 +16,7 @@ export default function CartBadge() {
   return (
     <Link
       href="/cart"
+      className="cart-badge-link"
       style={{
         position: 'relative',
         display: 'inline-flex',
@@ -74,7 +75,7 @@ export default function CartBadge() {
             {count}
           </span>
 
-          <span style={{ color: 'var(--text-secondary)' }}>
+          <span className="d-none d-sm-inline" style={{ color: 'var(--text-secondary)' }}>
             ${subtotal.toFixed(2)}
           </span>
         </>

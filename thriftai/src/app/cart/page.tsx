@@ -128,12 +128,13 @@ export default function CartPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="cart-page-grid grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Cart Items */}
             <div className="lg:col-span-8 space-y-4">
               {items.map((item) => (
                 <div
                   key={item.id}
+                  className="cart-item-card"
                   style={{
                     background: 'rgba(255, 255, 255, 0.02)',
                     border: '1px solid var(--border-primary)',
@@ -150,6 +151,7 @@ export default function CartPage() {
                   <img
                     src={item.product.imageUrl || '/placeholder-image.jpg'}
                     alt={item.product.name}
+                    className="cart-item-image"
                     style={{
                       width: '100px',
                       height: '100px',
@@ -196,14 +198,18 @@ export default function CartPage() {
                             }
                           }}
                           disabled={isLoading || item.quantity <= 1}
+                          className="cart-quantity-btn"
                           style={{
                             background: 'transparent',
                             border: 'none',
                             color: item.quantity <= 1 ? 'var(--text-tertiary)' : 'var(--text-primary)',
                             cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
-                            padding: '0.25rem',
+                            padding: '0.5rem',
                             display: 'flex',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            minWidth: '44px',
+                            minHeight: '44px',
+                            justifyContent: 'center'
                           }}
                         >
                           <Minus className="w-4 h-4" />
@@ -216,14 +222,18 @@ export default function CartPage() {
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           disabled={isLoading}
+                          className="cart-quantity-btn"
                           style={{
                             background: 'transparent',
                             border: 'none',
                             color: 'var(--text-primary)',
                             cursor: 'pointer',
-                            padding: '0.25rem',
+                            padding: '0.5rem',
                             display: 'flex',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            minWidth: '44px',
+                            minHeight: '44px',
+                            justifyContent: 'center'
                           }}
                         >
                           <Plus className="w-4 h-4" />
@@ -270,6 +280,7 @@ export default function CartPage() {
             {/* Order Summary */}
             <div className="lg:col-span-4">
               <div
+                className="cart-summary-sticky"
                 style={{
                   background: 'rgba(255, 255, 255, 0.02)',
                   border: '1px solid var(--border-primary)',

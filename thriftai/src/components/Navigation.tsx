@@ -126,66 +126,71 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
 
           {/* Login/Signup Buttons - shown when user is not logged in */}
           {!user && (
-            <div className="navbar-nav ms-auto d-flex align-items-center nav-actions">
+            <div className="navbar-nav ms-lg-auto d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 gap-lg-3 mt-3 mt-lg-0 nav-actions">
               <button
-                className="btn-modern-secondary nav-btn"
+                className="btn-modern-secondary nav-btn w-100 w-lg-auto"
                 onClick={toggleTheme}
                 title={getThemeTooltip()}
                 style={{
-                  width: '44px',
-                  height: '44px',
-                  padding: '0',
+                  minHeight: '44px',
+                  padding: '0.5rem 1rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: '50%'
+                  borderRadius: '8px'
                 }}
               >
-                <i className={`fas ${getThemeIcon()}`} style={{ fontSize: '18px' }}></i>
+                <i className={`fas ${getThemeIcon()} me-2`} style={{ fontSize: '18px' }}></i>
+                <span className="d-lg-none">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
               </button>
               <button
-                className="btn-modern-secondary nav-btn"
+                className="btn-modern-secondary nav-btn w-100 w-lg-auto"
                 onClick={onShowLogin}
+                style={{ minHeight: '44px' }}
               >
                 <i className="fas fa-sign-in-alt nav-btn-icon"></i>
                 Sign In
               </button>
               <button
-                className="btn-modern-primary nav-btn"
+                className="btn-modern-primary nav-btn w-100 w-lg-auto"
                 onClick={onShowSignup}
+                style={{ minHeight: '44px' }}
               >
                 <i className="fas fa-user-plus nav-btn-icon"></i>
                 Get Started
               </button>
-              <CartBadge />
+              <div className="w-100 w-lg-auto">
+                <CartBadge />
+              </div>
             </div>
           )}
 
           {/* User Menu - shown when user is logged in */}
           {user && (
-            <div className="navbar-nav ms-auto d-flex align-items-center nav-actions">
+            <div className="navbar-nav ms-lg-auto d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 gap-lg-3 mt-3 mt-lg-0 nav-actions">
               <button
-                className="btn-modern-secondary nav-btn"
+                className="btn-modern-secondary nav-btn w-100 w-lg-auto"
                 onClick={toggleTheme}
                 title={getThemeTooltip()}
                 style={{
-                  width: '44px',
-                  height: '44px',
-                  padding: '0',
+                  minHeight: '44px',
+                  padding: '0.5rem 1rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: '50%'
+                  borderRadius: '8px'
                 }}
               >
-                <i className={`fas ${getThemeIcon()}`} style={{ fontSize: '18px' }}></i>
+                <i className={`fas ${getThemeIcon()} me-2`} style={{ fontSize: '18px' }}></i>
+                <span className="d-lg-none">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
               </button>
-              <div className="nav-item dropdown">
+              <div className="nav-item dropdown w-100 w-lg-auto">
                 <button
-                  className="btn-modern-secondary dropdown-toggle nav-user-btn"
+                  className="btn-modern-secondary dropdown-toggle nav-user-btn w-100"
                   type="button"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
+                  style={{ minHeight: '44px' }}
                 >
                   <div className="nav-user-avatar">
                     {user.firstName.charAt(0).toUpperCase()}
@@ -219,7 +224,9 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
                   </li>
                 </ul>
               </div>
-              <CartBadge />
+              <div className="w-100 w-lg-auto">
+                <CartBadge />
+              </div>
             </div>
           )}
         </div>

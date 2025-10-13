@@ -113,7 +113,7 @@ function ProductFilters({
   }
 
   return (
-    <div style={{
+    <div className="product-filters-container" style={{
       background: 'var(--bg-glass)',
       border: '1px solid var(--border-primary)',
       borderRadius: 'var(--radius-2xl)',
@@ -272,7 +272,7 @@ function ProductFilters({
             }}>▼</span>
           </div>
           {categoryOpen && (
-            <div style={{
+            <div className="filter-category-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))',
               gap: 'var(--space-1)',
@@ -430,7 +430,7 @@ function ProductFilters({
             }}>▼</span>
           </div>
           {brandOpen && (
-            <div style={{
+            <div className="filter-brand-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))',
               gap: 'var(--space-1)',

@@ -129,139 +129,87 @@ export default function ProductCard({
       className={`${viewMode === 'grid' ? 'product-card-modern' : 'product-card-list'} clickable-product-card`}
       onClick={handleCardClick}
     >
-      {/* Product Image with Carousel */}
-      <div className="product-image-container" style={{ position: 'relative' }}>
-        {/* Image Container with Fixed Aspect Ratio */}
-        <div style={{
-          position: 'relative',
-          overflow: 'hidden',
-          borderRadius: 'var(--radius-lg)',
-          paddingBottom: '100%', // 1:1 aspect ratio
-          background: 'var(--bg-secondary)'
-        }}>
-          <img
-            src={product.images[currentImageIndex] || '/placeholder-image.jpg'}
-            alt={product.title}
-            className="product-image"
-            onLoad={() => setImageLoaded(true)}
+      {/* Product Image with Carousel - CSS handles aspect-ratio */}
+      <div className="product-image-container">
+        <img
+          src={product.images[currentImageIndex] || '/placeholder-image.jpg'}
+          alt={product.title || 'Product image'}
+          className="product-image"
+          onLoad={() => setImageLoaded(true)}
+          style={{
+            opacity: imageLoaded ? 1 : 0
+          }}
+        />
+
+        {/* Image skeleton while loading */}
+        {!imageLoaded && (
+          <div
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
               width: '100%',
               height: '100%',
-              objectFit: 'contain',
-              opacity: imageLoaded ? 1 : 0,
-              transition: 'opacity 0.4s ease'
+              background: 'linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.5s infinite'
             }}
           />
+        )}
 
-          {/* Image skeleton while loading */}
-          {!imageLoaded && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 1.5s infinite'
+        {/* Image Navigation Arrows */}
+        {hasMultipleImages && (
+          <>
+            <button
+              onClick={handlePrevImage}
+              className="carousel-arrow carousel-arrow-left"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
               }}
-            />
-          )}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'
+              }}
+            >
+              <ChevronLeft className="carousel-icon" />
+            </button>
+            <button
+              onClick={handleNextImage}
+              className="carousel-arrow carousel-arrow-right"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'
+              }}
+            >
+              <ChevronRight className="carousel-icon" />
+            </button>
 
-          {/* Image Navigation Arrows - INSIDE fixed container */}
-          {hasMultipleImages && (
-            <>
-              <button
-                onClick={handlePrevImage}
-                style={{
-                  position: 'absolute',
-                  left: '8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  backdropFilter: 'blur(4px)',
-                  border: 'none',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s',
-                  zIndex: 10
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'
-                }}
-              >
-                <ChevronLeft className="w-5 h-5 text-white" />
-              </button>
-              <button
-                onClick={handleNextImage}
-                style={{
-                  position: 'absolute',
-                  right: '8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  backdropFilter: 'blur(4px)',
-                  border: 'none',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s',
-                  zIndex: 10
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)'
-                }}
-              >
-                <ChevronRight className="w-5 h-5 text-white" />
-              </button>
-
-              {/* Image Dots Indicator */}
-              <div style={{
-                position: 'absolute',
-                bottom: '8px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: '4px',
-                zIndex: 10
-              }}>
-                {product.images.map((_, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      width: idx === currentImageIndex ? '16px' : '6px',
-                      height: '6px',
-                      borderRadius: '3px',
-                      background: idx === currentImageIndex ? 'white' : 'rgba(255, 255, 255, 0.5)',
-                      transition: 'all 0.3s'
-                    }}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+            {/* Image Dots Indicator */}
+            <div style={{
+              position: 'absolute',
+              bottom: '8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: '4px',
+              zIndex: 10
+            }}>
+              {product.images.map((_, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    width: idx === currentImageIndex ? '16px' : '6px',
+                    height: '6px',
+                    borderRadius: '3px',
+                    background: idx === currentImageIndex ? 'white' : 'rgba(255, 255, 255, 0.5)',
+                    transition: 'all 0.3s'
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Top Left Badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1 z-20">
@@ -377,7 +325,7 @@ export default function ProductCard({
 
         {/* Product Title */}
         <h3 className="product-title">
-          {product.title.replace(/#\d+$/,'')}
+          {product.title ? product.title.replace(/#\d+$/,'') : 'Untitled Product'}
         </h3>
 
         {/* Specifications */}
@@ -442,6 +390,83 @@ export default function ProductCard({
           }
           100% {
             background-position: 200% 0;
+          }
+        }
+
+        /* MOBILE OVERRIDE - Amazon Mobile Standards */
+        @media (max-width: 768px) {
+          :global(.product-brand) {
+            font-size: 11px !important;
+            line-height: 1.3 !important;
+          }
+
+          :global(.product-title) {
+            font-size: 13px !important;
+            line-height: 1.4 !important;
+          }
+
+          :global(.product-current-price) {
+            font-size: 16px !important;
+            font-weight: 700 !important;
+          }
+
+          :global(.product-original-price) {
+            font-size: 12px !important;
+          }
+
+          :global(.product-add-to-cart) {
+            min-height: 32px !important;
+            max-height: 32px !important;
+            height: 32px !important;
+            padding: 6px 12px !important;
+            font-size: 13px !important;
+            line-height: 1.2 !important;
+            border-radius: 6px !important;
+          }
+
+          :global(.product-rating) {
+            font-size: 11px !important;
+          }
+
+          :global(.product-info-container) {
+            padding: 10px !important;
+            gap: 6px !important;
+          }
+        }
+
+        /* EXTRA SMALL MOBILE - Slightly smaller but still readable */
+        @media (max-width: 480px) {
+          :global(.product-brand) {
+            font-size: 10px !important;
+          }
+
+          :global(.product-title) {
+            font-size: 12px !important;
+          }
+
+          :global(.product-current-price) {
+            font-size: 14px !important;
+          }
+
+          :global(.product-original-price) {
+            font-size: 11px !important;
+          }
+
+          :global(.product-add-to-cart) {
+            min-height: 30px !important;
+            max-height: 30px !important;
+            height: 30px !important;
+            padding: 5px 10px !important;
+            font-size: 12px !important;
+          }
+
+          :global(.product-rating) {
+            font-size: 10px !important;
+          }
+
+          :global(.product-info-container) {
+            padding: 8px !important;
+            gap: 5px !important;
           }
         }
       `}</style>

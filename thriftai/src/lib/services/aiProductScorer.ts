@@ -79,6 +79,28 @@ export interface ProductData {
 
   // Dynamic Specifications (category-specific)
   dynamicSpecs?: Record<string, any>
+
+  // Image Quality (affects trust, not product quality)
+  imageQuality?: {
+    overallQuality: number // 0-100
+    qualityLabel: 'Excellent' | 'Good' | 'Fair' | 'Poor'
+    sharpness: number
+    brightness: number
+    contrast: number
+    issues: string[]
+  }
+
+  // User Experience Metrics (affects buying experience, not product quality)
+  userExperience?: {
+    pageQuality?: number // 0-100 - Overall page design quality
+    imageCount?: number // Total product images
+    descriptionWordCount?: number // Length of description
+    hasVideo?: boolean // Product video available
+    mobileOptimized?: boolean // Mobile-responsive listing
+    pageLoadSpeed?: number // Seconds to load page
+    checkoutEase?: number // 0-100 - Checkout flow simplicity
+    navigationQuality?: number // 0-100 - Ease of finding information
+  }
 }
 
 export interface ScoreBreakdown {
@@ -88,7 +110,7 @@ export interface ScoreBreakdown {
     trustScore: number // Seller & product trust
     qualityScore: number // Product quality indicators
     socialProof: number // Reviews & social validation
-    convenience: number // Shipping & returns
+    userExperience: number // Listing quality, shipping & checkout ease
     urgency: number // Stock & demand signals
     relevance: number // Search match quality
     emotional: number // Brand & sustainability appeal
@@ -113,25 +135,25 @@ export class AIProductScorer {
       trustScore: this.calculateTrustScore(product),
       qualityScore: this.calculateQualityScore(product),
       socialProof: this.calculateSocialProof(product),
-      convenience: this.calculateConvenience(product),
+      userExperience: this.calculateUserExperience(product),
       urgency: this.calculateUrgency(product),
       relevance: this.calculateRelevance(product),
       emotional: this.calculateEmotionalAppeal(product),
       specsQuality: this.calculateSpecsQuality(product)
     }
 
-    // Weight factors based on consumer psychology research
-    // Research shows price (25%), trust (20%), and social proof (15%) are top factors
+    // Weight factors based on consumer psychology research (UPDATED 2025-10-12)
+    // Enhanced Specs Quality to 15% to reward comprehensive product information
     const weights = {
-      priceValue: 0.23,    // Price is #1 factor for most consumers
-      trustScore: 0.18,    // Trust crucial for online purchases
-      socialProof: 0.14,   // 93% influenced by reviews
-      qualityScore: 0.12,  // Product quality assessment
-      convenience: 0.10,   // Shipping & returns matter
-      specsQuality: 0.10,  // Product specifications completeness
-      relevance: 0.07,     // Search relevance
-      urgency: 0.04,       // FOMO and scarcity
-      emotional: 0.02      // Brand appeal & sustainability
+      priceValue: 0.20,        // Price competitiveness and ROI
+      trustScore: 0.16,        // Trust crucial for online purchases
+      specsQuality: 0.15,      // ⭐ ENHANCED - Product specifications completeness (25 params)
+      socialProof: 0.13,       // 93% influenced by reviews
+      qualityScore: 0.11,      // Product quality assessment
+      userExperience: 0.10,    // Listing quality, shipping & checkout ease
+      relevance: 0.07,         // Search relevance
+      urgency: 0.04,           // FOMO and scarcity
+      emotional: 0.04          // Brand appeal & sustainability (doubled)
     }
 
     // Calculate weighted total
@@ -141,7 +163,8 @@ export class AIProductScorer {
 
     for (const [key, value] of Object.entries(components)) {
       const weight = weights[key as keyof typeof weights]
-      if (value !== null) {
+      // Safeguard against NaN values
+      if (value !== null && !isNaN(value) && typeof value === 'number') {
         total += value * weight
         actualWeight += weight
       }
@@ -155,8 +178,17 @@ export class AIProductScorer {
       total = total * (maxPossible / actualWeight)
     }
 
+    // Safeguard: If total is still NaN or invalid, default to 0
+    if (isNaN(total) || !isFinite(total)) {
+      total = 0
+      logger.warn('Total score was NaN or Infinity, defaulting to 0', {
+        productId: product.id,
+        components
+      })
+    }
+
     // Calculate confidence based on data completeness
-    const confidence = actualWeight / maxPossible
+    const confidence = actualWeight > 0 ? actualWeight / maxPossible : 0
 
     // Generate insights
     const insights = this.generateInsights(product, components)
@@ -173,7 +205,7 @@ export class AIProductScorer {
         trustScore: components.trustScore.toFixed(1),
         socialProof: components.socialProof.toFixed(1),
         qualityScore: components.qualityScore.toFixed(1),
-        convenience: components.convenience.toFixed(1),
+        userExperience: components.userExperience.toFixed(1),
         relevance: components.relevance.toFixed(1),
         urgency: components.urgency.toFixed(1),
         emotional: components.emotional.toFixed(1)
@@ -237,14 +269,18 @@ export class AIProductScorer {
 
   /**
    * Trust Score (0-100)
-   * Based on seller reputation and product authenticity
+   * Based on seller reputation, product authenticity, and listing quality
+   *
+   * NOTE: Image quality affects TRUST, not product quality.
+   * Poor images make buyers suspicious → lower trust score.
+   * A "New" product with bad photos is still high quality, but less trusted.
    */
   private calculateTrustScore(product: ProductData): number {
     let score = 0 // ✅ AUTHENTIC DATA ONLY - Start at 0
 
     // Seller rating (critical factor) - ONLY add score if we have real data
     if (product.sellerRating) {
-      score += (product.sellerRating / 5) * 60 // Increased weight since it's the primary trust indicator
+      score += (product.sellerRating / 5) * 50 // Reduced from 60 to make room for image quality
     }
 
     // Seller history
@@ -269,12 +305,38 @@ export class AIProductScorer {
     if (product.hasFreeReturns) score += 10
     if (product.returnPeriodDays && product.returnPeriodDays >= 30) score += 5
 
+    // Image quality (listing trust) - NEW
+    // Poor images = buyers don't trust the listing, even if product is good
+    // Excellent images = buyers trust seller is professional
+    if (product.imageQuality) {
+      const imageScore = product.imageQuality.overallQuality || 0
+      score += (imageScore / 100) * 10 // Up to 10 points for excellent images
+
+      // Penalize for critical image issues
+      if (product.imageQuality.issues.includes('Blurry image')) score -= 3
+      if (product.imageQuality.issues.includes('Low resolution')) score -= 2
+    }
+
     return Math.max(0, Math.min(100, score))
   }
 
   /**
    * Quality Score (0-100)
-   * Product condition and specifications
+   * Measures the PHYSICAL PRODUCT QUALITY ONLY
+   *
+   * What IS included:
+   * - Physical condition (new, used, etc.)
+   * - Official certifications (safety, authenticity)
+   * - Specification completeness (transparency)
+   *
+   * What is NOT included:
+   * ❌ Image quality → affects TRUST score instead
+   * ❌ Description quality → affects USER EXPERIENCE instead
+   * ❌ Brand reputation → affects COMPANY METRICS instead
+   * ❌ Seller presentation → affects TRUST/UX instead
+   *
+   * Example: A "New" iPhone with terrible photos still gets quality=100
+   * (but lower trust score due to bad images)
    */
   private calculateQualityScore(product: ProductData): number {
     let score = 0
@@ -358,38 +420,121 @@ export class AIProductScorer {
   }
 
   /**
-   * Convenience Score (0-100)
-   * Shipping, delivery, and purchase ease
+   * User Experience Score (0-100)
+   * Measures the quality of the buying experience
+   *
+   * Components:
+   * - Listing Quality (40%) - Page, images, description, video, load speed
+   * - Shipping & Delivery (30%) - Speed, tracking, cost
+   * - Checkout Experience (30%) - Ease, mobile, navigation
    */
-  private calculateConvenience(product: ProductData): number {
-    let score = 0 // ✅ AUTHENTIC DATA ONLY - Start at 0
+  private calculateUserExperience(product: ProductData): number {
+    let listingScore = 0 // Max 40 points
+    let shippingScore = 0 // Max 30 points
+    let checkoutScore = 0 // Max 30 points
 
-    // Shipping speed (major factor) - ONLY if we have real delivery data
+    // ========================================
+    // LISTING QUALITY (40 points)
+    // ========================================
+
+    if (product.userExperience) {
+      const ux = product.userExperience
+
+      // Page Quality (10 points)
+      if (ux.pageQuality !== undefined) {
+        listingScore += (ux.pageQuality / 100) * 10
+      }
+
+      // Image Count (8 points)
+      // More images = better visualization
+      if (ux.imageCount !== undefined) {
+        if (ux.imageCount >= 8) listingScore += 8
+        else if (ux.imageCount >= 5) listingScore += 6
+        else if (ux.imageCount >= 3) listingScore += 4
+        else if (ux.imageCount >= 1) listingScore += 2
+      }
+
+      // Description Length (7 points)
+      // Longer descriptions = more informed buyers
+      if (ux.descriptionWordCount !== undefined) {
+        if (ux.descriptionWordCount >= 500) listingScore += 7
+        else if (ux.descriptionWordCount >= 300) listingScore += 5
+        else if (ux.descriptionWordCount >= 150) listingScore += 3
+        else if (ux.descriptionWordCount >= 50) listingScore += 1
+      }
+
+      // Has Video (10 points)
+      // Videos are worth a lot for UX
+      if (ux.hasVideo === true) {
+        listingScore += 10
+      }
+
+      // Page Load Speed (5 points)
+      // Fast pages = better UX
+      if (ux.pageLoadSpeed !== undefined) {
+        if (ux.pageLoadSpeed <= 1.0) listingScore += 5
+        else if (ux.pageLoadSpeed <= 2.0) listingScore += 3
+        else if (ux.pageLoadSpeed <= 3.0) listingScore += 1
+        // Slow pages (>3s) get 0 points
+      }
+    }
+
+    // ========================================
+    // SHIPPING & DELIVERY (30 points)
+    // ========================================
+
+    // Shipping speed (15 points)
     if (product.estimatedDeliveryDays !== undefined && product.estimatedDeliveryDays !== null) {
-      if (product.estimatedDeliveryDays <= 2) score += 40
-      else if (product.estimatedDeliveryDays <= 5) score += 30
-      else if (product.estimatedDeliveryDays <= 7) score += 20
-      else if (product.estimatedDeliveryDays <= 14) score += 10
-      // No penalty, just no bonus for slow shipping
+      if (product.estimatedDeliveryDays <= 2) shippingScore += 15
+      else if (product.estimatedDeliveryDays <= 5) shippingScore += 12
+      else if (product.estimatedDeliveryDays <= 7) shippingScore += 8
+      else if (product.estimatedDeliveryDays <= 14) shippingScore += 4
     }
 
-    // Free shipping
-    if (product.hasFreeShipping) score += 15
+    // Free shipping (8 points)
+    if (product.hasFreeShipping) shippingScore += 8
 
-    // Fast shipping availability
-    if (product.hasFastShipping) score += 10
+    // Fast shipping availability (4 points)
+    if (product.hasFastShipping) shippingScore += 4
 
-    // Tracking
-    if (product.hasTracking) score += 5
+    // Tracking (3 points)
+    if (product.hasTracking) shippingScore += 3
 
-    // Stock availability
+    // ========================================
+    // CHECKOUT EXPERIENCE (30 points)
+    // ========================================
+
+    if (product.userExperience) {
+      const ux = product.userExperience
+
+      // Checkout Ease (14 points)
+      if (ux.checkoutEase !== undefined) {
+        checkoutScore += (ux.checkoutEase / 100) * 14
+      }
+
+      // Mobile Optimized (8 points)
+      // Critical for mobile shoppers
+      if (ux.mobileOptimized === true) {
+        checkoutScore += 8
+      }
+
+      // Navigation Quality (8 points)
+      if (ux.navigationQuality !== undefined) {
+        checkoutScore += (ux.navigationQuality / 100) * 8
+      }
+    }
+
+    // Stock availability affects checkout experience
     if (product.inStock) {
-      score += 10
+      checkoutScore += 0 // Already in stock, no bonus
     } else {
-      score -= 30 // Big penalty for out of stock
+      checkoutScore -= 10 // Out of stock hurts UX significantly
     }
 
-    return Math.max(0, Math.min(100, score))
+    // Total UX Score (0-100)
+    const totalScore = listingScore + shippingScore + Math.max(0, checkoutScore)
+
+    return Math.max(0, Math.min(100, totalScore))
   }
 
   /**
@@ -499,8 +644,13 @@ export class AIProductScorer {
   }
 
   /**
-   * Specs Quality Score (0-100)
+   * Specs Quality Score (0-100) ⭐ ENHANCED
    * Product specifications completeness and detail level
+   *
+   * Target: 25 category-specific specifications for maximum score
+   * Rewards comprehensive product information for informed buying decisions
+   *
+   * UPDATED 2025-10-12: Enhanced scoring tiers for 25-parameter system
    */
   private calculateSpecsQuality(product: ProductData): number {
     // Products with detailed specifications score higher
@@ -510,21 +660,21 @@ export class AIProductScorer {
 
     const specsCount = Object.keys(product.dynamicSpecs).length
 
-    // Score based on number of specifications
-    // 1-2 specs = 40 points (basic info)
-    // 3-4 specs = 70 points (good detail)
-    // 5+ specs = 100 points (excellent detail)
+    // Enhanced scoring tiers based on 25-parameter system
+    // Target: 25+ specs for complete product information
 
-    if (specsCount >= 5) {
-      return 100
-    } else if (specsCount === 4) {
-      return 80
-    } else if (specsCount === 3) {
-      return 60
-    } else if (specsCount === 2) {
-      return 40
+    if (specsCount >= 25) {
+      return 100  // Exceptional - Complete specification coverage
+    } else if (specsCount >= 20) {
+      return 80   // Very Detailed - Near-complete coverage
+    } else if (specsCount >= 15) {
+      return 60   // Good - Substantial detail
+    } else if (specsCount >= 10) {
+      return 40   // Moderate - Basic coverage
+    } else if (specsCount >= 5) {
+      return 20   // Minimal - Limited information
     } else {
-      return 20
+      return 0    // Insufficient - Too few specifications
     }
   }
 
@@ -566,6 +716,38 @@ export class AIProductScorer {
     // Quality insights
     if (product.condition === 'new' && product.hasWarranty) {
       insights.push('🛡️ Brand new with warranty protection')
+    }
+
+    // User Experience insights - NEW
+    if (components.userExperience > 80) {
+      insights.push('✨ Excellent buying experience - high quality listing')
+    } else if (components.userExperience < 40) {
+      insights.push('⚠️ Limited product information or poor listing quality')
+    }
+
+    // Video presence
+    if (product.userExperience?.hasVideo) {
+      insights.push('🎥 Product video available for better visualization')
+    }
+
+    // Mobile optimization
+    if (product.userExperience?.mobileOptimized) {
+      insights.push('📱 Mobile-optimized listing for easy shopping')
+    }
+
+    // Page load speed
+    if (product.userExperience?.pageLoadSpeed && product.userExperience.pageLoadSpeed > 3) {
+      insights.push('⚠️ Slow page load - may affect browsing experience')
+    }
+
+    // Rich product images
+    if (product.userExperience?.imageCount && product.userExperience.imageCount >= 8) {
+      insights.push('📸 Comprehensive product images (' + product.userExperience.imageCount + '+ views)')
+    }
+
+    // Detailed description
+    if (product.userExperience?.descriptionWordCount && product.userExperience.descriptionWordCount >= 500) {
+      insights.push('📝 Detailed product description for informed decisions')
     }
 
     return insights
@@ -645,7 +827,7 @@ export class AIProductScorer {
     }
 
     if (userPreferences.speedPriority) {
-      adjustment += (adjustedComponents.convenience - 50) * 0.15
+      adjustment += (adjustedComponents.userExperience - 50) * 0.15
     }
 
     const adjustedTotal = Math.max(0, Math.min(100, baseScore.total + adjustment))
