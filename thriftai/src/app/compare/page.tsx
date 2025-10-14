@@ -119,14 +119,14 @@ export default function ComparePage() {
 
         <main className="container mx-auto px-4 py-8" style={{ maxWidth: '1200px', minHeight: 'calc(100vh - 200px)' }}>
           <div className="text-center py-16">
-            <Trophy className="w-24 h-24 mx-auto mb-6 text-purple-600" />
+            <Trophy className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-6 text-purple-600" />
             <h1 className="page-header mb-3">Product Comparison</h1>
             <p className="page-subtitle mb-8">
               Compare up to 4 products side-by-side
             </p>
             <button
               onClick={addProduct}
-              className="btn-modern-primary"
+              className="btn-modern-primary min-h-[44px]"
             >
               <Plus className="w-5 h-5" />
               <span>Add Products to Compare</span>
@@ -179,8 +179,8 @@ export default function ComparePage() {
             }}
           >
             <div className="flex items-center gap-3 mb-3">
-              <Trophy className="w-8 h-8 text-purple-600" />
-              <h2 className="text-xl font-bold text-primary">AI Winner</h2>
+              <Trophy className="w-6 h-6 md:w-8 md:h-8 text-purple-600" />
+              <h2 className="text-lg md:text-xl font-bold text-primary">AI Winner</h2>
             </div>
             <p className="text-primary mb-2" style={{ fontSize: '1.125rem' }}>
               {products.find(p => p.id === comparisonData.winner?.productId)?.name}
@@ -213,7 +213,8 @@ export default function ComparePage() {
                     <div className="relative">
                       <button
                         onClick={() => removeProduct(product.id)}
-                        className="absolute -top-2 -right-2 p-1 rounded-full bg-error text-white hover:bg-red-700 transition-colors"
+                        className="absolute -top-2 -right-2 p-1 min-w-[36px] min-h-[36px] rounded-full bg-error text-white hover:bg-red-700 transition-colors flex items-center justify-center"
+                        aria-label="Remove product"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -315,7 +316,7 @@ export default function ComparePage() {
           <div className="mt-6 text-center">
             <button
               onClick={addProduct}
-              className="btn-modern-secondary"
+              className="btn-modern-secondary min-h-[44px]"
             >
               <Plus className="w-5 h-5" />
               <span>Add Another Product ({4 - products.length} slots left)</span>

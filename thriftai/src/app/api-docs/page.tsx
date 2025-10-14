@@ -145,7 +145,7 @@ export default function ApiDocsPage() {
       <style jsx global>{`
         /* Dark theme for Swagger UI */
         .swagger-ui {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+          font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
         }
 
         .swagger-ui .topbar {

@@ -114,10 +114,26 @@ export class AIScoringEngine {
 
       if (options?.includeDynamicSpecs !== false) {
         try {
-          // Check if we have cached specs
-          if (product.dynamicSpecs && !options?.forceRefresh) {
+          // Check if we already have enriched specs (from parameter enrichment system)
+          const existingParamCount = product.dynamicSpecs ? Object.keys(product.dynamicSpecs).length : 0
+          const hasEnrichedParams = existingParamCount > 2 // More than just aiDetectedFeatures
+
+          // IMPORTANT: Preserve existing enriched parameters!
+          // Only extract new specs if we don't have enriched data already
+          if (hasEnrichedParams) {
+            logger.info('Using existing enriched parameters', {
+              productId,
+              paramCount: existingParamCount
+            })
+            dynamicSpecs = product.dynamicSpecs as DynamicSpecs
+          } else if (product.dynamicSpecs && !options?.forceRefresh) {
+            // Use cached specs if available and not forcing refresh
             dynamicSpecs = product.dynamicSpecs as DynamicSpecs
           } else {
+            // Only extract if we have no enriched data
+            logger.info('Extracting dynamic specs', {
+              productId
+            })
             dynamicSpecs = await dynamicParameterExtractor.extractSpecs(
               product.name,
               product.description,
@@ -136,10 +152,14 @@ export class AIScoringEngine {
             )
           }
         } catch (error) {
-          logger.warn('Failed to extract dynamic specs', {
+          logger.error('Error extracting dynamic specs', {
             productId,
             error: error instanceof Error ? error.message : String(error)
           })
+          // Fallback to existing specs if extraction fails
+          if (product.dynamicSpecs) {
+            dynamicSpecs = product.dynamicSpecs as DynamicSpecs
+          }
         }
       }
 

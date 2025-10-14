@@ -1,0 +1,231 @@
+{
+  "description": "URL templates for scraping product parameters from e-commerce websites",
+  "version": "1.0.0",
+  "categories": {
+    "ELECTRONICS": {
+      "sources": [
+        {
+          "name": "Apple Official",
+          "baseUrl": "https://www.apple.com",
+          "productPaths": {
+            "iPhone": "/iphone/{model}/specs/",
+            "iPad": "/ipad/{model}/specs/",
+            "MacBook": "/macbook-{model}/specs/",
+            "AppleWatch": "/apple-watch-{model}/specs/"
+          },
+          "selectors": {
+            "specs": ".specs-list",
+            "displaySize": "[data-spec='display-size']",
+            "processor": "[data-spec='chip']",
+            "storage": "[data-spec='storage']"
+          }
+        },
+        {
+          "name": "Best Buy",
+          "baseUrl": "https://www.bestbuy.com",
+          "searchUrl": "https://www.bestbuy.com/site/searchpage.jsp?st={query}",
+          "selectors": {
+            "specs": ".specifications-table",
+            "brand": ".brand-name",
+            "model": ".model-number"
+          }
+        },
+        {
+          "name": "Amazon",
+          "baseUrl": "https://www.amazon.com",
+          "searchUrl": "https://www.amazon.com/s?k={query}",
+          "selectors": {
+            "specs": "#productDetails_techSpec_section_1",
+            "features": "#feature-bullets"
+          }
+        },
+        {
+          "name": "GSMArena (Mobile Specs)",
+          "baseUrl": "https://www.gsmarena.com",
+          "searchUrl": "https://www.gsmarena.com/results.php3?sQuickSearch=yes&sName={query}",
+          "selectors": {
+            "specs": "#specs-list",
+            "display": "[data-spec='displaysize']",
+            "camera": "[data-spec='cam1modules']"
+          }
+        }
+      ]
+    },
+    "CLOTHING": {
+      "sources": [
+        {
+          "name": "Nike",
+          "baseUrl": "https://www.nike.com",
+          "searchUrl": "https://www.nike.com/w?q={query}",
+          "selectors": {
+            "specs": ".product-info",
+            "material": ".material-info",
+            "care": ".care-instructions"
+          }
+        },
+        {
+          "name": "Zara",
+          "baseUrl": "https://www.zara.com",
+          "selectors": {
+            "composition": ".composition",
+            "care": ".care-info",
+            "origin": ".origin-info"
+          }
+        },
+        {
+          "name": "Nordstrom",
+          "baseUrl": "https://www.nordstrom.com",
+          "selectors": {
+            "details": ".product-details",
+            "materials": ".materials-section"
+          }
+        }
+      ]
+    },
+    "SHOES": {
+      "sources": [
+        {
+          "name": "Nike",
+          "baseUrl": "https://www.nike.com",
+          "selectors": {
+            "specs": ".product-info",
+            "technology": ".technology-section"
+          }
+        },
+        {
+          "name": "Foot Locker",
+          "baseUrl": "https://www.footlocker.com",
+          "selectors": {
+            "specs": ".product-specs",
+            "features": ".product-features"
+          }
+        },
+        {
+          "name": "Zappos",
+          "baseUrl": "https://www.zappos.com",
+          "selectors": {
+            "specs": ".product-details",
+            "materials": ".materials-info"
+          }
+        }
+      ]
+    },
+    "ACCESSORIES": {
+      "sources": [
+        {
+          "name": "Coach",
+          "baseUrl": "https://www.coach.com",
+          "selectors": {
+            "details": ".product-details",
+            "materials": ".product-materials"
+          }
+        },
+        {
+          "name": "Michael Kors",
+          "baseUrl": "https://www.michaelkors.com",
+          "selectors": {
+            "specs": ".product-info",
+            "dimensions": ".dimensions-info"
+          }
+        }
+      ]
+    },
+    "BEAUTY": {
+      "sources": [
+        {
+          "name": "Sephora",
+          "baseUrl": "https://www.sephora.com",
+          "selectors": {
+            "ingredients": ".ingredients-section",
+            "details": ".product-details",
+            "howToUse": ".how-to-use"
+          }
+        },
+        {
+          "name": "Ulta",
+          "baseUrl": "https://www.ulta.com",
+          "selectors": {
+            "details": ".product-details",
+            "ingredients": ".ingredients"
+          }
+        }
+      ]
+    },
+    "HOME": {
+      "sources": [
+        {
+          "name": "Wayfair",
+          "baseUrl": "https://www.wayfair.com",
+          "selectors": {
+            "specs": ".product-specifications",
+            "dimensions": ".dimensions-section"
+          }
+        },
+        {
+          "name": "IKEA",
+          "baseUrl": "https://www.ikea.com",
+          "selectors": {
+            "specs": ".product-details",
+            "measurements": ".product-measurements"
+          }
+        }
+      ]
+    },
+    "SPORTS": {
+      "sources": [
+        {
+          "name": "Dick's Sporting Goods",
+          "baseUrl": "https://www.dickssportinggoods.com",
+          "selectors": {
+            "specs": ".product-specifications",
+            "features": ".product-features"
+          }
+        },
+        {
+          "name": "REI",
+          "baseUrl": "https://www.rei.com",
+          "selectors": {
+            "specs": ".product-specs",
+            "technical": ".technical-specs"
+          }
+        }
+      ]
+    },
+    "TOYS": {
+      "sources": [
+        {
+          "name": "Target",
+          "baseUrl": "https://www.target.com",
+          "selectors": {
+            "specs": ".product-details",
+            "features": ".product-features"
+          }
+        },
+        {
+          "name": "Amazon Toys",
+          "baseUrl": "https://www.amazon.com",
+          "searchUrl": "https://www.amazon.com/s?k={query}&i=toys-and-games",
+          "selectors": {
+            "specs": "#productDetails_detailBullets_sections1",
+            "age": ".age-range"
+          }
+        }
+      ]
+    }
+  },
+  "scraping_notes": {
+    "rate_limiting": "Implement 1-2 second delays between requests to avoid being blocked",
+    "user_agent": "Use realistic browser user agents to avoid detection",
+    "rotating_proxies": "Consider using proxy rotation for large-scale scraping",
+    "error_handling": "Gracefully handle 404s, timeouts, and rate limit errors",
+    "caching": "Cache scraped data to avoid re-fetching same products",
+    "respect_robots_txt": "Always check and respect robots.txt policies",
+    "legal_compliance": "Ensure scraping complies with website terms of service"
+  },
+  "implementation_example": {
+    "puppeteer": "npm install puppeteer",
+    "cheerio": "npm install cheerio",
+    "axios": "npm install axios",
+    "script": "scripts/scrape-from-urls.ts"
+  }
+}

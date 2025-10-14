@@ -179,6 +179,19 @@ export default function SearchResults() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile screen size for responsive margin
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Reset display query when URL query changes
   useEffect(() => {
@@ -705,7 +718,7 @@ export default function SearchResults() {
         <div
           className="flex-1 flex-container-col"
           style={{
-            marginRight: isChatCollapsed ? '0' : '420px',
+            marginRight: isChatCollapsed || isMobile ? '0' : '420px',
             transition: 'margin-right 0.3s ease'
           }}
         >
@@ -743,7 +756,7 @@ export default function SearchResults() {
         <div
           className="flex-1 flex-container-col"
           style={{
-            marginRight: isChatCollapsed ? '0' : '420px',
+            marginRight: isChatCollapsed || isMobile ? '0' : '420px',
             transition: 'margin-right 0.3s ease'
           }}
         >

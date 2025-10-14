@@ -3,8 +3,8 @@
  * Provides natural-sounding voice synthesis using multiple providers
  *
  * Priority:
- * 1. Google Cloud TTS (via API endpoint) - 1M chars/month FREE
- * 2. ElevenLabs (via API endpoint) - 10K chars/month FREE
+ * 1. ElevenLabs (via API endpoint) - 10K chars/month FREE - Ultra-realistic American voice
+ * 2. Google Cloud TTS (via API endpoint) - 1M chars/month FREE - Natural but robotic
  * 3. Web Speech API (fallback) - Unlimited but mechanical
  */
 
@@ -31,7 +31,7 @@ export class TTSService {
     this.cancel()
 
     const {
-      provider = 'google', // Default to Google Cloud TTS
+      provider = 'elevenlabs', // Default to ElevenLabs for ultra-realistic voice
       rate = 1.0, // Natural conversational speed
       pitch = 1.0, // Natural American pitch
       volume = 0.85

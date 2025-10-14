@@ -357,11 +357,24 @@ export async function POST(request: NextRequest) {
           veritasInsights: [],
           veritasDataCompleteness: 0.90,
           veritasPillars: p.aiScoreBreakdown ? {
-            quality: p.aiScoreBreakdown.components?.qualityScore || 0,
-            value: p.aiScoreBreakdown.components?.priceValue || 0,
-            trust: p.aiScoreBreakdown.components?.trustScore || 0,
-            ux: p.aiScoreBreakdown.components?.convenience || 0,
-            sustainability: p.aiScoreBreakdown.components?.emotional || 0
+            quality: p.aiScoreBreakdown.qualityScore?.score || 0,
+            value: p.aiScoreBreakdown.priceValue?.score || 0,
+            trust: p.aiScoreBreakdown.trustScore?.score || 0,
+            ux: (() => {
+              // Calculate UX score from convenience properties if no score exists
+              const conv = p.aiScoreBreakdown.convenience;
+              if (!conv) return 0;
+              if (typeof conv.score === 'number') return conv.score;
+              // Calculate from properties
+              let score = 0;
+              if (conv.inStock) score += 30;
+              if (conv.hasFreeShipping) score += 25;
+              if (conv.hasFastShipping) score += 20;
+              if (conv.hasTracking) score += 15;
+              if (conv.estimatedDeliveryDays <= 3) score += 10;
+              return score;
+            })(),
+            sustainability: p.aiScoreBreakdown.emotional?.score || 0
           } : {
             quality: 0,
             value: 0,

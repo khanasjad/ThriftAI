@@ -102,11 +102,11 @@ export default function WishlistPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2 flex items-center gap-3">
-            <Heart className="w-8 h-8 text-red-500" />
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] mb-2 flex items-center gap-3">
+            <Heart className="w-6 h-6 md:w-8 md:h-8 text-red-500" />
             My Wishlist
           </h1>
-          <p className="text-[var(--text-secondary)]">Save items you love and organize them into folders</p>
+          <p className="text-sm md:text-base text-[var(--text-secondary)]">Save items you love and organize them into folders</p>
         </div>
 
         {/* Folders */}
@@ -118,10 +118,11 @@ export default function WishlistPage() {
             </h2>
             <button
               onClick={() => setShowNewFolder(true)}
-              className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors flex items-center gap-2 font-medium"
+              className="px-4 py-2 min-h-[44px] bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors flex items-center gap-2 font-medium text-sm md:text-base"
             >
               <Plus className="w-4 h-4" />
-              New Folder
+              <span className="hidden sm:inline">New Folder</span>
+              <span className="sm:hidden">New</span>
             </button>
           </div>
 
@@ -182,13 +183,15 @@ export default function WishlistPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-[var(--accent-primary)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}
+              className={`p-2 min-w-[44px] min-h-[44px] rounded-lg transition-colors flex items-center justify-center ${viewMode === 'grid' ? 'bg-[var(--accent-primary)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}
+              aria-label="Grid view"
             >
               <Grid className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-[var(--accent-primary)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}
+              className={`p-2 min-w-[44px] min-h-[44px] rounded-lg transition-colors flex items-center justify-center ${viewMode === 'list' ? 'bg-[var(--accent-primary)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}
+              aria-label="List view"
             >
               <List className="w-5 h-5" />
             </button>

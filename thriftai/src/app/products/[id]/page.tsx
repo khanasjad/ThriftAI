@@ -1093,13 +1093,14 @@ export default function ProductDetailPage() {
       <style jsx>{`
         .product-detail-grid {
           display: grid;
-          grid-template-columns: minmax(400px, 600px) 1fr;
+          grid-template-columns: minmax(min(100%, 400px), 600px) 1fr;
           gap: 48px;
         }
 
-        @media (max-width: 968px) {
+        @media (max-width: 768px) {
           .product-detail-grid {
             grid-template-columns: 1fr;
+            gap: 32px;
           }
         }
 

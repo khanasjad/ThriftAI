@@ -741,8 +741,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
               style={{
                 background: 'white',
                 borderRadius: '20px',
-                padding: '2rem',
-                maxWidth: '600px',
+                padding: 'clamp(1rem, 4vw, 2rem)',
+                maxWidth: 'min(600px, 90vw)',
                 width: '100%',
                 boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
               }}
@@ -769,7 +769,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
               <div style={{
                 display: 'grid',
                 gap: '1rem',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))'
               }}>
                 {/* Leaderboard Search */}
                 <button

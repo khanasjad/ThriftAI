@@ -6,7 +6,8 @@ import { Send, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Copy, ChevronLeft, Che
 import ChatMessage, { ChatMessageData } from './ChatMessage'
 import { getChatConfig } from '@/config/search.config'
 import { ttsService } from '@/lib/services/ttsService'
-import { useVoiceChat } from '@/hooks/useVoiceChat'
+import { useAdvancedVAD } from '@/hooks/useAdvancedVAD'
+import VoiceWaveform from './VoiceWaveform'
 
 const CONVERSATION_STARTERS = [
   "I need a laptop under $700",
@@ -35,17 +36,23 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [audioEnabled, setAudioEnabled] = useState(true)
   const [voiceChatEnabled, setVoiceChatEnabled] = useState(false)
+  const [audioLevel, setAudioLevel] = useState(0)
+  const [sidebarWidth, setSidebarWidth] = useState<string>('420px')
 
-  // Voice chat with VAD
-  const voiceChat = useVoiceChat({
+  // Advanced VAD with ML-based voice detection
+  const vad = useAdvancedVAD({
     onTranscript: async (text) => {
       console.log('🎤 Voice input:', text)
       await sendMessage(text)
     },
+    onAudioLevel: (level) => {
+      setAudioLevel(level)
+    },
     onError: (error) => {
       console.error('Voice chat error:', error)
     },
-    silenceThreshold: 1500  // 1.5 seconds of silence
+    // Advanced VAD config (optimized for conversational AI)
+    redemptionFrames: 8 // ~1.5 seconds of silence
   })
 
   // Text-to-speech function using new TTS service
@@ -54,7 +61,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
 
     try {
       await ttsService.speak(text, {
-        provider: 'google', // Try Google Cloud TTS first (more natural)
+        provider: 'elevenlabs', // ElevenLabs for ultra-realistic American voice
         rate: 1.0, // Normal conversational speed - natural and human
         pitch: 1.0, // Natural American pitch - warm and friendly
         volume: 0.85
@@ -81,6 +88,38 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
     })
 
     return () => observer.disconnect()
+  }, [])
+
+  // Track if mobile for simpler logic
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Responsive sidebar width calculation
+  useEffect(() => {
+    const calculateSidebarWidth = () => {
+      const windowWidth = window.innerWidth
+      const mobile = windowWidth < 768
+
+      setIsMobile(mobile)
+
+      if (mobile) {
+        // Mobile: Full width
+        setSidebarWidth('100vw')
+      } else if (windowWidth < 1024) {
+        // Tablet: 50% of viewport width, max 420px
+        setSidebarWidth(`min(420px, 50vw)`)
+      } else {
+        // Desktop: Fixed 420px
+        setSidebarWidth('420px')
+      }
+    }
+
+    // Calculate on mount
+    calculateSidebarWidth()
+
+    // Recalculate on window resize
+    window.addEventListener('resize', calculateSidebarWidth)
+
+    return () => window.removeEventListener('resize', calculateSidebarWidth)
   }, [])
 
   // Cleanup speech synthesis on unmount
@@ -409,19 +448,43 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
 
   return (
     <>
+      {/* DEBUG INDICATOR - Remove after testing */}
+      <div style={{
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        background: 'red',
+        color: 'white',
+        padding: '10px',
+        zIndex: 99999,
+        fontSize: '12px',
+        borderRadius: '4px'
+      }}>
+        Collapsed: {isCollapsed ? 'YES' : 'NO'}<br/>
+        Width: {sidebarWidth}<br/>
+        Mobile: {isMobile ? 'YES' : 'NO'}
+      </div>
+
       {/* Collapse/Expand Button - Outside sidebar to prevent pointer-events issues */}
       <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={() => {
+          console.log('🔘 Toggle button clicked! Current state:', isCollapsed, 'Sidebar width:', sidebarWidth)
+          setIsCollapsed(!isCollapsed)
+        }}
+        className="chat-sidebar-toggle-button"
+        data-collapsed={isCollapsed}
         style={{
           position: 'fixed',
-          right: isCollapsed ? '0px' : '420px',
+          // Mobile collapsed: right edge. Mobile open: left edge. Desktop: edge of sidebar
+          right: isMobile ? (isCollapsed ? '0px' : 'auto') : (isCollapsed ? '0px' : sidebarWidth),
+          left: isMobile && !isCollapsed ? '0px' : 'auto',
           top: '50%',
           transform: 'translateY(-50%)',
           width: '40px',
           height: '80px',
           background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
           border: 'none',
-          borderRadius: '8px 0 0 8px',
+          borderRadius: isMobile ? (isCollapsed ? '8px 0 0 8px' : '0 8px 8px 0') : '8px 0 0 8px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -429,14 +492,15 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           boxShadow: '-2px 0 10px rgba(16, 185, 129, 0.3)',
           transition: 'all 0.3s ease',
           zIndex: 10000,
-          pointerEvents: 'auto'
+          pointerEvents: 'auto',
+          touchAction: 'manipulation'
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)'
           e.currentTarget.style.boxShadow = '-2px 0 15px rgba(16, 185, 129, 0.5)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(-50%) scale(1)'
+          e.currentTarget.style.transform = 'translateY(-50%)'
           e.currentTarget.style.boxShadow = '-2px 0 10px rgba(16, 185, 129, 0.3)'
         }}
         aria-label={isCollapsed ? 'Expand AI Shopping Advisor' : 'Collapse AI Shopping Advisor'}
@@ -450,12 +514,13 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
 
       {/* Sidebar Content */}
       <div
+        className="chat-sidebar-responsive"
         style={{
           position: 'fixed',
           right: 0,
           top: 0,
           height: '100vh',
-          width: isCollapsed ? '0' : '420px',
+          width: isCollapsed ? '0' : sidebarWidth,
           background: theme === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(0, 0, 0, 0.98)',
           borderLeft: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(16, 185, 129, 0.2)',
           display: 'flex',
@@ -470,6 +535,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
 
       {/* Header */}
       <div
+        className="chat-sidebar-header-mobile"
         style={{
           padding: '1.5rem 1.25rem',
           background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.1)',
@@ -481,6 +547,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           <div className="flex items-center gap-3">
             {/* Gus Avatar */}
             <div
+              className="chat-sidebar-avatar-mobile"
               style={{
                 fontSize: '3rem',
                 lineHeight: 1,
@@ -491,6 +558,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
             </div>
             <div>
               <h2
+                className="chat-sidebar-title-mobile"
                 style={{
                   fontSize: '1.125rem',
                   fontWeight: '600',
@@ -515,38 +583,40 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
             </div>
           </div>
 
-          {/* Voice Chat Button with VAD */}
+          {/* Voice Controls - iOS Touch-Friendly */}
+          <div className="chat-sidebar-header-buttons" style={{ display: 'flex', gap: '0.5rem' }}>
+          {/* Voice Chat Button with Advanced VAD */}
           <button
             onClick={() => {
-              if (voiceChat.isListening) {
-                voiceChat.stopListening()
+              if (vad.isListening) {
+                vad.stopListening()
               } else {
-                voiceChat.startListening()
+                vad.startListening()
               }
             }}
             style={{
-              width: '36px',
-              height: '36px',
+              width: '44px',
+              height: '44px',
               borderRadius: '8px',
-              background: voiceChat.isListening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-              border: `1px solid ${voiceChat.isListening ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+              background: vad.isListening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+              border: `1px solid ${vad.isListening ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.2s ease',
-              animation: voiceChat.isListening ? 'pulse 1.5s ease-in-out infinite' : 'none'
+              animation: vad.isListening ? 'pulse 1.5s ease-in-out infinite' : 'none'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = voiceChat.isListening ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'
+              e.currentTarget.style.background = vad.isListening ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = voiceChat.isListening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'
+              e.currentTarget.style.background = vad.isListening ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'
             }}
-            aria-label={voiceChat.isListening ? 'Stop voice chat' : 'Start voice chat'}
-            title={voiceChat.isListening ? '🎤 Listening... (Click to stop)' : '🎤 Click to talk to Gus'}
+            aria-label={vad.isListening ? 'Stop voice chat' : 'Start voice chat'}
+            title={vad.isListening ? '🎤 Listening... (Click to stop)' : '🎤 Click to talk to Gus'}
           >
-            {voiceChat.isListening ? (
+            {vad.isListening ? (
               <Mic className="w-4 h-4" style={{ color: '#ef4444' }} />
             ) : (
               <MicOff className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
@@ -572,8 +642,8 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
               }
             }}
             style={{
-              width: '36px',
-              height: '36px',
+              width: '44px',
+              height: '44px',
               borderRadius: '8px',
               background: audioEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
               border: `1px solid ${audioEnabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
@@ -598,57 +668,79 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
               <VolumeX className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
             )}
           </button>
+          </div>
         </div>
       </div>
 
-      {/* Voice Chat Indicator */}
-      {voiceChat.isListening && (
+      {/* Voice Chat Indicator with Waveform */}
+      {vad.isListening && (
         <div
           style={{
-            padding: '12px 16px',
-            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
-            borderBottom: '1px solid rgba(239, 68, 68, 0.2)',
+            padding: '16px',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.06) 100%)',
+            borderBottom: '1px solid rgba(16, 185, 129, 0.2)',
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
             gap: '12px'
           }}
         >
-          <div
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#ef4444',
-              animation: 'pulse 1s ease-in-out infinite'
-            }}
-          />
-          <div style={{ flex: 1 }}>
+          {/* Waveform Visualization */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: vad.isSpeaking ? '#10b981' : '#6b7280',
+                animation: vad.isSpeaking ? 'pulse 1s ease-in-out infinite' : 'none',
+                flexShrink: 0
+              }}
+            />
+            <VoiceWaveform
+              audioLevel={audioLevel}
+              isListening={vad.isListening}
+              isSpeaking={vad.isSpeaking}
+              isProcessing={vad.isProcessing}
+              className="flex-1"
+            />
             <div style={{
-              fontSize: '13px',
+              fontSize: '11px',
               fontWeight: '600',
-              color: '#ef4444',
-              marginBottom: '4px'
+              color: vad.isSpeaking ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              minWidth: '70px',
+              textAlign: 'right'
             }}>
-              🎤 Listening...
+              {vad.isProcessing ? '⏳ Processing' : vad.isSpeaking ? '🗣️ Speaking' : '👂 Listening'}
             </div>
-            {voiceChat.transcript && (
-              <div style={{
-                fontSize: '12px',
-                color: theme === 'light' ? '#666' : 'var(--text-secondary)',
-                fontStyle: 'italic'
-              }}>
-                "{voiceChat.transcript}"
-              </div>
-            )}
-            {!voiceChat.transcript && (
-              <div style={{
-                fontSize: '11px',
-                color: theme === 'light' ? '#999' : 'var(--text-tertiary)'
-              }}>
-                Speak now... (stops automatically after 1.5s of silence)
-              </div>
-            )}
           </div>
+
+          {/* Transcript Display */}
+          {vad.transcript && (
+            <div style={{
+              fontSize: '12px',
+              color: theme === 'light' ? '#666' : 'var(--text-secondary)',
+              fontStyle: 'italic',
+              background: 'rgba(0, 0, 0, 0.1)',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              borderLeft: '3px solid var(--accent-primary)'
+            }}>
+              "{vad.transcript}"
+            </div>
+          )}
+
+          {/* Helpful Tip */}
+          {!vad.transcript && !vad.isSpeaking && (
+            <div style={{
+              fontSize: '11px',
+              color: theme === 'light' ? '#999' : 'var(--text-tertiary)',
+              textAlign: 'center'
+            }}>
+              Speak now... (auto-stops after 1.5s of silence)
+            </div>
+          )}
         </div>
       )}
 
@@ -884,7 +976,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
         )}
 
         {/* Conversation Starters */}
-        {showSuggestions && chatMessages.length === 0 && !isLoading && (
+        {showSuggestions && chatMessages.length === 0 && autoAnalysisMessages.length === 0 && !isLoading && (
           <div style={{ marginTop: '0.5rem' }}>
             <p
               style={{
@@ -1069,33 +1161,33 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
 
           <button
             type="submit"
-            disabled={!input?.trim() || isLoading}
+            disabled={!userInput?.trim() || isLoading}
             style={{
-              width: '40px',
-              height: '40px',
+              width: '44px',
+              height: '44px',
               borderRadius: '8px',
-              background: input?.trim() && !isLoading
+              background: userInput?.trim() && !isLoading
                 ? 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)'
                 : 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid ' + (input?.trim() && !isLoading
+              border: '1px solid ' + (userInput?.trim() && !isLoading
                 ? 'rgba(16, 185, 129, 0.3)'
                 : 'rgba(255, 255, 255, 0.1)'),
-              cursor: input?.trim() && !isLoading ? 'pointer' : 'not-allowed',
+              cursor: userInput?.trim() && !isLoading ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.2s ease',
-              opacity: input?.trim() && !isLoading ? 1 : 0.5,
-              boxShadow: input?.trim() && !isLoading ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
+              opacity: userInput?.trim() && !isLoading ? 1 : 0.5,
+              boxShadow: userInput?.trim() && !isLoading ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
             }}
             onMouseEnter={(e) => {
-              if (input?.trim() && !isLoading) {
+              if (userInput?.trim() && !isLoading) {
                 e.currentTarget.style.transform = 'scale(1.05)'
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)'
               }
             }}
             onMouseLeave={(e) => {
-              if (input?.trim() && !isLoading) {
+              if (userInput?.trim() && !isLoading) {
                 e.currentTarget.style.transform = 'scale(1)'
                 e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)'
               }

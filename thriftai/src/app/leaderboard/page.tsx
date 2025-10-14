@@ -516,15 +516,15 @@ export default function LeaderboardPage() {
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                           {[
-                            { label: 'Relevance', value: product.aiScoreBreakdown?.components?.relevance || 0, icon: Star },
-                            { label: 'Price Value', value: product.aiScoreBreakdown?.components?.priceValue || 0, icon: DollarSign },
-                            { label: 'Trust', value: product.aiScoreBreakdown?.components?.trustScore || 0, icon: Shield },
-                            { label: 'Quality', value: product.aiScoreBreakdown?.components?.qualityScore || 0, icon: Trophy },
-                            { label: 'Social Proof', value: product.aiScoreBreakdown?.components?.socialProof || 0, icon: Star },
-                            { label: 'Convenience', value: product.aiScoreBreakdown?.components?.convenience || 0, icon: Truck },
-                            { label: 'Urgency', value: product.aiScoreBreakdown?.components?.urgency || 0, icon: Zap },
-                            { label: 'Emotional', value: product.aiScoreBreakdown?.components?.emotional || 0, icon: Heart },
-                            { label: 'Specs Quality', value: product.aiScoreBreakdown?.components?.specsQuality || 0, icon: Package }
+                            { label: 'Relevance', value: (product.aiScoreBreakdown as any)?.relevance?.score || 0, icon: Star },
+                            { label: 'Price Value', value: (product.aiScoreBreakdown as any)?.priceValue?.score || 0, icon: DollarSign },
+                            { label: 'Trust', value: (product.aiScoreBreakdown as any)?.trustScore?.score || 0, icon: Shield },
+                            { label: 'Quality', value: (product.aiScoreBreakdown as any)?.qualityScore?.score || 0, icon: Trophy },
+                            { label: 'Social Proof', value: (product.aiScoreBreakdown as any)?.socialProof?.score || 0, icon: Star },
+                            { label: 'Convenience', value: 0, icon: Truck },
+                            { label: 'Urgency', value: (product.aiScoreBreakdown as any)?.urgency?.score || 0, icon: Zap },
+                            { label: 'Emotional', value: (product.aiScoreBreakdown as any)?.emotional?.score || 0, icon: Heart },
+                            { label: 'Specs Quality', value: (product.aiScoreBreakdown as any)?.dynamicProductSpecs?.score || 0, icon: Package }
                           ].map(({ label, value, icon: Icon }) => (
                             <div key={label} className="leaderboard-score-component" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                               <Icon size={16} style={{ color: 'var(--text-tertiary)' }} />

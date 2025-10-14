@@ -43,6 +43,7 @@ export default function CartBadge() {
       }}
     >
       <ShoppingCart
+        className="cart-badge-icon"
         style={{
           width: '20px',
           height: '20px',
@@ -53,6 +54,7 @@ export default function CartBadge() {
       {count > 0 && (
         <>
           <span
+            className="cart-badge-count"
             style={{
               position: 'absolute',
               top: '-8px',

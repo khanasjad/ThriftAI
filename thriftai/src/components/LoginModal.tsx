@@ -146,7 +146,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
                 type="submit"
                 className="btn-modern-primary w-100 mb-3"
                 disabled={isLoading}
-style={{ width: '100%', marginBottom: '16px' }}
               >
                 {isLoading ? (
                   <>
@@ -175,7 +174,6 @@ style={{ width: '100%', marginBottom: '16px' }}
               className="btn-modern-secondary w-100 d-flex align-items-center justify-content-center mb-4"
               onClick={handleGoogleSignIn}
               disabled={isGoogleLoading}
-style={{ width: '100%', justifyContent: 'center', marginBottom: '24px' }}
             >
               {isGoogleLoading ? (
                 <>
