@@ -32,7 +32,7 @@ interface ChatSidebarProps {
 }
 
 export default function ChatSidebar({ onCollapseChange, pageContext, onProductsFromAI }: ChatSidebarProps = {}) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true) // Start collapsed
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [audioEnabled, setAudioEnabled] = useState(true)
   const [voiceChatEnabled, setVoiceChatEnabled] = useState(false)
@@ -448,84 +448,67 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
 
   return (
     <>
-      {/* DEBUG INDICATOR - Remove after testing */}
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        right: '10px',
-        background: 'red',
-        color: 'white',
-        padding: '10px',
-        zIndex: 99999,
-        fontSize: '12px',
-        borderRadius: '4px'
-      }}>
-        Collapsed: {isCollapsed ? 'YES' : 'NO'}<br/>
-        Width: {sidebarWidth}<br/>
-        Mobile: {isMobile ? 'YES' : 'NO'}
-      </div>
-
-      {/* Collapse/Expand Button - Outside sidebar to prevent pointer-events issues */}
+      {/* Collapse/Expand Button */}
       <button
-        onClick={() => {
-          console.log('🔘 Toggle button clicked! Current state:', isCollapsed, 'Sidebar width:', sidebarWidth)
-          setIsCollapsed(!isCollapsed)
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          const newState = !isCollapsed
+          console.log('🔘 Toggle clicked:', isCollapsed, '->', newState)
+          setIsCollapsed(newState)
         }}
-        className="chat-sidebar-toggle-button"
-        data-collapsed={isCollapsed}
         style={{
           position: 'fixed',
-          // Mobile collapsed: right edge. Mobile open: left edge. Desktop: edge of sidebar
-          right: isMobile ? (isCollapsed ? '0px' : 'auto') : (isCollapsed ? '0px' : sidebarWidth),
-          left: isMobile && !isCollapsed ? '0px' : 'auto',
+          right: '16px',
           top: '50%',
           transform: 'translateY(-50%)',
-          width: '40px',
-          height: '80px',
+          width: '56px',
+          height: '56px',
           background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
           border: 'none',
-          borderRadius: isMobile ? (isCollapsed ? '8px 0 0 8px' : '0 8px 8px 0') : '8px 0 0 8px',
+          borderRadius: '50%',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '-2px 0 10px rgba(16, 185, 129, 0.3)',
-          transition: 'all 0.3s ease',
-          zIndex: 10000,
+          boxShadow: '0 4px 16px rgba(16, 185, 129, 0.5)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          zIndex: 10001,
           pointerEvents: 'auto',
           touchAction: 'manipulation'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)'
-          e.currentTarget.style.boxShadow = '-2px 0 15px rgba(16, 185, 129, 0.5)'
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1.15)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.7)'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(-50%)'
-          e.currentTarget.style.boxShadow = '-2px 0 10px rgba(16, 185, 129, 0.3)'
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.5)'
         }}
         aria-label={isCollapsed ? 'Expand AI Shopping Advisor' : 'Collapse AI Shopping Advisor'}
+        title={isCollapsed ? 'Open Gus 👴' : 'Close Gus 👴'}
       >
         {isCollapsed ? (
-          <ChevronLeft className="w-5 h-5" style={{ color: 'white' }} />
+          <ChevronLeft className="w-7 h-7" style={{ color: 'white' }} />
         ) : (
-          <ChevronRight className="w-5 h-5" style={{ color: 'white' }} />
+          <ChevronRight className="w-7 h-7" style={{ color: 'white' }} />
         )}
       </button>
 
       {/* Sidebar Content */}
       <div
-        className="chat-sidebar-responsive"
         style={{
           position: 'fixed',
           right: 0,
           top: 0,
           height: '100vh',
-          width: isCollapsed ? '0' : sidebarWidth,
+          width: sidebarWidth,
           background: theme === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(0, 0, 0, 0.98)',
           borderLeft: theme === 'light' ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(16, 185, 129, 0.2)',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'width 0.3s ease, background 0.3s ease',
+          transform: isCollapsed ? `translateX(100%)` : 'translateX(0)',
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease',
           zIndex: 9998,
           overflow: 'hidden',
           boxShadow: isCollapsed ? 'none' : (theme === 'light' ? '-4px 0 20px rgba(0, 0, 0, 0.1)' : '-4px 0 20px rgba(0, 0, 0, 0.5)'),
