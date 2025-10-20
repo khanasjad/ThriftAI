@@ -739,12 +739,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
           >
             <div
               style={{
-                background: 'white',
+                background: 'rgba(0, 0, 0, 0.95)',
                 borderRadius: '20px',
                 padding: 'clamp(1rem, 4vw, 2rem)',
                 maxWidth: 'min(600px, 90vw)',
                 width: '100%',
-                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+                border: '1px solid rgba(102, 126, 234, 0.3)'
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -769,8 +770,55 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
               <div style={{
                 display: 'grid',
                 gap: '1rem',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))'
               }}>
+                {/* Regular Search */}
+                <button
+                  onClick={() => {
+                    const searchQuery = selectedCategory && selectedSubcategory && selectedType
+                      ? `${selectedCategory.name} ${selectedSubcategory} ${selectedType}`
+                      : query;
+                    setQuery(searchQuery);
+                    setShowSearchOptions(false);
+                    handleSearch();
+                  }}
+                  style={{
+                    padding: '1.5rem 1rem',
+                    borderRadius: '16px',
+                    border: '2px solid rgba(0, 0, 0, 0.5)',
+                    background: 'rgba(0, 0, 0, 0.8)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    minHeight: '44px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.5)';
+                    e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.5)';
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
+                  }}
+                >
+                  <i className="fas fa-search" style={{ fontSize: '2rem', color: '#10b981' }} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                      Search
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      Traditional search
+                    </div>
+                  </div>
+                </button>
+
                 {/* Leaderboard Search */}
                 <button
                   onClick={() => {
@@ -785,23 +833,26 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                     padding: '1.5rem 1rem',
                     borderRadius: '16px',
                     border: '2px solid rgba(102, 126, 234, 0.3)',
-                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '0.75rem'
+                    gap: '0.75rem',
+                    minHeight: '44px'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(102, 126, 234, 0.3)';
-                    e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(102, 126, 234, 0.4)';
+                    e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.6)';
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.25) 0%, rgba(118, 75, 162, 0.25) 100%)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
                     e.currentTarget.style.boxShadow = 'none';
                     e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)';
                   }}
                 >
                   <i className="fas fa-trophy" style={{ fontSize: '2rem', color: '#667eea' }} />
@@ -828,23 +879,26 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                     padding: '1.5rem 1rem',
                     borderRadius: '16px',
                     border: '2px solid rgba(239, 68, 68, 0.3)',
-                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%)',
+                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%)',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '0.75rem'
+                    gap: '0.75rem',
+                    minHeight: '44px'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.3)';
-                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.4)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(249, 115, 22, 0.25) 100%)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
                     e.currentTarget.style.boxShadow = 'none';
                     e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%)';
                   }}
                 >
                   <i className="fas fa-fire" style={{ fontSize: '2rem', color: '#ef4444' }} />

@@ -213,10 +213,10 @@ export default function ComparePage() {
                     <div className="relative">
                       <button
                         onClick={() => removeProduct(product.id)}
-                        className="absolute -top-2 -right-2 p-1 min-w-[36px] min-h-[36px] rounded-full bg-error text-white hover:bg-red-700 transition-colors flex items-center justify-center"
-                        aria-label="Remove product"
+                        className="absolute -top-2 -right-2 p-1 min-w-[44px] min-h-[44px] rounded-full bg-error text-white hover:bg-red-700 transition-colors flex items-center justify-center"
+                        aria-label={`Remove ${product.name} from comparison`}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-5 h-5" />
                       </button>
                       <img
                         src={product.imageUrl || '/placeholder-image.jpg'}

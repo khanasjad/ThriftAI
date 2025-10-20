@@ -767,15 +767,33 @@ export default function SearchResults() {
             onLogout={() => {}}
           />
           <div className="container mx-auto px-4 py-8">
-            <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
-              <h3 className="font-semibold empty-state-title" style={{color: 'var(--error)'}}>Error</h3>
-              <p className="empty-state-description" style={{color: 'var(--error)'}}>{error}</p>
+            <div className="bg-red-900/20 border border-red-700 rounded-lg p-4" role="alert" aria-live="assertive">
+              <h3 className="font-semibold empty-state-title" style={{color: 'var(--error)'}}>Search Error</h3>
+              <p className="empty-state-description" style={{color: 'var(--error)'}} id="error-message">{error}</p>
               <Button
                 onClick={() => performSearch(query, filters, currentPage, itemsPerPage)}
                 className="mt-2"
+                aria-describedby="error-message"
               >
                 Try Again
               </Button>
+
+              {/* Suggestions */}
+              <div className="mt-6 pt-4 border-t border-red-700/50">
+                <p className="text-sm font-semibold mb-3" style={{color: 'var(--text-secondary)'}}>Try searching for:</p>
+                <div className="flex flex-wrap gap-2">
+                  {['Laptops', 'Designer Handbags', 'Running Shoes', 'Vintage Watches', 'Electronics'].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => router.push(`/buyers/search?q=${encodeURIComponent(suggestion)}`)}
+                      className="px-3 py-2 bg-red-800/30 hover:bg-red-800/50 rounded-lg text-sm transition-colors"
+                      style={{ minHeight: '44px' }}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
           <Footer />
@@ -813,16 +831,32 @@ export default function SearchResults() {
           onLogout={() => {}}
         />
 
-        <main className="container mx-auto px-4 py-8 min-h-screen">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-4 page-header">
-            Search Results for "{displayQuery}"
-          </h1>
+        <main className="container mx-auto px-4 py-6 min-h-screen">
+        {/* Professional Search Header - Like Amazon/eBay */}
+        <div className="mb-6">
+          {/* Breadcrumb & Title */}
+          <div className="mb-4">
+            <nav className="text-sm mb-2">
+              <span
+                onClick={() => router.push('/')}
+                className="cursor-pointer transition-colors"
+                style={{ color: 'var(--text-tertiary)' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-tertiary)'}
+              >
+                Home
+              </span>
+              <span className="mx-2" style={{ color: 'var(--text-tertiary)' }}>›</span>
+              <span style={{ color: 'var(--text-secondary)' }}>Search Results</span>
+            </nav>
+            <h1 className="text-xl md:text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+              {displayQuery}
+            </h1>
+          </div>
 
           {/* Claude Insights Banner */}
           {searchResults?.insights && (
-            <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700">
+            <div className="mb-4 p-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 mt-1">
                   <span className="text-2xl">🧠</span>
@@ -887,11 +921,20 @@ export default function SearchResults() {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <p className="text-lg sm:text-xl page-subtitle font-semibold">
-              {searchResults?.metadata.total || 0} products found
-            </p>
-            <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
+          {/* Results Bar - Like Major E-commerce Sites */}
+          <div
+            className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 p-4 rounded-lg"
+            style={{
+              background: 'var(--bg-glass)',
+              border: '1px solid var(--border-primary)'
+            }}
+          >
+            {/* Left: Results Count */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {searchResults?.metadata.total || 0} results
+              </span>
+
               {/* Mobile Filters Button */}
               <button
                 className="btn-modern btn-modern-sm btn-modern-outline view-mode-btn lg:hidden"
@@ -904,37 +947,42 @@ export default function SearchResults() {
                   </span>
                 )}
               </button>
+            </div>
 
-              <span className="text-base font-semibold page-subtitle hidden lg:inline">View:</span>
+            {/* Right: View Mode Controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium mr-2 hidden lg:inline" style={{ color: 'var(--text-secondary)' }}>
+                View:
+              </span>
               <button
                 className={`btn-modern btn-modern-sm view-mode-btn ${
                   viewMode === 'grid' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
-                onClick={() => {
-                  setViewMode('grid')
-                }}
+                onClick={() => setViewMode('grid')}
+                aria-label="Grid view"
               >
-                Grid
+                <span className="hidden sm:inline">Grid</span>
+                <span className="sm:hidden">⊞</span>
               </button>
               <button
                 className={`btn-modern btn-modern-sm view-mode-btn ${
                   viewMode === 'list' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
-                onClick={() => {
-                  setViewMode('list')
-                }}
+                onClick={() => setViewMode('list')}
+                aria-label="List view"
               >
-                List
+                <span className="hidden sm:inline">List</span>
+                <span className="sm:hidden">☰</span>
               </button>
               <button
                 className={`btn-modern btn-modern-sm view-mode-btn ${
                   viewMode === 'leaderboard' ? 'btn-modern-default' : 'btn-modern-outline'
                 }`}
-                onClick={() => {
-                  setViewMode('leaderboard')
-                }}
+                onClick={() => setViewMode('leaderboard')}
+                aria-label="Leaderboard view"
               >
-                Leaderboard
+                <span className="hidden sm:inline">Leaderboard</span>
+                <span className="sm:hidden">🏆</span>
               </button>
             </div>
           </div>
@@ -944,18 +992,6 @@ export default function SearchResults() {
           {/* Filters Sidebar - Hidden on mobile, shown as drawer */}
           <div className={`filters-sidebar lg:w-1/5 ${showMobileFilters ? 'mobile-filters-open' : ''}`}>
             <div className="sticky top-4">
-              {/* Mobile Filters Header */}
-              <div className="lg:hidden flex items-center justify-between mb-4 p-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold">Filters</h2>
-                <button
-                  onClick={() => setShowMobileFilters(false)}
-                  className="text-2xl leading-none"
-                  style={{ minWidth: '44px', minHeight: '44px' }}
-                >
-                  ×
-                </button>
-              </div>
-
               <ProductFilters
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
@@ -1147,15 +1183,40 @@ export default function SearchResults() {
             ) : (
               // Only show "No products found" if there's also no comparison data
               !searchResults?.comparisonData?.topProducts?.length && (
-                <div className="text-center py-12">
+                <div className="text-center py-12" role="status" aria-live="polite">
                   <div className="text-6xl mb-4 empty-state-icon">🔍</div>
-                  <h3 className="text-xl mb-2 empty-state-title">No products found</h3>
+                  <h3 className="text-xl mb-2 empty-state-title">No products found for "{query}"</h3>
                   <p className="mb-4 empty-state-description">
                     Try adjusting your search filters or search for different terms.
                   </p>
-                  <Button onClick={() => setFilters(DEFAULT_FILTERS)}>
+                  <Button onClick={() => setFilters(DEFAULT_FILTERS)} style={{ minHeight: '44px' }}>
                     Clear All Filters
                   </Button>
+
+                  {/* Suggestions */}
+                  <div className="mt-8 max-w-2xl mx-auto">
+                    <p className="text-lg font-semibold mb-4" style={{color: 'var(--text-primary)'}}>Popular searches:</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {[
+                        { emoji: '💻', text: 'Laptops under $500' },
+                        { emoji: '👟', text: 'Running Shoes' },
+                        { emoji: '👜', text: 'Designer Handbags' },
+                        { emoji: '⌚', text: 'Smart Watches' },
+                        { emoji: '📱', text: 'Smartphones' },
+                        { emoji: '🎮', text: 'Gaming Consoles' }
+                      ].map((suggestion) => (
+                        <button
+                          key={suggestion.text}
+                          onClick={() => router.push(`/buyers/search?q=${encodeURIComponent(suggestion.text)}`)}
+                          className="px-4 py-3 bg-gradient-to-br from-gray-800/50 to-gray-900/50 hover:from-green-800/50 hover:to-green-900/50 border border-gray-700 hover:border-green-600 rounded-lg text-sm transition-all text-left"
+                          style={{ minHeight: '44px' }}
+                        >
+                          <span className="text-2xl mr-2">{suggestion.emoji}</span>
+                          <span>{suggestion.text}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )
             )}

@@ -2276,26 +2276,37 @@ button,
 .filter-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   background: var(--accent-primary);
   color: white;
   border-radius: var(--radius-full);
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
-  margin: var(--space-1);
   cursor: pointer;
   transition: all var(--transition-fast);
   border: none;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .filter-badge:hover {
   background: var(--accent-secondary);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .filter-badge-close {
-  margin-left: var(--space-2);
-  font-weight: bold;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  line-height: 1;
+  opacity: 0.8;
+  transition: opacity var(--transition-fast);
+}
+
+.filter-badge:hover .filter-badge-close {
+  opacity: 1;
 }
 
 .filter-dropdown {
@@ -4503,5 +4514,126 @@ button,
   .cart-badge-link {
     padding: 0.5rem !important; /* Even less padding */
     gap: 0.375rem !important;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY ENHANCEMENTS (WCAG 2.1 AA)
+============================================ */
+
+/* Skip Navigation Link - Hidden until focused */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--accent-primary);
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 0 0 8px 0;
+  z-index: 100000;
+  transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+
+/* Focus Indicators for Keyboard Navigation */
+*:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Enhanced focus for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Special focus for navigation links */
+.nav-link:focus-visible {
+  background: rgba(16, 185, 129, 0.1);
+  outline: 3px solid var(--accent-primary);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* Focus for buttons */
+.btn-modern-primary:focus-visible,
+.btn-modern-secondary:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* Focus for cards */
+.product-card:focus-within {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  transform: translateY(-4px);
+}
+
+/* Screen Reader Only Text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ARIA Live Region Announcements */
+[aria-live] {
+  position: relative;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline-width: 4px;
+    outline-offset: 3px;
+  }
+
+  .btn-modern-primary,
+  .btn-modern-secondary {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .skip-link {
+    transition: none;
+  }
+}
+
+/* Print Styles for Accessibility */
+@media print {
+  .skip-link,
+  .chat-sidebar-toggle,
+  .navbar-toggler {
+    display: none !important;
   }
 }

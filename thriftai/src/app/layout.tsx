@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import CookieBanner from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
   title: "Veritas.ai - Intelligent Shopping Platform",
@@ -62,9 +63,16 @@ export default function RootLayout({
         `}</style>
       </head>
       <body className="App">
+        {/* Skip Navigation Link for Accessibility */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <Providers>
-          {children}
+          <main id="main-content">
+            {children}
+          </main>
         </Providers>
+        <CookieBanner />
         <script
           src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
           async

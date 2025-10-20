@@ -245,10 +245,17 @@ export class TTSService {
         resolve()
       }
 
-      utterance.onerror = (error) => {
-        console.error('❌ Web Speech error:', error)
+      utterance.onerror = (error: any) => {
         this.isSpeaking = false
-        reject(error)
+
+        // Only log if there's meaningful error information
+        if (error?.error && error.error !== 'interrupted') {
+          console.warn('⚠️ Web Speech error:', error.error)
+        }
+
+        // Resolve instead of reject for graceful degradation
+        // This prevents the error from breaking the chat experience
+        resolve()
       }
 
       this.isSpeaking = true

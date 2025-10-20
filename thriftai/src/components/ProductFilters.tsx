@@ -197,16 +197,22 @@ function ProductFilters({
           <div className="filter-section-header" style={{marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)'}}>
             <span>Applied</span>
           </div>
-          <div style={{display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)'}}>
+          <div style={{display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)'}}>
             {filters.categories.map(category => (
               <button
                 key={category}
                 className="filter-badge"
                 onClick={() => handleArrayFilterToggle('categories', category)}
-                style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-1) var(--space-2)' }}
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  padding: 'var(--space-2) var(--space-3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)'
+                }}
               >
-                {availableFilters?.categories.find(c => c.value === category)?.label || category}
-                <span className="filter-badge-close">×</span>
+                <span>{availableFilters?.categories.find(c => c.value === category)?.label || category}</span>
+                <span className="filter-badge-close" style={{ lineHeight: 1 }}>×</span>
               </button>
             ))}
             {filters.brands.map(brand => (
@@ -214,10 +220,16 @@ function ProductFilters({
                 key={brand}
                 className="filter-badge"
                 onClick={() => handleArrayFilterToggle('brands', brand)}
-                style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-1) var(--space-2)' }}
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  padding: 'var(--space-2) var(--space-3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)'
+                }}
               >
-                {brand}
-                <span className="filter-badge-close">×</span>
+                <span>{brand}</span>
+                <span className="filter-badge-close" style={{ lineHeight: 1 }}>×</span>
               </button>
             ))}
             {filters.conditions.map(condition => (
@@ -225,10 +237,16 @@ function ProductFilters({
                 key={condition}
                 className="filter-badge"
                 onClick={() => handleArrayFilterToggle('conditions', condition)}
-                style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-1) var(--space-2)' }}
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  padding: 'var(--space-2) var(--space-3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)'
+                }}
               >
-                {condition}
-                <span className="filter-badge-close">×</span>
+                <span>{condition}</span>
+                <span className="filter-badge-close" style={{ lineHeight: 1 }}>×</span>
               </button>
             ))}
             {filters.sizes.map(size => (
@@ -236,10 +254,16 @@ function ProductFilters({
                 key={size}
                 className="filter-badge"
                 onClick={() => handleArrayFilterToggle('sizes', size)}
-                style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-1) var(--space-2)' }}
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  padding: 'var(--space-2) var(--space-3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)'
+                }}
               >
-                Size {size}
-                <span className="filter-badge-close">×</span>
+                <span>Size {size}</span>
+                <span className="filter-badge-close" style={{ lineHeight: 1 }}>×</span>
               </button>
             ))}
           </div>

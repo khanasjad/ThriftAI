@@ -133,12 +133,13 @@ export default function ProductCard({
       <div className="product-image-container">
         <img
           src={product.images[currentImageIndex] || '/placeholder-image.jpg'}
-          alt={product.title || 'Product image'}
+          alt={`${product.brand} ${product.title} - ${product.specifications?.condition || 'New'} condition, ${product.availability?.inStock ? 'In stock' : 'Out of stock'}, $${currentPrice.toFixed(2)}`}
           className="product-image"
           onLoad={() => setImageLoaded(true)}
           style={{
             opacity: imageLoaded ? 1 : 0
           }}
+          loading="lazy"
         />
 
         {/* Image skeleton while loading */}
@@ -163,6 +164,7 @@ export default function ProductCard({
             <button
               onClick={handlePrevImage}
               className="carousel-arrow carousel-arrow-left"
+              aria-label={`Previous image of ${product.title}`}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
               }}
@@ -175,6 +177,7 @@ export default function ProductCard({
             <button
               onClick={handleNextImage}
               className="carousel-arrow carousel-arrow-right"
+              aria-label={`Next image of ${product.title}`}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
               }}

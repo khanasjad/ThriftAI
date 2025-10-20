@@ -485,7 +485,8 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
           e.currentTarget.style.transform = 'translateY(-50%)'
           e.currentTarget.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.5)'
         }}
-        aria-label={isCollapsed ? 'Expand AI Shopping Advisor' : 'Collapse AI Shopping Advisor'}
+        aria-label={isCollapsed ? 'Open Gus, your AI shopping assistant. Press to expand chat and get personalized recommendations' : 'Close Gus AI shopping assistant chat'}
+        aria-expanded={!isCollapsed}
         title={isCollapsed ? 'Open Gus 👴' : 'Close Gus 👴'}
       >
         {isCollapsed ? (
