@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "mkdir -p public/vad-models && cp node_modules/@ricky0123/vad-web/dist/*.onnx node_modules/@ricky0123/vad-web/dist/vad.worklet.bundle.min.js node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded*.{wasm,mjs} public/vad-models/ 2>/dev/null || true",
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",

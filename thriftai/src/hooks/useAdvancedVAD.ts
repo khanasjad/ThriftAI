@@ -146,6 +146,14 @@ export function useAdvancedVAD({
         redemptionFrames,
         submitUserSpeechOnPause,
 
+        // Asset Configuration - CORRECT API for MicVAD
+        // All files (models + WASM) served from public directory
+        baseAssetPath: '/vad-models/',
+        onnxWASMBasePath: '/vad-models/',
+
+        // Use legacy model (more compatible)
+        model: 'legacy' as const,
+
         // Callbacks
         onSpeechStart: () => {
           console.log('🗣️ Speech detected')
@@ -230,11 +238,17 @@ export function useAdvancedVAD({
     } catch (err: any) {
       console.error('❌ Failed to start VAD:', err)
 
-      let errorMsg = 'Failed to start voice recognition.'
+      let errorMsg = 'Voice recognition is temporarily unavailable.'
+
+      // More specific error messages
       if (err.name === 'NotAllowedError' || err.message?.includes('permission')) {
         errorMsg = 'Microphone access denied. Please enable microphone permissions.'
       } else if (err.name === 'NotFoundError') {
         errorMsg = 'No microphone found. Please connect a microphone.'
+      } else if (err.message?.includes('model') || err.message?.includes('.onnx') || err.message?.includes('wasm')) {
+        // Model loading errors - fail gracefully, voice chat will be disabled
+        console.warn('⚠️ VAD model loading failed, voice features disabled')
+        errorMsg = 'Voice chat is currently unavailable. Please use text chat.'
       } else if (err.message) {
         errorMsg = err.message
       }

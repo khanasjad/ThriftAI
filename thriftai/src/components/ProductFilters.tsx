@@ -11,7 +11,6 @@ interface FilterOption {
 export interface ProductFiltersState {
   categories: string[]
   brands: string[]
-  conditions: string[]
   sizes: string[]
   priceRange: {
     min: number
@@ -27,7 +26,6 @@ interface ProductFiltersProps {
   availableFilters?: {
     categories: FilterOption[]
     brands: FilterOption[]
-    conditions: FilterOption[]
     sizes: FilterOption[]
     priceRange: { min: number; max: number }
   }
@@ -38,7 +36,6 @@ interface ProductFiltersProps {
 const DEFAULT_FILTERS: ProductFiltersState = {
   categories: [],
   brands: [],
-  conditions: [],
   sizes: [],
   priceRange: { min: 0, max: 1000 },
   sortBy: 'relevance',
@@ -61,9 +58,7 @@ function ProductFilters({
   const [categoryOpen, setCategoryOpen] = useState(false)
   const [brandOpen, setBrandOpen] = useState(false)
   const [priceOpen, setPriceOpen] = useState(false)
-  const [conditionOpen, setConditionOpen] = useState(false)
   const [sizeOpen, setSizeOpen] = useState(false)
-  const [showAllConditions, setShowAllConditions] = useState(false)
   const [showAllSizes, setShowAllSizes] = useState(false)
 
   // Update price range only when availableFilters changes
@@ -78,7 +73,7 @@ function ProductFilters({
   }
 
   const handleArrayFilterToggle = (
-    filterType: 'categories' | 'brands' | 'conditions' | 'sizes',
+    filterType: 'categories' | 'brands' | 'sizes',
     value: string
   ) => {
     const currentArray = filters[filterType]
@@ -107,7 +102,6 @@ function ProductFilters({
     return (
       filters.categories.length > 0 ||
       filters.brands.length > 0 ||
-      filters.conditions.length > 0 ||
       filters.sizes.length > 0
     )
   }
@@ -229,23 +223,6 @@ function ProductFilters({
                 }}
               >
                 <span>{brand}</span>
-                <span className="filter-badge-close" style={{ lineHeight: 1 }}>×</span>
-              </button>
-            ))}
-            {filters.conditions.map(condition => (
-              <button
-                key={condition}
-                className="filter-badge"
-                onClick={() => handleArrayFilterToggle('conditions', condition)}
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  padding: 'var(--space-2) var(--space-3)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)'
-                }}
-              >
-                <span>{condition}</span>
                 <span className="filter-badge-close" style={{ lineHeight: 1 }}>×</span>
               </button>
             ))}
@@ -493,68 +470,6 @@ function ProductFilters({
                   </button>
                 )
               })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Condition Section */}
-      {availableFilters?.conditions && availableFilters.conditions.length > 0 && (
-        <div style={{ marginBottom: 'var(--space-3)' }}>
-          <div
-            onClick={() => setConditionOpen(!conditionOpen)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              padding: 'var(--space-2) 0',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-medium)',
-              color: 'var(--text-primary)',
-              userSelect: 'none'
-            }}
-          >
-            <span>Condition</span>
-            <span style={{
-              transform: conditionOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--text-secondary)'
-            }}>▼</span>
-          </div>
-          {conditionOpen && (
-            <div style={{ marginTop: 'var(--space-2)' }}>
-              {(showAllConditions ? availableFilters.conditions : availableFilters.conditions.slice(0, 6)).map((option) => (
-                <div
-                  key={option.value}
-                  className="filter-option"
-                  onClick={() => handleArrayFilterToggle('conditions', option.value)}
-                  style={{ padding: 'var(--space-1) 0', fontSize: 'var(--text-sm)' }}
-                >
-                  <div className={`filter-checkbox ${filters.conditions.includes(option.value) ? 'checked' : ''}`} />
-                  <span className="filter-label" style={{ fontSize: 'var(--text-sm)' }}>{option.label}</span>
-                  {showCounts && <span className="filter-count" style={{ fontSize: 'var(--text-xs)' }}>({option.count})</span>}
-                </div>
-              ))}
-              {availableFilters.conditions.length > 6 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setShowAllConditions(!showAllConditions)
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--accent-primary)',
-                    fontSize: 'var(--text-xs)',
-                    cursor: 'pointer',
-                    padding: 'var(--space-1) 0'
-                  }}
-                >
-                  {showAllConditions ? 'Show Less' : `+ ${availableFilters.conditions.length - 6} more`}
-                </button>
-              )}
             </div>
           )}
         </div>

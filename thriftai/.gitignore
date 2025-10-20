@@ -41,3 +41,5 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+# VAD models (regenerated from node_modules)
+/public/vad-models/*.onnx

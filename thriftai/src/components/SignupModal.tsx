@@ -133,96 +133,119 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, on
               <div className="row">
                 <div className="col-md-6">
                   <div className="form-group-modern">
-                    <label className="form-label-modern">First Name</label>
+                    <label className="form-label-modern" htmlFor="signup-firstName">First Name</label>
                     <input
                       type="text"
+                      id="signup-firstName"
+                      name="firstName"
                       className="input-modern"
                       placeholder="Enter your first name"
                       value={formData.firstName}
                       onChange={(e) => handleInputChange('firstName', e.target.value)}
                       required
+                      autoComplete="given-name"
                     />
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="form-group-modern">
-                    <label className="form-label-modern">Last Name</label>
+                    <label className="form-label-modern" htmlFor="signup-lastName">Last Name</label>
                     <input
                       type="text"
+                      id="signup-lastName"
+                      name="lastName"
                       className="input-modern"
                       placeholder="Enter your last name"
                       value={formData.lastName}
                       onChange={(e) => handleInputChange('lastName', e.target.value)}
                       required
+                      autoComplete="family-name"
                     />
                   </div>
                 </div>
               </div>
               <div className="form-group-modern">
-                <label className="form-label-modern">Email Address</label>
+                <label className="form-label-modern" htmlFor="signup-email">Email Address</label>
                 <input
                   type="email"
+                  id="signup-email"
+                  name="email"
                   className="input-modern"
                   placeholder="Enter your email address"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   required
+                  autoComplete="email"
                 />
               </div>
               <div className="form-group-modern">
-                <label className="form-label-modern">Phone Number</label>
+                <label className="form-label-modern" htmlFor="signup-phone">Phone Number</label>
                 <input
                   type="tel"
+                  id="signup-phone"
+                  name="phone"
                   className="input-modern"
                   placeholder="Enter your phone number"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   required
+                  autoComplete="tel"
                 />
               </div>
               <div className="row">
                 <div className="col-md-6">
                   <div className="form-group-modern">
-                    <label className="form-label-modern">City</label>
+                    <label className="form-label-modern" htmlFor="signup-city">City</label>
                     <input
                       type="text"
+                      id="signup-city"
+                      name="city"
                       className="input-modern"
                       placeholder="Enter your city"
                       value={formData.city}
                       onChange={(e) => handleInputChange('city', e.target.value)}
                       required
+                      autoComplete="address-level2"
                     />
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="form-group-modern">
-                    <label className="form-label-modern">State</label>
+                    <label className="form-label-modern" htmlFor="signup-state">State</label>
                     <input
                       type="text"
+                      id="signup-state"
+                      name="state"
                       className="input-modern"
                       placeholder="Enter your state"
                       value={formData.state}
                       onChange={(e) => handleInputChange('state', e.target.value)}
                       required
+                      autoComplete="address-level1"
                     />
                   </div>
                 </div>
               </div>
               <div className="form-group-modern">
-                <label className="form-label-modern">Password</label>
+                <label className="form-label-modern" htmlFor="signup-password">Password</label>
                 <input
                   type="password"
+                  id="signup-password"
+                  name="password"
                   className="input-modern"
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   required
+                  autoComplete="new-password"
                 />
               </div>
               <div className="form-group-modern">
-                <label className="form-label-modern">Confirm Password</label>
+                <label className="form-label-modern" htmlFor="signup-confirmPassword">Confirm Password</label>
                 <input
                   type="password"
+                  id="signup-confirmPassword"
+                  name="confirmPassword"
                   className="input-modern"
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
@@ -234,11 +257,13 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onHide, onShowLogin, on
                 <input
                   className="form-check-input"
                   type="checkbox"
+                  id="signup-agreeTerms"
+                  name="agreeTerms"
                   checked={formData.agreeTerms}
                   onChange={(e) => handleInputChange('agreeTerms', e.target.checked)}
                   required
                 />
-                <label className="form-check-label" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-family-primary)' }}>
+                <label className="form-check-label" htmlFor="signup-agreeTerms" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-family-primary)' }}>
                   I agree to the{' '}
                   {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
                   <a href="#" style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-family-primary)', textDecoration: 'none' }}>

@@ -113,32 +113,38 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onHide }) => {
             {/* Email/Password Login Form */}
             <form onSubmit={handleEmailLogin}>
               <div className="form-group-modern">
-                <label className="form-label-modern">Email address</label>
+                <label className="form-label-modern" htmlFor="login-email">Email address</label>
                 <input
                   type="email"
+                  id="login-email"
+                  name="email"
                   className="input-modern"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoFocus
+                  autoComplete="email"
                 />
               </div>
               <div className="form-group-modern">
-                <label className="form-label-modern">Password</label>
+                <label className="form-label-modern" htmlFor="login-password">Password</label>
                 <input
                   type="password"
+                  id="login-password"
+                  name="password"
                   className="input-modern"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                 />
               </div>
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="rememberMe" />
-                  <label className="form-check-label text-primary font-primary" htmlFor="rememberMe">Remember me</label>
+                  <input className="form-check-input" type="checkbox" id="login-rememberMe" name="rememberMe" />
+                  <label className="form-check-label text-primary font-primary" htmlFor="login-rememberMe">Remember me</label>
                 </div>
                 <a href="#" className="link-primary">Forgot password?</a>
               </div>

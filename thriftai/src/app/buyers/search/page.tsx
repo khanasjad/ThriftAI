@@ -144,7 +144,6 @@ interface SearchResponse {
 const DEFAULT_FILTERS: ProductFiltersState = {
   categories: [],
   brands: [],
-  conditions: [],
   sizes: [],
   priceRange: { min: 0, max: 1000 },
   sortBy: 'relevance',
@@ -325,7 +324,6 @@ export default function SearchResults() {
         filters: {
           categories: currentFilters.categories,
           brands: currentFilters.brands,
-          conditions: currentFilters.conditions,
           sizes: currentFilters.sizes,
           priceRange: currentFilters.priceRange
         },
@@ -579,7 +577,7 @@ export default function SearchResults() {
           setError('Search failed')
         })
     }
-  }, [filters.sortBy, filters.sortDirection, filters.categories, filters.brands, filters.conditions, filters.sizes, filters.priceRange.min, filters.priceRange.max, currentPage, itemsPerPage])
+  }, [filters.sortBy, filters.sortDirection, filters.categories, filters.brands, filters.sizes, filters.priceRange.min, filters.priceRange.max, currentPage, itemsPerPage])
 
   const handleFiltersChange = (newFilters: ProductFiltersState) => {
     setFilters(newFilters)
@@ -934,26 +932,10 @@ export default function SearchResults() {
               <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                 {searchResults?.metadata.total || 0} results
               </span>
-
-              {/* Mobile Filters Button */}
-              <button
-                className="btn-modern btn-modern-sm btn-modern-outline view-mode-btn lg:hidden"
-                onClick={() => setShowMobileFilters(!showMobileFilters)}
-              >
-                Filters
-                {(filters.categories.length + filters.brands.length + filters.conditions.length + filters.sizes.length > 0) && (
-                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-600 rounded-full">
-                    {filters.categories.length + filters.brands.length + filters.conditions.length + filters.sizes.length}
-                  </span>
-                )}
-              </button>
             </div>
 
             {/* Right: View Mode Controls */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium mr-2 hidden lg:inline" style={{ color: 'var(--text-secondary)' }}>
-                View:
-              </span>
               <button
                 className={`btn-modern btn-modern-sm view-mode-btn ${
                   viewMode === 'grid' ? 'btn-modern-default' : 'btn-modern-outline'

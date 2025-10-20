@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // WASM support for ONNX Runtime (moved from experimental in Next.js 15+)
+  serverExternalPackages: ['onnxruntime-node'],
 };
 
 export default nextConfig;
