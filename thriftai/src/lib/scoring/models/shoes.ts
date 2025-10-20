@@ -1,0 +1,1 @@
+export { ShoesScoringModel } from './default'

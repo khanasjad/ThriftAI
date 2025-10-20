@@ -143,6 +143,7 @@ model Seller {
   onTimeDeliveryRate       Float      @default(0.95)
   responseTimeHours        Float      @default(24.0)
   products                 Product[]
+  companyFinancialMetrics  CompanyFinancialMetrics?  // Phase 2.3: Company financial data
   user                     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([rating])
@@ -157,8 +158,8 @@ model Product {
   name                  String
   category              String
   brand                 String?
-  price                 Float
-  originalPrice         Float                       @default(0.0)
+  price                 Decimal                     @db.Decimal(10, 2)
+  originalPrice         Decimal                     @default(0) @db.Decimal(10, 2)
   condition             String?
   description           String?
   imageUrl              String?
@@ -188,7 +189,7 @@ model Product {
   relevanceScore        Float                       @default(0.0)
   returnPeriodDays      Int                         @default(30)
   searchKeywords        String[]                    @default([])
-  shippingCost          Float                       @default(0.0)
+  shippingCost          Decimal                     @default(0) @db.Decimal(10, 2)
   stockQuantity         Int                         @default(0)
   tags                  String[]                    @default([])
   trendingScore         Float                       @default(0.0)
@@ -201,8 +202,19 @@ model Product {
   aiScoreBreakdown      Json?                       @map("ai_score_breakdown")
   aiConfidence          Decimal?                    @map("ai_confidence") @db.Decimal(3, 2)
   lastScoredAt          DateTime?                   @map("last_scored_at") @db.Timestamp(6)
-  companyMetrics        Json?                       @map("company_metrics")
-  dynamicSpecs          Json?                       @map("dynamic_specs")
+  companyMetrics        Json?                       @map("company_metrics")  // DEPRECATED: Use CompanyFinancialMetrics table
+  dynamicSpecs          Json?                       @map("dynamic_specs")  // DEPRECATED: Use direct columns + ProductAttribute table
+  companyMetricsId      String?                     @map("companyMetricsId")  // Phase 2.3: Link to CompanyFinancialMetrics
+
+  // Phase 2.2: Normalized Product Attributes (Direct Columns for high-frequency attributes)
+  color                 String?                     // 87.5% frequency
+  material              String?                     // 75% frequency
+  productSize           String?                     @map("product_size")  // 50% frequency
+  gender                String?                     // 50% frequency
+  productStyle          String?                     @map("product_style")  // 50% frequency
+  warrantyPeriod        String?                     @map("warranty_period")  // 61.6% frequency
+  durabilityRating      String?                     @map("durability_rating")  // 62.5% frequency
+
   globalRank            Int?                        @map("global_rank")
   categoryRank          Int?                        @map("category_rank")
   priceTierRank         Int?                        @map("price_tier_rank")
@@ -221,6 +233,8 @@ model Product {
   comparisons           ProductComparison[]
   legacyEmbedding       ProductEmbedding?           @relation("LegacyEmbedding")
   views                 ProductView[]
+  attributes            ProductAttribute[]          // Phase 2.2: EAV pattern for variable attributes
+  companyFinancialMetrics CompanyFinancialMetrics?  @relation("ProductCompanyMetrics", fields: [companyMetricsId], references: [id])  // Phase 2.3
   companyProfile        VeritasCompanyProfile?      @relation(fields: [companyProfileId], references: [id])
   productSpec           VeritasProductSpec?         @relation(fields: [productSpecId], references: [id])
   securityPolicy        VeritasSecurityPolicy?      @relation(fields: [securityPolicyId], references: [id])
@@ -262,6 +276,7 @@ model Product {
   @@index([productSpecId])
   @@index([sellerProfileId])
   @@index([securityPolicyId])
+  @@index([companyMetricsId])
   @@map("products")
 }
 
@@ -282,10 +297,10 @@ model Order {
   id                   String        @id @default(cuid())
   buyerId              String
   sessionId            String?
-  subtotal             Float
-  tax                  Float
-  shipping             Float
-  total                Float
+  subtotal             Decimal       @db.Decimal(10, 2)
+  tax                  Decimal       @db.Decimal(10, 2)
+  shipping             Decimal       @db.Decimal(10, 2)
+  total                Decimal       @db.Decimal(10, 2)
   status               OrderStatus   @default(PENDING)
   paymentStatus        PaymentStatus @default(PENDING)
   paymentMethod        String?
@@ -1610,4 +1625,256 @@ model PriceHistory {
   @@index([recordedAt])
   @@index([source])
   @@map("price_history")
+}
+
+/// Phase 2.2: Product Attributes (EAV Pattern)
+/// Flexible schema for variable product attributes
+/// Normalized from dynamic_specs JSON field
+model ProductAttribute {
+  id             String              @id @default(cuid())
+  productId      String              @map("productId")
+  attributeKey   String              @map("attribute_key")
+  attributeValue String              @map("attribute_value")
+  valueType      AttributeValueType  @map("value_type") @default(STRING)
+  category       String?
+  isSearchable   Boolean             @default(true) @map("is_searchable")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, attributeKey], name: "uq_product_attribute")
+  @@index([productId])
+  @@index([attributeKey])
+  @@index([attributeValue])
+  @@index([attributeKey, attributeValue])
+  @@index([category, attributeKey])
+  @@map("product_attributes")
+}
+
+/// Phase 2.2: Attribute Definitions Registry
+/// Centralized metadata for all product attributes
+/// Enables validation, UI generation, and self-documenting schema
+model AttributeDefinition {
+  id                   String              @id
+  attributeKey         String              @unique @map("attribute_key")
+  displayName          String              @map("display_name")
+  description          String?
+  valueType            AttributeValueType  @map("value_type") @default(STRING)
+  applicableCategories String[]            @map("applicable_categories")
+  isSearchable         Boolean             @default(true) @map("is_searchable")
+  isFilterable         Boolean             @default(true) @map("is_filterable")
+  validationRegex      String?             @map("validation_regex")
+  unit                 String?
+  sortOrder            Int                 @default(100) @map("sort_order")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  @@index([attributeKey])
+  @@index([isSearchable])
+  @@map("attribute_definitions")
+}
+
+/// Phase 2.2: Attribute Value Type Enum
+/// Type safety for product attribute values
+enum AttributeValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+/// Phase 2.3: Company Financial Metrics
+/// Normalized company/seller financial data (one record per seller)
+/// Eliminates redundancy from company_metrics JSON field
+model CompanyFinancialMetrics {
+  id                   String    @id @default(cuid())
+  sellerId             String    @unique @map("sellerId")
+
+  // Financial Metrics
+  stockPrice           Decimal?  @db.Decimal(12, 2) @map("stockPrice")
+  marketCap            Decimal?  @db.Decimal(18, 2) @map("marketCap")
+  profitMargin         Decimal?  @db.Decimal(5, 2) @map("profitMargin")
+  revenueGrowth        Decimal?  @db.Decimal(5, 2) @map("revenueGrowth")
+  debtToEquity         Decimal?  @db.Decimal(8, 2) @map("debtToEquity")
+
+  // Performance Metrics
+  stockPerformance30d  Decimal?  @db.Decimal(6, 2) @map("stockPerformance30d")
+  stockPerformance1y   Decimal?  @db.Decimal(6, 2) @map("stockPerformance1y")
+
+  // Trust & Reputation
+  creditRating         String?   @map("creditRating")
+
+  // Metadata
+  dataSource           String?   @map("dataSource")
+  lastUpdated          DateTime? @map("lastUpdated")
+  createdAt            DateTime  @default(now()) @map("createdAt")
+  updatedAt            DateTime  @updatedAt @map("updatedAt")
+
+  // Relations
+  seller               Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  products             Product[] @relation("ProductCompanyMetrics")
+
+  @@index([sellerId])
+  @@index([creditRating])
+  @@index([stockPerformance30d])
+  @@index([stockPerformance1y])
+  @@index([marketCap])
+  @@index([lastUpdated])
+  @@map("company_financial_metrics")
+}
+
+// ============================================================================
+// Phase 3.5: A/B Testing Framework
+// ============================================================================
+
+/// Experiment Status Enum
+/// Tracks lifecycle of A/B tests
+enum ExperimentStatus {
+  DRAFT      // Experiment being designed
+  ACTIVE     // Currently running
+  PAUSED     // Temporarily paused
+  COMPLETED  // Finished, results analyzed
+  ARCHIVED   // Historical record
+}
+
+/// A/B Test Experiments
+/// Core experiment configuration and results
+model AbExperiment {
+  id                  String            @id @default(cuid())
+  name                String
+  description         String?
+  hypothesis          String?
+
+  // Experiment configuration
+  startDate           DateTime?         @map("start_date")
+  endDate             DateTime?         @map("end_date")
+  durationDays        Int               @map("duration_days")
+
+  // Status and metadata
+  status              ExperimentStatus  @default(DRAFT)
+  controlVariantId    String?           @map("control_variant_id")
+
+  // Metrics
+  primaryMetric       String            @map("primary_metric")
+  secondaryMetrics    Json?             @map("secondary_metrics")
+
+  // Statistical settings
+  confidenceLevel     Decimal           @default(0.95) @db.Decimal(3, 2) @map("confidence_level")
+  minimumSampleSize   Int               @default(1000) @map("minimum_sample_size")
+
+  // Results
+  results             Json?
+  winnerVariantId     String?           @map("winner_variant_id")
+
+  // Audit fields
+  createdBy           String?           @map("created_by")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  variants            AbVariant[]
+  assignments         AbAssignment[]
+  events              AbEvent[]
+
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([createdAt])
+  @@map("ab_experiments")
+}
+
+/// A/B Test Variants
+/// Control and treatment configurations
+model AbVariant {
+  id                  String        @id @default(cuid())
+  experimentId        String        @map("experiment_id")
+  name                String
+  description         String?
+
+  // Traffic allocation
+  trafficPercentage   Int           @map("traffic_percentage")
+
+  // Variant configuration (weights, algorithm changes, etc.)
+  config              Json
+
+  // Control flag
+  isControl           Boolean       @default(false) @map("is_control")
+
+  // Cached statistics (for performance)
+  userCount           Int           @default(0) @map("user_count")
+  conversionCount     Int           @default(0) @map("conversion_count")
+  totalRevenue        Decimal       @default(0) @db.Decimal(12, 2) @map("total_revenue")
+
+  createdAt           DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  experiment          AbExperiment  @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  assignments         AbAssignment[]
+  events              AbEvent[]
+
+  @@unique([experimentId, name], name: "uq_experiment_variant_name")
+  @@index([experimentId])
+  @@index([isControl])
+  @@map("ab_variants")
+}
+
+/// A/B Test User Assignments
+/// Tracks which users are assigned to which variants
+model AbAssignment {
+  id                  String        @id @default(cuid())
+  experimentId        String        @map("experiment_id")
+  userId              String        @map("user_id")
+  variantId           String        @map("variant_id")
+
+  // Assignment details
+  assignedAt          DateTime      @default(now()) @map("assigned_at")
+  assignedBy          String        @default("system") @map("assigned_by")
+
+  // Session tracking
+  sessionId           String?       @map("session_id")
+
+  // Relations
+  experiment          AbExperiment  @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant             AbVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, userId], name: "uq_experiment_user")
+  @@index([experimentId])
+  @@index([userId])
+  @@index([variantId])
+  @@index([assignedAt])
+  @@map("ab_assignments")
+}
+
+/// A/B Test Events
+/// Event tracking for experiment analysis (partitioned by month)
+/// Note: Partitioned table - use raw SQL for queries involving large date ranges
+model AbEvent {
+  id                  String        @id @default(cuid())
+  experimentId        String        @map("experiment_id")
+  userId              String        @map("user_id")
+  variantId           String        @map("variant_id")
+
+  // Event details
+  eventType           String        @map("event_type")
+  eventName           String?       @map("event_name")
+  eventData           Json?         @map("event_data")
+
+  // Timing
+  createdAt           DateTime      @default(now()) @map("created_at")
+
+  // Session tracking
+  sessionId           String?       @map("session_id")
+
+  // Partitioning key for performance
+  eventDate           DateTime      @default(now()) @map("event_date") @db.Date
+
+  // Relations
+  experiment          AbExperiment  @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant             AbVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, eventDate])
+  @@index([variantId, eventType, eventDate])
+  @@index([userId, eventDate])
+  @@index([eventType, eventDate])
+  @@map("ab_events")
 }

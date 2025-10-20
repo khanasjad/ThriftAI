@@ -1,0 +1,1 @@
+export { AccessoriesScoringModel } from './default'

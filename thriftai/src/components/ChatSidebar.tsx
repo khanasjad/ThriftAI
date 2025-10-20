@@ -450,6 +450,8 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
     <>
       {/* Collapse/Expand Button */}
       <button
+        className="chat-sidebar-toggle"
+        data-collapsed={isCollapsed}
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()

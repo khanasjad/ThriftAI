@@ -1,0 +1,1 @@
+export { HomeScoringModel } from './default'

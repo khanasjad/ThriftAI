@@ -4485,6 +4485,13 @@ button,
   }
 }
 
+/* Fix ChatSidebar toggle button overlap on medium laptops (1024px-1200px) */
+@media (min-width: 1024px) and (max-width: 1200px) {
+  .chat-sidebar-toggle[data-collapsed="false"] {
+    right: calc(420px + 20px) !important; /* Move button right when sidebar is open */
+  }
+}
+
 /* ============================================
    CartBadge Responsive Design
    ============================================ */
