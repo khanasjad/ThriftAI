@@ -185,7 +185,7 @@ export class AIReviewSummarizer {
       .join('\n\n')
 
     const response = await this.anthropic!.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 800,
       temperature: 0.2, // Low temperature for consistent analysis
       system: REVIEW_SUMMARY_PROMPT,

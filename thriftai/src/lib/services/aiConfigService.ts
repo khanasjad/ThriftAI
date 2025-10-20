@@ -23,12 +23,12 @@ export class AIConfigService {
         where: { key, is_active: true }
       })
 
-      const value = config?.value || 'claude-3-haiku-20240307' // Fallback
+      const value = config?.value || 'claude-3-5-haiku-20241022' // Fallback
       this.setCache(key, value)
       return value
     } catch (error) {
       logger.error(`Failed to load AI model config for ${useCase}`, { error })
-      return 'claude-3-haiku-20240307' // Fallback
+      return 'claude-3-5-haiku-20241022' // Fallback
     }
   }
 

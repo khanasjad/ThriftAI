@@ -70,8 +70,15 @@ export class SearchOptimizer {
         processingTime
       }
 
-    } catch (error) {
-      console.error('Error optimizing query with Claude:', error)
+    } catch (error: any) {
+      // Log the ACTUAL error details from Claude API
+      console.error('❌ Claude search optimization failed:', {
+        message: error?.message || 'Unknown error',
+        status: error?.status || error?.statusCode,
+        type: error?.type || error?.error?.type,
+        details: error?.error?.message || error?.details || JSON.stringify(error).substring(0, 500),
+        query: query
+      })
 
       // Fallback to basic optimization
       return this.getFallbackOptimization(query, Date.now() - startTime)
@@ -88,7 +95,7 @@ export class SearchOptimizer {
     const prompt = this.buildClaudePrompt(query, userProfile, contextHints, basicAttributes, preliminaryIntent)
 
     const message = await this.anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
+      model: "claude-3-5-haiku-20241022",
       max_tokens: 1000,
       temperature: 0.3, // Lower temperature for more consistent results
       messages: [{

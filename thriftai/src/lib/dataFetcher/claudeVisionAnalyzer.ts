@@ -69,7 +69,7 @@ export async function analyzeProductImages(
     const imageUrl = options.imageUrls[0]
 
     const message = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-3-5-haiku-20241022",
       max_tokens: 2048,
       messages: [{
         role: "user",

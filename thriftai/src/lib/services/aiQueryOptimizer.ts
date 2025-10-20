@@ -98,7 +98,7 @@ export class AIQueryOptimizer {
       logger.info('🤖 Optimizing query with Claude AI', { query: userQuery })
 
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 500,
         temperature: 0.1,
         system: QUERY_OPTIMIZATION_PROMPT,

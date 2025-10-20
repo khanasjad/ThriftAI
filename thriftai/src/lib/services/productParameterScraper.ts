@@ -162,7 +162,7 @@ EXAMPLE OUTPUT FORMAT:
 Extract specifications for ${brand} ${productName}:`
 
       const result = await generateText({
-        model: anthropic('claude-3-5-sonnet-20241022'),
+        model: anthropic('claude-3-5-haiku-20241022'),
         prompt,
         temperature: 0.1, // Low temperature for factual extraction
         maxTokens: 2000

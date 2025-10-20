@@ -307,7 +307,7 @@ I found ${products.length} great secondhand items matching your search. Here are
           processingTime: perf.checkpoints.no_results_response,
           scoringVersion: '1.0',
           confidence: queryOptimization.confidence,
-          aiModelsUsed: ['claude-3-haiku-20240307'],
+          aiModelsUsed: ['claude-3-5-haiku-20241022'],
           requestId,
           performanceMetrics: perf.checkpoints,
           configUsed: config,
@@ -392,7 +392,7 @@ I found ${products.length} great secondhand items matching your search. Here are
             processingTime: productProcessingTime,
             confidence: scores.confidence,
             scoringVersion: '1.0',
-            aiModelUsed: ['claude-3-haiku-20240307', 'productScoringEngine-v1.0'],
+            aiModelUsed: ['claude-3-5-haiku-20241022', 'productScoringEngine-v1.0'],
             featuresUsed: extractUsedFeatures(config)
           },
           recommendations
@@ -459,7 +459,7 @@ I found ${products.length} great secondhand items matching your search. Here are
         processingTime: totalProcessingTime,
         scoringVersion: '1.0',
         confidence: queryOptimization.confidence,
-        aiModelsUsed: ['claude-3-haiku-20240307'],
+        aiModelsUsed: ['claude-3-5-haiku-20241022'],
         requestId,
         performanceMetrics: perf.checkpoints,
         configUsed: config,

@@ -151,7 +151,7 @@ IMPORTANT:
       logger.info('🤖 Calling Claude Haiku for intelligent analysis...')
 
       const response = await this.client.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 4000,
         temperature: 0.3,
         system: 'You are an expert shopping advisor. Provide honest, helpful product analysis in valid JSON format.',
@@ -205,8 +205,14 @@ IMPORTANT:
         recommendations: analysis.recommendations || []
       }
 
-    } catch (error) {
-      logger.error('❌ Intelligent ranking failed', { error })
+    } catch (error: any) {
+      // Log the ACTUAL error details from Claude API
+      logger.error('❌ Intelligent ranking failed', {
+        message: error?.message || 'Unknown error',
+        status: error?.status || error?.statusCode,
+        type: error?.type || error?.error?.type,
+        details: error?.error?.message || error?.details || JSON.stringify(error).substring(0, 500)
+      })
 
       // Fallback: return products with basic scoring
       return {

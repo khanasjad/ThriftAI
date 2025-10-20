@@ -586,9 +586,15 @@ Return ONLY valid JSON, no other text.`
       // All intelligence comes from the system prompt and available categories from database
 
       return filters
-    } catch (error) {
+    } catch (error: any) {
+      // Log the ACTUAL error details from Claude API
       logger.error('❌ Structured query generation failed, using fallback', {
-        error: error instanceof Error ? error.message : String(error)
+        message: error?.message || 'Unknown error',
+        status: error?.status || error?.statusCode,
+        type: error?.type || error?.error?.type,
+        details: error?.error?.message || error?.details || JSON.stringify(error).substring(0, 500),
+        query: userMessage,
+        apiKeyConfigured: !!this.anthropic
       })
       return this.fallbackGeneration(userMessage)
     }

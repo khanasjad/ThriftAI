@@ -67,7 +67,7 @@ export class AIAnalysisService {
     const prompt = this.buildAnalysisPrompt(product, userContext, contextHints)
 
     const message = await this.anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
+      model: "claude-3-5-haiku-20241022",
       max_tokens: 1500,
       temperature: 0.4, // Balanced creativity and consistency
       messages: [{

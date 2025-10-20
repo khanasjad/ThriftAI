@@ -183,12 +183,15 @@ export class ClaudeIntentExtractor {
       })
 
       return intent
-    } catch (error) {
+    } catch (error: any) {
+      // Log the ACTUAL error details from Claude API
       logger.error('Claude intent extraction failed, using fallback', {
-        error: error instanceof Error ? error.message : String(error),
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        errorStack: error instanceof Error ? error.stack : undefined,
-        apiKeyConfigured: !!this.anthropic
+        message: error?.message || 'Unknown error',
+        status: error?.status || error?.statusCode,
+        type: error?.type || error?.error?.type,
+        details: error?.error?.message || error?.details || JSON.stringify(error).substring(0, 500),
+        apiKeyConfigured: !!this.anthropic,
+        errorStack: error instanceof Error ? error.stack : undefined
       })
       return await this.fallbackExtraction(context)
     }

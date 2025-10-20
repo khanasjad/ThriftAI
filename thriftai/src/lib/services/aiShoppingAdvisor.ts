@@ -181,7 +181,7 @@ Please provide comprehensive shopping advice including:
 Keep your tone friendly, helpful, and enthusiastic about thrift shopping!`
 
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 2000,
         temperature: 0.7,
         system: SHOPPING_ADVISOR_PROMPT,

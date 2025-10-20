@@ -16,7 +16,7 @@ const apiConfigSchema = z.object({
     anthropic: z.object({
       apiKey: z.string().optional(),
       baseUrl: z.string().url().default('https://api.anthropic.com'),
-      model: z.string().default('claude-3-sonnet-20240229'),
+      model: z.string().default('claude-3-5-haiku-20241022'),
       maxTokens: z.number().min(100).max(4000).default(1000),
       timeout: z.number().min(5000).max(60000).default(30000),
       retries: z.number().min(0).max(5).default(3),
@@ -115,7 +115,7 @@ const getApiConfigFromEnv = (): ApiConfig => {
       anthropic: {
         apiKey: process.env.ANTHROPIC_API_KEY?.startsWith('sk-ant-') ? process.env.ANTHROPIC_API_KEY : undefined,
         baseUrl: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
-        model: process.env.ANTHROPIC_MODEL || 'claude-3-sonnet-20240229',
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
         maxTokens: Number(process.env.ANTHROPIC_MAX_TOKENS) || 1000,
         timeout: Number(process.env.ANTHROPIC_TIMEOUT) || 30000,
         retries: Number(process.env.ANTHROPIC_RETRIES) || 3,

@@ -190,7 +190,7 @@ export class AIService {
           console.log(`🔍 Claude Search: query="${query}", found ${products.length} products:`, productData)
 
           const message = await this.anthropic.messages.create({
-            model: "claude-3-haiku-20240307",
+            model: "claude-3-5-haiku-20241022",
             max_tokens: 1000,
             temperature: 0.7,
             messages: [{
@@ -230,7 +230,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
 
             try {
               const retryMessage = await this.anthropic.messages.create({
-                model: "claude-3-haiku-20240307", // Fallback to faster model
+                model: "claude-3-5-haiku-20241022", // Fallback to faster model
                 max_tokens: 600,
                 messages: [{
                   role: "user",
@@ -564,7 +564,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
 
     try {
       const message = await this.anthropic.messages.create({
-        model: "claude-3-haiku-20240307",
+        model: "claude-3-5-haiku-20241022",
         max_tokens: 200,
         messages: [{
           role: "user",

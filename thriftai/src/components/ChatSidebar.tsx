@@ -61,7 +61,7 @@ export default function ChatSidebar({ onCollapseChange, pageContext, onProductsF
 
     try {
       await ttsService.speak(text, {
-        provider: 'elevenlabs', // ElevenLabs for ultra-realistic American voice
+        provider: 'webspeech', // Free Web Speech API (no API key needed)
         rate: 1.0, // Normal conversational speed - natural and human
         pitch: 1.0, // Natural American pitch - warm and friendly
         volume: 0.85

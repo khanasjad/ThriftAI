@@ -31,7 +31,7 @@ export class TTSService {
     this.cancel()
 
     const {
-      provider = 'elevenlabs', // Default to ElevenLabs for ultra-realistic voice
+      provider = 'webspeech', // Default to free Web Speech API (no API key needed)
       rate = 1.0, // Natural conversational speed
       pitch = 1.0, // Natural American pitch
       volume = 0.85
