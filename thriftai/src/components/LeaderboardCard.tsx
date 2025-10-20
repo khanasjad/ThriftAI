@@ -79,6 +79,18 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
   const [thresholds, setThresholds] = useState<ScoreThreshold[]>([])
   const [veritasScore, setVeritasScore] = useState<any>(null)
   const [loadingVeritas, setLoadingVeritas] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     // Fetch score thresholds from API
@@ -153,34 +165,163 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
       <div
         onClick={onToggleExpand}
         style={{
-          padding: '1.5rem',
+          padding: isMobile ? '1rem' : '1.5rem',
           cursor: 'pointer',
-          display: 'grid',
-          gridTemplateColumns: '60px 1fr auto',
-          gap: '1.5rem',
-          alignItems: 'center'
+          display: isMobile ? 'flex' : 'grid',
+          flexDirection: isMobile ? 'column' : undefined,
+          gridTemplateColumns: isMobile ? undefined : '60px 1fr auto',
+          gap: isMobile ? '1rem' : '1.5rem',
+          alignItems: isMobile ? 'stretch' : 'center'
         }}
       >
-        {/* Rank */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
-          background: rank === 1 ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' :
-                      rank === 2 ? 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%)' :
-                      rank === 3 ? 'linear-gradient(135deg, #d97706 0%, #92400e 100%)' :
-                      'rgba(255, 255, 255, 0.05)',
-          fontSize: '1.5rem',
-          fontWeight: '700'
-        }}>
-          {rank}
-        </div>
+        {/* Mobile: Row with Rank, Info, and Score */}
+        {isMobile ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* Rank */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '50px',
+                height: '50px',
+                flexShrink: 0,
+                borderRadius: '50%',
+                background: rank === 1 ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' :
+                            rank === 2 ? 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%)' :
+                            rank === 3 ? 'linear-gradient(135deg, #d97706 0%, #92400e 100%)' :
+                            'rgba(255, 255, 255, 0.05)',
+                fontSize: '1.25rem',
+                fontWeight: '700'
+              }}>
+                {rank}
+              </div>
 
-        {/* Product Info */}
-        <div>
+              {/* Product Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{
+                  margin: 0,
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {product.name.replace(/#\d+$/, '')}
+                </h3>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-secondary)',
+                  marginTop: '0.25rem'
+                }}>
+                  <span style={{
+                    padding: '0.125rem 0.5rem',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: 'var(--accent-primary)',
+                    borderRadius: '4px',
+                    fontSize: '0.625rem',
+                    fontWeight: '600'
+                  }}>
+                    {product.category?.replace(/_/g, ' ') || 'General'}
+                  </span>
+                  <span>${displayPrice}</span>
+                </div>
+              </div>
+
+              {/* Score */}
+              <div style={{
+                textAlign: 'right',
+                flexShrink: 0
+              }}>
+                <div style={{
+                  fontSize: '1.5rem',
+                  fontWeight: '700',
+                  color: getScoreColor(product.veritasScore || 0)
+                }}>
+                  {(product.veritasScore || 0).toFixed(1)}
+                </div>
+                <div style={{
+                  fontSize: '0.625rem',
+                  color: 'var(--text-tertiary)',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Veritas™
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile: Second Row with Details and Actions */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              fontSize: '0.75rem',
+              color: 'var(--text-secondary)',
+              paddingLeft: '66px' // Align with product info above
+            }}>
+              <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
+                <span>Brand: {product.brand || 'Unknown'}</span>
+                <span>{product.condition || 'Good'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/products/${product.id}`)
+                  }}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                  }}
+                  title="View Full Details"
+                  aria-label="View product details"
+                >
+                  <Eye size={16} style={{ color: 'white' }} />
+                </button>
+                {isExpanded ? (
+                  <ChevronUp size={20} style={{ color: 'var(--text-tertiary)' }} />
+                ) : (
+                  <ChevronDown size={20} style={{ color: 'var(--text-tertiary)' }} />
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Desktop Layout */}
+            {/* Rank */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: rank === 1 ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' :
+                          rank === 2 ? 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%)' :
+                          rank === 3 ? 'linear-gradient(135deg, #d97706 0%, #92400e 100%)' :
+                          'rgba(255, 255, 255, 0.05)',
+              fontSize: '1.5rem',
+              fontWeight: '700'
+            }}>
+              {rank}
+            </div>
+
+            {/* Product Info */}
+            <div>
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -217,82 +358,84 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
           </div>
         </div>
 
-        {/* Score Badge & Actions */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem'
-        }}>
-          <div style={{
-            textAlign: 'right'
-          }}>
+            {/* Score Badge & Actions */}
             <div style={{
-              fontSize: '2rem',
-              fontWeight: '700',
-              color: getScoreColor(product.veritasScore || 0)
-            }}>
-              {(product.veritasScore || 0).toFixed(1)}
-            </div>
-            <div style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)'
-            }}>
-              Veritas Score™
-            </div>
-          </div>
-
-          {/* View Details Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              router.push(`/products/${product.id}`)
-            }}
-            style={{
-              width: '44px',
-              height: '44px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-            }}
-            title="View Full Details"
-            aria-label="View product details"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)'
-            }}
-          >
-            <Eye size={20} style={{ color: 'white' }} />
-          </button>
+              gap: '1rem'
+            }}>
+              <div style={{
+                textAlign: 'right'
+              }}>
+                <div style={{
+                  fontSize: '2rem',
+                  fontWeight: '700',
+                  color: getScoreColor(product.veritasScore || 0)
+                }}>
+                  {(product.veritasScore || 0).toFixed(1)}
+                </div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-tertiary)'
+                }}>
+                  Veritas Score™
+                </div>
+              </div>
 
-          {isExpanded ? (
-            <ChevronUp size={24} style={{ color: 'var(--text-tertiary)' }} />
-          ) : (
-            <ChevronDown size={24} style={{ color: 'var(--text-tertiary)' }} />
-          )}
-        </div>
+              {/* View Details Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  router.push(`/products/${product.id}`)
+                }}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                }}
+                title="View Full Details"
+                aria-label="View product details"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)'
+                }}
+              >
+                <Eye size={20} style={{ color: 'white' }} />
+              </button>
+
+              {isExpanded ? (
+                <ChevronUp size={24} style={{ color: 'var(--text-tertiary)' }} />
+              ) : (
+                <ChevronDown size={24} style={{ color: 'var(--text-tertiary)' }} />
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Expanded Details */}
       {isExpanded && (
         <div style={{
-          padding: '0 1.5rem 1.5rem',
+          padding: isMobile ? '0 1rem 1rem' : '0 1.5rem 1.5rem',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
             gap: '1rem',
-            marginTop: '1.5rem'
+            marginTop: isMobile ? '1rem' : '1.5rem'
           }}>
             {/* Score Components */}
             <div style={{
@@ -503,8 +646,8 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
               <div style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 borderRadius: '8px',
-                padding: '1rem',
-                gridColumn: '1 / -1'
+                padding: isMobile ? '0.75rem' : '1rem',
+                gridColumn: isMobile ? undefined : '1 / -1'
               }}>
                 <h4 style={{
                   margin: '0 0 1rem 0',
