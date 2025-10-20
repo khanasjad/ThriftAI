@@ -233,26 +233,39 @@ export async function POST(request: NextRequest) {
           intelligenceAnalysis.rankedProducts.map(rp => [rp.id, rp])
         )
 
-        // Add intelligence metadata to products (preserve original product structure)
-        rerankedProducts = intelligenceAnalysis.rankedProducts.map(rp => {
-          const originalProduct = results.products.find(p => (p.id || p.asin) === rp.id)
-          if (!originalProduct) return null
+        // ✅ FIX: Add intelligence metadata to ALL products, not just ranked ones
+        // This ensures we keep all products even if AI only ranks a subset
+        rerankedProducts = results.products.map(p => {
+          const productId = p.id || p.asin
+          const rankedInfo = rankedProductsMap.get(productId)
 
-          // IMPORTANT: Spread originalProduct first, then add ONLY intelligence fields
-          // Do NOT spread rp as it has incompatible price structure
-          return {
-            ...originalProduct,
-            intelligenceScore: rp.intelligenceScore,
-            reasoning: rp.reasoning,
-            pros: rp.pros,
-            cons: rp.cons,
-            bestFor: rp.bestFor,
-            intelligenceRank: rp.rank
+          // If this product was ranked by AI, add intelligence metadata
+          if (rankedInfo) {
+            return {
+              ...p,
+              intelligenceScore: rankedInfo.intelligenceScore,
+              reasoning: rankedInfo.reasoning,
+              pros: rankedInfo.pros,
+              cons: rankedInfo.cons,
+              bestFor: rankedInfo.bestFor,
+              intelligenceRank: rankedInfo.rank
+            }
           }
-        }).filter(Boolean)
+
+          // Product wasn't ranked by AI, return as-is
+          return p
+        })
+
+        // Sort: AI-ranked products first (by rank), then unranked products
+        rerankedProducts.sort((a, b) => {
+          const aRank = a.intelligenceRank || Infinity
+          const bRank = b.intelligenceRank || Infinity
+          return aRank - bRank
+        })
 
         logger.info('✅ Intelligent ranking applied', {
-          rerankedCount: rerankedProducts.length,
+          totalProducts: rerankedProducts.length,
+          rankedProducts: intelligenceAnalysis.rankedProducts.length,
           topProduct: rerankedProducts[0]?.name,
           topScore: rerankedProducts[0]?.intelligenceScore
         })
