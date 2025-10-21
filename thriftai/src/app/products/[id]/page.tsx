@@ -138,8 +138,14 @@ export default function ProductDetailPage() {
   const productName = product.name || product.title || 'Unnamed Product'
   const productBrand = product.brand || 'Unknown'
   const productCategory = product.category || 'General'
-  const productPrice = product.price?.current || product.price || 0
-  const productOriginalPrice = product.originalPrice || product.price?.original || productPrice
+
+  // Extract prices with proper fallbacks
+  let rawPrice = Number(typeof product.price === 'object' ? (product.price?.current ?? 0) : (typeof product.price === 'number' ? product.price : 0))
+  const rawOriginalPrice = Number(product.originalPrice || (typeof product.price === 'object' ? product.price?.original : 0) || 0)
+
+  // If current price is 0 or invalid, use original price as current price
+  const productPrice = rawPrice > 0 ? rawPrice : rawOriginalPrice
+  const productOriginalPrice = rawOriginalPrice > productPrice ? rawOriginalPrice : productPrice
   const productRating = product.rating || product.reviews?.rating || 0
   const productReviewCount = product.reviewCount || product.reviews?.count || 0
   const productCondition = product.condition || product.specifications?.condition || 'N/A'
@@ -644,10 +650,29 @@ export default function ProductDetailPage() {
             {enrichedData?.veritasScore && (
               <div style={{
                 padding: '24px',
-                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-                border: '1px solid rgba(102, 126, 234, 0.3)',
+                background: enrichedData.veritasScore >= 90
+                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 50%, rgba(4, 120, 87, 0.15) 100%)'
+                  : enrichedData.veritasScore >= 80
+                  ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.15) 50%, rgba(29, 78, 216, 0.15) 100%)'
+                  : enrichedData.veritasScore >= 70
+                  ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.15) 50%, rgba(109, 40, 217, 0.15) 100%)'
+                  : 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.15) 50%, rgba(180, 83, 9, 0.15) 100%)',
+                border: enrichedData.veritasScore >= 90
+                  ? '2px solid rgba(16, 185, 129, 0.4)'
+                  : enrichedData.veritasScore >= 80
+                  ? '2px solid rgba(59, 130, 246, 0.4)'
+                  : enrichedData.veritasScore >= 70
+                  ? '2px solid rgba(139, 92, 246, 0.4)'
+                  : '2px solid rgba(245, 158, 11, 0.4)',
                 borderRadius: '16px',
-                marginBottom: '32px'
+                marginBottom: '32px',
+                boxShadow: enrichedData.veritasScore >= 90
+                  ? '0 8px 32px rgba(16, 185, 129, 0.2), 0 0 40px rgba(16, 185, 129, 0.1)'
+                  : enrichedData.veritasScore >= 80
+                  ? '0 8px 32px rgba(59, 130, 246, 0.2), 0 0 40px rgba(59, 130, 246, 0.1)'
+                  : enrichedData.veritasScore >= 70
+                  ? '0 8px 32px rgba(139, 92, 246, 0.2), 0 0 40px rgba(139, 92, 246, 0.1)'
+                  : '0 8px 32px rgba(245, 158, 11, 0.2), 0 0 40px rgba(245, 158, 11, 0.1)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                   <Award size={24} color="var(--accent-primary)" />
@@ -660,13 +685,26 @@ export default function ProductDetailPage() {
                     width: '80px',
                     height: '80px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+                    background: enrichedData.veritasScore >= 90
+                      ? 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)'
+                      : enrichedData.veritasScore >= 80
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)'
+                      : enrichedData.veritasScore >= 70
+                      ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)'
+                      : 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'white',
                     fontSize: '28px',
-                    fontWeight: '700'
+                    fontWeight: '700',
+                    boxShadow: enrichedData.veritasScore >= 90
+                      ? '0 8px 24px rgba(16, 185, 129, 0.4), 0 0 40px rgba(16, 185, 129, 0.2)'
+                      : enrichedData.veritasScore >= 80
+                      ? '0 8px 24px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2)'
+                      : enrichedData.veritasScore >= 70
+                      ? '0 8px 24px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2)'
+                      : '0 8px 24px rgba(245, 158, 11, 0.4), 0 0 40px rgba(245, 158, 11, 0.2)'
                   }}>
                     {Math.round(enrichedData.veritasScore)}
                   </div>

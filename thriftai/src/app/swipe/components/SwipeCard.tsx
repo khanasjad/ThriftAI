@@ -12,6 +12,7 @@ interface SwipeCardProps {
   product: SwipeProduct
   onSwipeLeft: () => void
   onSwipeRight: () => void
+  onSwipeUp: () => void
   onViewDetails: () => void
   onAddToCart?: () => void
   style?: React.CSSProperties
@@ -24,6 +25,7 @@ export function SwipeCard({
   product,
   onSwipeLeft,
   onSwipeRight,
+  onSwipeUp,
   onViewDetails,
   onAddToCart,
   style,
@@ -44,6 +46,9 @@ export function SwipeCard({
       onSwipeRight()
     } else if (direction === 'left') {
       onSwipeLeft()
+    } else if (direction === 'up') {
+      vibrate([10, 30, 10, 50]) // Special vibration for Super Like
+      onSwipeUp()
     }
   }
 
@@ -99,7 +104,7 @@ export function SwipeCard({
       ref={cardRef}
       onSwipe={handleSwipe}
       onCardLeftScreen={handleCardLeftScreen}
-      preventSwipe={active ? [] : ['up', 'down', 'left', 'right']}
+      preventSwipe={active ? ['down'] : ['up', 'down', 'left', 'right']}
       swipeRequirementType="position"
       swipeThreshold={100}
       className={cn(
@@ -114,10 +119,11 @@ export function SwipeCard({
         style={{
           boxShadow: '0 20px 60px rgba(102, 126, 234, 0.25), 0 8px 24px rgba(118, 75, 162, 0.15), 0 0 80px rgba(102, 126, 234, 0.1)',
           display: 'grid',
-          gridTemplateRows: '450px 1fr 140px',
+          gridTemplateRows: 'minmax(300px, 55%) 1fr auto',
           position: 'relative',
           transform: 'translateZ(0)',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          paddingBottom: 'env(safe-area-inset-bottom)'
         }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -139,10 +145,17 @@ export function SwipeCard({
           NOPE
         </div>
 
-        {/* Image Section - Row 1 of grid (FIXED HEIGHT, NO ABSOLUTE POSITIONING) */}
-        <div className="w-full bg-white" style={{ gridRow: 1, height: '450px', overflow: 'hidden' }}>
+        <div
+          className="fixed top-20 left-1/2 -translate-x-1/2 px-10 py-3 rounded-lg font-black text-5xl text-[#3b82f6] border-4 border-[#3b82f6] bg-white/20 backdrop-blur-sm opacity-0 swipe-super-indicator tracking-wider pointer-events-none"
+          style={{ zIndex: 9999 }}
+        >
+          ⭐ SUPER LIKE
+        </div>
+
+        {/* Image Section - Row 1 of grid (RESPONSIVE HEIGHT) */}
+        <div className="w-full bg-white" style={{ gridRow: 1, overflow: 'hidden', minHeight: '300px' }}>
           {/* Image frame with padding */}
-          <div className="w-full h-full p-4">
+          <div className="w-full h-full p-3 sm:p-4">
             <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl overflow-hidden flex items-center justify-center" style={{
               boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.04)'
             }}>
@@ -157,12 +170,48 @@ export function SwipeCard({
 
           {/* Engagement Badges - Top Left (outside frame) */}
           <div className="absolute top-6 left-6 flex flex-col gap-2 z-20">
+            {/* Veritas Score Badge - Colorful Gradient */}
+            {product.veritasScore && (
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                className="px-3 py-2 rounded-xl text-xs font-black backdrop-blur-sm border border-white/30 shadow-lg"
+                style={{
+                  background: product.veritasScore.score >= 90
+                    ? 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)'
+                    : product.veritasScore.score >= 80
+                    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)'
+                    : product.veritasScore.score >= 70
+                    ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)'
+                    : 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
+                  color: '#fff',
+                  boxShadow: product.veritasScore.score >= 90
+                    ? '0 4px 20px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.3)'
+                    : product.veritasScore.score >= 80
+                    ? '0 4px 20px rgba(59, 130, 246, 0.5), 0 0 30px rgba(59, 130, 246, 0.3)'
+                    : product.veritasScore.score >= 70
+                    ? '0 4px 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(139, 92, 246, 0.3)'
+                    : '0 4px 20px rgba(245, 158, 11, 0.5), 0 0 30px rgba(245, 158, 11, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px'
+                }}
+              >
+                <div style={{ fontSize: '0.65rem', opacity: 0.9 }}>VERITAS</div>
+                <div style={{ fontSize: '1.25rem', lineHeight: 1, fontWeight: 900 }}>
+                  {Math.round(product.veritasScore.score)}
+                </div>
+              </motion.div>
+            )}
+
             {/* Hot Deal Badge */}
             {discount >= 50 && (
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
                 className="px-3 py-1.5 rounded-xl text-xs font-black backdrop-blur-sm border border-white/30 shadow-lg"
                 style={{
                   background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
@@ -227,7 +276,7 @@ export function SwipeCard({
                     e.stopPropagation()
                     handlePrevImage()
                   }}
-                  className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-all z-20 border border-gray-200/50"
+                  className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 min-w-[48px] min-h-[48px] w-12 h-12 sm:w-14 sm:h-14 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-all z-20 border border-gray-200/50"
                   style={{
                     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)'
                   }}
@@ -251,7 +300,7 @@ export function SwipeCard({
                     e.stopPropagation()
                     handleNextImage()
                   }}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-all z-20 border border-gray-200/50"
+                  className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 min-w-[48px] min-h-[48px] w-12 h-12 sm:w-14 sm:h-14 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-all z-20 border border-gray-200/50"
                   style={{
                     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)'
                   }}
@@ -422,8 +471,9 @@ export function SwipeCard({
                     }}
                     style={{
                       flex: 1,
-                      height: '56px',
-                      borderRadius: '16px',
+                      minHeight: '52px',
+                      height: '52px',
+                      borderRadius: '14px',
                       background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                       border: 'none',
                       color: '#ffffff',
@@ -462,8 +512,9 @@ export function SwipeCard({
                   }}
                   style={{
                     flex: 1,
-                    height: '56px',
-                    borderRadius: '16px',
+                    minHeight: '52px',
+                    height: '52px',
+                    borderRadius: '14px',
                     background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                     border: 'none',
                     color: '#ffffff',
@@ -503,8 +554,9 @@ export function SwipeCard({
                   }}
                   style={{
                     flex: 1,
-                    height: '56px',
-                    borderRadius: '16px',
+                    minHeight: '52px',
+                    height: '52px',
+                    borderRadius: '14px',
                     background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
                     border: 'none',
                     color: '#ffffff',
@@ -541,8 +593,9 @@ export function SwipeCard({
                   }}
                   style={{
                     flex: 1,
-                    height: '56px',
-                    borderRadius: '16px',
+                    minHeight: '52px',
+                    height: '52px',
+                    borderRadius: '14px',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     border: 'none',
                     color: '#ffffff',

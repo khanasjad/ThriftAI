@@ -36,6 +36,7 @@ export default function SwipePage() {
     setProducts,
     swipeLeft,
     swipeRight,
+    swipeUp,
     undoSwipe,
     toggleFilters,
     toggleCart,
@@ -160,7 +161,13 @@ export default function SwipePage() {
     swipeRight(product)
   }
 
-  // Handle view details - Open modal instead of navigating
+  // Handle swipe up (super like)
+  const handleSwipeUp = (product: any) => {
+    recordSwipeAction(product.id, 'LIKE', currentIndex) // Record as LIKE but also track as super like
+    swipeUp(product)
+  }
+
+  // Handle view details - Navigate to product detail page
   const handleViewDetails = (product: any) => {
     if (!sessionId) return
 
@@ -176,8 +183,8 @@ export default function SwipePage() {
       })
     }).catch(console.error)
 
-    // Open product detail modal
-    openProductDetail(product)
+    // Navigate to product detail page
+    router.push(`/products/${product.id}`)
   }
 
   // Handle modal actions
@@ -194,8 +201,8 @@ export default function SwipePage() {
   }
 
   return (
-    <div className="App" style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Animated Gradient Mesh Background */}
+    <div className="App" style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
+      {/* Animated Gradient Mesh Background - Layer 1 */}
       <div style={{
         position: 'fixed',
         top: 0,
@@ -207,6 +214,19 @@ export default function SwipePage() {
         backgroundSize: '400% 400%',
         animation: 'gradientShift 15s ease infinite',
         opacity: 0.15
+      }} />
+
+      {/* Animated Gradient Mesh Background - Layer 2 (Veritas Colors) */}
+      <div style={{
+        position: 'fixed',
+        top: '-50%',
+        left: '-50%',
+        width: '200%',
+        height: '200%',
+        zIndex: 0,
+        background: 'radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%), radial-gradient(circle at 40% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%)',
+        animation: 'meshFloat 20s ease-in-out infinite',
+        pointerEvents: 'none'
       }} />
 
       {/* Radial Gradient Overlay for Depth */}
@@ -370,6 +390,7 @@ export default function SwipePage() {
                   currentIndex={currentIndex}
                   onSwipeLeft={handleSwipeLeft}
                   onSwipeRight={handleSwipeRight}
+                  onSwipeUp={handleSwipeUp}
                   onViewDetails={handleViewDetails}
                   onUndo={undoSwipe}
                   canUndo={swipeHistory.length > 0 && currentIndex > 0}

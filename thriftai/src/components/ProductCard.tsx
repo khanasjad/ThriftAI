@@ -73,9 +73,14 @@ export default function ProductCard({
   const [imageLoaded, setImageLoaded] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
-  const currentPrice = product.price?.current ?? product.price ?? 0
-  const originalPrice = product.price?.original ?? currentPrice
-  const discount = product.price?.discountPercentage ?? 0
+  // Extract prices with proper fallbacks
+  let rawPrice = Number(typeof product.price === 'object' ? (product.price?.current ?? 0) : (typeof product.price === 'number' ? product.price : 0))
+  const rawOriginalPrice = Number(typeof product.price === 'object' ? (product.price?.original ?? 0) : (product.originalPrice ?? 0))
+
+  // If current price is 0 or invalid, use original price as current price
+  const currentPrice = rawPrice > 0 ? rawPrice : rawOriginalPrice
+  const originalPrice = rawOriginalPrice > currentPrice ? rawOriginalPrice : currentPrice
+  const discount = originalPrice > currentPrice && currentPrice > 0 ? Math.round((1 - currentPrice / originalPrice) * 100) : Number(typeof product.price === 'object' ? (product.price?.discountPercentage ?? 0) : 0)
   const hasVeritasScore = product.veritasScore !== undefined && product.veritasScore !== null
   const hasMultipleImages = product.images && product.images.length > 1
 
@@ -237,8 +242,31 @@ export default function ProductCard({
 
           {/* Veritas Score Badge */}
           {hasVeritasScore && (
-            <div className={`px-2 py-1 rounded-md text-xs font-semibold text-white ${getVeritasScoreColor(product.veritasScore!)}`}>
-              Veritas: {product.veritasScore!.toFixed(0)}
+            <div
+              className="px-2 py-1.5 rounded-xl text-xs font-black text-white"
+              style={{
+                background: product.veritasScore! >= 90
+                  ? 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)'
+                  : product.veritasScore! >= 80
+                  ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)'
+                  : product.veritasScore! >= 70
+                  ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)'
+                  : 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
+                boxShadow: product.veritasScore! >= 90
+                  ? '0 4px 12px rgba(16, 185, 129, 0.4)'
+                  : product.veritasScore! >= 80
+                  ? '0 4px 12px rgba(59, 130, 246, 0.4)'
+                  : product.veritasScore! >= 70
+                  ? '0 4px 12px rgba(139, 92, 246, 0.4)'
+                  : '0 4px 12px rgba(245, 158, 11, 0.4)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '1px'
+              }}
+            >
+              <div style={{ fontSize: '0.6rem', opacity: 0.85 }}>VERITAS</div>
+              <div style={{ fontSize: '0.95rem', lineHeight: 1 }}>{product.veritasScore!.toFixed(0)}</div>
             </div>
           )}
 

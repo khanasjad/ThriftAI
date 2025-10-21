@@ -37,6 +37,9 @@ interface SwipeStoreState {
   // Liked products
   likedProducts: SwipeProduct[]
 
+  // Super liked products (priority favorites)
+  superLikedProducts: SwipeProduct[]
+
   // Swipe history for undo functionality
   swipeHistory: SwipeAction[]
 
@@ -56,6 +59,7 @@ interface SwipeStoreState {
   // Swipe actions
   swipeLeft: () => void
   swipeRight: (product: SwipeProduct) => void
+  swipeUp: (product: SwipeProduct) => void
   undoSwipe: () => void
 
   // Liked product actions
@@ -82,6 +86,9 @@ export const useSwipeStore = create<SwipeStoreState>()(
 
       // Liked products
       likedProducts: [],
+
+      // Super liked products
+      superLikedProducts: [],
 
       // Swipe history
       swipeHistory: [],
@@ -135,6 +142,20 @@ export const useSwipeStore = create<SwipeStoreState>()(
             swipeHistory: [...swipeHistory, { product, action: 'LIKE', timestamp: Date.now() }]
           })
         }
+      },
+
+      swipeUp: (product) => {
+        const { currentIndex, likedProducts, superLikedProducts, swipeHistory } = get()
+        // Add to both liked and super liked if not already there
+        const newLiked = likedProducts.some(p => p.id === product.id) ? likedProducts : [...likedProducts, product]
+        const newSuperLiked = superLikedProducts.some(p => p.id === product.id) ? superLikedProducts : [...superLikedProducts, product]
+
+        set({
+          currentIndex: currentIndex + 1,
+          likedProducts: newLiked,
+          superLikedProducts: newSuperLiked,
+          swipeHistory: [...swipeHistory, { product, action: 'LIKE', timestamp: Date.now() }]
+        })
       },
 
       undoSwipe: () => {
@@ -205,6 +226,7 @@ export const useSwipeStore = create<SwipeStoreState>()(
       partialPersist: true,
       partialize: (state) => ({
         likedProducts: state.likedProducts,
+        superLikedProducts: state.superLikedProducts,
         sessionId: state.sessionId,
         filters: state.filters,
         products: state.products,

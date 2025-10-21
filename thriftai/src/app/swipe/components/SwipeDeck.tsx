@@ -12,6 +12,7 @@ interface SwipeDeckProps {
   currentIndex: number
   onSwipeLeft: (product: SwipeProduct) => void
   onSwipeRight: (product: SwipeProduct) => void
+  onSwipeUp: (product: SwipeProduct) => void
   onViewDetails: (product: SwipeProduct) => void
   onUndo?: () => void
   canUndo?: boolean
@@ -29,6 +30,7 @@ export function SwipeDeck({
   currentIndex,
   onSwipeLeft,
   onSwipeRight,
+  onSwipeUp,
   onViewDetails,
   onUndo,
   canUndo = false,
@@ -48,6 +50,11 @@ export function SwipeDeck({
   const handleSwipeRight = (product: SwipeProduct) => {
     onSwipeRight(product)
     vibrate([10, 50])
+  }
+
+  const handleSwipeUp = (product: SwipeProduct) => {
+    onSwipeUp(product)
+    vibrate([10, 30, 10, 50]) // Special vibration pattern for Super Like
   }
 
   // Programmatic swipe via button
@@ -116,7 +123,7 @@ export function SwipeDeck({
   // No more products - Tinder style with AI recommendations
   if (visibleCards.length === 0) {
     return (
-      <div className="h-[calc(100vh-56px)] lg:h-[876px] flex items-center justify-center px-6">
+      <div className="h-[calc(100dvh-180px)] flex items-center justify-center px-6">
         <div className="text-center max-w-md">
           <motion.div
             initial={{ scale: 0 }}
@@ -188,8 +195,9 @@ export function SwipeDeck({
   const progressPercent = totalCards > 0 ? (currentIndex / totalCards) * 100 : 0
 
   return (
-    <div className="h-[calc(100vh-56px)] lg:h-[876px] flex flex-col" style={{
-      background: 'transparent'
+    <div className="h-[calc(100dvh-180px)] flex flex-col" style={{
+      background: 'transparent',
+      paddingBottom: 'env(safe-area-inset-bottom)'
     }}>
       {/* Progress Indicator */}
       <div className="px-4 pt-2 pb-3">
@@ -255,6 +263,7 @@ export function SwipeDeck({
                   product={product}
                   onSwipeLeft={() => handleSwipeLeft(product)}
                   onSwipeRight={() => handleSwipeRight(product)}
+                  onSwipeUp={() => handleSwipeUp(product)}
                   onViewDetails={() => onViewDetails(product)}
                   onAddToCart={onAddToCart ? () => onAddToCart(product) : undefined}
                   index={cardIndex}

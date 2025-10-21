@@ -186,13 +186,33 @@ export async function POST(request: NextRequest) {
       qualityProducts: qualityProducts.length
     })
 
+    // Helper to parse images from database
+    const parseImages = (imageUrl: string | null): string[] => {
+      if (!imageUrl) return ['/placeholder-image.jpg']
+
+      // Check if it's a JSON array string
+      if (imageUrl.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(imageUrl)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed
+          }
+        } catch {
+          // If JSON parse fails, treat as single URL
+        }
+      }
+
+      // Single URL
+      return [imageUrl]
+    }
+
     // Transform products for swipe interface with Veritas score metadata
     const swipeProducts = topProducts.map(p => ({
       id: p.id,
       name: p.name,
       price: p.price || 0,
       originalPrice: p.originalPrice,
-      images: p.imageUrl ? [p.imageUrl] : ['/placeholder-image.jpg'],
+      images: parseImages(p.imageUrl),
       brand: p.brand,
       category: p.category,
       condition: p.condition,
