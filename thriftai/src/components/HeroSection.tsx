@@ -290,6 +290,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
               Discover amazing finds with{' '}
               <span className="text-gradient-primary">Veritas.ai</span>
             </h1>
+            <p className="text-secondary mb-0" style={{ fontSize: '1.1rem', lineHeight: '1.6', fontStyle: 'italic', fontWeight: 700, opacity: 0.9, maxWidth: '700px', margin: '0.75rem auto 0 auto' }}>
+              Because AI doesn't take sponsorship deals.<br />
+              No influencers were harmed in the making of these scores.<br />
+              Unpaid, unbiased, and unapologetically accurate.
+            </p>
           </div>
         </div>
 
@@ -430,21 +435,21 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                   ? selectedCategory.name
                   : 'Browse by Category'}
               </h2>
-              <p style={{
-                fontSize: 'clamp(0.8rem, 1.5vw, 0.9rem)',
-                color: 'var(--text-secondary)',
-                maxWidth: '650px',
-                margin: '0 auto',
-                fontWeight: 500,
-                lineHeight: 1.4,
-                opacity: 0.85
-              }}>
-                {selectedSubcategory
-                  ? 'Choose the specific type you\'re looking for'
-                  : selectedCategory
-                  ? 'Select a subcategory to refine your search'
-                  : 'Discover amazing products across our curated collections'}
-              </p>
+              {(selectedSubcategory || selectedCategory) && (
+                <p style={{
+                  fontSize: 'clamp(0.8rem, 1.5vw, 0.9rem)',
+                  color: 'var(--text-secondary)',
+                  maxWidth: '650px',
+                  margin: '0 auto',
+                  fontWeight: 500,
+                  lineHeight: 1.4,
+                  opacity: 0.85
+                }}>
+                  {selectedSubcategory
+                    ? 'Choose the specific type you\'re looking for'
+                    : 'Select a subcategory to refine your search'}
+                </p>
+              )}
             </div>
           </div>
 

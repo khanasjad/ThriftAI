@@ -250,16 +250,15 @@ export default function SwipePage() {
         />
 
         {/* Swipe Container */}
-        <div className="container py-5" style={{ minHeight: 'calc(100vh - 200px)' }}>
-        <div className="row justify-content-center">
-          <div className="col-12 col-lg-8 col-xl-6">
+        <div style={{ width: '100%', maxWidth: '500px', margin: '0 auto', padding: '0.5rem 0' }}>
             {/* Header Section with Likes - Glass Morphism */}
             {!showWizard && (
-              <div className="d-flex align-items-center justify-content-between mb-4" style={{
+              <div className="d-flex align-items-center justify-content-between" style={{
                 background: 'rgba(255, 255, 255, 0.7)',
                 backdropFilter: 'blur(20px)',
                 borderRadius: '16px',
-                padding: '1.5rem',
+                padding: '1rem',
+                margin: '0 0.75rem 0.75rem 0.75rem',
                 border: '1px solid rgba(255, 255, 255, 0.5)',
                 boxShadow: '0 8px 32px rgba(102, 126, 234, 0.1)'
               }}>
@@ -324,22 +323,22 @@ export default function SwipePage() {
               overflow: 'visible',
               minHeight: '600px'
             }}>
-          <AnimatePresence mode="wait">
-            {/* Filter Wizard */}
-            {showWizard && (
-              <FilterWizard onComplete={initializeSession} onSkip={handleSkipWizard} />
-            )}
+              <AnimatePresence mode="wait">
+                {/* Filter Wizard */}
+                {showWizard && (
+                  <FilterWizard onComplete={initializeSession} onSkip={handleSkipWizard} />
+                )}
 
-              {/* Loading State */}
-              {isLoading && !showWizard && (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="d-flex align-items-center justify-content-center"
-                  style={{minHeight: '600px'}}
-                >
+                {/* Loading State */}
+                {isLoading && !showWizard && (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="d-flex align-items-center justify-content-center"
+                    style={{minHeight: '600px'}}
+                  >
                   <div className="text-center">
                     <motion.div
                       animate={{ rotate: 360 }}
@@ -396,11 +395,9 @@ export default function SwipePage() {
                   canUndo={swipeHistory.length > 0 && currentIndex > 0}
                 />
               )}
-            </AnimatePresence>
+              </AnimatePresence>
             </div>
-          </div>
         </div>
-      </div>
 
         <Footer />
 
