@@ -17,6 +17,27 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
   const router = useRouter()
   const { likedProducts, removeFromLiked, clearLiked } = useSwipeStore()
 
+  // Helper function to validate image URL
+  const getValidImageUrl = (product: SwipeProduct): string => {
+    try {
+      if (
+        product.images &&
+        product.images.length > 0 &&
+        product.images[0] &&
+        typeof product.images[0] === 'string'
+      ) {
+        const url = product.images[0].trim()
+        // Check if URL is valid (starts with http/https or /)
+        if (url.length > 0 && (url.startsWith('http') || url.startsWith('/'))) {
+          return url
+        }
+      }
+    } catch (error) {
+      console.error('Invalid image URL:', error)
+    }
+    return '/placeholder-image.jpg'
+  }
+
   const totalPrice = likedProducts.reduce((sum, product) => sum + product.price, 0)
   const totalSavings = likedProducts.reduce((sum, product) => {
     if (product.originalPrice && product.originalPrice > product.price) {
@@ -127,7 +148,7 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
                           className="relative w-24 h-24 flex-shrink-0 rounded-2xl overflow-hidden bg-gray-900 shadow-lg"
                         >
                           <Image
-                            src={product.images[0] || '/placeholder-image.jpg'}
+                            src={getValidImageUrl(product)}
                             alt={product.name}
                             fill
                             className="object-cover group-hover:scale-110 transition-transform duration-300"

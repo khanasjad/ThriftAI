@@ -195,7 +195,7 @@ export function SwipeDeck({
   const progressPercent = totalCards > 0 ? (currentIndex / totalCards) * 100 : 0
 
   return (
-    <div className="h-[calc(100dvh-180px)] flex flex-col" style={{
+    <div className="flex flex-col" style={{
       background: 'transparent',
       paddingBottom: 'env(safe-area-inset-bottom)'
     }}>
@@ -220,31 +220,37 @@ export function SwipeDeck({
       </div>
 
       {/* Card Stack - Takes most space */}
-      <div className="flex-1 relative px-2 pt-2 pb-2">
+      <div
+        className="relative"
+        style={{
+          height: 'calc(100dvh - 280px)',
+          minHeight: '520px',
+          maxHeight: '720px',
+          padding: '8px'
+        }}
+      >
         <AnimatePresence>
           {visibleCards.map((product, index) => {
             const isTop = index === 0
             const cardIndex = currentIndex + index
 
+            // Only show the top card (hide stacked cards behind it)
+            if (index > 0) return null
+
             return (
               <motion.div
                 key={product.id}
                 initial={{
-                  scale: 1 - index * 0.03,
-                  y: index * 6,
-                  opacity: 0,
-                  rotateZ: index * 2
+                  scale: 0.95,
+                  opacity: 0
                 }}
                 animate={{
-                  scale: 1 - index * 0.03,
-                  y: index * 6,
-                  opacity: 1,
-                  rotateZ: 0
+                  scale: 1,
+                  opacity: 1
                 }}
                 exit={{
                   scale: 0.8,
                   opacity: 0,
-                  rotateZ: 10,
                   transition: { duration: 0.2 }
                 }}
                 transition={{
@@ -278,64 +284,11 @@ export function SwipeDeck({
         </AnimatePresence>
       </div>
 
-      {/* Action Buttons - LinkedIn/Tinder Style */}
-      <div className="pb-6 px-4">
-        <div className="flex items-center justify-center gap-4">
-          {/* Skip Button */}
-          <motion.button
-            onClick={handleButtonSwipeLeft}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center shadow-lg"
-            style={{
-              background: 'linear-gradient(135deg, #fff 0%, #f5f5f5 100%)',
-              border: '2px solid #ef4444'
-            }}
-            aria-label="Skip"
-          >
-            <X className="w-7 h-7 lg:w-8 lg:h-8 text-red-500" strokeWidth={2.5} />
-          </motion.button>
-
-          {/* Undo Button */}
-          <motion.button
-            onClick={onUndo}
-            disabled={!canUndo}
-            whileHover={canUndo ? { scale: 1.1 } : {}}
-            whileTap={canUndo ? { scale: 0.95 } : {}}
-            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full flex items-center justify-center shadow-md"
-            style={{
-              background: canUndo
-                ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
-                : '#e5e7eb',
-              opacity: canUndo ? 1 : 0.5,
-              cursor: canUndo ? 'pointer' : 'not-allowed'
-            }}
-            aria-label="Undo"
-          >
-            <RotateCcw className="w-5 h-5 lg:w-6 lg:h-6" style={{ color: canUndo ? '#fff' : '#9ca3af' }} strokeWidth={2.5} />
-          </motion.button>
-
-          {/* Like Button */}
-          <motion.button
-            onClick={handleButtonSwipeRight}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center shadow-lg"
-            style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-            }}
-            aria-label="Like"
-          >
-            <Heart className="w-7 h-7 lg:w-8 lg:h-8 text-white" fill="white" strokeWidth={2} />
-          </motion.button>
-        </div>
-
-        {/* Hint Text */}
-        <div className="text-center mt-4">
-          <p className="text-xs text-gray-500">
-            Swipe, click buttons, or use arrow keys • Press Z to undo
-          </p>
-        </div>
+      {/* Hint Text */}
+      <div className="text-center pb-6 px-4">
+        <p className="text-xs text-gray-500">
+          Swipe or use arrow keys • Press Z to undo
+        </p>
       </div>
     </div>
   )
