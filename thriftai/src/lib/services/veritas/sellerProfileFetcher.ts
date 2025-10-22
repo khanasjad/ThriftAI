@@ -35,6 +35,12 @@ class SellerProfileFetcherService {
     sellerIdentifier: string,
     platform: string = 'ebay'
   ): Promise<string> {
+    // Handle undefined/null seller identifier
+    if (!sellerIdentifier) {
+      logger.warn('sellerIdentifier is undefined or empty, using default seller')
+      sellerIdentifier = 'unknown_seller'
+    }
+
     // Normalize identifier
     const normalizedSeller = sellerIdentifier.trim()
 

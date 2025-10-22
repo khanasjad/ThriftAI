@@ -7,7 +7,6 @@ import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import { FilterWizard } from './components/FilterWizard'
 import { SwipeDeck } from './components/SwipeDeck'
-import { SwipeCart } from './components/SwipeCart'
 import { ProductDetailModal } from './components/ProductDetailModal'
 import { useSwipeStore, SwipeFilters } from '@/lib/stores/swipeStore'
 import { ShoppingBag, RotateCcw, Sparkles, Camera, Sliders, Mic } from 'lucide-react'
@@ -27,7 +26,6 @@ export default function SwipePage() {
     likedProducts,
     isLoading,
     showFilters,
-    showCart,
     showProductDetail,
     selectedProduct,
     swipeHistory,
@@ -39,7 +37,6 @@ export default function SwipePage() {
     swipeUp,
     undoSwipe,
     toggleFilters,
-    toggleCart,
     resetSession,
     openProductDetail,
     closeProductDetail
@@ -278,7 +275,7 @@ export default function SwipePage() {
                 </div>
                 <div className="d-flex gap-2">
                   <button
-                    onClick={toggleCart}
+                    onClick={() => router.push('/swipe/likes')}
                     className="btn position-relative"
                     style={{
                       padding: '0.75rem 1.25rem',
@@ -400,10 +397,6 @@ export default function SwipePage() {
         </div>
 
         <Footer />
-
-
-        {/* Cart Drawer */}
-        <SwipeCart open={showCart} onClose={toggleCart} />
 
         {/* Product Detail Modal */}
         <ProductDetailModal

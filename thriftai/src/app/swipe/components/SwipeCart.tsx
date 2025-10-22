@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Drawer } from 'vaul'
+import { SimpleDrawer } from '@/components/ui/SimpleDrawer'
 import { SwipeProduct, useSwipeStore } from '@/lib/stores/swipeStore'
 import { X, ShoppingCart, Heart, Sparkles, ArrowRight, Trash2 } from 'lucide-react'
 import { formatPrice, calculateDiscount } from '@/lib/utils/cn'
@@ -58,20 +58,15 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
   }
 
   return (
-    <Drawer.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40" />
-        <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col bg-gray-900 rounded-t-[2rem] max-h-[90vh] border-t border-gray-800/50 shadow-2xl">
-          {/* Handle */}
-          <div className="flex items-center justify-center py-4">
-            <div className="w-14 h-1.5 bg-gray-700 rounded-full" />
-          </div>
+    <SimpleDrawer open={open} onClose={onClose}>
+      <div className="flex flex-col h-full">
+        {/* Handle */}
+        <div className="flex items-center justify-center py-4 flex-shrink-0">
+          <div className="w-14 h-1.5 bg-gray-700 rounded-full" />
+        </div>
 
-          {/* Header */}
-          <div className="px-6 pb-5 border-b border-gray-800/50">
-            <Drawer.Title className="sr-only">
-              Liked Items Cart - {likedProducts.length} {likedProducts.length === 1 ? 'item' : 'items'}
-            </Drawer.Title>
+        {/* Header */}
+        <div className="px-6 pb-5 border-b border-gray-800/50 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-emerald-500/30">
@@ -96,7 +91,7 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4" style={{ minHeight: '200px' }}>
             <AnimatePresence mode="popLayout">
               {likedProducts.length === 0 ? (
                 /* Empty State */
@@ -210,7 +205,7 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
 
           {/* Footer */}
           {likedProducts.length > 0 && (
-            <div className="px-6 py-5 bg-gray-900/95 backdrop-blur-xl border-t border-gray-800/50">
+            <div className="px-6 py-5 bg-gray-900/95 backdrop-blur-xl border-t border-gray-800/50 flex-shrink-0">
               {/* Summary */}
               <div className="mb-5 space-y-2">
                 <div className="flex items-center justify-between">
@@ -265,8 +260,7 @@ export function SwipeCart({ open, onClose }: SwipeCartProps) {
               </p>
             </div>
           )}
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+      </div>
+    </SimpleDrawer>
   )
 }

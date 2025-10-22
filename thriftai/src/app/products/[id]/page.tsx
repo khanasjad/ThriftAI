@@ -158,7 +158,7 @@ export default function ProductDetailPage() {
     { icon: '🏷️', label: 'Category', value: productCategory },
     { icon: '⭐', label: 'Rating', value: productRating > 0 ? `${productRating.toFixed(1)}/5` : 'No ratings yet' },
     { icon: '🚚', label: 'Availability', value: isAvailable ? 'In Stock' : 'Out of Stock' },
-    { icon: '📍', label: 'Shipping', value: product.hasFreeShipping ? 'Free Shipping' : `$${(product.shippingCost || 0).toFixed(2)}` },
+    { icon: '📍', label: 'Shipping', value: product.hasFreeShipping ? 'Free Shipping' : `$${Number(product.shippingCost || 0).toFixed(2)}` },
     { icon: '🎁', label: 'Delivery', value: `${product.estimatedDeliveryDays || 5} days` },
     { icon: '🔄', label: 'Returns', value: product.hasFreeReturns ? 'Free Returns' : `${product.returnPeriodDays || 30} days` }
   ]
@@ -876,7 +876,7 @@ export default function ProductDetailPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>Shipping:</span>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                    {product.hasFreeShipping ? 'Free' : `$${(product.shippingCost || 0).toFixed(2)}`}
+                    {product.hasFreeShipping ? 'Free' : `$${Number(product.shippingCost || 0).toFixed(2)}`}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
