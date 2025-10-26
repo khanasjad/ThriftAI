@@ -79,6 +79,12 @@ import {
   calculateStockPerformanceScore,
 } from '@/lib/dataFetcher'
 
+// Import web scrapers
+import { getAppleProductSpecs } from '@/lib/scrapers/AppleScraper'
+
+// Import parameter estimator for smart fallbacks
+import { parameterEstimator, type ProductContext } from './parameterEstimator'
+
 // Import relational data fetchers
 import { companyProfileFetcher } from './veritas/companyProfileFetcher'
 import { sellerProfileFetcher } from './veritas/sellerProfileFetcher'
@@ -1032,11 +1038,19 @@ export class VeritasScoreService {
     }
 
     // Try to fetch Repairability Score from iFixit (FREE API)
+    console.log(`[VeritasScore] Attempting to fetch repairability from iFixit for: ${product.name}`)
     try {
       const repairabilityResult = await getRepairability(product.name)
 
+      console.log(`[VeritasScore] iFixit result:`, { success: repairabilityResult.success, cached: repairabilityResult.cached, hasData: !!repairabilityResult.data })
+
       if (repairabilityResult.success && repairabilityResult.data) {
         const repair = repairabilityResult.data
+        console.log(`[VeritasScore] ✅ Got repairability from iFixit:`, {
+          score: repair.repairabilityScore,
+          difficulty: repair.difficulty,
+          partsAvailable: repair.partsAvailable
+        })
 
         // Repairability Score (0-10 scale, normalize to 0-100)
         parameters.push(this.calculateParameter(
@@ -1060,60 +1074,187 @@ export class VeritasScoreService {
           repairabilityResult.cached ? 0.95 : 0.90
         ))
       } else {
-        // Fallback if iFixit data not available
-        parameters.push(this.calculateParameter(
-          'Repairability Score',
-          'SUS_REPAIRABILITY',
-          null,
-          () => 65,
-          0.20,
-          'ifixit',
-          0.50
-        ))
+        console.log(`[VeritasScore] ⚠️ iFixit returned no data for: ${product.name}`)
 
-        parameters.push(this.calculateParameter(
-          'Replacement Parts Availability',
-          'SUS_PARTS_AVAILABLE',
-          null,
-          () => 65,
-          0.10,
-          'ifixit',
-          0.50
-        ))
+        // WATERFALL STEP 2: Try scraper (for Apple products)
+        const isAppleProduct = product.brand?.toLowerCase() === 'apple'
+        let scraperSuccess = false
+
+        if (isAppleProduct) {
+          console.log(`[VeritasScore] 🔄 Trying Apple scraper for repairability data...`)
+          try {
+            const appleSpecs = await getAppleProductSpecs(product.name)
+            if (appleSpecs.success && appleSpecs.data) {
+              console.log(`[VeritasScore] ✅ Got sustainability data from Apple scraper`)
+
+              // Apple products typically have lower repairability (per iFixit averages)
+              const estimatedRepairability = 4 // Apple products average 4/10 on iFixit
+
+              parameters.push(this.calculateParameter(
+                'Repairability Score',
+                'SUS_REPAIRABILITY',
+                `${estimatedRepairability}/10 (estimated)`,
+                () => (estimatedRepairability / 10) * 100,
+                0.20,
+                'apple_scraper',
+                0.65
+              ))
+
+              parameters.push(this.calculateParameter(
+                'Replacement Parts Availability',
+                'SUS_PARTS_AVAILABLE',
+                'Available (Apple Authorized)',
+                () => 75,
+                0.10,
+                'apple_scraper',
+                0.65
+              ))
+
+              scraperSuccess = true
+            }
+          } catch (scraperError) {
+            console.log(`[VeritasScore] ⚠️ Apple scraper failed:`, scraperError instanceof Error ? scraperError.message : String(scraperError))
+          }
+        }
+
+        // WATERFALL STEP 3: Use smart estimation if both API and scraper failed
+        if (!scraperSuccess) {
+          console.log(`[VeritasScore] 🔄 Using parameter estimator for repairability...`)
+          const productContext: ProductContext = {
+            name: product.name,
+            brand: product.brand,
+            category: product.category,
+            price: product.price,
+            condition: product.condition,
+          }
+
+          const estimated = parameterEstimator.estimateRepairability(productContext)
+          console.log(`[VeritasScore] ✅ Estimated repairability: ${estimated.value}/10 (confidence: ${(estimated.confidence * 100).toFixed(0)}%)`)
+
+          parameters.push(this.calculateParameter(
+            'Repairability Score',
+            'SUS_REPAIRABILITY',
+            `${estimated.value.toFixed(1)}/10 (estimated)`,
+            () => (estimated.value / 10) * 100,
+            0.20,
+            'estimation',
+            estimated.confidence
+          ))
+
+          // Estimate parts availability based on category
+          const partsScore = estimated.value >= 7 ? 85 : estimated.value >= 5 ? 70 : 55
+          parameters.push(this.calculateParameter(
+            'Replacement Parts Availability',
+            'SUS_PARTS_AVAILABLE',
+            'Estimated',
+            () => partsScore,
+            0.10,
+            'estimation',
+            estimated.confidence * 0.8
+          ))
+        }
       }
     } catch (error) {
-      console.error('[VeritasScore] Failed to fetch repairability:', error)
+      console.error('[VeritasScore] ❌ Failed to fetch repairability:', error)
+      console.error('[VeritasScore] Error details:', error instanceof Error ? error.message : String(error))
+
+      // FALLBACK: Use parameter estimator even on error
+      console.log(`[VeritasScore] 🔄 Using parameter estimator as fallback...`)
+      const productContext: ProductContext = {
+        name: product.name,
+        brand: product.brand,
+        category: product.category,
+        price: product.price,
+        condition: product.condition,
+      }
+
+      const estimated = parameterEstimator.estimateRepairability(productContext)
+
       parameters.push(this.calculateParameter(
         'Repairability Score',
         'SUS_REPAIRABILITY',
-        null,
-        () => 65,
+        `${estimated.value.toFixed(1)}/10 (estimated)`,
+        () => (estimated.value / 10) * 100,
         0.20,
-        'ifixit',
-        0.50
+        'estimation',
+        estimated.confidence
       ))
 
+      const partsScore = estimated.value >= 7 ? 85 : estimated.value >= 5 ? 70 : 55
       parameters.push(this.calculateParameter(
         'Replacement Parts Availability',
         'SUS_PARTS_AVAILABLE',
-        null,
-        () => 65,
+        'Estimated',
+        () => partsScore,
         0.10,
-        'ifixit',
-        0.50
+        'estimation',
+        estimated.confidence * 0.8
       ))
     }
 
-    // Carbon Footprint Reduction (secondhand/refurb inherently better)
-    parameters.push(this.calculateParameter(
-      'Carbon Footprint Reduction',
-      'SUS_CARBON',
-      product.condition || 'thrift',
-      () => this.assessCarbonReduction(product.condition),
-      0.25,
-      'sustainability_calculation',
-      0.90
-    ))
+    // Try to get sustainability data from Apple scraper (for Apple products)
+    const isAppleProduct = product.brand?.toLowerCase() === 'apple'
+    let appleSustainabilityData: any = null
+
+    if (isAppleProduct) {
+      console.log(`[VeritasScore] 🔄 Trying Apple scraper for sustainability data...`)
+      try {
+        const appleSpecs = await getAppleProductSpecs(product.name)
+        if (appleSpecs.success && appleSpecs.data && appleSpecs.data.carbonFootprint) {
+          appleSustainabilityData = appleSpecs.data
+          console.log(`[VeritasScore] ✅ Got Apple sustainability data:`, {
+            carbonFootprint: appleSustainabilityData.carbonFootprint,
+            recycledMaterials: appleSustainabilityData.recycledMaterials,
+          })
+        }
+      } catch (scraperError) {
+        console.log(`[VeritasScore] ⚠️ Apple scraper failed:`, scraperError instanceof Error ? scraperError.message : String(scraperError))
+      }
+    }
+
+    // Carbon Footprint with real data if available
+    if (appleSustainabilityData && appleSustainabilityData.carbonFootprint) {
+      // Real carbon footprint data from Apple
+      // Convert to reduction score (lower footprint = higher score)
+      // Apple products range from 12kg (AirPods) to 180kg (MacBook Pro)
+      // Score formula: Higher footprint = lower score (inversely proportional)
+      const carbonKg = appleSustainabilityData.carbonFootprint
+      const carbonScore = Math.max(10, Math.min(95, 100 - (carbonKg / 2))) // 180kg = ~10, 12kg = ~94
+
+      parameters.push(this.calculateParameter(
+        'Carbon Footprint',
+        'SUS_CARBON',
+        `${carbonKg}kg CO2e`,
+        () => carbonScore,
+        0.25,
+        'apple_scraper',
+        0.85
+      ))
+    } else {
+      // Fallback: Use condition-based estimation
+      parameters.push(this.calculateParameter(
+        'Carbon Footprint Reduction',
+        'SUS_CARBON',
+        product.condition || 'thrift',
+        () => this.assessCarbonReduction(product.condition),
+        0.25,
+        'sustainability_calculation',
+        0.90
+      ))
+    }
+
+    // Recycled Materials percentage (if available from Apple scraper)
+    if (appleSustainabilityData && appleSustainabilityData.recycledMaterials) {
+      parameters.push(this.calculateParameter(
+        'Recycled Materials Used',
+        'SUS_RECYCLED_MATERIALS',
+        `${appleSustainabilityData.recycledMaterials}%`,
+        () => appleSustainabilityData.recycledMaterials * 5, // 20% recycled = 100 score
+        0.15,
+        'apple_scraper',
+        0.85
+      ))
+    }
 
     // Circular Economy Contribution
     parameters.push(this.calculateParameter(
@@ -1241,14 +1382,26 @@ export class VeritasScoreService {
 
     // Try to fetch real phone specifications from GSMArena (FREE API)
     const isPhone = product.category.toLowerCase().includes('phone') ||
-                    product.category.toLowerCase().includes('mobile')
+                    product.category.toLowerCase().includes('mobile') ||
+                    product.category.toLowerCase().includes('electronics')  // Enable for ALL electronics
+
+    // Log attempt to fetch specs
+    console.log(`[VeritasScore] Product: ${product.name}, Category: ${product.category}, isPhone: ${isPhone}`)
 
     if (isPhone) {
       try {
+        console.log(`[VeritasScore] Attempting to fetch specs from GSMArena for: ${product.name}`)
         const specsResult = await getPhoneSpecs(product.name)
+
+        console.log(`[VeritasScore] GSMArena result:`, { success: specsResult.success, cached: specsResult.cached, hasData: !!specsResult.data })
 
         if (specsResult.success && specsResult.data) {
           const specs = specsResult.data
+          console.log(`[VeritasScore] ✅ Got specs from GSMArena:`, {
+            processor: specs.processor,
+            ram: specs.ram,
+            displaySize: specs.displaySize
+          })
 
           // Processor Score
           parameters.push(this.calculateParameter(
@@ -1327,14 +1480,208 @@ export class VeritasScoreService {
             confidence,
             parameters
           }
+        } else {
+          console.log(`[VeritasScore] ⚠️ GSMArena returned no data for: ${product.name}`)
+
+          // WATERFALL STEP 2: Try Apple scraper for Apple products
+          const isAppleProduct = product.brand?.toLowerCase() === 'apple'
+          if (isAppleProduct && product.category.toLowerCase().includes('electronics')) {
+            console.log(`[VeritasScore] 🔄 Trying Apple scraper for product specifications...`)
+            try {
+              const appleSpecs = await getAppleProductSpecs(product.name)
+              if (appleSpecs.success && appleSpecs.data) {
+                const specs = appleSpecs.data
+                console.log(`[VeritasScore] ✅ Got specs from Apple scraper:`, {
+                  processor: specs.processor,
+                  ram: specs.ram,
+                  displaySize: specs.displaySize
+                })
+
+                // Processor Score
+                parameters.push(this.calculateParameter(
+                  'Processor Specifications',
+                  'PS_PROCESSOR',
+                  specs.processor || null,
+                  () => specs.processor ? 95 : 50,
+                  0.20,
+                  'apple_scraper',
+                  0.85
+                ))
+
+                // RAM Score
+                parameters.push(this.calculateParameter(
+                  'Memory Specifications',
+                  'PS_RAM',
+                  specs.ram || null,
+                  () => specs.ram ? 95 : 50,
+                  0.20,
+                  'apple_scraper',
+                  0.85
+                ))
+
+                // Display Score
+                parameters.push(this.calculateParameter(
+                  'Display Specifications',
+                  'PS_DISPLAY',
+                  specs.displaySize || null,
+                  () => specs.displaySize ? 95 : 50,
+                  0.15,
+                  'apple_scraper',
+                  0.85
+                ))
+
+                // Battery Score
+                parameters.push(this.calculateParameter(
+                  'Battery Specifications',
+                  'PS_BATTERY',
+                  specs.batteryLife || null,
+                  () => specs.batteryLife ? 95 : 50,
+                  0.15,
+                  'apple_scraper',
+                  0.85
+                ))
+
+                // Camera Score
+                parameters.push(this.calculateParameter(
+                  'Camera Specifications',
+                  'PS_CAMERA',
+                  specs.mainCamera || null,
+                  () => specs.mainCamera ? 95 : 50,
+                  0.15,
+                  'apple_scraper',
+                  0.85
+                ))
+
+                // OS Score
+                parameters.push(this.calculateParameter(
+                  'Operating System',
+                  'PS_OS',
+                  specs.os || null,
+                  () => specs.os ? 95 : 50,
+                  0.15,
+                  'apple_scraper',
+                  0.85
+                ))
+
+                const categoryScore = this.calculateCategoryScore(parameters)
+                const confidence = this.calculateCategoryConfidence(parameters)
+
+                return {
+                  categoryName: VeritasCategoryType.PRODUCT_SPECIFICATION,
+                  categoryScore,
+                  weight: CATEGORY_WEIGHTS.PRODUCT_SPECIFICATION,
+                  weightedScore: categoryScore * CATEGORY_WEIGHTS.PRODUCT_SPECIFICATION,
+                  confidence,
+                  parameters
+                }
+              }
+            } catch (scraperError) {
+              console.log(`[VeritasScore] ⚠️ Apple scraper failed:`, scraperError instanceof Error ? scraperError.message : String(scraperError))
+            }
+          }
         }
       } catch (error) {
-        console.error('[VeritasScore] Failed to fetch phone specs:', error)
+        console.error('[VeritasScore] ❌ Failed to fetch phone specs:', error)
+        console.error('[VeritasScore] Error details:', error instanceof Error ? error.message : String(error))
+
+        // WATERFALL STEP 2: Try Apple scraper even on API error
+        const isAppleProduct = product.brand?.toLowerCase() === 'apple'
+        if (isAppleProduct && product.category.toLowerCase().includes('electronics')) {
+          console.log(`[VeritasScore] 🔄 Trying Apple scraper as fallback...`)
+          try {
+            const appleSpecs = await getAppleProductSpecs(product.name)
+            if (appleSpecs.success && appleSpecs.data) {
+              const specs = appleSpecs.data
+              console.log(`[VeritasScore] ✅ Got specs from Apple scraper (fallback):`, {
+                processor: specs.processor,
+                ram: specs.ram,
+                displaySize: specs.displaySize
+              })
+
+              // Add specs parameters (same as above)
+              parameters.push(this.calculateParameter(
+                'Processor Specifications',
+                'PS_PROCESSOR',
+                specs.processor || null,
+                () => specs.processor ? 95 : 50,
+                0.20,
+                'apple_scraper',
+                0.85
+              ))
+
+              parameters.push(this.calculateParameter(
+                'Memory Specifications',
+                'PS_RAM',
+                specs.ram || null,
+                () => specs.ram ? 95 : 50,
+                0.20,
+                'apple_scraper',
+                0.85
+              ))
+
+              parameters.push(this.calculateParameter(
+                'Display Specifications',
+                'PS_DISPLAY',
+                specs.displaySize || null,
+                () => specs.displaySize ? 95 : 50,
+                0.15,
+                'apple_scraper',
+                0.85
+              ))
+
+              parameters.push(this.calculateParameter(
+                'Battery Specifications',
+                'PS_BATTERY',
+                specs.batteryLife || null,
+                () => specs.batteryLife ? 95 : 50,
+                0.15,
+                'apple_scraper',
+                0.85
+              ))
+
+              parameters.push(this.calculateParameter(
+                'Camera Specifications',
+                'PS_CAMERA',
+                specs.mainCamera || null,
+                () => specs.mainCamera ? 95 : 50,
+                0.15,
+                'apple_scraper',
+                0.85
+              ))
+
+              parameters.push(this.calculateParameter(
+                'Operating System',
+                'PS_OS',
+                specs.os || null,
+                () => specs.os ? 95 : 50,
+                0.15,
+                'apple_scraper',
+                0.85
+              ))
+
+              const categoryScore = this.calculateCategoryScore(parameters)
+              const confidence = this.calculateCategoryConfidence(parameters)
+
+              return {
+                categoryName: VeritasCategoryType.PRODUCT_SPECIFICATION,
+                categoryScore,
+                weight: CATEGORY_WEIGHTS.PRODUCT_SPECIFICATION,
+                weightedScore: categoryScore * CATEGORY_WEIGHTS.PRODUCT_SPECIFICATION,
+                confidence,
+                parameters
+              }
+            }
+          } catch (scraperError) {
+            console.log(`[VeritasScore] ⚠️ Apple scraper failed:`, scraperError instanceof Error ? scraperError.message : String(scraperError))
+          }
+        }
         // Fall through to default calculation
       }
+    } else {
+      console.log(`[VeritasScore] Skipping GSMArena (not electronics): ${product.category}`)
     }
 
-    // Default calculation for non-phones or if spec fetch failed
+    // Default calculation for non-phones or if all spec fetching failed
     // Category Completeness
     parameters.push(this.calculateParameter(
       'Category Specification Completeness',
