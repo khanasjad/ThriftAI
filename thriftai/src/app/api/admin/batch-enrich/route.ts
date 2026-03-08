@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       minPrice,
       maxPrice,
       forceRefresh
-    })
+    } as any)
 
     // Build query filters
     const whereClause: any = {
@@ -110,13 +110,12 @@ export async function POST(request: NextRequest) {
 
         // Enrich product with data from multiple sources
         const enrichedProduct = await productEnrichmentService.enrichProduct(
-          product,
+          product.id,
           {
-            forceRefresh,
-            includeCompanyData: true,
-            includeMarketData: true,
-            includeSustainabilityData: true,
-            includeWarrantyData: true
+            fetchImages: true,
+            fetchSpecs: true,
+            fetchMarketData: true,
+            overwriteExisting: forceRefresh
           }
         )
 
@@ -128,19 +127,18 @@ export async function POST(request: NextRequest) {
           where: { id: product.id },
           data: {
             aiScore: veritasScore.overallScore,
-            dynamicSpecs: enrichedProduct.dynamicSpecs || {},
             updatedAt: new Date()
           }
         })
 
         // Track which data sources were used
-        if (enrichedProduct.enrichmentMetadata?.sources) {
-          enrichedProduct.enrichmentMetadata.sources.forEach((source: string) => {
+        if (enrichedProduct.dataSources) {
+          enrichedProduct.dataSources.forEach((source: string) => {
             stats.dataSourcesUsed[source] = (stats.dataSourcesUsed[source] || 0) + 1
           })
         }
 
-        const scoreChange = veritasScore.overallScore - oldScore
+        const scoreChange = Number(veritasScore.overallScore) - Number(oldScore)
         totalScoreChange += scoreChange
 
         const processingTime = Date.now() - productStartTime
@@ -163,7 +161,7 @@ export async function POST(request: NextRequest) {
           ssn: veritasScore.ssn,
           confidence: veritasScore.confidence,
           processingTimeMs: processingTime,
-          dataSources: enrichedProduct.enrichmentMetadata?.sources || []
+          dataSources: enrichedProduct.dataSources || []
         })
 
         stats.successful++
@@ -194,7 +192,7 @@ export async function POST(request: NextRequest) {
         .sort((a, b) => (b.scoreChange || 0) - (a.scoreChange || 0))
         .slice(0, 5)
         .map(r => ({ name: r.productName, change: r.scoreChange }))
-    })
+    } as any)
 
     return NextResponse.json({
       success: true,
@@ -299,7 +297,7 @@ export async function GET(request: NextRequest) {
     }
 
     scoreDistribution.forEach(item => {
-      const score = item.aiScore || 0
+      const score = Number(item.aiScore) || 0
       if (score >= 95) gradeDistribution['S (95-100)'] += item._count
       else if (score >= 85) gradeDistribution['A (85-94)'] += item._count
       else if (score >= 75) gradeDistribution['B (75-84)'] += item._count
@@ -336,7 +334,7 @@ export async function GET(request: NextRequest) {
       ],
       recommendations: [
         needsEnrichment > 0 ? `🔄 ${needsEnrichment} products need enrichment` : '✅ All products enriched',
-        (avgScore._avg.aiScore || 0) < 70 ? '📊 Consider adding more data sources to improve average score' : '🎯 Good average score across catalog',
+        (Number(avgScore._avg.aiScore) || 0) < 70 ? '📊 Consider adding more data sources to improve average score' : '🎯 Good average score across catalog',
         '💡 Use POST /api/admin/batch-enrich to start enrichment'
       ]
     })

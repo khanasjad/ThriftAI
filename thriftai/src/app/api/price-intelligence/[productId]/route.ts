@@ -10,10 +10,10 @@ import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId } = params
+    const { productId } = await params
 
     logger.info('💰 Price intelligence API called', {
       component: 'PriceIntelligenceAPI',

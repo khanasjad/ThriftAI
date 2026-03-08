@@ -94,139 +94,169 @@ async function main() {
             sensorFunctionality: 100,
           },
           ageHistory: {
-            ageInMonths: 12,
-            previousOwners: 1,
-            usageIntensity: 'Moderate',
-            maintenanceHistory: 'Unknown',
-            storageConditions: 'Good',
+            productAgeMonths: 12,
+            previousOwnerCount: 1,
+            usageHoursCycles: 1000,
+            repairHistory: 'Unknown',
           },
         },
         sellerTrust: {
           reputation: {
             sellerRating: product.seller?.rating ? Number(product.seller.rating) : 4.0,
-            totalReviews: product.seller?.totalSales || 100,
-            positivePercentage: 85,
-            verifiedSeller: product.seller?.isVerified || false,
-            yearsActive: 2,
-            platformBadges: [],
+            transactionCount: product.seller?.totalSales || 100,
+            positiveFeedbackPercent: 85,
+            accountAgeYears: 2,
+            isVerifiedSeller: product.seller?.isVerified || false,
+            isTopRatedSeller: false,
+            isPowerSeller: false,
+            sellerLocation: 'US',
           },
           transactionHistory: {
-            totalSales: product.seller?.totalSales || 100,
-            completionRate: 95,
-            averageShippingTime: 3,
-            returnRate: 5,
-            disputeRate: 1,
+            disputeRatePercent: 1,
+            refundRatePercent: 3,
+            chargebackRatePercent: 0.5,
+            cancellationRatePercent: 2,
+            lateShipmentRatePercent: 5,
+            itemNotAsDescribedPercent: 2,
           },
-          verification: {
-            identityVerified: false,
-            businessRegistered: false,
-            taxCompliant: false,
-            paymentMethodsSecure: true,
-          },
-          customerService: {
+          responseService: {
             responseTimeHours: product.seller?.responseTimeHours || 24,
-            resolutionRate: 90,
-            communicationQuality: 4.0,
-            refundPolicy: 'Standard',
+            responseRatePercent: 95,
+            customerServiceQuality: 80,
+            communicationClarity: 85,
+            acceptsReturns: true,
+            problemResolution: 90,
+          },
+          reliability: {
+            onTimeShippingPercent: 95,
+            descriptionAccuracy: 85,
+            packagingQuality: 80,
+            providesTracking: true,
+            responsiveness: 8,
           },
         },
         marketValue: {
-          pricing: {
+          pricePositioning: {
             currentPrice: Number(product.price),
             originalMSRP: Number(product.originalPrice) || Number(product.price) * 1.5,
-            averageMarketPrice: Number(product.price) * 1.1,
-            pricePercentile: 50,
-            priceTrend: 'Stable',
+            priceVsMarketAverage: 0,
+            discountPercentage: 25,
+            valueForMoneyIndex: 70,
+            priceTrend30Days: 'Stable' as const,
+            lowestHistoricalPrice: Number(product.price) * 0.9,
           },
-          comparison: {
-            competitorPrices: [],
-            similarListings: 0,
-            priceDifferencePercent: 0,
-            valueScore: 70,
+          competitiveAnalysis: {
+            priceVsCompetitors: 0,
+            competitorCount: 5,
+            isBestPrice: false,
+            priceStabilityScore: 80,
+            marketAvailability: 10,
+            demandLevel: 60,
           },
-          depreciation: {
-            depreciationRate: 20,
-            expectedLifespan: 60,
-            resaleValueProjection: Number(product.price) * 0.8,
+          totalCost: {
+            shippingCost: 10,
+            taxAmount: Number(product.price) * 0.08,
+            hiddenFees: 0,
+            warrantyValue: product.hasWarranty ? 50 : 0,
           },
-          demand: {
-            viewsCount: product.viewCount || 0,
-            watchersCount: product.wishlistCount || 0,
-            timeOnMarket: 7,
-            demandScore: 50,
+          marketDynamics: {
+            priceTrendDirection: 'Stable' as const,
+            seasonalPricing: 'Normal' as const,
+            supplyLevel: 'Normal' as const,
           },
         },
         sustainability: {
-          environmental: {
-            carbonFootprintKg: 50,
-            recyclablePercentage: 60,
-            energyEfficiencyRating: 'Unknown',
-            sustainableMaterials: false,
-            eWasteReduction: 70,
+          environmentalImpact: {
+            carbonFootprintReduction: 60,
+            eWastePrevention: true,
+            resourceConservation: 70,
+            isEnergyStarCertified: false,
+            epeatRating: null,
           },
-          circular: {
-            refurbishability: 70,
-            repairability: 70,
-            recyclingEaseScore: 60,
-            secondLifePotential: 80,
+          circularEconomy: {
+            reuseFactor: 70,
+            recyclingPotential: 60,
+            refurbishmentQuality: 'Amateur' as const,
+            secondHandMarketValue: Number(product.price) * 0.7,
+          },
+          productLongevity: {
+            expectedRemainingLifeYears: 5,
+            repairabilityScore: 7,
+            partsAvailability: 'Good' as const,
+            softwareSupportYears: 3,
           },
           certifications: {
-            energyStarCertified: false,
-            epeatRating: 'None',
-            sustainabilityCertifications: [],
+            ecoCertifications: [],
+            hasRefurbCertification: false,
           },
         },
         securitySafety: {
-          dataPrivacy: {
-            dataWipedProperly: false,
-            encryptionCapable: true,
-            privacyRiskScore: 70,
+          paymentSecurity: {
+            paymentMethodSecurity: 'Good' as const,
+            hasFraudProtection: true,
           },
-          productSafety: {
-            recallStatus: 'No Recall',
-            safetyTestsPassed: true,
-            hazardousMaterials: false,
-            childSafetyCompliant: true,
+          buyerProtection: {
+            buyerProtectionPolicy: 'Partial' as const,
+            disputeResolutionAvailable: true,
+          },
+          dataSecurity: {
+            isGDPRCompliant: true,
+            isDeviceFactoryReset: false,
+          },
+          platformTrust: {
+            platformReputation: 85,
+            sslGrade: 'A' as const,
           },
         },
         userExperience: {
-          listing: {
-            photoQuality: product.imageUrl ? 70 : 40,
+          listingQuality: {
+            productPageQuality: 75,
             descriptionCompleteness: product.description ? 70 : 40,
-            accuracyScore: 80,
-            informationClarity: 75,
+            transparencyScore: 80,
           },
-          purchase: {
-            checkoutExperience: 80,
-            shippingOptions: 3,
-            paymentSecurity: 90,
-            customerSupportQuality: 75,
+          visualPresentation: {
+            imageQualityScore: product.imageUrl ? 70 : 40,
+            imageCount: product.imageUrl ? 1 : 0,
+          },
+          purchaseExperience: {
+            checkoutEase: 80,
+            navigationQuality: 85,
+          },
+          customerSupport: {
+            supportAccessibility: 75,
           },
         },
         productSpecification: {
-          technical: {
-            specificationAccuracy: 80,
-            performanceBenchmarks: {},
-            compatibilityScore: 80,
-            technologyGeneration: 'Current',
+          technicalSpecs: {
+            specificationCompleteness: 80,
+            technicalDetailLevel: 75,
+            accuracyVerification: 80,
+            isModelNumberVerified: false,
           },
-          documentation: {
-            manualAvailable: false,
-            technicalSupport: false,
-            warrantyDocument: product.hasWarranty,
-            setupGuide: false,
+          categoryFeatures: {
+            featureMatchScore: 85,
+            featureCompleteness: 90,
+            upgradeDowngradeLevel: 0,
+          },
+          hardwareDetails: {
+            processorSpec: 'Unknown',
+            memoryStorageSpec: 'Unknown',
+            displaySpec: 'Unknown',
           },
         },
         companyPerformance: {
-          brand: {
-            brandReputation: 80,
-            marketShare: 10,
-            innovationScore: 70,
+          brandReputation: {
+            brandReputationScore: 80,
+            brandRecognitionPercent: 75,
           },
-          financial: {
-            stockPerformance: 0,
-            financialStability: 'Unknown',
-            marketCap: 0,
+          marketPerformance: {
+            stockPerformanceYoY: 5,
+          },
+          newsSentiment: {
+            newsSentimentScore: 70,
+          },
+          customerSatisfaction: {
+            customerSatisfactionIndex: 80,
           },
         },
       }

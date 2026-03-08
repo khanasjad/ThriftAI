@@ -6,7 +6,7 @@ async function checkDynamicSpecs() {
   // Get recently scored products
   const samples = await prisma.product.findMany({
     where: {
-      dynamicSpecs: { not: null },
+      dynamicSpecs: { not: undefined },
       lastScoredAt: { not: null }
     },
     select: {

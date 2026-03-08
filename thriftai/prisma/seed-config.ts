@@ -93,43 +93,43 @@ async function seedScoreThresholds() {
   const thresholds = [
     {
       name: 'excellent',
-      minScore: 80,
-      maxScore: 100,
-      badgeColor: '#10b981',
-      badgeClass: 'bg-green-600',
+      min_score: 80,
+      max_score: 100,
+      badge_color: '#10b981',
+      badge_class: 'bg-green-600',
       label: 'Excellent',
       description: 'Outstanding product quality and value',
-      displayOrder: 1
+      display_order: 1
     },
     {
       name: 'good',
-      minScore: 70,
-      maxScore: 79.99,
-      badgeColor: '#3b82f6',
-      badgeClass: 'bg-blue-600',
+      min_score: 70,
+      max_score: 79.99,
+      badge_color: '#3b82f6',
+      badge_class: 'bg-blue-600',
       label: 'Good',
       description: 'Above average quality and value',
-      displayOrder: 2
+      display_order: 2
     },
     {
       name: 'fair',
-      minScore: 60,
-      maxScore: 69.99,
-      badgeColor: '#f59e0b',
-      badgeClass: 'bg-yellow-600',
+      min_score: 60,
+      max_score: 69.99,
+      badge_color: '#f59e0b',
+      badge_class: 'bg-yellow-600',
       label: 'Fair',
       description: 'Acceptable quality, consider alternatives',
-      displayOrder: 3
+      display_order: 3
     },
     {
       name: 'poor',
-      minScore: 0,
-      maxScore: 59.99,
-      badgeColor: '#ef4444',
-      badgeClass: 'bg-gray-600',
+      min_score: 0,
+      max_score: 59.99,
+      badge_color: '#ef4444',
+      badge_class: 'bg-gray-600',
       label: 'Poor',
       description: 'Below average, not recommended',
-      displayOrder: 4
+      display_order: 4
     }
   ]
 
@@ -205,7 +205,7 @@ async function seedCategoryDefaultSpecs() {
       category: 'ELECTRONICS',
       subcategory: null,
       priority: 0,
-      defaultSpecs: {
+      default_specs: {
         cpu: 'Standard Processor',
         cpuBenchmark: 10000,
         ram: 4,
@@ -223,7 +223,7 @@ async function seedCategoryDefaultSpecs() {
       category: 'ELECTRONICS',
       subcategory: 'LAPTOP',
       priority: 10,
-      defaultSpecs: {
+      default_specs: {
         cpu: 'Intel Core i5 / AMD Ryzen 5',
         cpuBenchmark: 12000,
         ram: 8,
@@ -244,7 +244,7 @@ async function seedCategoryDefaultSpecs() {
       category: 'CLOTHING',
       subcategory: null,
       priority: 0,
-      defaultSpecs: {
+      default_specs: {
         fabric: 'Cotton Blend',
         fabricQuality: 70,
         sizeAccuracy: 'True to Size',

@@ -11,12 +11,12 @@ import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const startTime = Date.now()
 
   try {
-    const productId = params.id
+    const { id: productId } = await params
 
     logger.info('📊 Veritas Score API called', {
       component: 'VeritasAPI',

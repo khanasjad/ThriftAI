@@ -55,13 +55,9 @@ async function calculateBatchScores(limit: number = 100) {
         // Save to database
         await veritasScoreService.saveScore(product.id, scoreResult)
 
-        // Get FREE API usage count
-        const freeApiCount = scoreResult.freeDataSummary?.parametersUsingFreeAPIs || 0
-        const freeApiNames = scoreResult.freeDataSummary?.freeAPIsUsed?.join(', ') || 'none'
-
         console.log(`          ✅ Score: ${scoreResult.overallScore.toFixed(1)} | SSN: ${scoreResult.ssn}`)
         console.log(`          📊 Confidence: ${(scoreResult.confidence * 100).toFixed(0)}%`)
-        console.log(`          🆓 FREE API params: ${freeApiCount}/121 (${freeApiNames})`)
+        console.log(`          📋 Parameters: ${scoreResult.categories.reduce((sum, cat) => sum + cat.parameters.length, 0)}/121`)
         console.log('')
 
         completed++
@@ -95,10 +91,10 @@ async function calculateBatchScores(limit: number = 100) {
       select: { overallScore: true }
     })
 
-    const gradeS = scores.filter(s => s.overallScore >= 90).length
-    const gradeA = scores.filter(s => s.overallScore >= 80 && s.overallScore < 90).length
-    const gradeB = scores.filter(s => s.overallScore >= 70 && s.overallScore < 80).length
-    const gradeC = scores.filter(s => s.overallScore >= 60 && s.overallScore < 70).length
+    const gradeS = scores.filter(s => Number(s.overallScore) >= 90).length
+    const gradeA = scores.filter(s => Number(s.overallScore) >= 80 && Number(s.overallScore) < 90).length
+    const gradeB = scores.filter(s => Number(s.overallScore) >= 70 && Number(s.overallScore) < 80).length
+    const gradeC = scores.filter(s => Number(s.overallScore) >= 60 && Number(s.overallScore) < 70).length
 
     console.log('📊 Score Distribution:')
     console.log(`   S (90-100): ${gradeS} products`)

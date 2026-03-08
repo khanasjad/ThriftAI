@@ -4,9 +4,10 @@ import { v4 as uuidv4 } from 'uuid'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -15,7 +16,7 @@ export async function GET(
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
         where: {
-          productId: params.id,
+          productId: id,
           status: 'APPROVED'
         },
         include: {
@@ -33,7 +34,7 @@ export async function GET(
       }),
       prisma.review.count({
         where: {
-          productId: params.id,
+          productId: id,
           status: 'APPROVED'
         }
       })
@@ -42,7 +43,7 @@ export async function GET(
     // Calculate rating distribution
     const allReviews = await prisma.review.findMany({
       where: {
-        productId: params.id,
+        productId: id,
         status: 'APPROVED'
       },
       select: { rating: true }
@@ -85,9 +86,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const {
       buyerId,
@@ -118,7 +120,7 @@ export async function POST(
 
     // Check if product exists
     const product = await prisma.product.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!product) {
@@ -144,7 +146,7 @@ export async function POST(
     const existingReview = await prisma.review.findFirst({
       where: {
         buyerId,
-        productId: params.id
+        productId: id
       }
     })
 
@@ -160,7 +162,7 @@ export async function POST(
       data: {
         id: uuidv4(),
         buyerId,
-        productId: params.id,
+        productId: id,
         title,
         content,
         rating,

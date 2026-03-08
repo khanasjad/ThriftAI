@@ -7,10 +7,10 @@ import { veritasScoreService } from '@/lib/services/veritasScoreService'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    const { productId } = params
+    const { productId } = await params
 
     if (!productId) {
       return NextResponse.json(

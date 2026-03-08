@@ -196,7 +196,7 @@ async function handleGetResults(experimentId: string): Promise<NextResponse> {
  */
 async function handleListExperiments(): Promise<NextResponse> {
   try {
-    const experiments = await prisma.abExperiment.findMany({
+    const experiments = await prisma.ab_experiments.findMany({
       where: {
         status: 'ACTIVE'
       },
@@ -217,7 +217,7 @@ async function handleListExperiments(): Promise<NextResponse> {
 
     return NextResponse.json({
       success: true,
-      experiments: experiments.map(exp => ({
+      experiments: experiments.map((exp: any) => ({
         id: exp.id,
         name: exp.name,
         status: exp.status,

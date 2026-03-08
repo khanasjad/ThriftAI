@@ -34,7 +34,7 @@ async function check100Confidence() {
       const breakdown = product.aiScoreBreakdown as any
       console.log(`\n${i + 1}. ${product.name}`)
       console.log(`   Category: ${product.category} | Brand: ${product.brand} | Price: $${product.price}`)
-      console.log(`   🎯 AI Score: ${product.aiScore}/100 | Confidence: ${(product.aiConfidence || 0) * 100}%`)
+      console.log(`   🎯 AI Score: ${product.aiScore}/100 | Confidence: ${(Number(product.aiConfidence) || 0) * 100}%`)
 
       if (breakdown) {
         console.log(`   Parameters Breakdown:`)
@@ -67,7 +67,7 @@ async function check100Confidence() {
     console.log(`Percentage: ${Math.round((with100Confidence / totalProducts) * 100)}%`)
 
     // Show average scores for 100% confidence products
-    const avgScore = products100.reduce((sum, p) => sum + (p.aiScore || 0), 0) / products100.length
+    const avgScore = products100.reduce((sum, p) => sum + (Number(p.aiScore) || 0), 0) / products100.length
     console.log(`\nAverage AI Score (100% confidence): ${avgScore.toFixed(1)}/100`)
 
     console.log('\n' + '='.repeat(100))

@@ -24,7 +24,7 @@ async function checkAccessories() {
   console.log('\n📦 Accessories Products:\n')
   accessories.forEach(p => {
     console.log(`${p.name} - ${p.category}`)
-    console.log(`  Price: $${p.price} | AI Score: ${p.aiScore}/100 (${(p.aiConfidence || 0) * 100}%)`)
+    console.log(`  Price: $${p.price} | AI Score: ${p.aiScore}/100 (${(Number(p.aiConfidence) || 0) * 100}%)`)
     console.log(`  Available: ${p.isAvailable}`)
     console.log()
   })
