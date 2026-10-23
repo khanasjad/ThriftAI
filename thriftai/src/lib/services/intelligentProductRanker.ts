@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { anthropicClient, isAnthropicConfigured } from '@/lib/anthropic-client'
 import { logger } from '@/lib/logger'
 
 /**
@@ -151,7 +152,7 @@ IMPORTANT:
       logger.info('🤖 Calling Claude Haiku for intelligent analysis...')
 
       const response = await this.client.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 4000,
         temperature: 0.3,
         system: 'You are an expert shopping advisor. Provide honest, helpful product analysis in valid JSON format.',

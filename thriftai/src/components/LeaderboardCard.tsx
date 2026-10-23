@@ -239,9 +239,9 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                 <div style={{
                   fontSize: '1.5rem',
                   fontWeight: '700',
-                  color: getScoreColor(product.veritasScore || 0)
+                  color: getScoreColor(Number(product.veritasScore) || 0)
                 }}>
-                  {(product.veritasScore || 0).toFixed(1)}
+                  {(Number(product.veritasScore) || 0).toFixed(1)}
                 </div>
                 <div style={{
                   fontSize: '0.625rem',
@@ -370,9 +370,9 @@ export default function LeaderboardCard({ product, rank, isExpanded, onToggleExp
                 <div style={{
                   fontSize: '2rem',
                   fontWeight: '700',
-                  color: getScoreColor(product.veritasScore || 0)
+                  color: getScoreColor(Number(product.veritasScore) || 0)
                 }}>
-                  {(product.veritasScore || 0).toFixed(1)}
+                  {(Number(product.veritasScore) || 0).toFixed(1)}
                 </div>
                 <div style={{
                   fontSize: '0.75rem',

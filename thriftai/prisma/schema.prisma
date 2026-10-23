@@ -66,6 +66,45 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+/// Tenant Model - Multi-tenant B2B SaaS Support
+///
+/// Each tenant represents a B2B client integrating Veritas Search API
+/// Tenants have isolated product catalogs and custom configurations
+model Tenant {
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  /// API key for authentication (unique per tenant)
+  apiKey      String    @unique
+  /// Subscription plan: free, starter, professional, enterprise
+  plan        String    @default("free")
+  /// Rate limit (API calls per hour)
+  rateLimit   Int       @default(1000)
+  /// Custom scoring weights for Veritas algorithm
+  /// Example: {"product_quality": 0.30, "seller_trust": 0.25}
+  settings    Json?
+  /// Tenant status
+  isActive    Boolean   @default(true)
+  /// Billing details
+  stripeCustomerId String?
+  subscriptionId   String?
+  /// Usage tracking
+  totalApiCalls    Int       @default(0)
+  totalProducts    Int       @default(0)
+  /// Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastApiCallAt DateTime?
+
+  /// Relations
+  products    Product[]
+
+  @@index([apiKey])
+  @@index([plan])
+  @@index([isActive])
+  @@map("tenants")
+}
+
 model Buyer {
   id                    String                @id @default(cuid())
   userId                String                @unique
@@ -155,6 +194,9 @@ model Seller {
 
 model Product {
   id                        String                      @id @default(cuid())
+  /// Multi-tenant support: Each product belongs to a tenant (B2B client)
+  /// Optional for backward compatibility with existing products
+  tenantId                  String?
   name                      String
   category                  String
   brand                     String?
@@ -237,6 +279,7 @@ model Product {
   securityPolicy            VeritasSecurityPolicy?      @relation(fields: [securityPolicyId], references: [id])
   seller                    Seller?                     @relation(fields: [sellerId], references: [id])
   sellerProfile             VeritasSellerProfile?       @relation(fields: [sellerProfileId], references: [id])
+  tenant                    Tenant?                     @relation(fields: [tenantId], references: [id])
   reviews                   Review[]
   swipeActions              SwipeAction[]
   competitorAnalyses        VeritasCompetitorAnalysis[]
@@ -247,6 +290,10 @@ model Product {
   sustainability            VeritasSustainability?
   userExperience            VeritasUserExperience?
 
+  @@index([tenantId])
+  @@index([tenantId, category])
+  @@index([tenantId, isAvailable])
+  @@index([tenantId, aiScore(sort: Desc)])
   @@index([isAvailable])
   @@index([category])
   @@index([brand])

@@ -319,25 +319,23 @@ export default function SearchResults() {
     setError(null)
 
     try {
+      // 🚀 NEW: Using RAG-powered search API v2
       const searchBody = {
         query: searchQuery,
         filters: {
           categories: currentFilters.categories,
           brands: currentFilters.brands,
-          sizes: currentFilters.sizes,
           priceRange: currentFilters.priceRange
         },
-        pagination: { page, limit },
-        sorting: {
-          field: currentFilters.sortBy,
-          direction: currentFilters.sortDirection
-        },
-        includeMetadata: true
+        options: {
+          limit: limit,
+          enableReranking: true,  // Enable cross-encoder reranking
+          enableConversation: false  // Disable for search page
+        }
       }
 
-
-      // Fix URL parsing issue - use simple relative path
-      const apiUrl = '/api/buyers/enhanced-search'
+      // NEW RAG API endpoint
+      const apiUrl = '/api/v2/search'
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -351,14 +349,59 @@ export default function SearchResults() {
         throw new Error('Failed to fetch search results')
       }
 
-      const data = await response.json()
+      const apiResponse = await response.json()
+
+      // 🚀 NEW: Map RAG API v2 response to expected format
+      const data = apiResponse.success && apiResponse.data ? {
+        products: (apiResponse.data.results || []).map((item: any) => ({
+          ...item,
+          // Ensure images array exists
+          images: item.images || [`https://via.placeholder.com/400x400/4F46E5/FFFFFF?text=${encodeURIComponent(item.name || item.title || 'Product')}`],
+          // Map common fields
+          asin: item.asin || item.id,
+          title: item.title || item.name,
+          price: typeof item.price === 'number' ? {
+            current: item.price,
+            original: item.price,
+            currency: 'USD',
+            discountPercentage: 0
+          } : item.price,
+          availability: item.availability || {
+            inStock: item.inStock !== false,
+            quantity: 1,
+            shippingDays: 5,
+            shippingCost: 0
+          },
+          reviews: item.reviews || {
+            rating: 4.0,
+            count: 0,
+            verified: true
+          },
+          seller: item.seller || {
+            name: 'Veritas Marketplace',
+            rating: 4.5,
+            verified: true
+          },
+          specifications: item.specifications || {
+            category: item.category || 'GENERAL',
+            condition: item.condition || 'Good'
+          }
+        })),
+        metadata: {
+          total: apiResponse.data.results?.length || 0,
+          page: page,
+          limit: limit,
+          hasMore: false,
+          ...apiResponse.data.metadata
+        }
+      } : null
 
       // Use functional update to ensure we have the latest state
 
       setSearchResults((prevResults) => {
         // Ensure we're returning a valid SearchResponse object
         if (!data || typeof data !== 'object' || !data.products) {
-          console.error('Invalid SearchResponse received:', data)
+          console.error('Invalid SearchResponse received:', apiResponse)
           return null
         }
 

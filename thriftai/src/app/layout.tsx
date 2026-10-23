@@ -4,8 +4,20 @@ import { Providers } from "./providers";
 import CookieBanner from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
-  title: "Veritas.ai - Intelligent Shopping Platform",
-  description: "Discover amazing finds with AI-powered search and intelligent recommendations",
+  title: "veritas.ai - Truth in Every Transaction",
+  description: "AI-powered marketplace intelligence. Discover authentic products with Veritas scoring that reveals the truth behind every listing.",
+  keywords: ["AI shopping", "marketplace intelligence", "product verification", "smart shopping", "veritas ai"],
+  authors: [{ name: "Veritas.ai" }],
+  openGraph: {
+    title: "veritas.ai - Truth in Every Transaction",
+    description: "AI-powered marketplace intelligence platform",
+    type: "website",
+    images: ['/logo.svg'],
+  },
+  icons: {
+    icon: '/logo.svg',
+    apple: '/logo.svg',
+  },
 };
 
 export default function RootLayout({
@@ -49,8 +61,9 @@ export default function RootLayout({
             color: inherit !important;
           }
 
-          /* Force all text to white to override Bootstrap's defaults */
-          h1, h2, h3, h4, h5, h6, p, div, span, a {
+          /* Force most text to white to override Bootstrap's defaults */
+          /* Note: Excludes spans to allow for colored branding elements */
+          h1, h2, h3, h4, h5, h6, p, div, a {
             color: #ffffff !important;
           }
 

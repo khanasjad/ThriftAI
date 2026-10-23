@@ -82,6 +82,7 @@ export default function ProductCard({
   const originalPrice = rawOriginalPrice > currentPrice ? rawOriginalPrice : currentPrice
   const discount = originalPrice > currentPrice && currentPrice > 0 ? Math.round((1 - currentPrice / originalPrice) * 100) : Number(typeof product.price === 'object' ? (product.price?.discountPercentage ?? 0) : 0)
   const hasVeritasScore = product.veritasScore !== undefined && product.veritasScore !== null
+  const veritasScoreNum = Number(product.veritasScore) || 0
   const hasMultipleImages = product.images && product.images.length > 1
 
   const handlePrevImage = (e: React.MouseEvent) => {
@@ -245,18 +246,18 @@ export default function ProductCard({
             <div
               className="px-2 py-1.5 rounded-xl text-xs font-black text-white"
               style={{
-                background: product.veritasScore! >= 90
+                background: veritasScoreNum >= 90
                   ? 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)'
-                  : product.veritasScore! >= 80
+                  : veritasScoreNum >= 80
                   ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)'
-                  : product.veritasScore! >= 70
+                  : veritasScoreNum >= 70
                   ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)'
                   : 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
-                boxShadow: product.veritasScore! >= 90
+                boxShadow: veritasScoreNum >= 90
                   ? '0 4px 12px rgba(16, 185, 129, 0.4)'
-                  : product.veritasScore! >= 80
+                  : veritasScoreNum >= 80
                   ? '0 4px 12px rgba(59, 130, 246, 0.4)'
-                  : product.veritasScore! >= 70
+                  : veritasScoreNum >= 70
                   ? '0 4px 12px rgba(139, 92, 246, 0.4)'
                   : '0 4px 12px rgba(245, 158, 11, 0.4)',
                 display: 'flex',
@@ -266,7 +267,7 @@ export default function ProductCard({
               }}
             >
               <div style={{ fontSize: '0.6rem', opacity: 0.85 }}>VERITAS</div>
-              <div style={{ fontSize: '0.95rem', lineHeight: 1 }}>{product.veritasScore!.toFixed(0)}</div>
+              <div style={{ fontSize: '0.95rem', lineHeight: 1 }}>{Math.round(veritasScoreNum)}</div>
             </div>
           )}
 

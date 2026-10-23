@@ -19,22 +19,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { intelligentSearchLite } from '@/lib/services/intelligentSearchLite';
 import { logger } from '@/lib/logger';
-import Anthropic from '@anthropic-ai/sdk';
+import { anthropicClient as anthropic } from '@/lib/anthropic-client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Constants
-const CLAUDE_MODEL = 'claude-3-5-haiku-20241022';
+const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
 const MAX_TOKENS = 1500;
 const TEMPERATURE = 0.7;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 20;
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || '',
-});
 
 // TypeScript interfaces
 interface ClaudeAnalysis {

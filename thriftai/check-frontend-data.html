@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Data Check</title>
+</head>
+<body>
+    <h1>Frontend Data Diagnostic</h1>
+    <button onclick="checkData()">Check Search API Response</button>
+    <pre id="output"></pre>
+
+    <script>
+    async function checkData() {
+        const output = document.getElementById('output');
+        output.textContent = 'Loading...';
+
+        try {
+            const response = await fetch('http://localhost:3000/api/v2/search?q=phone&limit=5');
+            const data = await response.json();
+
+            output.textContent = 'API Response:\n\n';
+
+            if (data.success && data.data && data.data.results) {
+                data.data.results.forEach((product, i) => {
+                    output.textContent += `${i + 1}. ${product.name}\n`;
+                    output.textContent += `   veritasScore: ${product.veritasScore}\n`;
+                    output.textContent += `   aiScore: ${product.aiScore}\n`;
+                    output.textContent += `   price: ${JSON.stringify(product.price)}\n\n`;
+                });
+            } else {
+                output.textContent += JSON.stringify(data, null, 2);
+            }
+        } catch (error) {
+            output.textContent = 'Error: ' + error.message;
+        }
+    }
+
+    // Auto-run on load
+    checkData();
+    </script>
+</body>
+</html>

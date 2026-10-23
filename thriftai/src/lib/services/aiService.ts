@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
+import { anthropicClient, isAnthropicConfigured } from '@/lib/anthropic-client'
 import { prisma } from '../prisma'
 import { logger } from '@/lib/logger'
 import { isOpenAIAvailable, isAnthropicAvailable, getAiConfig } from '@/config/api.config'
@@ -190,7 +191,7 @@ export class AIService {
           console.log(`🔍 Claude Search: query="${query}", found ${products.length} products:`, productData)
 
           const message = await this.anthropic.messages.create({
-            model: "claude-3-5-haiku-20241022",
+            model: "claude-haiku-4-5-20251001",
             max_tokens: 1000,
             temperature: 0.7,
             messages: [{
@@ -230,7 +231,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
 
             try {
               const retryMessage = await this.anthropic.messages.create({
-                model: "claude-3-5-haiku-20241022", // Fallback to faster model
+                model: "claude-haiku-4-5-20251001", // Fallback to faster model
                 max_tokens: 600,
                 messages: [{
                   role: "user",
@@ -564,7 +565,7 @@ Focus only on the products I've provided. Be enthusiastic about thrift shopping 
 
     try {
       const message = await this.anthropic.messages.create({
-        model: "claude-3-5-haiku-20241022",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 200,
         messages: [{
           role: "user",

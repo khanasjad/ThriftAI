@@ -150,7 +150,7 @@ export class ClaudeIntentExtractor {
         : `User: ${context.currentQuery}`
 
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-5-haiku-20241022', // Using Haiku 3.5 for fast, cost-effective intent extraction
+        model: 'claude-haiku-4-5-20251001', // Using Haiku 3.5 for fast, cost-effective intent extraction
         max_tokens: 1024,
         temperature: 0.1, // Low temperature for consistent extraction
         system: INTENT_EXTRACTION_PROMPT,

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import CartBadge from './CartBadge';
+import VeritasLogo from './VeritasLogo';
 
 interface User {
   id: string;
@@ -52,10 +53,8 @@ const Navigation: React.FC<NavigationProps> = ({ user, onShowLogin, onShowSignup
   return (
     <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
       <div className="container">
-        <a className="navbar-brand fw-bold nav-logo-link" href="/">
-          <span className="text-gradient-primary nav-logo-veritas">
-            Veritas</span><span className="nav-logo-ai">.ai
-          </span>
+        <a className="navbar-brand nav-logo-link" href="/">
+          <VeritasLogo variant="text" size="md" />
         </a>
 
         <button

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { anthropicClient, isAnthropicConfigured } from '@/lib/anthropic-client'
 import { ScoredProduct } from './productScoringService'
 import { ConversationMessage, conversationalSearch } from './conversationalSearch'
 import { logger } from '@/lib/logger'
@@ -138,7 +139,7 @@ Reference products as [Product 1], [Product 2], etc. in your response.`
       logger.info('Calling Claude API for shopping advice')
 
       const response = await this.anthropic.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         system: SHOPPING_ADVISOR_SYSTEM_PROMPT,
         messages

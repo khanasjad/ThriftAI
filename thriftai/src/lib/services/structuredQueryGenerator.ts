@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { anthropicClient, isAnthropicConfigured } from '@/lib/anthropic-client'
 import { logger } from '@/lib/logger'
 import { AIConfigService } from './aiConfigService'
 
@@ -461,11 +462,9 @@ export class StructuredQueryGenerator {
   private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
   constructor() {
-    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY
-
-    if (apiKey && !apiKey.includes('demo')) {
+    if (isAnthropicConfigured()) {
       try {
-        this.anthropic = new Anthropic({ apiKey })
+        this.anthropic = anthropicClient
         this.isAvailable = true
         logger.info('✅ Structured Query Generator initialized with Claude API')
       } catch (error) {

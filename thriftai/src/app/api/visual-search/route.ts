@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { anthropicClient, isAnthropicConfigured } from '@/lib/anthropic-client'
 import { searchOptimizer } from '@/lib/services/searchOptimizer'
 import { mockAmazonService } from '@/lib/services/mockAmazonService'
 import { productScoringEngine } from '@/lib/services/productScoringEngine'
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
           confidence: imageAnalysis.confidence,
           requestId,
           searchType: 'visual',
-          aiModelsUsed: ['claude-3-haiku-20240307-vision', 'claude-3-5-haiku-20241022']
+          aiModelsUsed: ['claude-haiku-4-5-20251001-vision', 'claude-haiku-4-5-20251001']
         },
         suggestions: {
           alternativeQueries: generateVisualSearchSuggestions(imageAnalysis),
@@ -245,7 +246,7 @@ export async function POST(request: NextRequest) {
               processingTime: 0,
               confidence: Math.round((scores.confidence + imageAnalysis.confidence) / 2),
               scoringVersion: '1.0-visual',
-              aiModelUsed: ['claude-3-haiku-20240307-vision', 'productScoringEngine-v1.0'],
+              aiModelUsed: ['claude-haiku-4-5-20251001-vision', 'productScoringEngine-v1.0'],
               featuresUsed: ['visual-search', 'image-analysis']
             },
             recommendations
@@ -285,7 +286,7 @@ export async function POST(request: NextRequest) {
         processingTime: totalProcessingTime,
         scoringVersion: '1.0-visual',
         confidence: imageAnalysis.confidence,
-        aiModelsUsed: ['claude-3-haiku-20240307-vision', 'claude-3-5-haiku-20241022'],
+        aiModelsUsed: ['claude-haiku-4-5-20251001-vision', 'claude-haiku-4-5-20251001'],
         requestId,
         searchType: 'visual',
         paginationInfo: {
@@ -329,7 +330,7 @@ async function analyzeImageWithClaude(
   imageFormat: string,
   additionalText: string
 ): Promise<ImageAnalysisResult> {
-  const anthropic = new Anthropic({
+  const anthropic = anthropicClient // Updated to use centralized client with workspace ID support
     apiKey: process.env.ANTHROPIC_API_KEY!
   })
 
@@ -364,7 +365,7 @@ Respond with only the JSON object, no additional text.`
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-3-5-haiku-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 1000,
       temperature: 0.3,
       messages: [{

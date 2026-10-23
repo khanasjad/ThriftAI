@@ -184,12 +184,32 @@ export class IntelligentSearchLiteService {
         // Boost score for exact matches
         const nameLower = p.name.toLowerCase()
         const descLower = (p.description || '').toLowerCase()
+        const brandLower = (p.brand || '').toLowerCase()
 
         for (const term of searchTerms) {
           const termLower = term.toLowerCase()
-          if (nameLower.includes(termLower)) matchScore += 20
-          if (descLower.includes(termLower)) matchScore += 10
-          if (p.brand?.toLowerCase().includes(termLower)) matchScore += 15
+
+          // Create word boundary regex for better matching
+          // Matches term as whole word, not substring
+          const wordBoundaryRegex = new RegExp(`\\b${termLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+
+          // Name matching - prefer whole word matches
+          if (wordBoundaryRegex.test(p.name)) {
+            matchScore += 30 // Strong boost for whole word in name
+          } else if (nameLower.includes(termLower)) {
+            matchScore += 15 // Moderate boost for substring in name
+          }
+
+          // Description matching - whole word only to avoid false positives
+          if (wordBoundaryRegex.test(descLower)) {
+            matchScore += 15
+          }
+
+          // Brand matching - only boost if it's a whole word match
+          // This prevents "car" from matching "Carhartt"
+          if (wordBoundaryRegex.test(brandLower)) {
+            matchScore += 20
+          }
         }
 
         // Boost for AI score

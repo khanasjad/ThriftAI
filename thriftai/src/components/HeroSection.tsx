@@ -278,26 +278,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
         alignItems: 'center',
         padding: '0 1rem'
       }}>
-        {/* Main Content */}
-        <div style={{
-          width: '100%',
-          maxWidth: '1200px',
-          margin: '0 auto'
-        }}>
-          <div className="hero-content" style={{ margin: '0 auto', textAlign: 'center' }}>
-            {/* Hero Title */}
-            <h1 className="hero-title" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', marginBottom: '1rem' }}>
-              Discover amazing finds with{' '}
-              <span className="text-gradient-primary">Veritas.ai</span>
-            </h1>
-            <p className="text-secondary mb-0" style={{ fontSize: '1.1rem', lineHeight: '1.6', fontStyle: 'italic', fontWeight: 700, opacity: 0.9, maxWidth: '700px', margin: '0.75rem auto 0 auto' }}>
-              Because AI doesn't take sponsorship deals.<br />
-              No influencers were harmed in the making of these scores.<br />
-              Unpaid, unbiased, and unapologetically accurate.
-            </p>
-          </div>
-        </div>
-
         {/* Modern Category Tiles - 2025 Mobile-First Design */}
         <div style={{
           width: '100%',
@@ -410,32 +390,30 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
               </div>
             )}
 
-            {/* Title */}
-            <div style={{
-              textAlign: 'center',
-              position: 'relative',
-              zIndex: 1
-            }}>
-              <h2 style={{
-                fontSize: 'clamp(1.5rem, 3.5vw, 2rem)',
-                fontWeight: 900,
-                marginBottom: '0.5rem',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                backgroundSize: '200% 200%',
-                animation: 'gradientShift 6s ease infinite',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.2
+            {/* Title - Only show when category is selected */}
+            {(selectedCategory || selectedSubcategory) && (
+              <div style={{
+                textAlign: 'center',
+                position: 'relative',
+                zIndex: 1
               }}>
-                {selectedSubcategory
-                  ? 'Select Type'
-                  : selectedCategory
-                  ? selectedCategory.name
-                  : 'Browse by Category'}
-              </h2>
-              {(selectedSubcategory || selectedCategory) && (
+                <h2 style={{
+                  fontSize: 'clamp(1.5rem, 3.5vw, 2rem)',
+                  fontWeight: 900,
+                  marginBottom: '0.5rem',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                  backgroundSize: '200% 200%',
+                  animation: 'gradientShift 6s ease infinite',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.2
+                }}>
+                  {selectedSubcategory
+                    ? 'Select Type'
+                    : selectedCategory.name}
+                </h2>
                 <p style={{
                   fontSize: 'clamp(0.8rem, 1.5vw, 0.9rem)',
                   color: 'var(--text-secondary)',
@@ -449,8 +427,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch, onVisualSearch }) =
                     ? 'Choose the specific type you\'re looking for'
                     : 'Select a subcategory to refine your search'}
                 </p>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Responsive Category/Subcategory Grid */}

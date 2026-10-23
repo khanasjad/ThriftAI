@@ -17,8 +17,9 @@ import { simpleSemanticSearch } from './simpleSemanticSearch'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import Anthropic from '@anthropic-ai/sdk'
+import { anthropicClient, isAnthropicConfigured } from '@/lib/anthropic-client'
 
-const anthropic = new Anthropic({
+const anthropic = anthropicClient // Updated to use centralized client with workspace ID support
   apiKey: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || ''
 })
 
@@ -318,7 +319,7 @@ Format your response as JSON:
 }`
 
       const response = await anthropic.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1500,
         messages: [{
           role: 'user',
