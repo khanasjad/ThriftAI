@@ -1,4 +1,4 @@
-// ThriftAI - AI Enhanced Search Demo Page
+// Veritas AI - AI Enhanced Search Demo Page
 // Demonstration of the world-class AI-powered search system
 
 'use client'
@@ -201,7 +201,7 @@ export default function AISearchDemoPage() {
           <div className="flex items-center justify-center gap-3 mb-4">
             <Sparkles className="w-8 h-8 text-blue-600" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              ThriftAI Enhanced Search
+              Veritas AI Enhanced Search
             </h1>
           </div>
           <p className="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">

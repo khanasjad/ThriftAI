@@ -117,7 +117,7 @@ async function seedProducts(tenantId: string, count: number = 20) {
     }
 
     console.log('\n')
-    console.log('= TEST THE API')
+    console.log('= TEST THE API')
     console.log('\n')
     console.log(`  Search products:`)
     console.log(`  curl -X POST http://localhost:3000/api/v1/search \\`)

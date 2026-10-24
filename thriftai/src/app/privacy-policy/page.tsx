@@ -1,35 +1,27 @@
 'use client'
 
 import React from 'react'
-import Navigation from '@/components/Navigation'
-import Footer from '@/components/Footer'
+import AppLayout from '@/components/AppLayout'
 import { Shield, Lock, Eye, Database, Cookie, Mail } from 'lucide-react'
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="App">
-      <Navigation
-        user={null}
-        onShowLogin={() => {}}
-        onShowSignup={() => {}}
-        onLogout={() => {}}
-      />
-
-      <main className="container mx-auto px-4 py-8" style={{ maxWidth: '900px', minHeight: 'calc(100vh - 200px)' }}>
+    <AppLayout>
+      <div className="max-w-[900px] mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-8">
           <Shield className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 text-purple-600" />
-          <h1 className="page-header mb-3">Privacy Policy</h1>
-          <p className="page-subtitle">Last Updated: October 20, 2025</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">Privacy Policy</h1>
+          <p className="text-gray-600">Last Updated: October 20, 2025</p>
         </div>
 
         {/* Introduction */}
         <div className="mb-8 p-6 rounded-xl" style={{ background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
           <p className="text-primary mb-3" style={{ lineHeight: '1.7' }}>
-            At ThriftAI (Veritas.ai), we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
+            At Veritas AI (Veritas.ai), we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
           </p>
           <p className="text-secondary" style={{ lineHeight: '1.7' }}>
-            By using ThriftAI, you agree to the collection and use of information in accordance with this policy. If you do not agree with our policies, please do not use our service.
+            By using Veritas AI, you agree to the collection and use of information in accordance with this policy. If you do not agree with our policies, please do not use our service.
           </p>
         </div>
 
@@ -287,7 +279,7 @@ export default function PrivacyPolicyPage() {
           <div className="space-y-2 text-secondary" style={{ lineHeight: '1.7' }}>
             <p><strong>Email:</strong> privacy@thriftai.com</p>
             <p><strong>Data Protection Officer:</strong> dpo@thriftai.com</p>
-            <p><strong>Address:</strong> ThriftAI Inc., 123 Innovation Drive, San Francisco, CA 94105</p>
+            <p><strong>Address:</strong> Veritas AI Inc., 123 Innovation Drive, San Francisco, CA 94105</p>
           </div>
         </section>
 
@@ -295,15 +287,13 @@ export default function PrivacyPolicyPage() {
         <div className="text-center">
           <a
             href="/"
-            className="btn-modern-primary inline-flex items-center justify-center"
+            className="px-6 py-3 rounded bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-colors inline-flex items-center justify-center"
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
             Back to Home
           </a>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppLayout>
   )
 }

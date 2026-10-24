@@ -1,254 +1,259 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { TrendingUp, DollarSign, Leaf, ShoppingBag, Search, Clock, Award, BarChart3 } from 'lucide-react'
-import Navigation from '@/components/Navigation'
-import Footer from '@/components/Footer'
-import { useSession } from 'next-auth/react'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { ArrowRight, Filter, TrendingUp, TrendingDown } from 'lucide-react'
+import AppLayout from '@/components/AppLayout'
 
-export default function AnalyticsDashboard() {
-  const { data: session } = useSession()
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
+interface Product {
+  id: string
+  name: string
+  category: string
+  subcategory?: string
+  brand: {
+    name: string
+  }
+  overallScore: number
+  fitScore: number
+  qualityScore: number
+  returnRate: number
+  reviewCount: number
+  grade: string
+}
 
-  const appUser = session?.user ? {
-    id: session.user.id || '',
-    email: session.user.email || '',
-    firstName: session.user.firstName || session.user.name || '',
-    lastName: session.user.lastName || '',
-    userType: 'buyer' as const
-  } : null
+export default function Dashboard() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState('all')
 
-  // Mock data - replace with real API calls
-  const stats = {
-    totalSavings: 1247.50,
-    totalPurchases: 23,
-    carbonOffset: 45.2,
-    searchesMade: 156,
-    avgSavingsPerItem: 54.24,
-    topCategories: [
-      { name: 'Electronics', count: 8, savings: 420 },
-      { name: 'Fashion', count: 6, savings: 315 },
-      { name: 'Home & Garden', count: 5, savings: 280 },
-      { name: 'Books', count: 4, savings: 232 }
-    ],
-    recentSearches: [
-      { query: 'vintage designer bags', date: '2 hours ago', results: 45 },
-      { query: 'laptop under $200', date: '1 day ago', results: 28 },
-      { query: 'sustainable fashion', date: '3 days ago', results: 67 }
-    ],
-    savingsOverTime: [
-      { date: 'Jan', amount: 120 },
-      { date: 'Feb', amount: 245 },
-      { date: 'Mar', amount: 310 },
-      { date: 'Apr', amount: 290 },
-      { date: 'May', amount: 380 },
-      { date: 'Jun', amount: 425 }
-    ]
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const category = selectedCategory === 'all' ? '' : `&category=${selectedCategory}`
+        const res = await fetch(`/api/v1/products?limit=100${category}`)
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch products')
+        }
+
+        const data = await res.json()
+
+        if (data.success) {
+          setProducts(data.data)
+        } else {
+          throw new Error(data.error || 'Failed to load products')
+        }
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setError('Failed to load products. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [selectedCategory])
+
+  const portfolioScore = products.length > 0
+    ? Math.round(products.reduce((sum, p) => sum + p.overallScore, 0) / products.length)
+    : 0
+
+  const avgReturnRate = products.length > 0
+    ? Math.round(products.reduce((sum, p) => sum + p.returnRate, 0) / products.length)
+    : 0
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-emerald-600'
+    if (score >= 60) return 'text-amber-600'
+    return 'text-red-600'
   }
 
+  const getScoreBgColor = (score: number) => {
+    if (score >= 80) return 'bg-emerald-50'
+    if (score >= 60) return 'bg-amber-50'
+    return 'bg-red-50'
+  }
+
+  const categories = [
+    { value: 'all', label: 'All Products' },
+    { value: 'TOPS', label: 'Tops' },
+    { value: 'BOTTOMS', label: 'Bottoms' },
+    { value: 'DRESSES', label: 'Dresses' },
+    { value: 'OUTERWEAR', label: 'Outerwear' },
+    { value: 'ACTIVEWEAR', label: 'Activewear' },
+  ]
+
   return (
-    <div className="App">
-      <Navigation
-        user={appUser}
-        onShowLogin={() => {}}
-        onShowSignup={() => {}}
-        onLogout={() => {}}
-      />
-
-      <div className="container mx-auto px-4 py-8">
+    <AppLayout>
+      <div className="bg-gray-50 min-h-screen">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">Your Shopping Analytics</h1>
-          <p className="text-[var(--text-secondary)]">Track your savings, sustainability impact, and shopping trends</p>
-        </div>
-
-        {/* Time Range Selector */}
-        <div className="flex gap-2 mb-8">
-          {(['7d', '30d', '90d', 'all'] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                timeRange === range
-                  ? 'bg-[var(--accent-primary)] text-white'
-                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]'
-              }`}
-            >
-              {range === 'all' ? 'All Time' : range === '7d' ? 'Last 7 Days' : range === '30d' ? 'Last 30 Days' : 'Last 90 Days'}
-            </button>
-          ))}
-        </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-green-900/20 to-green-800/10 border border-green-500/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <DollarSign className="w-8 h-8 text-green-500" />
-              <TrendingUp className="w-5 h-5 text-green-500" />
-            </div>
-            <div className="text-3xl font-bold text-green-500 mb-1">${stats.totalSavings.toFixed(2)}</div>
-            <div className="text-sm text-[var(--text-secondary)]">Total Savings</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border border-blue-500/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <ShoppingBag className="w-8 h-8 text-blue-500" />
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="text-3xl font-bold text-blue-500 mb-1">{stats.totalPurchases}</div>
-            <div className="text-sm text-[var(--text-secondary)]">Items Purchased</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-emerald-900/20 to-emerald-800/10 border border-emerald-500/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Leaf className="w-8 h-8 text-emerald-500" />
-              <TrendingUp className="w-5 h-5 text-emerald-500" />
-            </div>
-            <div className="text-3xl font-bold text-emerald-500 mb-1">{stats.carbonOffset.toFixed(1)} kg</div>
-            <div className="text-sm text-[var(--text-secondary)]">Carbon Offset</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border border-purple-500/30 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Search className="w-8 h-8 text-purple-500" />
-              <TrendingUp className="w-5 h-5 text-purple-500" />
-            </div>
-            <div className="text-3xl font-bold text-purple-500 mb-1">{stats.searchesMade}</div>
-            <div className="text-sm text-[var(--text-secondary)]">Searches Made</div>
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 py-12">
+            <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Quality Dashboard
+            </h1>
+            <p className="text-xl text-gray-600">
+              Monitor product quality and identify opportunities
+            </p>
           </div>
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Savings Over Time */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">Savings Over Time</h3>
-            <div className="h-64">
-              <svg className="w-full h-full" preserveAspectRatio="none">
-                {/* Grid */}
-                {[0, 25, 50, 75, 100].map((y) => (
-                  <line
-                    key={y}
-                    x1="0"
-                    y1={`${y}%`}
-                    x2="100%"
-                    y2={`${y}%`}
-                    stroke="var(--border-primary)"
-                    strokeWidth="1"
-                    strokeDasharray="4"
-                  />
-                ))}
-
-                {/* Bars */}
-                {stats.savingsOverTime.map((point, i) => {
-                  const x = (i / stats.savingsOverTime.length) * 100
-                  const width = 100 / stats.savingsOverTime.length * 0.8
-                  const height = (point.amount / 500) * 100
-                  return (
-                    <rect
-                      key={i}
-                      x={`${x}%`}
-                      y={`${100 - height}%`}
-                      width={`${width}%`}
-                      height={`${height}%`}
-                      fill="var(--accent-primary)"
-                      rx="4"
-                    />
-                  )
-                })}
-              </svg>
-              <div className="flex justify-between mt-4 text-xs text-[var(--text-secondary)]">
-                {stats.savingsOverTime.map((point) => (
-                  <span key={point.date}>{point.date}</span>
-                ))}
+        {/* Stats */}
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium text-gray-600">Portfolio Score</div>
+                <div className="p-2 bg-violet-100 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-violet-600" />
+                </div>
               </div>
+              <div className="text-5xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+                {portfolioScore}
+              </div>
+              <div className="text-sm text-green-600 font-medium">+5 from last month</div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium text-gray-600">Avg Return Rate</div>
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <TrendingDown className="w-5 h-5 text-green-600" />
+                </div>
+              </div>
+              <div className="text-5xl font-bold text-gray-900 mb-2">
+                {avgReturnRate}%
+              </div>
+              <div className="text-sm text-green-600 font-medium">-3% from last month</div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium text-gray-600">Products Tracked</div>
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Filter className="w-5 h-5 text-blue-600" />
+                </div>
+              </div>
+              <div className="text-5xl font-bold text-gray-900 mb-2">
+                {products.length}
+              </div>
+              <div className="text-sm text-gray-500">6 categories</div>
             </div>
           </div>
+        </div>
 
-          {/* Top Categories */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">Top Categories</h3>
+        {/* Filters */}
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center gap-3 overflow-x-auto pb-2">
+            {categories.map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => setSelectedCategory(cat.value)}
+                className={`px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  selectedCategory === cat.value
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Products Grid */}
+        <div className="max-w-7xl mx-auto px-6 pb-12">
+          {loading ? (
+            <div className="text-center py-24">
+              <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-gray-500">Loading products...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-24">
+              <p className="text-red-600 font-medium">{error}</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-24">
+              <p className="text-gray-500">No products found</p>
+            </div>
+          ) : (
             <div className="space-y-4">
-              {stats.topCategories.map((cat, idx) => (
-                <div key={cat.name}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)] flex items-center justify-center text-white font-bold">
-                        {idx + 1}
+              {products.map((product) => (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.id}`}
+                  className="block bg-white rounded-2xl p-6 border border-gray-200 hover:shadow-xl hover:border-violet-200 transition-all group"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-violet-600 transition-colors">
+                          {product.name}
+                        </h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          product.grade.startsWith('A') ? 'bg-emerald-100 text-emerald-700' :
+                          product.grade.startsWith('B') ? 'bg-blue-100 text-blue-700' :
+                          product.grade.startsWith('C') ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {product.grade}
+                        </span>
                       </div>
-                      <div>
-                        <div className="font-medium text-[var(--text-primary)]">{cat.name}</div>
-                        <div className="text-xs text-[var(--text-secondary)]">{cat.count} items</div>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span>{product.brand.name}</span>
+                        <span>•</span>
+                        <span>{product.category}</span>
+                        <span>•</span>
+                        <span>{product.reviewCount.toLocaleString()} reviews</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-green-500">${cat.savings}</div>
-                      <div className="text-xs text-[var(--text-secondary)]">saved</div>
+
+                    <div className="flex items-center gap-8">
+                      <div className="text-center">
+                        <div className={`text-4xl font-bold mb-1 ${getScoreColor(product.overallScore)}`}>
+                          {product.overallScore}
+                        </div>
+                        <div className="text-xs text-gray-500">Overall</div>
+                      </div>
+
+                      <div className="hidden md:block w-px h-12 bg-gray-200" />
+
+                      <div className="hidden md:flex items-center gap-6">
+                        <div className="text-center">
+                          <div className={`text-2xl font-bold ${getScoreColor(product.fitScore)}`}>
+                            {product.fitScore}
+                          </div>
+                          <div className="text-xs text-gray-500">Fit</div>
+                        </div>
+
+                        <div className="text-center">
+                          <div className={`text-2xl font-bold ${getScoreColor(product.qualityScore)}`}>
+                            {product.qualityScore}
+                          </div>
+                          <div className="text-xs text-gray-500">Quality</div>
+                        </div>
+
+                        <div className="text-center">
+                          <div className={`text-2xl font-bold ${product.returnRate > 15 ? 'text-red-600' : 'text-emerald-600'}`}>
+                            {product.returnRate}%
+                          </div>
+                          <div className="text-xs text-gray-500">Returns</div>
+                        </div>
+                      </div>
+
+                      <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-violet-600 group-hover:translate-x-1 transition-all" />
                     </div>
                   </div>
-                  <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-2">
-                    <div
-                      className="bg-[var(--accent-primary)] h-2 rounded-full"
-                      style={{ width: `${(cat.savings / 420) * 100}%` }}
-                    />
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Searches */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Search className="w-5 h-5 text-[var(--accent-primary)]" />
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Recent Searches</h3>
-            </div>
-            <div className="space-y-3">
-              {stats.recentSearches.map((search, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium text-[var(--text-primary)]">{search.query}</div>
-                    <div className="text-xs text-[var(--text-secondary)] flex items-center gap-2 mt-1">
-                      <Clock className="w-3 h-3" />
-                      {search.date}
-                    </div>
-                  </div>
-                  <div className="text-sm text-[var(--text-secondary)]">{search.results} results</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Savings Calculator */}
-          <div className="bg-gradient-to-br from-green-900/20 to-emerald-900/10 border border-green-500/30 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Award className="w-5 h-5 text-green-500" />
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Savings Calculator</h3>
-            </div>
-            <div className="space-y-4">
-              <div className="bg-[var(--bg-tertiary)] rounded-lg p-4">
-                <div className="text-sm text-[var(--text-secondary)] mb-1">Average Savings Per Item</div>
-                <div className="text-2xl font-bold text-green-500">${stats.avgSavingsPerItem.toFixed(2)}</div>
-              </div>
-              <div className="bg-[var(--bg-tertiary)] rounded-lg p-4">
-                <div className="text-sm text-[var(--text-secondary)] mb-1">If you buy 10 more items</div>
-                <div className="text-2xl font-bold text-green-500">+${(stats.avgSavingsPerItem * 10).toFixed(2)}</div>
-                <div className="text-xs text-[var(--text-secondary)] mt-1">Potential additional savings</div>
-              </div>
-              <div className="bg-[var(--bg-tertiary)] rounded-lg p-4">
-                <div className="text-sm text-[var(--text-secondary)] mb-1">Sustainability Impact</div>
-                <div className="text-lg font-semibold text-emerald-500">{(stats.carbonOffset * 1.5).toFixed(1)} kg CO₂</div>
-                <div className="text-xs text-[var(--text-secondary)] mt-1">With 10 more purchases</div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
-
-      <Footer />
-    </div>
+    </AppLayout>
   )
 }

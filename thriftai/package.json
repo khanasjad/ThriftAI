@@ -88,6 +88,7 @@
     "react-tinder-card": "^1.6.4",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
+    "resend": "^6.34.1",
     "rss-parser": "^3.13.0",
     "sharp": "^0.34.4",
     "stripe": "^19.0.0",

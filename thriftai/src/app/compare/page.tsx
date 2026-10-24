@@ -3,11 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import Navigation from '@/components/Navigation'
-import Footer from '@/components/Footer'
+import AppLayout from '@/components/AppLayout'
 import { X, Plus, Trophy, TrendingUp, Shield } from 'lucide-react'
-import LoginModal from '@/components/LoginModal'
-import SignupModal from '@/components/SignupModal'
 
 interface Product {
   id: string
@@ -43,8 +40,6 @@ export default function ComparePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [showSignupModal, setShowSignupModal] = useState(false)
 
   const appUser = session?.user ? {
     id: session.user.id || '',
@@ -109,15 +104,8 @@ export default function ComparePage() {
 
   if (products.length === 0) {
     return (
-      <div className="App">
-        <Navigation
-          user={appUser}
-          onShowLogin={() => setShowLoginModal(true)}
-          onShowSignup={() => setShowSignupModal(true)}
-          onLogout={() => {}}
-        />
-
-        <main className="container mx-auto px-4 py-8" style={{ maxWidth: '1200px', minHeight: 'calc(100vh - 200px)' }}>
+      <AppLayout>
+        <div className="max-w-[1200px] mx-auto px-6 py-8">
           <div className="text-center py-16">
             <Trophy className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-6 text-purple-600" />
             <h1 className="page-header mb-3">Product Comparison</h1>
@@ -132,35 +120,16 @@ export default function ComparePage() {
               <span>Add Products to Compare</span>
             </button>
           </div>
-        </main>
-
-        <Footer />
-        <LoginModal show={showLoginModal} onHide={() => setShowLoginModal(false)} />
-        <SignupModal
-          show={showSignupModal}
-          onHide={() => setShowSignupModal(false)}
-          onShowLogin={() => {
-            setShowSignupModal(false)
-            setShowLoginModal(true)
-          }}
-          onSignup={async () => {}}
-        />
-      </div>
+        </div>
+      </AppLayout>
     )
   }
 
   const specs = getAllSpecs()
 
   return (
-    <div className="App">
-      <Navigation
-        user={appUser}
-        onShowLogin={() => setShowLoginModal(true)}
-        onShowSignup={() => setShowSignupModal(true)}
-        onLogout={() => {}}
-      />
-
-      <main className="container mx-auto px-4 py-6" style={{ maxWidth: '1400px', minHeight: 'calc(100vh - 200px)' }}>
+    <AppLayout>
+      <div className="max-w-[1400px] mx-auto px-6 py-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="page-header mb-2">Product Comparison</h1>
@@ -341,19 +310,7 @@ export default function ComparePage() {
             </ul>
           </div>
         )}
-      </main>
-
-      <Footer />
-      <LoginModal show={showLoginModal} onHide={() => setShowLoginModal(false)} />
-      <SignupModal
-        show={showSignupModal}
-        onHide={() => setShowSignupModal(false)}
-        onShowLogin={() => {
-          setShowSignupModal(false)
-          setShowLoginModal(true)
-        }}
-        onSignup={async () => {}}
-      />
-    </div>
+      </div>
+    </AppLayout>
   )
 }

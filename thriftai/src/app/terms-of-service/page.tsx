@@ -1,35 +1,27 @@
 'use client'
 
 import React from 'react'
-import Navigation from '@/components/Navigation'
-import Footer from '@/components/Footer'
+import AppLayout from '@/components/AppLayout'
 import { FileText, AlertTriangle, Scale, ShieldCheck } from 'lucide-react'
 
 export default function TermsOfServicePage() {
   return (
-    <div className="App">
-      <Navigation
-        user={null}
-        onShowLogin={() => {}}
-        onShowSignup={() => {}}
-        onLogout={() => {}}
-      />
-
-      <main className="container mx-auto px-4 py-8" style={{ maxWidth: '900px', minHeight: 'calc(100vh - 200px)' }}>
+    <AppLayout>
+      <div className="max-w-[900px] mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-8">
           <FileText className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 text-blue-600" />
-          <h1 className="page-header mb-3">Terms of Service</h1>
-          <p className="page-subtitle">Last Updated: October 20, 2025</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">Terms of Service</h1>
+          <p className="text-gray-600">Last Updated: October 20, 2025</p>
         </div>
 
         {/* Introduction */}
         <div className="mb-8 p-6 rounded-xl" style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
           <p className="text-primary mb-3" style={{ lineHeight: '1.7' }}>
-            Welcome to ThriftAI (Veritas.ai). These Terms of Service ("Terms") govern your access to and use of our platform, including our website, mobile applications, and services.
+            Welcome to Veritas AI (Veritas.ai). These Terms of Service ("Terms") govern your access to and use of our platform, including our website, mobile applications, and services.
           </p>
           <p className="text-secondary" style={{ lineHeight: '1.7' }}>
-            By accessing or using ThriftAI, you agree to be bound by these Terms. If you do not agree to these Terms, please do not use our services.
+            By accessing or using Veritas AI, you agree to be bound by these Terms. If you do not agree to these Terms, please do not use our services.
           </p>
         </div>
 
@@ -42,7 +34,7 @@ export default function TermsOfServicePage() {
 
           <div className="ml-9">
             <p className="text-secondary" style={{ lineHeight: '1.7' }}>
-              By creating an account, making a purchase, or otherwise using ThriftAI, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. These Terms constitute a legally binding agreement between you and ThriftAI Inc.
+              By creating an account, making a purchase, or otherwise using Veritas AI, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. These Terms constitute a legally binding agreement between you and Veritas AI Inc.
             </p>
           </div>
         </section>
@@ -56,7 +48,7 @@ export default function TermsOfServicePage() {
 
           <div className="ml-9">
             <p className="text-secondary mb-3" style={{ lineHeight: '1.7' }}>
-              To use ThriftAI, you must:
+              To use Veritas AI, you must:
             </p>
             <ul className="list-disc list-inside space-y-2 text-secondary" style={{ lineHeight: '1.7' }}>
               <li>Be at least 18 years of age or the age of majority in your jurisdiction</li>
@@ -183,7 +175,7 @@ export default function TermsOfServicePage() {
             <div>
               <h3 className="text-lg font-semibold text-primary mb-2">6.1 Our Content</h3>
               <p className="text-secondary" style={{ lineHeight: '1.7' }}>
-                All content on ThriftAI, including text, graphics, logos, icons, images, audio clips, video, software, and data compilations, is the property of ThriftAI or its content suppliers and is protected by copyright, trademark, and other intellectual property laws.
+                All content on Veritas AI, including text, graphics, logos, icons, images, audio clips, video, software, and data compilations, is the property of Veritas AI or its content suppliers and is protected by copyright, trademark, and other intellectual property laws.
               </p>
             </div>
 
@@ -197,7 +189,7 @@ export default function TermsOfServicePage() {
             <div>
               <h3 className="text-lg font-semibold text-primary mb-2">6.3 Trademarks</h3>
               <p className="text-secondary" style={{ lineHeight: '1.7' }}>
-                "ThriftAI," "Veritas.ai," and all related logos are trademarks of ThriftAI Inc. You may not use these marks without our express written permission.
+                "Veritas AI," "Veritas.ai," and all related logos are trademarks of Veritas AI Inc. You may not use these marks without our express written permission.
               </p>
             </div>
           </div>
@@ -281,7 +273,7 @@ export default function TermsOfServicePage() {
 
           <div className="ml-9">
             <p className="text-secondary" style={{ lineHeight: '1.7' }}>
-              You agree to indemnify, defend, and hold harmless ThriftAI, its affiliates, officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorneys' fees) arising from: (a) your use of the platform, (b) your violation of these Terms, (c) your violation of any rights of another party, or (d) any content you submit or transmit through the platform.
+              You agree to indemnify, defend, and hold harmless Veritas AI, its affiliates, officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorneys' fees) arising from: (a) your use of the platform, (b) your violation of these Terms, (c) your violation of any rights of another party, or (d) any content you submit or transmit through the platform.
             </p>
           </div>
         </section>
@@ -373,7 +365,7 @@ export default function TermsOfServicePage() {
           <div className="space-y-2 text-secondary" style={{ lineHeight: '1.7' }}>
             <p><strong>Email:</strong> legal@thriftai.com</p>
             <p><strong>Support:</strong> support@thriftai.com</p>
-            <p><strong>Address:</strong> ThriftAI Inc., 123 Innovation Drive, San Francisco, CA 94105</p>
+            <p><strong>Address:</strong> Veritas AI Inc., 123 Innovation Drive, San Francisco, CA 94105</p>
           </div>
         </section>
 
@@ -381,15 +373,13 @@ export default function TermsOfServicePage() {
         <div className="text-center">
           <a
             href="/"
-            className="btn-modern-primary inline-flex items-center justify-center"
+            className="px-6 py-3 rounded bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-colors inline-flex items-center justify-center"
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
             Back to Home
           </a>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppLayout>
   )
 }

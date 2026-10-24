@@ -6,11 +6,6 @@
     "auditLog": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/.5fca10dbc200f504574aa10ab03681a50aeb0217-audit.json",
     "files": [
         {
-            "date": 1790178545427,
-            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2026-09-23.log",
-            "hash": "aad91f02c419712da7e5a2b1a177b210a87dadd5558388bd79d3f584a30f4c5b"
-        },
-        {
             "date": 1792515346404,
             "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2026-10-20.log",
             "hash": "44425341adaae697b8fb1e0b8b9685da77b15f410dc64150b77242927316e0b9"
@@ -24,6 +19,11 @@
             "date": 1792681321513,
             "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2026-10-22.log",
             "hash": "228863a7913f935e99f71441788bcc92d25c28f7775c1f343d1154833d1d4578"
+        },
+        {
+            "date": 1792855206546,
+            "name": "/Users/asjadkhan/IdeaProjects/ProjectAI/thriftai/logs/error-2026-10-24.log",
+            "hash": "5edee40a9906e9d33195a78835658c5f1aaf37dc255704fa0cf699d890d98f1a"
         }
     ],
     "hashType": "sha256"

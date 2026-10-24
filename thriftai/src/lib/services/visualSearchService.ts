@@ -8,8 +8,6 @@ import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 
 const anthropic = anthropicClient // Updated to use centralized client with workspace ID support
-  apiKey: process.env.ANTHROPIC_API_KEY
-})
 
 export interface VisualSearchResult {
   success: boolean

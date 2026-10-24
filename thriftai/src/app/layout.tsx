@@ -4,13 +4,13 @@ import { Providers } from "./providers";
 import CookieBanner from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
-  title: "veritas.ai - Truth in Every Transaction",
-  description: "AI-powered marketplace intelligence. Discover authentic products with Veritas scoring that reveals the truth behind every listing.",
-  keywords: ["AI shopping", "marketplace intelligence", "product verification", "smart shopping", "veritas ai"],
-  authors: [{ name: "Veritas.ai" }],
+  title: "Veritas AI - Quality Scoring for DTC Brands",
+  description: "AI-powered quality scoring across 27 factors. Transform customer reviews into actionable insights and reduce returns by 25%.",
+  keywords: ["AI quality scoring", "DTC brands", "product quality", "return reduction", "veritas ai"],
+  authors: [{ name: "Veritas AI" }],
   openGraph: {
-    title: "veritas.ai - Truth in Every Transaction",
-    description: "AI-powered marketplace intelligence platform",
+    title: "Veritas AI - Quality Scoring for DTC Brands",
+    description: "AI-powered quality scoring platform for DTC clothing brands",
     type: "website",
     images: ['/logo.svg'],
   },
@@ -28,68 +28,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-        />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-        />
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-          /* Force dark theme to override Bootstrap */
-          html, body {
-            background: #000000 !important;
-            color: #ffffff !important;
-            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
-          }
-
-          body {
-            background-image:
-              radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
-              radial-gradient(circle at 80% 80%, rgba(6, 214, 160, 0.05) 0%, transparent 50%),
-              radial-gradient(circle at 40% 60%, rgba(0, 212, 255, 0.03) 0%, transparent 50%) !important;
-            background-attachment: fixed !important;
-            min-height: 100vh !important;
-          }
-
-          /* Override any Bootstrap container/layout elements that might have background colors */
-          .container, .container-fluid, .row, [class*="col-"] {
-            background: transparent !important;
-            color: inherit !important;
-          }
-
-          /* Force most text to white to override Bootstrap's defaults */
-          /* Note: Excludes spans to allow for colored branding elements */
-          h1, h2, h3, h4, h5, h6, p, div, a {
-            color: #ffffff !important;
-          }
-
-          /* Ensure App container has proper styling */
-          .App {
-            background: transparent !important;
-            color: #ffffff !important;
-            min-height: 100vh;
+          * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
           }
         `}</style>
       </head>
-      <body className="App">
-        {/* Skip Navigation Link for Accessibility */}
-        <a href="#main-content" className="skip-link">
+      <body>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-black">
           Skip to main content
         </a>
         <Providers>
-          <main id="main-content">
+          <div id="main-content">
             {children}
-          </main>
+          </div>
         </Providers>
         <CookieBanner />
-        <script
-          src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-          async
-        ></script>
       </body>
     </html>
   );

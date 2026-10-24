@@ -3,11 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import Navigation from '@/components/Navigation'
-import Footer from '@/components/Footer'
+import AppLayout from '@/components/AppLayout'
 import { Leaf, TrendingUp, Award, Globe, Recycle, Heart } from 'lucide-react'
-import LoginModal from '@/components/LoginModal'
-import SignupModal from '@/components/SignupModal'
 
 interface SustainabilityStats {
   co2Saved: number // kg
@@ -32,8 +29,6 @@ export default function SustainabilityPage() {
     globalRank: 0,
     totalUsers: 1000
   })
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [showSignupModal, setShowSignupModal] = useState(false)
 
   const appUser = session?.user ? {
     id: session.user.id || '',
@@ -81,15 +76,8 @@ export default function SustainabilityPage() {
   ]
 
   return (
-    <div className="App">
-      <Navigation
-        user={appUser}
-        onShowLogin={() => setShowLoginModal(true)}
-        onShowSignup={() => setShowSignupModal(true)}
-        onLogout={() => {}}
-      />
-
-      <main className="container mx-auto px-4 py-8" style={{ maxWidth: '1200px', minHeight: 'calc(100vh - 200px)' }}>
+    <AppLayout>
+      <div className="max-w-[1200px] mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="d-flex justify-content-center align-items-center gap-3 mb-3">
@@ -321,19 +309,7 @@ export default function SustainabilityPage() {
             </button>
           </div>
         </div>
-      </main>
-
-      <Footer />
-      <LoginModal show={showLoginModal} onHide={() => setShowLoginModal(false)} />
-      <SignupModal
-        show={showSignupModal}
-        onHide={() => setShowSignupModal(false)}
-        onShowLogin={() => {
-          setShowSignupModal(false)
-          setShowLoginModal(true)
-        }}
-        onSignup={async () => {}}
-      />
-    </div>
+      </div>
+    </AppLayout>
   )
 }

@@ -1,26 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
-import Navigation from '@/components/Navigation'
-import Footer from '@/components/Footer'
-import { useSession } from 'next-auth/react'
-import LoginModal from '@/components/LoginModal'
-import SignupModal from '@/components/SignupModal'
+import { useState } from 'react'
+import Link from 'next/link'
+import AppLayout from '@/components/AppLayout'
 import { Award, TrendingUp, Shield, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function AboutPage() {
-  const { data: session } = useSession()
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [showSignupModal, setShowSignupModal] = useState(false)
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
-
-  const appUser = session?.user ? {
-    id: session.user.id || '',
-    email: session.user.email || '',
-    firstName: session.user.firstName || session.user.name || '',
-    lastName: session.user.lastName || '',
-    userType: 'buyer' as const
-  } : null
 
   const parameterCategories = [
     {
@@ -124,48 +110,6 @@ export default function AboutPage() {
         'Product lifecycle extension',
         'Social impact score'
       ]
-    },
-    {
-      id: 'transaction',
-      title: 'Transaction Security (14 parameters)',
-      icon: Shield,
-      description: 'Payment safety and transaction reliability',
-      parameters: [
-        'Payment method security',
-        'Buyer protection coverage',
-        'Escrow availability',
-        'Refund policy clarity',
-        'Shipping insurance',
-        'Tracking availability',
-        'Delivery guarantee',
-        'Fraud protection',
-        'Secure checkout rating',
-        'Privacy policy compliance',
-        'Data encryption level',
-        'Third-party verification',
-        'Transaction history',
-        'Platform trust score'
-      ]
-    },
-    {
-      id: 'user-experience',
-      title: 'User Experience (12 parameters)',
-      icon: Award,
-      description: 'Shopping convenience and customer service quality',
-      parameters: [
-        'Product description accuracy',
-        'Image quality score',
-        'Shipping speed rating',
-        'Packaging quality',
-        'Communication clarity',
-        'Post-purchase support',
-        'Return process ease',
-        'Customer service availability',
-        'Problem resolution time',
-        'User satisfaction index',
-        'Recommendation likelihood',
-        'Overall experience rating'
-      ]
     }
   ]
 
@@ -174,80 +118,41 @@ export default function AboutPage() {
   }
 
   return (
-    <div className="App">
-      <Navigation
-        user={appUser}
-        onShowLogin={() => setShowLoginModal(true)}
-        onShowSignup={() => setShowSignupModal(true)}
-        onLogout={() => {}}
-      />
-
-      <main style={{ minHeight: 'calc(100vh - 200px)' }}>
+    <AppLayout>
+      <div className="bg-gradient-to-br from-violet-50 via-white to-indigo-50 min-h-screen">
         {/* Hero Section */}
-        <section style={{
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)',
-          padding: '4rem 0',
-          borderBottom: '1px solid var(--border-primary)'
-        }}>
-          <div className="container mx-auto px-4" style={{ maxWidth: '1200px' }}>
-            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-              <h1 className="text-gradient-primary" style={{
-                fontSize: '3rem',
-                fontWeight: 800,
-                marginBottom: '1rem',
-                lineHeight: '1.2'
-              }}>
-                About Veritas.ai
+        <section className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-16 border-b border-violet-500">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-12">
+              <h1 className="text-5xl font-bold mb-4">
+                About Veritas AI
               </h1>
-              <p className="text-secondary" style={{ fontSize: '1.25rem', maxWidth: '800px', margin: '0 auto' }}>
+              <p className="text-xl opacity-90 max-w-3xl mx-auto">
                 Revolutionizing online shopping with AI-powered trust and transparency
               </p>
             </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: '2rem',
-              marginTop: '3rem'
-            }}>
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 'var(--radius-xl)',
-                padding: '2rem',
-                textAlign: 'center'
-              }}>
-                <Award className="mx-auto mb-3" style={{ width: '48px', height: '48px', color: 'var(--accent-primary)' }} />
-                <h3 className="text-primary font-bold mb-2" style={{ fontSize: '1.25rem' }}>Veritas Score</h3>
-                <p className="text-secondary" style={{ fontSize: '0.875rem' }}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center">
+                <Award className="mx-auto mb-4 w-12 h-12" />
+                <h3 className="text-xl font-bold mb-2">Veritas Score</h3>
+                <p className="text-sm opacity-90">
                   Our proprietary trust algorithm analyzing 96 unique parameters
                 </p>
               </div>
 
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 'var(--radius-xl)',
-                padding: '2rem',
-                textAlign: 'center'
-              }}>
-                <TrendingUp className="mx-auto mb-3" style={{ width: '48px', height: '48px', color: 'var(--accent-primary)' }} />
-                <h3 className="text-primary font-bold mb-2" style={{ fontSize: '1.25rem' }}>Smart Shopping</h3>
-                <p className="text-secondary" style={{ fontSize: '0.875rem' }}>
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center">
+                <TrendingUp className="mx-auto mb-4 w-12 h-12" />
+                <h3 className="text-xl font-bold mb-2">Smart Shopping</h3>
+                <p className="text-sm opacity-90">
                   AI-powered recommendations that save you time and money
                 </p>
               </div>
 
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 'var(--radius-xl)',
-                padding: '2rem',
-                textAlign: 'center'
-              }}>
-                <Shield className="mx-auto mb-3" style={{ width: '48px', height: '48px', color: 'var(--accent-primary)' }} />
-                <h3 className="text-primary font-bold mb-2" style={{ fontSize: '1.25rem' }}>Buyer Protection</h3>
-                <p className="text-secondary" style={{ fontSize: '0.875rem' }}>
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 text-center">
+                <Shield className="mx-auto mb-4 w-12 h-12" />
+                <h3 className="text-xl font-bold mb-2">Buyer Protection</h3>
+                <p className="text-sm opacity-90">
                   Shop with confidence knowing every transaction is verified
                 </p>
               </div>
@@ -256,16 +161,16 @@ export default function AboutPage() {
         </section>
 
         {/* Mission Section */}
-        <section style={{ padding: '4rem 0' }}>
-          <div className="container mx-auto px-4" style={{ maxWidth: '1200px' }}>
-            <h2 className="text-primary font-bold mb-4" style={{ fontSize: '2rem', textAlign: 'center' }}>
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4 text-center">
               What We Improve
             </h2>
-            <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-              <p className="text-secondary mb-4" style={{ fontSize: '1.125rem', lineHeight: '1.8' }}>
-                Online shopping should be simple, safe, and sustainable. At Veritas.ai, we use advanced AI to solve the biggest challenges in e-commerce:
+            <div className="max-w-4xl mx-auto">
+              <p className="text-lg text-gray-600 mb-8 text-center">
+                Online shopping should be simple, safe, and sustainable. At Veritas AI, we use advanced AI to solve the biggest challenges in e-commerce:
               </p>
-              <ul style={{ listStyle: 'none', padding: 0 }}>
+              <div className="space-y-4">
                 {[
                   { title: 'Trust & Transparency', desc: 'No more wondering if a deal is too good to be true. Our Veritas Score gives you instant trust insights.' },
                   { title: 'Information Overload', desc: 'We analyze thousands of data points so you can make decisions in seconds, not hours.' },
@@ -273,92 +178,52 @@ export default function AboutPage() {
                   { title: 'Seller Reliability', desc: 'Deep verification of seller history, ratings, and trustworthiness across platforms.' },
                   { title: 'Sustainability', desc: 'Making eco-conscious shopping easy with environmental impact scores for every product.' }
                 ].map((item, idx) => (
-                  <li key={idx} style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: '1.5rem',
-                    marginBottom: '1rem'
-                  }}>
-                    <h3 className="text-accent font-semibold mb-2" style={{ fontSize: '1.125rem' }}>{item.title}</h3>
-                    <p className="text-secondary" style={{ fontSize: '1rem', margin: 0 }}>{item.desc}</p>
-                  </li>
+                  <div key={idx} className="bg-white border border-gray-200 rounded-xl p-6">
+                    <h3 className="text-violet-600 font-semibold text-lg mb-2">{item.title}</h3>
+                    <p className="text-gray-600">{item.desc}</p>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Veritas Score Section */}
-        <section style={{
-          padding: '4rem 0',
-          background: 'rgba(255, 255, 255, 0.02)',
-          borderTop: '1px solid var(--border-primary)',
-          borderBottom: '1px solid var(--border-primary)'
-        }}>
-          <div className="container mx-auto px-4" style={{ maxWidth: '1200px' }}>
-            <h2 className="text-primary font-bold mb-3" style={{ fontSize: '2rem', textAlign: 'center' }}>
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="text-4xl font-bold text-gray-900 mb-3 text-center">
               The Veritas Score
             </h2>
-            <p className="text-secondary mb-6" style={{ fontSize: '1.125rem', textAlign: 'center', maxWidth: '800px', margin: '0 auto 3rem' }}>
-              A revolutionary trust metric that analyzes <span className="text-accent font-bold">96 unique parameters</span> across
+            <p className="text-lg text-gray-600 mb-12 text-center max-w-4xl mx-auto">
+              A revolutionary trust metric that analyzes <span className="text-violet-600 font-bold">96 unique parameters</span> across
               6 critical categories to give you a complete picture of every purchase.
             </p>
 
-            <div style={{
-              background: 'var(--bg-secondary)',
-              border: '2px solid var(--accent-primary)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '2rem',
-              marginBottom: '3rem'
-            }}>
-              <h3 className="text-primary font-bold mb-4" style={{ fontSize: '1.5rem' }}>How It Helps You</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                <div>
-                  <h4 className="text-accent font-semibold mb-2" style={{ fontSize: '1.125rem' }}>Make Faster Decisions</h4>
-                  <p className="text-secondary" style={{ fontSize: '1rem' }}>
-                    One score instead of reading hundreds of reviews. See instantly if a product and seller are trustworthy.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-accent font-semibold mb-2" style={{ fontSize: '1.125rem' }}>Avoid Scams & Fakes</h4>
-                  <p className="text-secondary" style={{ fontSize: '1rem' }}>
-                    Our AI detects red flags in seller behavior, pricing anomalies, and authenticity concerns.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-accent font-semibold mb-2" style={{ fontSize: '1.125rem' }}>Save Money</h4>
-                  <p className="text-secondary" style={{ fontSize: '1rem' }}>
-                    Find the best deals with confidence. Compare true value, not just price.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-accent font-semibold mb-2" style={{ fontSize: '1.125rem' }}>Shop Sustainably</h4>
-                  <p className="text-secondary" style={{ fontSize: '1rem' }}>
-                    See the environmental impact of every purchase and make eco-friendly choices easily.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-accent font-semibold mb-2" style={{ fontSize: '1.125rem' }}>Reduce Returns</h4>
-                  <p className="text-secondary" style={{ fontSize: '1rem' }}>
-                    Accurate product analysis means you get what you expect, reducing buyer's remorse.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-accent font-semibold mb-2" style={{ fontSize: '1.125rem' }}>Peace of Mind</h4>
-                  <p className="text-secondary" style={{ fontSize: '1rem' }}>
-                    Every transaction backed by comprehensive analysis and buyer protection insights.
-                  </p>
-                </div>
+            <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border-2 border-violet-200 rounded-2xl p-8 mb-12">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">How It Helps You</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { title: 'Make Faster Decisions', desc: 'One score instead of reading hundreds of reviews. See instantly if a product and seller are trustworthy.' },
+                  { title: 'Avoid Scams & Fakes', desc: 'Our AI detects red flags in seller behavior, pricing anomalies, and authenticity concerns.' },
+                  { title: 'Save Money', desc: 'Find the best deals with confidence. Compare true value, not just price.' },
+                  { title: 'Shop Sustainably', desc: 'See the environmental impact of every purchase and make eco-friendly choices easily.' },
+                  { title: 'Reduce Returns', desc: 'Accurate product analysis means you get what you expect, reducing buyer\'s remorse.' },
+                  { title: 'Peace of Mind', desc: 'Every transaction backed by comprehensive analysis and buyer protection insights.' }
+                ].map((item, idx) => (
+                  <div key={idx}>
+                    <h4 className="text-violet-600 font-semibold text-lg mb-2">{item.title}</h4>
+                    <p className="text-gray-600">{item.desc}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* 96 Parameters Breakdown */}
-            <h3 className="text-primary font-bold mb-4" style={{ fontSize: '1.75rem', textAlign: 'center' }}>
+            <h3 className="text-3xl font-bold text-gray-900 mb-6 text-center">
               96 Parameters Explained
             </h3>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="space-y-4">
               {parameterCategories.map((category) => {
                 const Icon = category.icon
                 const isExpanded = expandedCategory === category.id
@@ -366,68 +231,37 @@ export default function AboutPage() {
                 return (
                   <div
                     key={category.id}
-                    style={{
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-primary)',
-                      borderRadius: 'var(--radius-xl)',
-                      overflow: 'hidden'
-                    }}
+                    className="bg-white border border-gray-200 rounded-xl overflow-hidden"
                   >
                     <button
                       onClick={() => toggleCategory(category.id)}
-                      style={{
-                        width: '100%',
-                        padding: '1.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                      className="hover:bg-opacity-80"
+                      className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                        <Icon style={{ width: '32px', height: '32px', color: 'var(--accent-primary)' }} />
-                        <div style={{ textAlign: 'left' }}>
-                          <h4 className="text-primary font-bold mb-1" style={{ fontSize: '1.25rem' }}>
+                      <div className="flex items-center gap-4 flex-1 text-left">
+                        <Icon className="w-8 h-8 text-violet-600" />
+                        <div>
+                          <h4 className="text-xl font-bold text-gray-900 mb-1">
                             {category.title}
                           </h4>
-                          <p className="text-secondary" style={{ fontSize: '0.875rem', margin: 0 }}>
+                          <p className="text-sm text-gray-600">
                             {category.description}
                           </p>
                         </div>
                       </div>
                       {isExpanded ? (
-                        <ChevronUp className="text-accent" style={{ width: '24px', height: '24px' }} />
+                        <ChevronUp className="text-violet-600 w-6 h-6" />
                       ) : (
-                        <ChevronDown className="text-accent" style={{ width: '24px', height: '24px' }} />
+                        <ChevronDown className="text-violet-600 w-6 h-6" />
                       )}
                     </button>
 
                     {isExpanded && (
-                      <div style={{
-                        padding: '0 1.5rem 1.5rem',
-                        borderTop: '1px solid var(--border-primary)'
-                      }}>
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                          gap: '0.75rem',
-                          marginTop: '1rem'
-                        }}>
+                      <div className="px-6 pb-6 border-t border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                           {category.parameters.map((param, idx) => (
                             <div
                               key={idx}
-                              style={{
-                                padding: '0.75rem 1rem',
-                                background: 'var(--bg-tertiary)',
-                                border: '1px solid var(--border-primary)',
-                                borderRadius: 'var(--radius-lg)',
-                                fontSize: '0.875rem'
-                              }}
-                              className="text-secondary"
+                              className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700"
                             >
                               {param}
                             </div>
@@ -442,156 +276,32 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* How to Improve Section */}
-        <section style={{ padding: '4rem 0' }}>
-          <div className="container mx-auto px-4" style={{ maxWidth: '1200px' }}>
-            <h2 className="text-primary font-bold mb-3" style={{ fontSize: '2rem', textAlign: 'center' }}>
-              How to Improve Your Veritas Score
-            </h2>
-            <p className="text-secondary mb-6" style={{ fontSize: '1.125rem', textAlign: 'center', maxWidth: '800px', margin: '0 auto 3rem' }}>
-              For sellers looking to increase their trust rating and visibility
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-              {[
-                {
-                  title: 'Maintain High Quality',
-                  tips: [
-                    'Provide accurate product descriptions',
-                    'Use high-quality photos',
-                    'Ensure products match descriptions',
-                    'Maintain consistent quality standards'
-                  ]
-                },
-                {
-                  title: 'Build Trust',
-                  tips: [
-                    'Respond quickly to buyer messages',
-                    'Resolve disputes fairly',
-                    'Maintain high positive feedback ratio',
-                    'Get verified seller status'
-                  ]
-                },
-                {
-                  title: 'Competitive Pricing',
-                  tips: [
-                    'Price competitively with market rates',
-                    'Offer transparent pricing',
-                    'Provide detailed cost breakdowns',
-                    'No hidden fees or charges'
-                  ]
-                },
-                {
-                  title: 'Reliable Shipping',
-                  tips: [
-                    'Ship on time consistently',
-                    'Use tracking for all orders',
-                    'Package items securely',
-                    'Communicate delivery updates'
-                  ]
-                },
-                {
-                  title: 'Customer Service',
-                  tips: [
-                    'Offer easy returns',
-                    'Provide excellent post-sale support',
-                    'Handle complaints professionally',
-                    'Go above and beyond for customers'
-                  ]
-                },
-                {
-                  title: 'Sustainability',
-                  tips: [
-                    'Use eco-friendly packaging',
-                    'Source products ethically',
-                    'Reduce carbon footprint',
-                    'Obtain environmental certifications'
-                  ]
-                }
-              ].map((section, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: 'var(--radius-xl)',
-                    padding: '2rem'
-                  }}
-                >
-                  <h3 className="text-accent font-bold mb-3" style={{ fontSize: '1.25rem' }}>
-                    {section.title}
-                  </h3>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    {section.tips.map((tip, tipIdx) => (
-                      <li
-                        key={tipIdx}
-                        className="text-secondary"
-                        style={{
-                          fontSize: '0.9375rem',
-                          marginBottom: '0.75rem',
-                          paddingLeft: '1.5rem',
-                          position: 'relative'
-                        }}
-                      >
-                        <span style={{
-                          position: 'absolute',
-                          left: 0,
-                          color: 'var(--accent-primary)',
-                          fontWeight: 'bold'
-                        }}>
-                          ✓
-                        </span>
-                        {tip}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* CTA Section */}
-        <section style={{
-          padding: '4rem 0',
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)',
-          borderTop: '1px solid var(--border-primary)'
-        }}>
-          <div className="container mx-auto px-4" style={{ maxWidth: '800px', textAlign: 'center' }}>
-            <h2 className="text-primary font-bold mb-4" style={{ fontSize: '2rem' }}>
+        <section className="py-16 bg-gradient-to-r from-violet-600 to-indigo-600 text-white">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <h2 className="text-4xl font-bold mb-4">
               Experience Smarter Shopping Today
             </h2>
-            <p className="text-secondary mb-6" style={{ fontSize: '1.125rem' }}>
-              Join thousands of smart shoppers who trust Veritas.ai for safe, sustainable, and savvy online shopping.
+            <p className="text-lg mb-8 opacity-90">
+              Join thousands of smart shoppers who trust Veritas AI for safe, sustainable, and savvy online shopping.
             </p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="/buyers/search?q=products" className="btn-modern-primary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }}>
-                Start Shopping
-              </a>
-              <a href="/" className="btn-modern-secondary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }}>
-                Learn More
-              </a>
+            <div className="flex gap-4 justify-center flex-wrap">
+              <Link
+                href="/dashboard"
+                className="px-8 py-4 bg-white text-violet-600 rounded-full text-lg font-semibold hover:shadow-xl hover:scale-105 transition-all"
+              >
+                View Dashboard
+              </Link>
+              <Link
+                href="/pilot"
+                className="px-8 py-4 bg-violet-500 text-white rounded-full text-lg font-semibold hover:bg-violet-400 transition-all"
+              >
+                Start Pilot Program
+              </Link>
             </div>
           </div>
         </section>
-      </main>
-
-      <Footer />
-
-      <LoginModal
-        show={showLoginModal}
-        onHide={() => setShowLoginModal(false)}
-      />
-
-      <SignupModal
-        show={showSignupModal}
-        onHide={() => setShowSignupModal(false)}
-        onShowLogin={() => {
-          setShowSignupModal(false)
-          setShowLoginModal(true)
-        }}
-        onSignup={async () => {}}
-      />
-    </div>
+      </div>
+    </AppLayout>
   )
 }

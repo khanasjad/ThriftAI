@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import NavBar from '@/components/NavBar'
 import 'swagger-ui-react/swagger-ui.css'
 
 // Dynamically import SwaggerUI to avoid SSR issues and suppress React warnings
@@ -46,26 +47,28 @@ export default function ApiDocsPage() {
   }, [])
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#1a1a1a'
-    }}>
-      {/* Header */}
+    <>
+      <NavBar />
       <div style={{
-        backgroundColor: '#0a0a0a',
-        borderBottom: '2px solid #2a2a2a',
-        padding: '30px 40px'
+        minHeight: '100vh',
+        backgroundColor: '#1a1a1a'
       }}>
-        <h1 style={{
-          fontSize: '36px',
-          fontWeight: 'bold',
-          marginBottom: '10px',
-          background: 'linear-gradient(to right, #60a5fa, #a78bfa)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
+        {/* Header */}
+        <div style={{
+          backgroundColor: '#0a0a0a',
+          borderBottom: '2px solid #2a2a2a',
+          padding: '30px 40px'
         }}>
-          ThriftAI Platform API Documentation
-        </h1>
+          <h1 style={{
+            fontSize: '36px',
+            fontWeight: 'bold',
+            marginBottom: '10px',
+            background: 'linear-gradient(to right, #7C3AED, #4F46E5)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
+            Veritas AI Platform API Documentation
+          </h1>
         <p style={{
           fontSize: '16px',
           color: '#888',
@@ -111,7 +114,7 @@ export default function ApiDocsPage() {
             target="_blank"
             style={{
               padding: '10px 20px',
-              backgroundColor: '#10b981',
+              backgroundColor: '#7C3AED',
               color: '#fff',
               borderRadius: '8px',
               textDecoration: 'none',
@@ -346,6 +349,7 @@ export default function ApiDocsPage() {
           color: #888;
         }
       `}</style>
-    </div>
+      </div>
+    </>
   )
 }

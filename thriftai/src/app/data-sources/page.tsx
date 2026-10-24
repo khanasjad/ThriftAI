@@ -23,7 +23,7 @@ interface DataSource {
 const dataSources: DataSource[] = [
   {
     name: 'Database (Internal) ✅',
-    description: 'ThriftAI internal database with comprehensive product data, seller metrics, price history, and Veritas scoring tables. Provides 72 out of 96 parameters without any external API calls.',
+    description: 'Veritas AI internal database with comprehensive product data, seller metrics, price history, and Veritas scoring tables. Provides 72 out of 96 parameters without any external API calls.',
     url: '/api/veritas/database-parameters',
     signupUrl: '/api/veritas/database-parameters',
     apiDocs: '/api/veritas/database-parameters',

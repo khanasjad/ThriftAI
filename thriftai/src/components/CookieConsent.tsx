@@ -29,11 +29,12 @@ export default function CookieBanner() {
       expires={365}
       overlay={false}
       style={{
-        background: 'rgba(0, 0, 0, 0.95)',
-        borderTop: '2px solid var(--accent-primary)',
+        background: '#ffffff',
+        borderTop: '1px solid #e5e7eb',
+        boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)',
         padding: '20px',
         fontSize: '15px',
-        fontFamily: 'var(--font-body)',
+        fontFamily: 'inherit',
         zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
@@ -41,11 +42,11 @@ export default function CookieBanner() {
         flexWrap: 'wrap'
       }}
       buttonStyle={{
-        background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+        background: '#7c3aed',
         color: 'white',
         fontSize: '14px',
         fontWeight: '600',
-        borderRadius: '8px',
+        borderRadius: '6px',
         padding: '12px 24px',
         minHeight: '44px',
         minWidth: '120px',
@@ -55,11 +56,11 @@ export default function CookieBanner() {
       }}
       declineButtonStyle={{
         background: 'transparent',
-        border: '2px solid var(--text-tertiary)',
-        color: 'var(--text-primary)',
+        border: '1px solid #d1d5db',
+        color: '#111827',
         fontSize: '14px',
         fontWeight: '600',
-        borderRadius: '8px',
+        borderRadius: '6px',
         padding: '12px 24px',
         minHeight: '44px',
         minWidth: '120px',
@@ -69,7 +70,7 @@ export default function CookieBanner() {
       contentStyle={{
         flex: '1 1 300px',
         margin: '0',
-        color: 'var(--text-primary)'
+        color: '#374151'
       }}
       buttonWrapperClasses="cookie-buttons"
       onAccept={handleAccept}
@@ -77,13 +78,13 @@ export default function CookieBanner() {
       ariaAcceptLabel="Accept cookies and enable analytics"
       ariaDeclineLabel="Decline cookies and disable analytics"
     >
-      <span style={{ color: 'var(--text-primary)', lineHeight: '1.5' }}>
+      <span style={{ color: '#374151', lineHeight: '1.5' }}>
         We use cookies to improve your shopping experience, personalize recommendations, and analyze site traffic.
         By clicking "Accept All", you consent to our use of cookies.{' '}
         <a
           href="/privacy-policy"
           style={{
-            color: 'var(--accent-primary)',
+            color: '#7c3aed',
             textDecoration: 'underline',
             fontWeight: '600'
           }}

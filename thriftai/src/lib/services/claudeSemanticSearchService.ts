@@ -20,8 +20,6 @@ import Anthropic from '@anthropic-ai/sdk'
 import { anthropicClient, isAnthropicConfigured } from '@/lib/anthropic-client'
 
 const anthropic = anthropicClient // Updated to use centralized client with workspace ID support
-  apiKey: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || ''
-})
 
 interface SearchResult {
   id: string

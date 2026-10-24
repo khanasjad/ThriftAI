@@ -2295,6 +2295,44 @@ model ShopperProfile {
   @@map("shopper_profiles")
 }
 
+/// Model 11: PilotApplication - Pilot Program Applications
+///
+/// Stores applications from brands interested in the pilot program
+/// Tracks lead generation and pilot program conversions
+model PilotApplication {
+  id String @id @default(cuid())
+
+  // Company Information
+  companyName String
+  website     String?
+
+  // Contact Information
+  firstName String
+  lastName  String
+  email     String @unique
+  phone     String?
+
+  // Business Details
+  productCount String? // "1-50", "51-200", "201-500", "500+"
+  reviewCount  String? // "<200", "200-500", "500-2000", "2000+"
+
+  // Application Status
+  status String @default("pending") // pending | approved | rejected | contacted | converted
+
+  // Admin Notes
+  notes String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes for querying
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@map("pilot_applications")
+}
+
 // =============================================================================
 // ENUMS
 // =============================================================================
