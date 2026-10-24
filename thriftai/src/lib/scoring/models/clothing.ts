@@ -1,1 +1,0 @@
-export { ClothingScoringModel } from './default'

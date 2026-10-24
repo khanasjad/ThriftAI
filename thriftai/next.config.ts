@@ -1,44 +1,16 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'via.placeholder.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images-na.ssl-images-amazon.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i.ebayimg.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'static.nike.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'assets.adidas.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'm.media-amazon.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-      },
-    ],
+  // Lets build checks (`NEXT_DIST_DIR=.next-check npm run build`) run without
+  // overwriting the `.next/` folder a running `npm run dev` is serving from.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
+  async redirects() {
+    return [
+      // Old product URLs used ids; /p/ accepts an id or a slug.
+      { source: '/products/:id', destination: '/p/:id', permanent: true },
+      { source: '/api-docs', destination: '/developers', permanent: true },
+    ]
   },
-  // WASM support for ONNX Runtime (moved from experimental in Next.js 15+)
-  serverExternalPackages: ['onnxruntime-node'],
-};
+}
 
-export default nextConfig;
+export default nextConfig

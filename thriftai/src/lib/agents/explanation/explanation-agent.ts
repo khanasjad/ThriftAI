@@ -6,7 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { FactorPillar } from '@/lib/agents/evidence/factor-taxonomy'
+import { FactorPillar } from '@/lib/veritas/taxonomy/factor-taxonomy'
 
 /**
  * Detail level for explanations

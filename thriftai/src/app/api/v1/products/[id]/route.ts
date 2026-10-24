@@ -1,218 +1,142 @@
 /**
- * Single Product API
- *
- * GET /api/v1/products/:id - Get detailed product information
+ * GET /api/v1/products/:id — product detail with score, pillars, factors and recent reviews.
+ * Unrated products return null scores with `rated: false` (never 0).
  */
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
-    const { id } = params;
-
-    // Fetch product with all related data
-    const product = await prisma.clothingProduct.findUnique({
-      where: { id },
+    const product = await prisma.clothingProduct.findFirst({
+      where: { OR: [{ id }, { slug: id }] },
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            description: true,
-            reputationScore: true,
-            sustainabilityRating: true,
-            website: true,
-          },
-        },
-        productScore: {
-          include: {
-            factors: true,
-            evidenceTags: true,
-          },
-        },
+        brand: { select: { id: true, name: true, slug: true, description: true, reputationScore: true, website: true } },
+        productScore: true,
+        factorScores: { orderBy: { factor: 'asc' } },
         reviews: {
           take: 10,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { reviewDate: 'desc' },
           select: {
             id: true,
             rating: true,
             title: true,
-            text: true,
+            content: true,
             fitRating: true,
             qualityRating: true,
             comfortRating: true,
             styleRating: true,
             valueRating: true,
-            purchasedSize: true,
-            height: true,
-            weight: true,
+            sizePurchased: true,
+            fitsAs: true,
+            heightCm: true,
             bodyType: true,
-            fitFeedback: true,
             wearDuration: true,
-            qualityIssues: true,
             isVerifiedPurchase: true,
-            helpfulCount: true,
-            createdAt: true,
+            helpfulVotes: true,
+            reviewDate: true,
           },
         },
-        returns: {
-          select: {
-            reason: true,
-            category: true,
-          },
-        },
-        _count: {
-          select: {
-            reviews: true,
-            returns: true,
-          },
-        },
+        returns: { select: { returnReason: true, returnCategory: true } },
+        _count: { select: { reviews: true, returns: true, evidenceTags: true } },
       },
-    });
+    })
 
     if (!product) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Product not found',
-        },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 })
     }
 
-    // Calculate return rate
-    const returnRate =
-      product._count.reviews > 0
-        ? Math.round((product._count.returns / product._count.reviews) * 100)
-        : 0;
-
-    // Group return reasons
-    const returnReasons = product.returns.reduce((acc: any, ret) => {
-      const reason = ret.reason || 'OTHER';
-      acc[reason] = (acc[reason] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Calculate average ratings from reviews
-    const avgRatings = product.reviews.reduce(
-      (acc, review) => ({
-        fit: acc.fit + (review.fitRating || 0),
-        quality: acc.quality + (review.qualityRating || 0),
-        comfort: acc.comfort + (review.comfortRating || 0),
-        style: acc.style + (review.styleRating || 0),
-        value: acc.value + (review.valueRating || 0),
-      }),
-      { fit: 0, quality: 0, comfort: 0, style: 0, value: 0 }
-    );
-
-    const reviewCount = product.reviews.length;
-    if (reviewCount > 0) {
-      avgRatings.fit = Math.round((avgRatings.fit / reviewCount) * 10) / 10;
-      avgRatings.quality = Math.round((avgRatings.quality / reviewCount) * 10) / 10;
-      avgRatings.comfort = Math.round((avgRatings.comfort / reviewCount) * 10) / 10;
-      avgRatings.style = Math.round((avgRatings.style / reviewCount) * 10) / 10;
-      avgRatings.value = Math.round((avgRatings.value / reviewCount) * 10) / 10;
-    }
-
-    // Transform data for frontend
-    const transformedProduct = {
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      category: product.category,
-      subcategory: product.subcategory,
-      brand: product.brand,
-
-      // Pricing
-      currentPrice: Number(product.currentPrice),
-      originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-      currency: product.currency,
-      discount: product.originalPrice
-        ? Math.round((1 - Number(product.currentPrice) / Number(product.originalPrice)) * 100)
-        : 0,
-
-      // Product Details
-      sku: product.sku,
-      gender: product.gender,
-      ageGroup: product.ageGroup,
-      sizes: product.sizes,
-      colors: product.colors,
-      materials: product.materials,
-      careInstructions: product.careInstructions,
-      isAvailable: product.isAvailable,
-
-      // Images
-      images: product.images,
-      primaryImageUrl: product.primaryImageUrl,
-
-      // Quality Scores (5 Pillars)
-      overallScore: product.productScore?.overall || 0,
-      grade: product.productScore?.grade || 'N/A',
-      fitScore: product.productScore?.fit || 0,
-      qualityScore: product.productScore?.quality || 0,
-      styleScore: product.productScore?.styleValue || 0,
-      comfortScore: product.productScore?.comfort || 0,
-      sustainabilityScore: product.productScore?.sustainability || 0,
-      confidence: product.productScore?.confidence || 'LOW',
-
-      // 27 Factor Scores
-      factors: product.productScore?.factors || [],
-      evidenceTags: product.productScore?.evidenceTags || [],
-
-      // Metrics
-      reviewCount: product._count.reviews,
-      returnCount: product._count.returns,
-      returnRate,
-      returnReasons,
-      avgRatings,
-
-      // Reviews
-      reviews: product.reviews.map(review => ({
-        id: review.id,
-        rating: review.rating,
-        title: review.title,
-        text: review.text,
-        fitRating: review.fitRating,
-        qualityRating: review.qualityRating,
-        comfortRating: review.comfortRating,
-        styleRating: review.styleRating,
-        valueRating: review.valueRating,
-        purchasedSize: review.purchasedSize,
-        height: review.height,
-        weight: review.weight,
-        bodyType: review.bodyType,
-        fitFeedback: review.fitFeedback,
-        wearDuration: review.wearDuration,
-        qualityIssues: review.qualityIssues,
-        isVerifiedPurchase: review.isVerifiedPurchase,
-        helpfulCount: review.helpfulCount,
-        createdAt: review.createdAt,
-      })),
-
-      // Timestamps
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    };
+    const returnReasons = product.returns.reduce<Record<string, number>>((acc, r) => {
+      acc[r.returnReason] = (acc[r.returnReason] ?? 0) + 1
+      return acc
+    }, {})
+    const score = product.productScore
+    const current = Number(product.currentPrice)
+    const original = product.originalPrice ? Number(product.originalPrice) : null
 
     return NextResponse.json({
       success: true,
-      data: transformedProduct,
-    });
-  } catch (error) {
-    console.error('❌ Failed to fetch product:', error);
+      data: {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        subcategory: product.subcategory,
+        brand: product.brand,
+        currentPrice: current,
+        originalPrice: original,
+        currency: product.currency,
+        discount: original ? Math.round((1 - current / original) * 100) : null,
+        sku: product.sku,
+        gender: product.gender,
+        sizes: product.sizes,
+        colors: product.colors,
+        materials: product.materials,
+        fabricWeightGsm: product.fabricWeightGsm,
+        careInstructions: product.careInstructions,
+        launchDate: product.launchDate,
+        trendTag: product.trendTag,
+        isAvailable: product.isAvailable,
+        images: product.images,
+        primaryImageUrl: product.primaryImageUrl,
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch product',
-        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
+        overallScore: score?.overall ?? null,
+        overallWithSustainability: score?.overallWithSustainability ?? null,
+        grade: score?.grade ?? null,
+        fitScore: score?.fit ?? null,
+        qualityScore: score?.quality ?? null,
+        styleScore: score?.styleValue ?? null,
+        comfortScore: score?.comfort ?? null,
+        sustainabilityScore: score?.sustainability ?? null,
+        confidence: score?.confidence ?? null,
+        confidenceLabel: score?.confidenceLabel ?? null,
+        factorsIncluded: score?.factorsIncluded ?? [],
+        factorsMissing: score?.factorsMissing ?? [],
+        summary: score?.verified ? score.summary : null,
+        sizeAdvice: score?.verified ? score.sizeAdvice : null,
+        downside: score?.verified ? score.downside : null,
+        rated: Boolean(score),
+
+        factors: product.factorScores.map((f) => ({
+          factor: f.factor,
+          pillar: f.pillar,
+          value: Number(f.value),
+          rawValue: f.rawValue === null ? null : Number(f.rawValue),
+          weight: f.weight,
+          evidenceCount: f.evidenceCount,
+          confidence: f.confidence,
+        })),
+        evidenceCount: product._count.evidenceTags,
+
+        reviewCount: product._count.reviews,
+        returnCount: product._count.returns,
+        returnReasons,
+        reviews: product.reviews.map((r) => ({
+          id: r.id,
+          rating: r.rating,
+          title: r.title,
+          text: r.content,
+          fitRating: r.fitRating,
+          qualityRating: r.qualityRating,
+          comfortRating: r.comfortRating,
+          styleRating: r.styleRating,
+          valueRating: r.valueRating,
+          sizePurchased: r.sizePurchased,
+          fitsAs: r.fitsAs,
+          heightCm: r.heightCm,
+          bodyType: r.bodyType,
+          wearDuration: r.wearDuration,
+          isVerifiedPurchase: r.isVerifiedPurchase,
+          helpfulVotes: r.helpfulVotes,
+          createdAt: r.reviewDate,
+        })),
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
       },
-      { status: 500 }
-    );
+    })
+  } catch (error) {
+    console.error('Failed to fetch product:', error)
+    return NextResponse.json({ success: false, error: 'Failed to fetch product' }, { status: 500 })
   }
 }

@@ -1,18 +1,2 @@
-import NavBar from './NavBar'
-import AppFooter from './AppFooter'
-
-interface AppLayoutProps {
-  children: React.ReactNode
-}
-
-export default function AppLayout({ children }: AppLayoutProps) {
-  return (
-    <div className="min-h-screen flex flex-col">
-      <NavBar />
-      <main className="flex-1 pt-16">
-        {children}
-      </main>
-      <AppFooter />
-    </div>
-  )
-}
+// Kept so pages not yet rebuilt in F1–F4 get the new chrome. New pages use SiteShell directly.
+export { SiteShell as default } from './site/shell'

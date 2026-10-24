@@ -16,7 +16,7 @@ import {
   ExtractedEntities,
   ClothingCategory
 } from './query-types'
-import { FactorPillar } from '@/lib/agents/evidence/factor-taxonomy'
+import { FactorPillar } from '@/lib/veritas/taxonomy/factor-taxonomy'
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -40,7 +40,6 @@ export async function understandQuery(
     const response = await anthropic.messages.create({
       model: config.model,
       max_tokens: config.maxTokens,
-      temperature: config.temperature,
       system: systemPrompt,
       messages: [{
         role: 'user',

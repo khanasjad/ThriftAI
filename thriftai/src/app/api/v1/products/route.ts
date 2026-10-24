@@ -1,164 +1,120 @@
 /**
- * Products API
- *
- * GET /api/v1/products - List all products with quality scores
+ * GET /api/v1/products — list products with scores.
+ * Query: category, subcategory, gender, brandId, minScore, maxScore, label, limit (≤100), offset,
+ *        sortBy = score | name | price | newest
  */
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { Prisma, ClothingCategory, ClothingGender, ConfidenceLabel } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { ClothingCategory, ClothingGender } from '@prisma/client';
+const querySchema = z.object({
+  category: z.nativeEnum(ClothingCategory).optional(),
+  subcategory: z.string().optional(),
+  gender: z.nativeEnum(ClothingGender).optional(),
+  brandId: z.string().optional(),
+  label: z.nativeEnum(ConfidenceLabel).optional(),
+  minScore: z.coerce.number().int().min(0).max(100).optional(),
+  maxScore: z.coerce.number().int().min(0).max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+  sortBy: z.enum(['score', 'name', 'price', 'newest']).default('score'),
+})
 
 export async function GET(req: NextRequest) {
+  const parsed = querySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams))
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid query', details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+  const q = parsed.data
+
+  const scoreFilter: Prisma.ProductScoreWhereInput = {}
+  if (q.minScore !== undefined || q.maxScore !== undefined) {
+    scoreFilter.overall = { gte: q.minScore, lte: q.maxScore }
+  }
+  if (q.label) scoreFilter.confidenceLabel = q.label
+
+  const where: Prisma.ClothingProductWhereInput = {
+    isAvailable: true,
+    category: q.category,
+    subcategory: q.subcategory,
+    gender: q.gender,
+    brandId: q.brandId,
+    ...(Object.keys(scoreFilter).length ? { productScore: { is: scoreFilter } } : {}),
+  }
+
+  const orderBy: Prisma.ClothingProductOrderByWithRelationInput =
+    q.sortBy === 'score'
+      ? { productScore: { overall: 'desc' } }
+      : q.sortBy === 'price'
+        ? { currentPrice: 'asc' }
+        : q.sortBy === 'newest'
+          ? { createdAt: 'desc' }
+          : { name: 'asc' }
+
   try {
-    const { searchParams } = new URL(req.url);
-
-    // Parse query parameters
-    const category = searchParams.get('category') as ClothingCategory | null;
-    const gender = searchParams.get('gender') as ClothingGender | null;
-    const minScore = searchParams.get('minScore') ? parseInt(searchParams.get('minScore')!) : null;
-    const maxScore = searchParams.get('maxScore') ? parseInt(searchParams.get('maxScore')!) : null;
-    const brandId = searchParams.get('brandId');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const sortBy = searchParams.get('sortBy') || 'score'; // score, name, price, newest
-
-    // Build where clause
-    const where: any = {
-      isAvailable: true,
-    };
-
-    if (category) {
-      where.category = category;
-    }
-
-    if (gender) {
-      where.gender = gender;
-    }
-
-    if (brandId) {
-      where.brandId = brandId;
-    }
-
-    // Fetch products with scores
     const [products, total] = await Promise.all([
       prisma.clothingProduct.findMany({
         where,
         include: {
-          brand: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              reputationScore: true,
-              sustainabilityRating: true,
-            },
-          },
+          brand: { select: { id: true, name: true, slug: true, reputationScore: true } },
           productScore: true,
-          _count: {
-            select: {
-              reviews: true,
-              returns: true,
-            },
-          },
+          _count: { select: { reviews: true, returns: true } },
         },
-        take: limit,
-        skip: offset,
-        orderBy:
-          sortBy === 'score'
-            ? { productScore: { overall: 'desc' } }
-            : sortBy === 'price'
-            ? { currentPrice: 'asc' }
-            : sortBy === 'newest'
-            ? { createdAt: 'desc' }
-            : { name: 'asc' },
+        take: q.limit,
+        skip: q.offset,
+        orderBy,
       }),
       prisma.clothingProduct.count({ where }),
-    ]);
+    ])
 
-    // Filter by score range if specified
-    let filteredProducts = products;
-    if (minScore !== null || maxScore !== null) {
-      filteredProducts = products.filter((p) => {
-        const score = p.productScore?.overall || 0;
-        if (minScore !== null && score < minScore) return false;
-        if (maxScore !== null && score > maxScore) return false;
-        return true;
-      });
-    }
-
-    // Transform data for frontend
-    const transformedProducts = filteredProducts.map((product) => {
-      // Calculate return rate
-      const returnRate =
-        product._count.reviews > 0
-          ? Math.round((product._count.returns / product._count.reviews) * 100)
-          : 0;
-
+    const data = products.map((p) => {
+      const s = p.productScore
       return {
-        id: product.id,
-        name: product.name,
-        category: product.category,
-        subcategory: product.subcategory,
-        brand: product.brand,
-        currentPrice: Number(product.currentPrice),
-        originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-        currency: product.currency,
-        images: product.images,
-        primaryImageUrl: product.primaryImageUrl,
-        gender: product.gender,
-        sizes: product.sizes,
-        colors: product.colors,
-        isAvailable: product.isAvailable,
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        category: p.category,
+        subcategory: p.subcategory,
+        brand: p.brand,
+        currentPrice: Number(p.currentPrice),
+        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+        currency: p.currency,
+        images: p.images,
+        primaryImageUrl: p.primaryImageUrl,
+        gender: p.gender,
+        sizes: p.sizes,
+        colors: p.colors,
+        trendTag: p.trendTag,
+        isAvailable: p.isAvailable,
+        rated: Boolean(s),
+        overallScore: s?.overall ?? null,
+        grade: s?.grade ?? null,
+        fitScore: s?.fit ?? null,
+        qualityScore: s?.quality ?? null,
+        styleScore: s?.styleValue ?? null,
+        comfortScore: s?.comfort ?? null,
+        sustainabilityScore: s?.sustainability ?? null,
+        confidence: s?.confidence ?? null,
+        confidenceLabel: s?.confidenceLabel ?? null,
+        reviewCount: p._count.reviews,
+        returnCount: p._count.returns,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      }
+    })
 
-        // Quality Scores
-        overallScore: product.productScore?.overall || 0,
-        grade: product.productScore?.grade || 'N/A',
-        fitScore: product.productScore?.fit || 0,
-        qualityScore: product.productScore?.quality || 0,
-        styleScore: product.productScore?.styleValue || 0,
-        comfortScore: product.productScore?.comfort || 0,
-        sustainabilityScore: product.productScore?.sustainability || 0,
-        confidence: product.productScore?.confidence || 'LOW',
-
-        // Metrics
-        reviewCount: product._count.reviews,
-        returnCount: product._count.returns,
-        returnRate,
-
-        // Timestamps
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-      };
-    });
-
-    // Response
     return NextResponse.json({
       success: true,
-      data: transformedProducts,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + filteredProducts.length < total,
-      },
-      filters: {
-        category: category || 'all',
-        gender: gender || 'all',
-        minScore,
-        maxScore,
-        brandId,
-      },
-    });
+      data,
+      pagination: { total, limit: q.limit, offset: q.offset, hasMore: q.offset + data.length < total },
+      filters: q,
+    })
   } catch (error) {
-    console.error('❌ Failed to fetch products:', error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch products',
-        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
-      },
-      { status: 500 }
-    );
+    console.error('Failed to fetch products:', error)
+    return NextResponse.json({ success: false, error: 'Failed to fetch products' }, { status: 500 })
   }
 }

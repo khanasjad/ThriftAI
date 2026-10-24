@@ -4,7 +4,8 @@
  * Defines types for natural language query understanding and structured search generation.
  */
 
-import { FactorPillar } from '@/lib/agents/evidence/factor-taxonomy'
+import { FactorPillar } from '@/lib/veritas/taxonomy/factor-taxonomy'
+import { models } from '@/lib/veritas/env'
 
 /**
  * Intent classification for user queries
@@ -181,7 +182,6 @@ export interface ConversationMessage {
  */
 export interface QueryUnderstandingConfig {
   model: string
-  temperature: number
   maxTokens: number
   timeout: number
 
@@ -200,8 +200,9 @@ export interface QueryUnderstandingConfig {
  * Default configuration
  */
 export const DEFAULT_QUERY_CONFIG: QueryUnderstandingConfig = {
-  model: 'claude-3-5-sonnet-20241022',
-  temperature: 0.0,
+  get model() {
+    return models.agent
+  },
   maxTokens: 2048,
   timeout: 10000,
 

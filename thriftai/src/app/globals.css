@@ -1,46 +1,201 @@
-/* Layer order: legacy CSS sits above Tailwind's preflight but below components/utilities,
-   so Tailwind classes always override it. */
-@layer theme, base, legacy, components, utilities;
+/*
+ * Veritas design tokens (docs/rpi/03-PLAN-FRONTEND.md §3–4).
+ * Tailwind v4: un-layered CSS overrides utilities, so anything global goes inside @layer.
+ * Theme: <html data-theme="light|dark"> is set before paint by the script in layout.tsx.
+ *
+ * Data-viz colours were validated with the dataviz skill's validator (2026-10-24):
+ *   score ramp  — ordinal, single hue, monotone, light-end ≥ 2:1 (light + dark)
+ *   series 1–4  — categorical, CVD ΔE ≥ 8.4, normal-vision ΔE ≥ 19.8; light slots 3–4 are < 3:1
+ *                 on white, so charts using them must show direct labels or a table (relief rule)
+ *   all text tokens ≥ 4.5:1 on their surfaces
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
-@import "tailwindcss";
-@import "./legacy.css" layer(legacy);
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-/* Tailwind v4 doesn't read tailwind.config.ts unless we point to it
-   (needed for bg-constructor-blue / bg-constructor-dark). */
-@config "../../tailwind.config.ts";
+:root {
+  color-scheme: light;
+  /* surfaces */
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface-2: #f4f4f2;
+  --surface-3: #ecebe7;
+  --border: #e7e5e1;
+  --border-strong: #d6d4ce;
+  /* ink */
+  --fg: #0b0b0f;
+  --fg-muted: #52514e;
+  --fg-subtle: #6f6d68;
+  /* brand accent (actions, focus, links) */
+  --accent: #6d28d9;
+  --accent-hover: #5b21b6;
+  --accent-fg: #ffffff;
+  --accent-soft: #f3efff;
+  --ring: #7c3aed;
+  /* status (fills always paired with icon + label; *-fg for text) */
+  --good: #0ca30c;
+  --good-fg: #006300;
+  --good-soft: #e9f7e9;
+  --warning: #fab219;
+  --warning-fg: #8a5a00;
+  --warning-soft: #fff6e0;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --critical-fg: #b42318;
+  --critical-soft: #fdecea;
+  /* score bands, poor → excellent (ordinal blue) */
+  --score-1: #86b6ef;
+  --score-2: #5598e7;
+  --score-3: #2a78d6;
+  --score-4: #1c5cab;
+  --score-5: #104281;
+  --score-track: #ecebe7;
+  /* categorical series (sellers, comparisons) — fixed order, never cycled */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  /* chart chrome */
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  /* elevation */
+  --shadow-sm: 0 1px 2px rgb(11 11 15 / 0.05);
+  --shadow-md: 0 1px 2px rgb(11 11 15 / 0.04), 0 4px 12px rgb(11 11 15 / 0.06);
+  --shadow-lg: 0 2px 4px rgb(11 11 15 / 0.04), 0 12px 32px rgb(11 11 15 / 0.10);
+}
 
-@layer components {
-  /* Light values for the legacy CSS variables (the old default was a dark theme). */
-  :root {
-    /* Color System - Light Mode */
-    --bg-primary: #ffffff;
-    --bg-secondary: #f9fafb;
-    --bg-tertiary: #f3f4f6;
-    --bg-glass: rgba(0, 0, 0, 0.02);
-    --bg-glass-hover: rgba(0, 0, 0, 0.05);
-    --bg-glass-active: rgba(0, 0, 0, 0.08);
-  
-    /* Text Colors */
-    --text-primary: #111827;
-    --text-secondary: #6b7280;
-    --text-tertiary: #9ca3af;
-    --text-quaternary: #d1d5db;
-  
-    /* Border Colors */
-    --border-primary: rgba(0, 0, 0, 0.08);
-    --border-secondary: rgba(0, 0, 0, 0.12);
-    --border-tertiary: rgba(0, 0, 0, 0.16);
-  
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    --shadow-accent: 0 0 30px rgba(16, 185, 129, 0.2);
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0b0b0f;
+  --surface: #111113;
+  --surface-2: #18181b;
+  --surface-3: #222226;
+  --border: #27272a;
+  --border-strong: #3a3a3f;
+  --fg: #f0efec;
+  --fg-muted: #c3c2b7;
+  --fg-subtle: #9a9890;
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-fg: #0b0b0f;
+  --accent-soft: #241a3d;
+  --ring: #a78bfa;
+  --good: #0ca30c;
+  --good-fg: #3fbf3f;
+  --good-soft: #0f2a12;
+  --warning: #fab219;
+  --warning-fg: #f5b83d;
+  --warning-soft: #2e2410;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --critical-fg: #f07070;
+  --critical-soft: #331616;
+  /* dark: low scores recede toward the surface, high scores are brightest */
+  --score-1: #184f95;
+  --score-2: #256abf;
+  --score-3: #3987e5;
+  --score-4: #6da7ec;
+  --score-5: #9ec5f4;
+  --score-track: #222226;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.5);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-ring: var(--ring);
+  --color-good: var(--good);
+  --color-good-fg: var(--good-fg);
+  --color-good-soft: var(--good-soft);
+  --color-warning: var(--warning);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-soft: var(--warning-soft);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+  --color-critical-fg: var(--critical-fg);
+  --color-critical-soft: var(--critical-soft);
+  --color-score-1: var(--score-1);
+  --color-score-2: var(--score-2);
+  --color-score-3: var(--score-3);
+  --color-score-4: var(--score-4);
+  --color-score-5: var(--score-5);
+  --color-score-track: var(--score-track);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-grid: var(--grid);
+  --color-axis: var(--axis);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
-
   body {
-    background: #ffffff;
-    color: #111827;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--fg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }

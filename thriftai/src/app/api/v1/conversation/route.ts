@@ -9,12 +9,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { conversationManager } from '@/lib/agents/conversation'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { ClothingCategory } from '@/lib/agents/query/query-types'
 
 // Start conversation request schema
 const startConversationSchema = z.object({
   userId: z.string().optional(),
   userPreferences: z.object({
-    favoriteCategories: z.array(z.string()).optional(),
+    favoriteCategories: z.array(z.nativeEnum(ClothingCategory)).optional(),
     favoriteBrands: z.array(z.string()).optional(),
     budgetRange: z.object({
       min: z.number(),
@@ -29,7 +30,7 @@ const sendMessageSchema = z.object({
   message: z.string().min(1).max(1000),
   conversationId: z.string(),
   userPreferences: z.object({
-    favoriteCategories: z.array(z.string()).optional(),
+    favoriteCategories: z.array(z.nativeEnum(ClothingCategory)).optional(),
     favoriteBrands: z.array(z.string()).optional(),
     budgetRange: z.object({
       min: z.number(),

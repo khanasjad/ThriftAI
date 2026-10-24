@@ -37,17 +37,18 @@ export async function sendEmail(options: EmailOptions) {
     const { to, subject, html, from = 'Veritas AI <noreply@veritasai.com>' } = options
 
     const client = getResendClient()
-    const data = await client.emails.send({
+    const { data, error } = await client.emails.send({
       from,
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
     })
+    if (error) throw new Error(error.message)
 
     logger.info('Email sent successfully', {
       to: Array.isArray(to) ? to : [to],
       subject,
-      messageId: data.id
+      messageId: data?.id
     })
 
     return { success: true, data }

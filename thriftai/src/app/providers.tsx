@@ -1,15 +1,15 @@
 'use client'
 
 import { SessionProvider } from 'next-auth/react'
+import { TooltipProvider } from '@/components/ui/controls'
+import { Toaster } from '@/components/ui/toast'
 
-interface ProvidersProps {
-  children: React.ReactNode
-}
-
-export function Providers({ children }: ProvidersProps) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      {children}
+      <TooltipProvider delayDuration={150}>
+        <Toaster>{children}</Toaster>
+      </TooltipProvider>
     </SessionProvider>
   )
 }

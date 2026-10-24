@@ -22,12 +22,12 @@ const explainQuerySchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const startTime = Date.now()
 
   try {
-    const productId = params.id
+    const { id: productId } = await params
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
@@ -74,7 +74,7 @@ export async function GET(
 
   } catch (error) {
     logger.error('Score explanation failed', {
-      productId: params.id,
+      productId: (await params).id,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     })

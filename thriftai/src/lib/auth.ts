@@ -1,113 +1,65 @@
-import { getServerSession } from 'next-auth/next'
-import { NextAuthOptions } from 'next-auth'
+import { getServerSession, type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import GoogleProvider from 'next-auth/providers/google'
-import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import type { UserRole } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
+/**
+ * NextAuth (JWT sessions, email + password).
+ * Admin/brand protection and sign-in pages arrive in backend phase B7 (docs/rpi/02-PLAN-BACKEND.md).
+ */
 export const authOptions: NextAuthOptions = {
-  // Note: No adapter needed for JWT sessions
   providers: [
-    // Only add Google provider if credentials are available
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-      ? [GoogleProvider({
-          clientId: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        })]
-      : []),
     CredentialsProvider({
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          },
-          include: {
-            buyer: true
-          }
-        })
-
-        if (!user) {
-          return null
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash || ''
-        )
-
-        if (!isPasswordValid) {
-          return null
-        }
-
+        if (!credentials?.email || !credentials.password) return null
+        const user = await prisma.user.findUnique({ where: { email: credentials.email.toLowerCase() } })
+        if (!user?.passwordHash) return null
+        const ok = await bcrypt.compare(credentials.password, user.passwordHash)
+        if (!ok) return null
         return {
           id: user.id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          firstName: user.firstName,
-          lastName: user.lastName,
+          name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
           image: user.image,
-          buyer: user.buyer ? {
-            id: user.buyer.id,
-            buyerType: user.buyer.buyerType,
-            isActive: user.buyer.isActive
-          } : null
+          role: user.role,
+          tenantId: user.tenantId,
         }
-      }
-    })
+      },
+    }),
   ],
-  session: {
-    strategy: 'jwt'
-  },
+  session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
-        token.buyer = user.buyer
-        token.firstName = user.firstName
-        token.lastName = user.lastName
+        token.role = user.role
+        token.tenantId = user.tenantId
       }
       return token
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.sub!
-        session.user.buyer = token.buyer as any
-        session.user.firstName = token.firstName as string
-        session.user.lastName = token.lastName as string
+      if (session.user) {
+        session.user.id = token.sub ?? ''
+        session.user.role = (token.role as UserRole | undefined) ?? 'SHOPPER'
+        session.user.tenantId = (token.tenantId as string | null | undefined) ?? null
       }
       return session
     },
-    async signIn({ user, account }) {
-      // For credentials provider, sign-in is handled in authorize()
-      // Google OAuth would require an adapter to work properly
-      return true
-    }
   },
-  pages: {
-    signIn: '/auth/signin',
-    signUp: '/auth/signup'
-  },
-  secret: process.env.NEXTAUTH_SECRET || 'dev-secret-key-change-in-production'
+  // NextAuth reads NEXTAUTH_SECRET itself; no hardcoded fallback.
+  secret: process.env.NEXTAUTH_SECRET,
 }
 
-export async function getSession() {
-  return await getServerSession(authOptions)
+export function getSession() {
+  return getServerSession(authOptions)
 }
 
 export async function getCurrentUser() {
   const session = await getSession()
-  return session?.user
-}
-
-export async function getCurrentBuyer() {
-  const session = await getSession()
-  return session?.user?.buyer
+  return session?.user ?? null
 }

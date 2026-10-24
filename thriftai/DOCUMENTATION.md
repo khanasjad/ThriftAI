@@ -1,5 +1,7 @@
 # Veritas AI — Project Documentation
 
+> **Heads-up (2026-10-24):** this file describes the system **before** the RPI refactor. For what we're building and in which order, see [docs/rpi/](docs/rpi/): the product plan, research, backend plan and frontend plan. Where they disagree with this file, they win.
+
 > **Single source of truth for this project.** It replaces ~190 separate session reports, plans and summaries that were merged and removed on 2026-10-24.
 > Folder-specific READMEs remain next to their code (see [Other docs](#20-other-docs-kept)).
 

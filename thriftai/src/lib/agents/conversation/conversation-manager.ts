@@ -6,6 +6,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import { models } from '@/lib/veritas/env'
 import { understandQuery } from '../query/query-agent'
 import { explainScore, compareProducts } from '../explanation/explanation-agent'
 import {
@@ -332,9 +333,8 @@ export class ConversationManager {
     // Use Claude to answer general questions about the system
     try {
       const response = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: models.agent,
         max_tokens: 1024,
-        temperature: 0.7,
         system: this.buildQuestionAnsweringPrompt(),
         messages: [
           ...this.formatMessagesForClaude(state.messages.slice(-5)),

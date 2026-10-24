@@ -1,52 +1,49 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Providers } from "./providers";
-import CookieBanner from "@/components/CookieConsent";
+import type { Metadata, Viewport } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { Providers } from './providers'
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: "Veritas AI - Quality Scoring for DTC Brands",
-  description: "AI-powered quality scoring across 27 factors. Transform customer reviews into actionable insights and reduce returns by 25%.",
-  keywords: ["AI quality scoring", "DTC brands", "product quality", "return reduction", "veritas ai"],
-  authors: [{ name: "Veritas AI" }],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  title: { default: 'Veritas — Is it worth buying?', template: '%s · Veritas' },
+  description:
+    'One trustworthy score for every clothing item: fit, quality, comfort, style, value and ethics, with the evidence behind every number.',
   openGraph: {
-    title: "Veritas AI - Quality Scoring for DTC Brands",
-    description: "AI-powered quality scoring platform for DTC clothing brands",
-    type: "website",
+    title: 'Veritas — Is it worth buying?',
+    description: 'The explainable "worth buying" score for clothing.',
+    type: 'website',
     images: ['/logo.svg'],
   },
-  icons: {
-    icon: '/logo.svg',
-    apple: '/logo.svg',
-  },
-};
+  icons: { icon: '/logo.svg', apple: '/logo.svg' },
+}
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fafaf9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b0b0f' },
+  ],
+}
+
+// Runs before paint: applies the saved theme (default: follow the system setting) to avoid a flash.
+const themeScript = `(function(){var d=false;try{var t=localStorage.getItem('veritas-theme')||'system';d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches)}catch(e){}document.documentElement.dataset.theme=d?'dark':'light'})()`
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-          * {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-          }
-        `}</style>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-black">
+      <body className="min-h-dvh bg-bg text-fg antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:text-fg focus:shadow-lg"
+        >
           Skip to main content
         </a>
-        <Providers>
-          <div id="main-content">
-            {children}
-          </div>
-        </Providers>
-        <CookieBanner />
+        <Providers>{children}</Providers>
       </body>
     </html>
-  );
+  )
 }

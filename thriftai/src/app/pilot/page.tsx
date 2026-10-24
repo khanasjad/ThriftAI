@@ -1,252 +1,170 @@
 'use client'
 
-import { useState } from 'react'
+import * as React from 'react'
 import Link from 'next/link'
-import AppLayout from '@/components/AppLayout'
+import { AlertCircle, CheckCircle2, FileBarChart, Ruler, Tag, TrendingDown } from 'lucide-react'
+import { SiteShell } from '@/components/site/shell'
+import { Button } from '@/components/ui/button'
+import { Input, Label } from '@/components/ui/primitives'
+import { cn } from '@/lib/utils'
 
-export default function PilotSignup() {
-  const [formData, setFormData] = useState({
-    companyName: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    productCount: '',
-    reviewCount: ''
-  })
+const PRODUCT_RANGES = [
+  { value: '1-50', label: '1–50' },
+  { value: '51-200', label: '51–200' },
+  { value: '201-500', label: '201–500' },
+  { value: '500+', label: '500+' },
+]
+const REVIEW_RANGES = [
+  { value: '<200', label: 'Fewer than 200' },
+  { value: '200-500', label: '200–500' },
+  { value: '500-2000', label: '500–2,000' },
+  { value: '2000+', label: '2,000+' },
+]
 
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+const GETS = [
+  { icon: <FileBarChart />, t: 'A Veritas Score for every product', d: 'With pillar breakdown, confidence, and how you compare with category peers.' },
+  { icon: <TrendingDown />, t: 'Top problems ranked by cost', d: '“Runs small”, “fades after washing”, “colour not as pictured”, with the evidence.' },
+  { icon: <Ruler />, t: 'Size-chart fixes', d: 'Where fit evidence says your size chart is off, and by how much.' },
+  { icon: <Tag />, t: 'Price position', d: 'Where each product sits on value against similar items.' },
+]
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const selectClass =
+  'h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-fg shadow-sm hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+
+export default function PilotPage() {
+  const [state, setState] = React.useState<'idle' | 'sending' | 'done'>('idle')
+  const [error, setError] = React.useState<string | null>(null)
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setLoading(true)
     setError(null)
-
+    setState('sending')
+    const body = Object.fromEntries(new FormData(e.currentTarget).entries())
     try {
-      const res = await fetch('/api/v1/pilot-applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await res.json()
-
-      if (res.ok) {
-        setSubmitted(true)
-      } else {
-        setError(data.error || 'Failed to submit application. Please try again.')
-      }
+      const res = await fetch('/api/v1/pilot-applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message || data.error || 'Something went wrong. Please try again.')
+      setState('done')
     } catch (err) {
-      console.error('Submission error:', err)
-      setError('An error occurred. Please try again.')
-    } finally {
-      setLoading(false)
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setState('idle')
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
-
-  if (submitted) {
-    return (
-      <AppLayout>
-        <div className="bg-white min-h-screen flex items-center justify-center">
-          <div className="max-w-2xl text-center px-6">
-            <div className="text-6xl mb-4">✓</div>
-            <h1 className="text-5xl font-semibold mb-4">
-              Application submitted
-            </h1>
-            <p className="text-xl text-gray-600 mb-12">
-              We'll review your application and get back to you within 1-2 business days.
-            </p>
-            <Link
-              href="/"
-              className="inline-block px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-full text-lg font-medium hover:shadow-lg hover:scale-105 transition-all"
-            >
-              Return home
-            </Link>
-          </div>
-        </div>
-      </AppLayout>
-    )
-  }
-
   return (
-    <AppLayout>
-      <div className="bg-white min-h-screen">
-        {/* Header */}
-        <div className="max-w-2xl mx-auto px-6 py-20 text-center">
-          <h1 className="text-5xl font-semibold mb-4">
-            Start your pilot
+    <SiteShell>
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 pb-24 pt-14 sm:px-6 lg:grid-cols-[1fr_1.05fr]">
+        <div>
+          <p className="text-sm font-medium text-accent">Free pilot scorecard</p>
+          <h1 className="mt-3 text-balance text-[clamp(2rem,4.5vw,3rem)] font-semibold leading-[1.05] tracking-[-0.03em] text-fg">
+            See your catalog the way your customers do.
           </h1>
-          <p className="text-xl text-gray-600">
-            8-week program. $10,000+ value. No credit card required.
+          <p className="mt-4 max-w-lg text-lg leading-relaxed text-fg-muted">
+            A one-time scorecard of your catalog, built from your own reviews and return reasons. Free, and you keep the report.
+          </p>
+          <ul className="mt-8 flex flex-col gap-5">
+            {GETS.map((g) => (
+              <li key={g.t} className="flex gap-4 [&_svg]:size-5 [&_svg]:text-accent">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-soft">{g.icon}</span>
+                <div>
+                  <p className="text-sm font-semibold text-fg">{g.t}</p>
+                  <p className="mt-1 text-sm text-fg-muted">{g.d}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-8 text-sm text-fg-subtle">
+            Your score is never for sale. Paid plans buy insight and refresh frequency, not points.{' '}
+            <Link href="/brands/pricing" className="text-accent underline underline-offset-4">
+              See pricing
+            </Link>
+            .
           </p>
         </div>
 
-        {/* Form */}
-        <div className="max-w-[680px] mx-auto px-6 pb-24">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-[14px]">
-                {error}
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-lg sm:p-8">
+          {state === 'done' ? (
+            <div className="flex flex-col items-center py-12 text-center" role="status">
+              <CheckCircle2 className="size-10 text-good-fg" aria-hidden />
+              <h2 className="mt-4 text-xl font-semibold text-fg">Application received</h2>
+              <p className="mt-2 max-w-sm text-sm text-fg-muted">We’ll email you about next steps, including how to share your reviews and return data.</p>
+              <Button asChild variant="secondary" className="mt-8">
+                <Link href="/how-it-works">How the score works</Link>
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate={false}>
+              <h2 className="text-lg font-semibold text-fg">Apply for a pilot</h2>
+              <Field label="Company" htmlFor="companyName">
+                <Input id="companyName" name="companyName" required maxLength={200} autoComplete="organization" />
+              </Field>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="First name" htmlFor="firstName">
+                  <Input id="firstName" name="firstName" required maxLength={100} autoComplete="given-name" />
+                </Field>
+                <Field label="Last name" htmlFor="lastName">
+                  <Input id="lastName" name="lastName" required maxLength={100} autoComplete="family-name" />
+                </Field>
               </div>
-            )}
-
-            <div>
-              <label className="block text-[17px] font-semibold mb-2">
-                Company name
-              </label>
-              <input
-                type="text"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
-                placeholder="Your Brand"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[17px] font-semibold mb-2">
-                  First name
-                </label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
-                />
+              <Field label="Work email" htmlFor="email">
+                <Input id="email" name="email" type="email" required autoComplete="email" />
+              </Field>
+              <Field label="Website" htmlFor="website" optional>
+                <Input id="website" name="website" type="url" placeholder="https://" autoComplete="url" />
+              </Field>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Products in catalog" htmlFor="productCount" optional>
+                  <select id="productCount" name="productCount" className={selectClass} defaultValue="">
+                    <option value="">Select a range</option>
+                    {PRODUCT_RANGES.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Reviews collected" htmlFor="reviewCount" optional>
+                  <select id="reviewCount" name="reviewCount" className={selectClass} defaultValue="">
+                    <option value="">Select a range</option>
+                    {REVIEW_RANGES.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
               </div>
-
-              <div>
-                <label className="block text-[17px] font-semibold mb-2">
-                  Last name
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[17px] font-semibold mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
-                placeholder="name@company.com"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[17px] font-semibold mb-2">
-                  Products
-                </label>
-                <select
-                  name="productCount"
-                  value={formData.productCount}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
-                >
-                  <option value="">Select range</option>
-                  <option value="1-50">1-50</option>
-                  <option value="51-200">51-200</option>
-                  <option value="201-500">201-500</option>
-                  <option value="500+">500+</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[17px] font-semibold mb-2">
-                  Reviews
-                </label>
-                <select
-                  name="reviewCount"
-                  value={formData.reviewCount}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
-                >
-                  <option value="">Select range</option>
-                  <option value="<200">Less than 200</option>
-                  <option value="200-500">200-500</option>
-                  <option value="500-2000">500-2,000</option>
-                  <option value="2000+">2,000+</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="pt-6">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-6 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-full text-lg font-semibold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Submitting...' : 'Submit application'}
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-600 text-center">
-              By submitting, you agree to our{' '}
-              <Link href="/terms-of-service" className="text-violet-600 hover:underline">
-                Terms
-              </Link>
-              {' '}and{' '}
-              <Link href="/privacy-policy" className="text-violet-600 hover:underline">
-                Privacy Policy
-              </Link>
-              .
-            </p>
-          </form>
-        </div>
-
-        {/* What's Included */}
-        <div className="bg-[#fbfbfd] py-20">
-          <div className="max-w-[980px] mx-auto px-6">
-            <h2 className="text-[40px] font-semibold tracking-[-0.003em] mb-12 text-center">
-              What's included
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[
-                'Complete product quality scoring',
-                '27-factor analysis across 5 pillars',
-                'Prioritized action items',
-                'Return rate reduction insights',
-                'ROI projections',
-                'API access during pilot',
-                'Dedicated support',
-                'Comprehensive final report'
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="text-[17px] text-green-600">✓</div>
-                  <div className="text-[17px] text-black/80">{item}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+              {error && (
+                <p role="alert" className="flex items-start gap-2 rounded-lg border border-critical/40 bg-critical-soft px-3 py-2 text-sm text-critical-fg">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  {error}
+                </p>
+              )}
+              <Button type="submit" size="lg" disabled={state === 'sending'} className={cn(state === 'sending' && 'cursor-wait')}>
+                {state === 'sending' ? 'Sending…' : 'Apply for the free scorecard'}
+              </Button>
+              <p className="text-xs text-fg-subtle">
+                We use your details only to run the pilot. See our{' '}
+                <Link href="/privacy-policy" className="underline hover:text-fg">
+                  privacy policy
+                </Link>
+                .
+              </p>
+            </form>
+          )}
         </div>
       </div>
-    </AppLayout>
+    </SiteShell>
+  )
+}
+
+function Field({ label, htmlFor, optional, children }: { label: string; htmlFor: string; optional?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={htmlFor} className="text-sm font-medium text-fg">
+        {label} {optional && <span className="font-normal text-fg-subtle">(optional)</span>}
+      </Label>
+      {children}
+    </div>
   )
 }

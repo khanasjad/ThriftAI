@@ -112,7 +112,8 @@ interface LogContext {
   component?: string
   action?: string
   duration?: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 class Logger {
@@ -132,7 +133,7 @@ class Logger {
 
   // Core logging methods
   public error(message: string, error?: Error | unknown, context?: LogContext): void {
-    const logData: any = {
+    const logData: Record<string, unknown> = {
       message,
       ...context,
     }
@@ -206,7 +207,7 @@ class Logger {
 
   public securityEvent(
     event: string,
-    details: Record<string, any>,
+    details: Record<string, unknown>,
     context?: LogContext
   ): void {
     this.warn(`Security Event: ${event}`, {
@@ -218,7 +219,7 @@ class Logger {
 
   public businessEvent(
     event: string,
-    details: Record<string, any>,
+    details: Record<string, unknown>,
     context?: LogContext
   ): void {
     this.info(`Business Event: ${event}`, {
