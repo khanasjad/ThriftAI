@@ -5,7 +5,7 @@ import { env } from '../env'
 import { FINISH_TOOL, type AgentDef } from './agent'
 import { SpendCapError, costOf } from './budget'
 import { buildRequest, getLlm, type LlmClient } from './llm'
-import { prismaSink, type RunTotals, type TraceSink } from './telemetry'
+import { defaultSink, type RunTotals, type TraceSink } from './telemetry'
 import { ToolError, describeIssues, serialiseOutput, type ToolContext } from './tools'
 
 /**
@@ -46,7 +46,7 @@ export async function runAgent<F extends z.ZodObject>(
   opts: RunOptions = {},
 ): Promise<RunResult<z.infer<F>>> {
   const llm = opts.llm ?? getLlm()
-  const sink = opts.sink ?? prismaSink
+  const sink = opts.sink ?? defaultSink()
   const envName = opts.envName ?? env().APP_ENV
   const cap = opts.spendCapUsd ?? env().SPEND_CAP_USD
   const model = agent.model()

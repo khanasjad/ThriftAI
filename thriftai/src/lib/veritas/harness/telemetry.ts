@@ -1,5 +1,6 @@
 import { Prisma, type AgentRunStatus, type StepKind } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { withLangfuse } from './langfuse'
 
 /**
  * Every LLM and tool call is written here (AgentRun / AgentStep). The loop talks to a TraceSink,
@@ -120,4 +121,18 @@ export class MemorySink implements TraceSink {
     for (const r of this.runs.values()) total += r.costUsd ?? 0
     return total
   }
+}
+
+let cachedDefault: TraceSink | null = null
+
+/**
+ * The sink runs use by default: the database, plus Langfuse when LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY are set.
+ */
+export function defaultSink(): TraceSink {
+  if (cachedDefault) return cachedDefault
+  const { LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST } = process.env
+  if (LANGFUSE_PUBLIC_KEY && LANGFUSE_SECRET_KEY) {
+    cachedDefault = withLangfuse(prismaSink, { host: LANGFUSE_HOST || 'https://cloud.langfuse.com', publicKey: LANGFUSE_PUBLIC_KEY, secretKey: LANGFUSE_SECRET_KEY })
+  } else cachedDefault = prismaSink
+  return cachedDefault
 }

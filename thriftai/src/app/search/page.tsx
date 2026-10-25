@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/primitives'
 import { searchCatalog } from '@/lib/veritas/read/catalog'
 import { cn } from '@/lib/utils'
 import { SortSelect } from './controls'
+import { Conversation } from './conversation'
 
 export const metadata: Metadata = { title: 'Search', description: 'Search clothing by what matters: fit, quality, comfort, value.' }
 export const dynamic = 'force-dynamic'
@@ -63,15 +64,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           </div>
         </form>
 
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-fg-muted">
-          <Info className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
-          <p>
-            Keyword search over the test catalog. Conversational search with one clarifying question and three picks arrives with the search agents. Products
-            show a score once the rating agents have read their evidence.
-          </p>
-        </div>
+        {q ? (
+          <Conversation key={q} query={q} />
+        ) : (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-fg-muted">
+            <Info className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
+            <p>Describe what you need in your own words. Veritas asks at most one question when it matters, then shows three picks with the reasons.</p>
+          </div>
+        )}
 
-        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="mt-12 text-lg font-semibold text-fg">{q ? 'All matching products' : 'Browse the catalog'}</h2>
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <nav aria-label="Category" className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => {
               const active = c.value === category
@@ -113,7 +116,7 @@ async function Results({ q, category, sort, clearHref }: { q: string; category?:
     return (
       <div className="mt-12 flex flex-col items-center rounded-2xl border border-dashed border-border-strong px-6 py-16 text-center">
         <SearchX className="size-8 text-fg-subtle" aria-hidden />
-        <h2 className="mt-4 text-lg font-semibold text-fg">No matches{q && <> for “{q}”</>}</h2>
+        <h3 className="mt-4 text-lg font-semibold text-fg">No matches{q && <> for “{q}”</>}</h3>
         <p className="mt-2 max-w-md text-sm text-fg-muted">The test catalog has tees and jeans only. Try a colour, a fit like “relaxed”, a higher budget, or a brand name.</p>
         <Button asChild variant="secondary" className="mt-6">
           <Link href={clearHref}>Clear search</Link>
@@ -122,7 +125,10 @@ async function Results({ q, category, sort, clearHref }: { q: string; category?:
     )
   }
   return (
-    <section aria-label="Results" className="mt-6">
+    <section aria-labelledby="results-h" className="mt-6">
+      <h3 id="results-h" className="sr-only">
+        Results
+      </h3>
       <div className="flex flex-wrap items-center gap-2 text-sm text-fg-subtle" role="status">
         <span>
           {items.length} {items.length === 1 ? 'product' : 'products'}

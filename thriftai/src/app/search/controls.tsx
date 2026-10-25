@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Select } from '@/components/ui/controls'
+import { Select } from '@/components/ui/select'
 
 const SORTS = [
   { value: 'score', label: 'Best score first' },

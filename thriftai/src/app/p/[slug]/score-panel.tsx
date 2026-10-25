@@ -3,13 +3,18 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { Info } from 'lucide-react'
-import { Switch } from '@/components/ui/controls'
+import { Switch } from '@/components/ui/toggle'
 import { Label } from '@/components/ui/primitives'
 import { ScoreRing } from '@/components/veritas/score-ring'
 import { ConfidenceBadge } from '@/components/veritas/badges'
 import { FactorRow, PillarBars } from '@/components/veritas/bars'
-import { EvidenceDrawer, type EvidenceItem } from '@/components/veritas/evidence-drawer'
+import type { EvidenceItem } from '@/components/veritas/evidence-drawer'
+import dynamic from 'next/dynamic'
 import { PILLARS, type ConfidenceLabel, type Pillar } from '@/components/veritas/score'
+import { FeedbackButtons } from '@/components/veritas/feedback-buttons'
+
+// Loaded the first time someone opens a factor's evidence.
+const EvidenceDrawer = dynamic(() => import('@/components/veritas/evidence-drawer').then((m) => m.EvidenceDrawer), { ssr: false })
 
 export type FactorMeta = { key: string; name: string; pillar: Pillar; weight: number }
 
@@ -22,6 +27,7 @@ export type ScorePanelProps = {
     reviewCount: number
     factorsIncluded: string[]
     ratedByRunId: string | null
+    earlyScore: number | null
     calculatedAt: string
   } | null
   factors: FactorMeta[]
@@ -29,12 +35,14 @@ export type ScorePanelProps = {
   evidenceByFactor: Record<string, EvidenceItem[]>
   inputs: { reviews: number; returns: number; prices: number }
   showTraceLink: boolean
+  productId: string
 }
 
-export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inputs, showTraceLink }: ScorePanelProps) {
+export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inputs, showTraceLink, productId }: ScorePanelProps) {
   const [sustainability, setSustainability] = React.useState(false)
   const [pillar, setPillar] = React.useState<Pillar>('FIT')
   const [open, setOpen] = React.useState<FactorMeta | null>(null)
+  const [drawerUsed, setDrawerUsed] = React.useState(false)
 
   if (!score) {
     return (
@@ -89,6 +97,12 @@ export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inp
               Includes <span className="font-medium tabular text-fg">{included}</span> of {factors.length} factors
             </span>
           </div>
+          {score.confidenceLabel === 'NEW_LAUNCH' && score.earlyScore != null && (
+            <p className="mt-2 text-sm text-fg-muted">
+              New launch: early score of <span className="font-medium tabular text-fg">{score.earlyScore}</span> from the brand’s record on similar items, the spec
+              and the price, blended with {score.reviewCount} {score.reviewCount === 1 ? 'review' : 'reviews'} so far.
+            </p>
+          )}
           <div className="mt-4 flex items-center gap-3">
             <Switch id="sus" checked={sustainability} onCheckedChange={setSustainability} disabled={score.overallWithSustainability == null} />
             <Label htmlFor="sus" className="text-sm text-fg">
@@ -121,7 +135,10 @@ export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inp
                   weight={f.weight}
                   value={factorValues[f.key]?.value ?? null}
                   evidenceCount={factorValues[f.key]?.evidenceCount ?? 0}
-                  onOpenEvidence={() => setOpen(f)}
+                  onOpenEvidence={() => {
+                    setDrawerUsed(true)
+                    setOpen(f)
+                  }}
                 />
               </li>
             ))}
@@ -133,13 +150,19 @@ export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inp
         </div>
       </div>
 
-      <EvidenceDrawer
-        open={open !== null}
-        onOpenChange={(o) => !o && setOpen(null)}
-        title={open?.name ?? ''}
-        score={open ? (factorValues[open.key]?.value ?? null) : null}
-        items={open ? (evidenceByFactor[open.key] ?? []) : []}
-      />
+      <div className="mt-6 border-t border-border pt-5">
+        <FeedbackButtons targetType="PRODUCT_SCORE" targetId={productId} />
+      </div>
+
+      {drawerUsed && (
+        <EvidenceDrawer
+          open={open !== null}
+          onOpenChange={(o) => !o && setOpen(null)}
+          title={open?.name ?? ''}
+          score={open ? (factorValues[open.key]?.value ?? null) : null}
+          items={open ? (evidenceByFactor[open.key] ?? []) : []}
+        />
+      )}
     </section>
   )
 }

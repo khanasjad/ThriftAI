@@ -198,4 +198,32 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+  /* Entrance motion (CSS, no JS library). The reduced-motion rule in @layer base shortens these to ~0. */
+  .animate-ring-fill {
+    animation: ring-fill 0.9s var(--ease-out-quint) both;
+  }
+  .animate-bar-grow {
+    animation: bar-grow 0.7s var(--ease-out-quint) both;
+    transform-origin: left center;
+  }
+  .animate-rise-in {
+    animation: rise-in 0.35s var(--ease-out-quint) both;
+  }
+}
+
+@keyframes ring-fill {
+  from {
+    stroke-dashoffset: var(--ring-from);
+  }
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }

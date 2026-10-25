@@ -2,54 +2,32 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { RotateCcw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { SiteShell } from '@/components/site/shell'
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string }
-  reset: () => void
-}) {
+/** Route-level error boundary: keeps the site chrome, offers a retry, never shows internals. */
+export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error('Application error:', error)
+    console.error('route error', error.digest ?? '', error)
   }, [error])
 
   return (
-    <div className="bg-white min-h-screen flex items-center justify-center">
-      <div className="max-w-[980px] mx-auto px-6 py-24 text-center">
-        <h1 className="text-[56px] font-semibold tracking-[-0.005em] leading-[1.07143] mb-4">
-          Something went wrong
-        </h1>
-        <p className="text-[21px] text-black/60 mb-12">
-          We encountered an unexpected error. Please try again.
-        </p>
-        <div className="flex items-center justify-center gap-4">
-          <button
-            onClick={reset}
-            className="px-6 py-3 bg-black text-white rounded-full text-[14px] font-medium hover:bg-black/80 transition-all"
-          >
-            Try again
-          </button>
-          <Link
-            href="/"
-            className="px-6 py-3 bg-[#f5f5f7] text-black rounded-full text-[14px] font-medium hover:bg-[#e8e8ed] transition-all"
-          >
-            Go home
-          </Link>
+    <SiteShell>
+      <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-28 text-center" role="alert">
+        <p className="text-sm font-medium text-accent">Something went wrong</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-fg">This page didn’t load</h1>
+        <p className="mt-3 text-fg-muted">It’s on our side, not yours. Try again, or head back to search.</p>
+        {error.digest && <p className="mt-2 font-mono text-xs text-fg-subtle">Reference: {error.digest}</p>}
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Button onClick={reset}>
+            <RotateCcw /> Try again
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/search">Go to search</Link>
+          </Button>
         </div>
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-12 p-6 bg-[#f5f5f7] rounded-2xl text-left">
-            <h2 className="text-[14px] font-semibold mb-2">Error Details (Development Only)</h2>
-            <p className="text-[12px] text-red-600 font-mono">{error.message}</p>
-            {error.digest && (
-              <p className="text-[12px] text-black/60 font-mono mt-2">
-                Digest: {error.digest}
-              </p>
-            )}
-          </div>
-        )}
       </div>
-    </div>
+    </SiteShell>
   )
 }

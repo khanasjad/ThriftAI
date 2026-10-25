@@ -15,6 +15,7 @@ const COLUMNS = [
       { href: '/brands', label: 'Overview' },
       { href: '/brands/pricing', label: 'Pricing' },
       { href: '/pilot', label: 'Free pilot scorecard' },
+      { href: '/sign-in', label: 'Brand sign in' },
     ],
   },
   {

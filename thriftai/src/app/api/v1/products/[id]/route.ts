@@ -3,9 +3,12 @@
  * Unrated products return null scores with `rated: false` (never 0).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { scoreApiGate } from '@/lib/veritas/apikeys'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await scoreApiGate()
+  if (gate instanceof Response) return gate
   const { id } = await params
   try {
     const product = await prisma.clothingProduct.findFirst({

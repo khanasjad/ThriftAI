@@ -53,3 +53,5 @@ next-env.d.ts
 # LLM replay recordings (local)
 /.veritas
 /.next-check/
+/test-results/
+/playwright-report/

@@ -16,7 +16,12 @@
     "dataset": "tsx scripts/dev/generate-dataset.ts",
     "seed": "node scripts/with-env.mjs tsx scripts/dev/seed.ts",
     "smoke": "node scripts/with-env.mjs tsx scripts/dev/smoke.ts",
-    "spend": "node scripts/with-env.mjs tsx scripts/spend.ts"
+    "spend": "node scripts/with-env.mjs tsx scripts/spend.ts",
+    "rate": "node scripts/with-env.mjs tsx scripts/rate.ts",
+    "search:gate": "node scripts/with-env.mjs tsx --conditions=react-server scripts/dev/search-gate.ts",
+    "seed:accounts": "node scripts/with-env.mjs tsx scripts/dev/accounts.ts",
+    "eval": "node scripts/with-env.mjs tsx scripts/eval.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",
@@ -38,7 +43,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "framer-motion": "^12.23.22",
     "lucide-react": "^0.544.0",
     "next": "15.5.4",
     "next-auth": "^4.24.11",
@@ -58,6 +62,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3",
     "@next/env": "15.5.4",
+    "@playwright/test": "1.56.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",

@@ -75,15 +75,21 @@ NEXT_DIST_DIR=.next-check npm run build   # build check that doesn't touch a run
 npm run lint
 npm run typecheck
 npm test               # unit tests (mock LLM mode)
+npm run test:e2e       # Playwright smoke tests on system Chrome (starts npm run dev if needed; cleans up its rows)
 npm run db:migrate     # schema changes (dev DB; loads .env.development*)
 npm run dataset        # regenerate prisma/fixtures/dev-dataset.json (deterministic)
 npm run seed           # load the dummy fixture into veritas_dev (refuses in production)
+npm run seed:accounts  # dev sign-ins: 1 admin + 1 per brand; passwords in .veritas/dev-accounts.json (never printed)
 # UI kit (dev only): http://localhost:3000/dev/ui
 npm run spend          # LLM spend so far vs. SPEND_CAP_USD (from AgentRun)
 npm run smoke -- --yes # one tiny live harness run (dev only; LLM_RECORD=1 saves it for replay)
-# planned in B3–B6:
-npm run rate -- --product <id> | --all | --dry-run
-npm run eval           # golden set + LLM-as-judge report
+npm run rate -- --all                      # rate products: code evidence + last agent evidence, $0
+npm run rate -- --product <slug> --mode full --yes   # also runs the evidence agent (live; prints cost estimate)
+npm run rate -- --all --dry-run            # compute and print, write nothing
+npm run rate -- --all --baselines          # recompute category baselines, then re-score ($0)
+npm run search:gate -- --simulate          # B5 gate: 5 personas × 4 needs (simulated scores in memory; drop flag for stored scores)
+npm run eval                               # golden set + deterministic checks + agent health ($0) → .veritas/evals/ and /admin/evals
+npm run eval -- --judge --yes              # + LLM judge on Opus (live; prints estimate first)
 ```
 
 ## Working style

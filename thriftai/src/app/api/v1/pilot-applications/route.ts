@@ -11,6 +11,8 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { sendPilotConfirmationEmail, sendPilotAdminNotification } from '@/lib/email/resend'
 import { z } from 'zod'
+import { fail, rateLimit } from '@/lib/veritas/http'
+import { requireApiRole } from '@/lib/veritas/authz'
 
 // Request validation schema
 const pilotApplicationSchema = z.object({
@@ -29,6 +31,7 @@ const pilotApplicationSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
+  if (!(await rateLimit('pilot', 5, 60 * 60_000))) return fail(429, 'Too many applications from this network. Try again later.')
 
   try {
     // Parse and validate request body
@@ -186,15 +189,16 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/v1/pilot-applications
- * (Admin only - requires authentication in production)
+ * GET /api/v1/pilot-applications — admin list. Contains applicants' personal data: admins only.
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireApiRole(['ADMIN'])
+  if (auth instanceof Response) return auth
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50') || 50, 1), 100)
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0') || 0, 0)
 
     const where = status ? { status } : {}
 
@@ -240,7 +244,7 @@ export async function OPTIONS(request: NextRequest) {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     }
   })

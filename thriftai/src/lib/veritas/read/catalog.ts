@@ -2,6 +2,9 @@ import 'server-only'
 import { Prisma, type ClothingCategory } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { scanInjection } from '../harness/guardrails'
+import { computePriceFacts, type PriceFacts } from '../price/facts'
+
+export type { PriceFacts }
 
 /**
  * Read-only queries for shopper pages. Everything here is either a stored score
@@ -175,41 +178,15 @@ export type ProductReview = {
   flagged: boolean
 }
 
-export type PriceFacts = {
-  lowest: { price: number; seller: string; date: string } | null
-  current: { price: number; seller: string }[]
-  /** A "was" price that no seller actually charged in the window. */
-  fakeDiscount: { listPrice: number; highestCharged: number } | null
-  /** Today's lowest price is well above the 90-day low. */
-  oftenCheaper: { lowest: number; nowLowest: number } | null
-  days: number
-}
 
 const FITS_AS = ['runs_small', 'true_to_size', 'runs_large'] as const
 
-/** Accepts a slug or an id (old /products/:id links redirect here). */
-export async function getProductPage(slugOrId: string) {
-  const p = await prisma.clothingProduct.findFirst({
-    where: { OR: [{ slug: slugOrId }, { id: slugOrId }] },
-    include: {
-      brand: true,
-      productScore: true,
-      factorScores: { where: { version: 'v2' } },
-      reviews: { orderBy: [{ helpfulVotes: 'desc' }, { reviewDate: 'desc' }] },
-      returns: { select: { returnReason: true, returnCategory: true } },
-      priceSnapshots: { include: { seller: { select: { name: true } } }, orderBy: { observedAt: 'asc' } },
-    },
-  })
-  if (!p) return null
+export const REVIEW_PAGE = 5
 
-  // Evidence the agents recorded (empty until B3 runs).
-  const evidence = await prisma.evidenceTag.findMany({
-    where: { productId: p.id, grounded: true },
-    include: { review: { select: { reviewDate: true, isVerifiedPurchase: true } } },
-    orderBy: { confidence: 'desc' },
-  })
+type ReviewRow = Prisma.ClothingReviewGetPayload<object>
 
-  const reviews: ProductReview[] = p.reviews.map((r) => ({
+function toProductReview(r: ReviewRow): ProductReview {
+  return {
     id: r.id,
     rating: r.rating,
     title: r.title,
@@ -222,7 +199,53 @@ export async function getProductPage(slugOrId: string) {
     heightCm: r.heightCm,
     bodyType: r.bodyType,
     flagged: r.injectionFlag || scanInjection(`${r.title ?? ''}\n${r.content}`).flagged,
-  }))
+  }
+}
+
+/** A page of reviews, most helpful first (same order as the product page). */
+export async function listProductReviews(slugOrId: string, offset: number, limit: number) {
+  const product = await prisma.clothingProduct.findFirst({ where: { OR: [{ slug: slugOrId }, { id: slugOrId }] }, select: { id: true } })
+  if (!product) return null
+  const [rows, total] = await Promise.all([
+    prisma.clothingReview.findMany({
+      where: { productId: product.id },
+      orderBy: [{ helpfulVotes: 'desc' }, { reviewDate: 'desc' }, { id: 'asc' }],
+      skip: offset,
+      take: limit,
+    }),
+    prisma.clothingReview.count({ where: { productId: product.id } }),
+  ])
+  return { reviews: rows.map(toProductReview), total, offset, limit }
+}
+
+/** Accepts a slug or an id (old /products/:id links redirect here). */
+export async function getProductPage(slugOrId: string) {
+  const p = await prisma.clothingProduct.findFirst({
+    where: { OR: [{ slug: slugOrId }, { id: slugOrId }] },
+    include: {
+      brand: true,
+      productScore: true,
+      factorScores: { where: { version: 'v2' } },
+      reviews: { orderBy: [{ helpfulVotes: 'desc' }, { reviewDate: 'desc' }, { id: 'asc' }] },
+      returns: { select: { returnReason: true, returnCategory: true } },
+      priceSnapshots: { include: { seller: { select: { name: true } } }, orderBy: { observedAt: 'asc' } },
+    },
+  })
+  if (!p) return null
+
+  // Only the evidence behind the current score (runs listed on the rating run), not every past run.
+  const ratedBy = p.productScore?.ratedByRunId
+    ? await prisma.agentRun.findUnique({ where: { id: p.productScore.ratedByRunId }, select: { finishPayload: true } })
+    : null
+  const runIds = ((ratedBy?.finishPayload as { evidenceRunIds?: string[] } | null)?.evidenceRunIds ?? []).filter(Boolean)
+  const evidence = await prisma.evidenceTag.findMany({
+    where: { productId: p.id, grounded: true, runId: { in: runIds } },
+    include: { review: { select: { reviewDate: true, isVerifiedPurchase: true } } },
+    orderBy: { confidence: 'desc' },
+  })
+
+  // Only the first page is rendered; the rest load on demand (GET /api/v1/products/:id/reviews).
+  const reviews = p.reviews.slice(0, REVIEW_PAGE).map(toProductReview)
 
   // What reviewers reported in structured fields (counts, not scores).
   const fit = Object.fromEntries(FITS_AS.map((k) => [k, p.reviews.filter((r) => r.fitsAs === k).length])) as Record<(typeof FITS_AS)[number], number>
@@ -303,6 +326,7 @@ export async function getProductPage(slugOrId: string) {
           sizeAdvice: p.productScore.verified ? p.productScore.sizeAdvice : null,
           downside: p.productScore.verified ? p.productScore.downside : null,
           ratedByRunId: p.productScore.ratedByRunId,
+          earlyScore: p.productScore.earlyScore,
           calculatedAt: p.productScore.calculatedAt.toISOString(),
         }
       : null,
@@ -326,30 +350,6 @@ export async function getProductPage(slugOrId: string) {
 }
 
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof getProductPage>>>
-
-const OFTEN_CHEAPER_GAP = 0.12
-
-function computePriceFacts(series: { seller: string; points: { date: string; price: number; listPrice: number | null; isPromo: boolean }[] }[]): PriceFacts {
-  const all = series.flatMap((s) => s.points.map((pt) => ({ ...pt, seller: s.seller })))
-  if (all.length === 0) return { lowest: null, current: [], fakeDiscount: null, oftenCheaper: null, days: 0 }
-
-  const dates = all.map((x) => x.date).sort()
-  const days = Math.round((new Date(dates.at(-1)!).getTime() - new Date(dates[0]).getTime()) / 864e5)
-  const lowest = all.reduce((a, b) => (b.price < a.price ? b : a))
-  const current = series
-    .map((s) => ({ seller: s.seller, price: s.points.at(-1)!.price }))
-    .sort((a, b) => a.price - b.price)
-
-  const highestCharged = Math.max(...all.map((x) => x.price))
-  const listPrices = all.filter((x) => x.isPromo && x.listPrice != null).map((x) => x.listPrice!)
-  const maxList = listPrices.length ? Math.max(...listPrices) : null
-  const fakeDiscount = maxList !== null && maxList > highestCharged * 1.05 ? { listPrice: maxList, highestCharged } : null
-
-  const nowLowest = current[0]?.price ?? lowest.price
-  const oftenCheaper = nowLowest > lowest.price * (1 + OFTEN_CHEAPER_GAP) ? { lowest: lowest.price, nowLowest } : null
-
-  return { lowest: { price: lowest.price, seller: lowest.seller, date: lowest.date }, current, fakeDiscount, oftenCheaper, days }
-}
 
 export async function listProductSlugs() {
   return prisma.clothingProduct.findMany({ select: { slug: true, id: true } })

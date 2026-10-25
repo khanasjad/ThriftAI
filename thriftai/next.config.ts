@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // Lets build checks (`NEXT_DIST_DIR=.next-check npm run build`) run without
   // overwriting the `.next/` folder a running `npm run dev` is serving from.
   distDir: process.env.NEXT_DIST_DIR || '.next',
+  // Resolve metadata before streaming the body for every client, not only known bots.
+  // Puts <title>/<meta description> in the initial <head> and lets notFound()/redirect() set real status codes.
+  htmlLimitedBots: /.*/,
   async redirects() {
     return [
       // Old product URLs used ids; /p/ accepts an id or a slug.

@@ -1,8 +1,7 @@
 'use client'
 
 import { ChevronRight, FileSearch } from 'lucide-react'
-import { motion, useReducedMotion } from 'framer-motion'
-import { Tooltip } from '@/components/ui/controls'
+import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { PILLARS, scoreBand, type Pillar } from './score'
 
@@ -19,7 +18,6 @@ export function PillarBars({
   onSelect?: (p: Pillar) => void
   selected?: Pillar | null
 }) {
-  const reduce = useReducedMotion()
   return (
     <ul className="flex flex-col gap-1">
       {PILLARS.map((p) => {
@@ -35,12 +33,7 @@ export function PillarBars({
             </div>
             <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-score-track">
               {has && (
-                <motion.div
-                  className="h-full rounded-full bg-score-3"
-                  initial={{ width: reduce ? `${v}%` : 0 }}
-                  animate={{ width: `${v}%` }}
-                  transition={{ duration: reduce ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-                />
+                <div className="h-full animate-bar-grow rounded-full bg-score-3" style={{ width: `${v}%` }} />
               )}
             </div>
             {!has && <span className="mt-1 block text-xs text-fg-subtle">Not enough evidence yet</span>}
@@ -92,18 +85,18 @@ export function FactorRow({
       type="button"
       onClick={onOpenEvidence}
       disabled={!included || !onOpenEvidence}
-      className="group grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1.5 rounded-md px-3 py-2.5 text-left transition-colors enabled:hover:bg-surface-2 disabled:cursor-default sm:grid-cols-[minmax(0,1fr)_160px_auto]"
+      className="group grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1.5 rounded-md px-3 py-2.5 text-left transition-colors enabled:hover:bg-surface-2 disabled:cursor-default"
     >
-      <span className="min-w-0">
-        <span className="block truncate text-sm text-fg">{name}</span>
+      <span className="col-start-1 row-start-1 min-w-0">
+        <span className="block text-sm text-fg">{name}</span>
         <span className="text-xs text-fg-subtle">
           {weight} pt{weight === 1 ? '' : 's'} · {included ? `${evidenceCount} evidence` : 'not yet included'}
         </span>
       </span>
-      <span className="col-span-2 row-start-2 h-1.5 w-full overflow-hidden rounded-full bg-score-track sm:col-span-1 sm:row-start-1">
+      <span className="col-span-2 col-start-1 row-start-2 h-1.5 w-full overflow-hidden rounded-full bg-score-track">
         {included && <span className="block h-full rounded-full bg-score-3" style={{ width: `${value}%` }} />}
       </span>
-      <span className="col-start-2 row-start-1 flex items-center gap-1 text-sm font-semibold tabular text-fg sm:col-start-3">
+      <span className="col-start-2 row-start-1 flex min-w-[3.25rem] items-center justify-end gap-1 text-sm font-semibold tabular text-fg">
         {included ? Math.round(value) : '—'}
         {included && onOpenEvidence && <ChevronRight className="size-4 text-fg-subtle transition-transform group-hover:translate-x-0.5" aria-hidden />}
       </span>

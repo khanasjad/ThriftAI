@@ -3,11 +3,11 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Activity, BookOpen, Building2, Code2, CreditCard, Home, Menu, Moon, Search, Shirt, Sun, Wallet } from 'lucide-react'
+import { Activity, BookOpen, Building2, Code2, CreditCard, Home, Menu, Moon, Search, Shirt, Sun, UserRound, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/primitives'
-import { CommandPalette, type CommandItem } from '@/components/ui/command'
-import { Dialog, DialogTitle, SheetContent } from '@/components/ui/dialog'
+import type { CommandItem } from '@/components/ui/command'
+import dynamic from 'next/dynamic'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { cn } from '@/lib/utils'
 import { Logo } from './logo'
@@ -21,6 +21,10 @@ const NAV = [
 
 const IS_DEV = process.env.NODE_ENV !== 'production'
 
+// Loaded on first use so they stay out of every page's initial JavaScript.
+const CommandPalette = dynamic(() => import('@/components/ui/command').then((m) => m.CommandPalette), { ssr: false })
+const MobileMenu = dynamic(() => import('./mobile-menu'), { ssr: false })
+
 type ProductHit = { slug: string; name: string; brand: { name: string } }
 
 export function SiteHeader() {
@@ -30,6 +34,25 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = React.useState(false)
   const [products, setProducts] = React.useState<ProductHit[]>([])
   const [scrolled, setScrolled] = React.useState(false)
+  // Mount the lazy parts only after first use; keep them mounted so closing animates.
+  const [paletteUsed, setPaletteUsed] = React.useState(false)
+  const [menuUsed, setMenuUsed] = React.useState(false)
+  const openPalette = React.useCallback((o: boolean) => {
+    if (o) setPaletteUsed(true)
+    setPaletteOpen(o)
+  }, [])
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteUsed(true)
+        setPaletteOpen((o) => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4)
@@ -60,15 +83,18 @@ export function SiteHeader() {
     { id: 'home', group: 'Pages', label: 'Home', icon: <Home />, onSelect: () => go('/') },
     { id: 'search', group: 'Pages', label: 'Search clothing', icon: <Search />, onSelect: () => go('/search') },
     { id: 'how', group: 'Pages', label: 'How the score works', icon: <BookOpen />, onSelect: () => go('/how-it-works') },
+    { id: 'profile', group: 'Pages', label: 'Your fit profile', icon: <UserRound />, onSelect: () => go('/profile') },
     { id: 'brands', group: 'Pages', label: 'For brands', icon: <Building2 />, onSelect: () => go('/brands') },
     { id: 'pricing', group: 'Pages', label: 'Pricing', icon: <CreditCard />, onSelect: () => go('/brands/pricing') },
     { id: 'pilot', group: 'Pages', label: 'Free pilot scorecard', icon: <Building2 />, onSelect: () => go('/pilot') },
     { id: 'dev', group: 'Pages', label: 'Developers · Score API', icon: <Code2 />, onSelect: () => go('/developers') },
     ...(IS_DEV
       ? [
-          { id: 'runs', group: 'Admin (dev)', label: 'Agent runs', icon: <Activity />, onSelect: () => go('/admin/runs') },
-          { id: 'spend', group: 'Admin (dev)', label: 'Spend vs. cap', icon: <Wallet />, onSelect: () => go('/admin/spend') },
-          { id: 'ui', group: 'Admin (dev)', label: 'UI kit', icon: <Code2 />, onSelect: () => go('/dev/ui') },
+          { id: 'runs', group: 'Admin', label: 'Agent runs', icon: <Activity />, onSelect: () => go('/admin/runs') },
+          { id: 'spend', group: 'Admin', label: 'Spend vs. cap', icon: <Wallet />, onSelect: () => go('/admin/spend') },
+          { id: 'evals', group: 'Admin', label: 'Evals', icon: <Activity />, onSelect: () => go('/admin/evals') },
+          { id: 'pilots', group: 'Admin', label: 'Pilot applications', icon: <Building2 />, onSelect: () => go('/admin/pilots') },
+          { id: 'ui', group: 'Admin', label: 'UI kit', icon: <Code2 />, onSelect: () => go('/dev/ui') },
         ]
       : []),
     { id: 'light', group: 'Theme', label: 'Light theme', icon: <Sun />, onSelect: () => setTheme('light') },
@@ -113,54 +139,32 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setPaletteOpen(true)}
+            onClick={() => openPalette(true)}
             className="hidden h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-fg-subtle shadow-sm transition-colors hover:text-fg lg:inline-flex"
           >
             <Search className="size-4" aria-hidden />
             <span className="pr-6">Jump to…</span>
             <Kbd>⌘K</Kbd>
           </button>
-          <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setPaletteOpen(true)} aria-label="Open command menu">
+          <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => openPalette(true)} aria-label="Open command menu">
             <Search />
           </Button>
           <ThemeToggle className="hidden sm:inline-flex" />
           <Button asChild size="sm" className="hidden sm:inline-flex">
             <Link href="/pilot">Free pilot</Link>
           </Button>
-          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => {
+              setMenuUsed(true)
+              setMenuOpen(true)
+            }}
+            aria-label="Open menu">
             <Menu />
           </Button>
         </div>
       </div>
 
-      <CommandPalette items={items} open={paletteOpen} onOpenChange={setPaletteOpen} />
-
-      <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent>
-          <DialogTitle className="px-5 pt-5 text-base">Menu</DialogTitle>
-          <nav aria-label="Mobile" className="flex flex-col gap-1 p-3">
-            {NAV.map((n) => (
-              <Link
-                key={n.href}
-                href={n.href}
-                onClick={() => setMenuOpen(false)}
-                aria-current={isActive(n.href) ? 'page' : undefined}
-                className={cn('flex h-12 items-center rounded-md px-3 text-base', isActive(n.href) ? 'bg-surface-2 font-medium text-fg' : 'text-fg-muted hover:bg-surface-2')}
-              >
-                {n.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="mt-auto flex items-center justify-between gap-3 border-t border-border p-5">
-            <ThemeToggle />
-            <Button asChild size="md">
-              <Link href="/pilot" onClick={() => setMenuOpen(false)}>
-                Free pilot scorecard
-              </Link>
-            </Button>
-          </div>
-        </SheetContent>
-      </Dialog>
+      {paletteUsed && <CommandPalette items={items} open={paletteOpen} onOpenChange={openPalette} hotkey={false} />}
+      {menuUsed && <MobileMenu open={menuOpen} onOpenChange={setMenuOpen} nav={NAV} isActive={isActive} />}
     </header>
   )
 }

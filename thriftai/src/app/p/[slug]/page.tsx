@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { AlertTriangle, BadgeCheck, ChevronRight, Clock, Flag, Languages, Star, Tag } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Clock, ShieldCheck, Tag } from 'lucide-react'
 import { SiteShell } from '@/components/site/shell'
 import { Badge } from '@/components/ui/primitives'
 import { PriceHistory } from '@/components/veritas/price-history'
@@ -11,7 +11,9 @@ import { CATEGORY, GENDER, RETURN_REASON } from '@/components/veritas/labels'
 import { formatPrice, type Pillar } from '@/components/veritas/score'
 import type { EvidenceItem } from '@/components/veritas/evidence-drawer'
 import { FACTOR_TAXONOMY } from '@/lib/veritas/taxonomy/factor-taxonomy'
-import { getProductPage, type ProductPageData, type ProductReview } from '@/lib/veritas/read/catalog'
+import { getProductPage, type ProductPageData } from '@/lib/veritas/read/catalog'
+import { ReviewCard } from '@/components/veritas/review-card'
+import { MoreReviews } from './more-reviews'
 import { ScorePanel, type FactorMeta } from './score-panel'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +23,8 @@ type Props = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const data = await getProductPage(slug)
-  if (!data) return { title: 'Product not found' }
+  // Throwing here (metadata resolves before the body streams) gives a real 404 status, not 200.
+  if (!data) notFound()
   const { product, brand, score } = data
   return {
     title: `${product.name} · ${brand.name}`,
@@ -38,7 +41,7 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params
   const data = await getProductPage(slug)
   if (!data) notFound()
-  const { product, brand, score, reported, returns, prices, reviews } = data
+  const { product, brand, score, reported, returns, prices } = data
 
   const factors: FactorMeta[] = FACTOR_TAXONOMY.map((f) => ({ key: f.key, name: f.name, pillar: f.pillar as Pillar, weight: f.weight }))
   const factorValues = Object.fromEntries(data.factors.map((f) => [f.factor, { value: f.value, evidenceCount: f.evidenceCount }]))
@@ -103,7 +106,23 @@ export default async function ProductPage({ params }: Props) {
               evidenceByFactor={evidenceByFactor}
               inputs={{ reviews: reported.reviewCount, returns: returns.total, prices: prices.series.reduce((s, x) => s + x.points.length, 0) }}
               showTraceLink={process.env.APP_ENV !== 'production'}
+              productId={product.id}
             />
+
+            {score?.summary && (
+              <section aria-labelledby="owners-h" className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 id="owners-h" className="text-base font-semibold text-fg">
+                    What owners say
+                  </h2>
+                  <Badge tone="good">
+                    <ShieldCheck aria-hidden />
+                    Checked against the evidence
+                  </Badge>
+                </div>
+                <p className="mt-3 text-[15px] leading-relaxed text-fg">{score.summary}</p>
+              </section>
+            )}
 
             {score?.sizeAdvice || score?.downside ? (
               <section className="grid gap-3 sm:grid-cols-2">
@@ -116,7 +135,7 @@ export default async function ProductPage({ params }: Props) {
             <ReportedIssues data={data} />
             <PriceSection data={data} />
             <ReturnsSection returns={returns} />
-            <ReviewsSection reviews={reviews} avg={reported.ratingAvg} />
+            <ReviewsSection data={data} />
 
             <p className="text-xs text-fg-subtle">
               Data source: {product.source === 'dev-fixture' ? 'fictional test data generated for development' : product.source}
@@ -322,74 +341,22 @@ function ReturnsSection({ returns }: { returns: ProductPageData['returns'] }) {
   )
 }
 
-const FITS_AS: Record<string, string> = { runs_small: 'Runs small', true_to_size: 'True to size', runs_large: 'Runs large' }
-
-function ReviewCard({ r }: { r: ProductReview }) {
+function ReviewsSection({ data }: { data: ProductPageData }) {
+  const { reviews, reported, product } = data
+  const total = reported.reviewCount
+  const avg = reported.ratingAvg
   return (
-    <article className="py-5 first:pt-0">
-      {r.flagged && (
-        <p className="mb-3 flex items-start gap-2 rounded-lg border border-warning/50 bg-warning-soft px-3 py-2 text-xs text-warning-fg">
-          <Flag className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          This review contains text that looks like an attempt to manipulate an AI rating. It is treated as data and its evidence is down-weighted.
-        </p>
-      )}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="inline-flex items-center gap-0.5" role="img" aria-label={`${r.rating} out of 5 stars`}>
-          {Array.from({ length: 5 }, (_, i) => (
-            <Star key={i} className={i < r.rating ? 'size-3.5 fill-fg text-fg' : 'size-3.5 text-border-strong'} aria-hidden />
-          ))}
-        </span>
-        {r.title && <h3 className="text-sm font-medium text-fg">{r.title}</h3>}
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-fg">{r.content}</p>
-      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-subtle">
-        {r.verified && (
-          <span className="inline-flex items-center gap-1">
-            <BadgeCheck className="size-3.5" aria-hidden /> Verified purchase
-          </span>
-        )}
-        {r.sizePurchased && <span>· Bought {r.sizePurchased}</span>}
-        {r.fitsAs && <span>· {FITS_AS[r.fitsAs] ?? r.fitsAs}</span>}
-        {r.heightCm && <span>· {r.heightCm} cm</span>}
-        {r.bodyType && <span>· {r.bodyType}</span>}
-        {r.language !== 'en' && (
-          <span className="inline-flex items-center gap-1">
-            · <Languages className="size-3.5" aria-hidden /> {r.language.toUpperCase()}
-          </span>
-        )}
-        <span>· {fmtDate(r.date)}</span>
-      </p>
-    </article>
-  )
-}
-
-function ReviewsSection({ reviews, avg }: { reviews: ProductReview[]; avg: number | null }) {
-  const first = reviews.slice(0, 5)
-  const rest = reviews.slice(5)
-  return (
-    <Section id="reviews-h" title={`Reviews (${reviews.length})`} aside={avg != null ? `Average ${avg.toFixed(1)} of 5 · most helpful first` : undefined}>
-      {reviews.length === 0 ? (
+    <Section id="reviews-h" title={`Reviews (${total})`} aside={avg != null ? `Average ${avg.toFixed(1)} of 5 · most helpful first` : undefined}>
+      {total === 0 ? (
         <p className="text-sm text-fg-muted">No reviews yet. New launches get an early score from the brand’s record, the spec and the price.</p>
       ) : (
         <>
           <div className="divide-y divide-border">
-            {first.map((r) => (
+            {reviews.map((r) => (
               <ReviewCard key={r.id} r={r} />
             ))}
           </div>
-          {rest.length > 0 && (
-            <details className="group mt-2 border-t border-border pt-4">
-              <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-md text-sm font-medium text-accent hover:underline [&::-webkit-details-marker]:hidden">
-                Show {rest.length} more reviews
-                <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden />
-              </summary>
-              <div className="mt-4 divide-y divide-border">
-                {rest.map((r) => (
-                  <ReviewCard key={r.id} r={r} />
-                ))}
-              </div>
-            </details>
-          )}
+          {total > reviews.length && <MoreReviews productId={product.id} offset={reviews.length} total={total} />}
         </>
       )}
     </Section>

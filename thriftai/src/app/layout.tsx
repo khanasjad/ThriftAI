@@ -14,7 +14,6 @@ export const metadata: Metadata = {
     title: 'Veritas — Is it worth buying?',
     description: 'The explainable "worth buying" score for clothing.',
     type: 'website',
-    images: ['/logo.svg'],
   },
   icons: { icon: '/logo.svg', apple: '/logo.svg' },
 }

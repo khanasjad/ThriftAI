@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 
 /**
  * NextAuth (JWT sessions, email + password).
- * Admin/brand protection and sign-in pages arrive in backend phase B7 (docs/rpi/02-PLAN-BACKEND.md).
+ * Roles: ADMIN (all brands, admin area), BRAND (own tenant's brands), SHOPPER. Checks live in src/lib/veritas/authz.ts and src/middleware.ts.
  */
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -33,7 +33,8 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  session: { strategy: 'jwt' },
+  session: { strategy: 'jwt', maxAge: 60 * 60 * 12 },
+  pages: { signIn: '/sign-in' },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

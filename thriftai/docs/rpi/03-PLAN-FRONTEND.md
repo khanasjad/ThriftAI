@@ -167,12 +167,12 @@ Frontend phases follow the backend phases that supply their data.
 | Phase | Scope | Depends on | Est. | Gate |
 |---|---|---|---|---|
 | **F0** Design system ✅ 2026-10-24 | Tokens, theming, `next/font`, primitives, Veritas components, `/dev/ui`; delete `legacy.css` + legacy components | B0 | ~10 h | ✅ All components in both themes; axe (WCAG 2.2 AA tags): **0 violations** in light and dark at 1280 px and 390 px; no horizontal scroll at 390 px; `npm run build` passes |
-| **F1** Shell + marketing — built 2026-10-24, Lighthouse pending | Nav, ⌘K, footer, Home, How it works, Brands, Pricing, Pilot, Developers, legal; copy cleanup (§7) | F0 | ~10 h | ⏳ Lighthouse ≥ 95 on each page (not run yet) · ✅ no unbacked claims · ✅ axe 0 violations (light + dark, 1280 + 390 px) · ✅ no horizontal scroll at 360/390 px |
-| **F2** Product page — page built 2026-10-24, waits on B3 scores | `/p/[slug]` with evidence drawer, price history, sustainability toggle, feedback | B3–B4 | ~10 h | 5 dev products fully explorable down to quotes |
-| **F3** Search | `/search`, streaming, clarify chips, provisional + final picks, profile page | B5 | ~12 h | 20 scripted searches render correctly on mobile and desktop |
-| **F4** Brand dashboard | Overview, problems by cost, catalog table, drill-down, size-chart tips, price scatter, launch watch | B4, B7 | ~14 h | All 6 dev brands explorable; brand A can't see brand B |
-| **F5** Admin — runs + spend built 2026-10-24 | Runs + trace timeline, spend, evals, pilots | B2, B6 | ~8 h | Any score on the site traceable to its run in ≤ 2 clicks (product page links to its run once scores exist) |
-| **F6** Polish | Motion pass, OG images, empty/error states, mobile QA, Playwright smoke tests | all | ~8 h | Quality bar (§2) met on every page |
+| **F1** Shell + marketing ✅ 2026-10-24 | Nav, ⌘K, footer, Home, How it works, Brands, Pricing, Pilot, Developers, legal; copy cleanup (§7) | F0 | ~10 h | ✅ Lighthouse 13.4.1 (mobile, production build) ≥ 95 in all four categories on all 10 public pages: performance 96–100, accessibility / best practices / SEO 100, CLS 0 · ✅ no unbacked claims · ✅ axe 0 violations on 15 pages (light + dark) · ✅ no horizontal scroll at 360/390 px |
+| **F2** Product page — built 2026-10-24 incl. feedback; waits on B3 scores | `/p/[slug]` with evidence drawer, price history, sustainability toggle, feedback | B3–B4 | ~10 h | 5 dev products fully explorable down to quotes |
+| **F3** Search — built 2026-10-25; real check waits on published scores | `/search`, streaming, clarify chips, provisional + final picks, profile page | B5 | ~12 h | 20 scripted searches render correctly on mobile and desktop. Verified with temporary scores: question → answer → picks, axe 0, no overflow at 390 px. Re-check on real scores after B3 live |
+| **F4** Brand dashboard ✅ 2026-10-25 | Overview, problems by cost, catalog table, drill-down, size-chart tips, price scatter, launch watch | B4, B7 | ~14 h | ✅ All 6 dev brands explorable (admin switcher) · ✅ brand A can't see brand B (browser e2e) · ✅ axe 0 on dashboard and drill-down. Scores, pillars-vs-catalog and the score/price scatter fill in once products are rated |
+| **F5** Admin ✅ 2026-10-25 — runs, spend, evals, pilots | Runs + trace timeline, spend, evals, pilots | B2, B6 | ~8 h | Any score on the site traceable to its run in ≤ 2 clicks (product page links to its run once scores exist) |
+| **F6** Polish ✅ 2026-10-25 (real-data recheck after B3 live) | Motion pass, OG images, empty/error states, mobile QA, Playwright smoke tests | all | ~8 h | ✅ `npm run test:e2e`: 54/54 (11 pages × light/dark × desktop/phone: 200, heading, axe 0, no horizontal scroll, no page errors; plus search, ⌘K, product evidence + reviews paging, pilot form, profile save/delete, anonymous rejection, brand-only dashboard, admin) · ✅ Lighthouse ≥ 95 (F1) · ✅ OG images, sitemap, robots, manifest |
 
 ---
 
@@ -198,13 +198,45 @@ Frontend phases follow the backend phases that supply their data.
 
 **Found while building:** the fixture never fills `pillingObserved` / `colorFading` / `shrinkage` (0 of 620 reviews), so the "wear and wash" block hides itself until structured answers exist; the evidence agent (B3) extracts these from review text. `trendTag` is null for every product until B4.
 
-**Still to do:** Lighthouse run for the F1 gate; F2 feedback buttons (needs `POST /api/v1/feedback`); F5 evals + pilots pages (B6); conversational search and profile (F3 after B5); brand dashboard (F4 after B4/B7).
+**Added later the same day:**
+- **Feedback:** `FeedbackButtons` (👍/👎, with optional reason chips on 👎) on the rated score panel → `POST /api/v1/feedback`. Tested end-to-end against a temporary score row, which was then deleted.
+- **`/admin/pilots`:** filter by status, change status inline, notes. Backed by `PATCH /api/v1/admin/pilot-applications/:id`.
+- **Reviews paging:** the product page renders the 5 most helpful reviews; "Show more" loads 20 at a time from `GET /api/v1/products/:id/reviews`.
+- **Performance pass (F1 gate):**
+  - Removed the unused NextAuth `SessionProvider`, which fetched `/api/auth/session` on every page.
+  - Split `ui/controls.tsx` into one file per control; tooltips carry their own provider.
+  - The ⌘K palette, mobile menu and evidence drawer load on first use.
+  - Replaced framer-motion with CSS keyframes (`animate-ring-fill`, `animate-bar-grow`, `animate-rise-in`) and uninstalled it.
+  - Review stars are text, not SVG.
+  - Result: shared JS 229 → 160 kB; product page HTML 294 → ~120 kB (27 kB gzipped).
+- **SEO:** `htmlLimitedBots: /.*/` in `next.config.ts`, so metadata is in the initial `<head>` on dynamic pages (meta-description audit 0 → 100).
+- **Fixes:**
+  - `FactorRow` grid placement put the bar before the name; now stacked.
+  - `/dashboard` still averaged the removed `returnRate`; it now shows the returns count.
+
+**Quality-bar gap:** §2 asks for LCP < 2.0 s on mid-range mobile. Lighthouse's simulated slow-4G LCP is 1.8–2.8 s. Re-measure on real devices after deploy (F6).
+
+**F3 (2026-10-25):** `/search` runs conversational search above the keyword grid ("All matching products"). It shows how the query was read, one clarifying question as chips (provisional picks underneath), then up to 3 `PickCard`s with fact-based match reasons, verified summary, size advice, downside, an "Over budget" label when stretched, and an honest empty state when nothing matching is rated. `/profile` is an optional fit profile (height, sizes, build, fit, climate, budget, priorities, brands to leave out, sustainability) with one-click delete. `PickCard` now uses the placeholder silhouette instead of a photo. No streaming: search is code-only and returns in one response.
+
+**F4 (2026-10-25):** `/dashboard` (brand users: their brand; admins: brand switcher) shows overview tiles, top problems by estimated return cost (bars + affected products), size-chart fixes, launch watch, price position, pillars vs. catalog, the catalog table and Score API keys. Price position is a dot plot of price vs. peer median, which works before rating; once ≥ 3 of the brand's products are rated it becomes a score-vs-price scatter against other brands, with legend and tooltips (dataviz rules: ≥ 8 px dots, 2 px surface ring, one hue per series). `/dashboard/products/[slug]` shows fit answers and returns by size, plus return reasons. `/sign-in` serves brand teams and admins; admin pages now need an admin sign-in in every environment.
+
+**F5 evals (2026-10-25):** `/admin/evals` shows the latest eval run: check agreement and coverage, judge agreement and rubric (once run), quote acceptance, checks by label, agent health (finish rate, how runs ended, cost, median time, cache share), shopper feedback, every golden product's checks (expandable), and earlier runs. Admin pages and APIs need an admin sign-in.
+
+**F6 (2026-10-25):**
+- **Error and loading states:** token-styled `error.tsx` (keeps the site chrome, retry, reference id, no internals), `global-error.tsx` (self-contained inline styles, light + dark), page-shaped `loading.tsx` skeleton. Legacy white versions removed.
+- **SEO and sharing:** `sitemap.ts` (public pages + every product), `robots.ts` (index nothing outside production; in production, block admin, dashboard, API, sign-in, profile and dev), `manifest.ts`. Dynamic Open Graph images for the site and each product: score ring, or "Not rated yet" plus the clearest fit fact. Never a made-up number. The stale `public/robots.txt` (allowed everything) and `public/manifest.json` (old app's routes and missing icons) were deleted.
+- **Smoke tests:** `@playwright/test` 1.56.0 on system Chrome (`playwright.config.ts`, `tests/e2e/`). Desktop runs everything; phone (Pixel 7) runs the page sweep. The pilot form is tested with the API mocked; the profile test deletes what it creates; a global teardown removes the run's anonymous search sessions (local DB only).
+- **Motion:** all entrance motion is CSS keyframes (`animate-ring-fill`, `animate-bar-grow`, `animate-rise-in`) under the global `prefers-reduced-motion` rule; no JS animation library remains.
+
+**All frontend phases are built.** Pages that depend on scores (search picks, score panels, dashboard scores and the scatter) are verified with temporary data and fill in when products are rated live (B3).
 
 ## Known issues (saved for later)
 
 | Date | Issue | Likely cause | Planned fix |
 |---|---|---|---|
 | 2026-10-24 | Dev overlay: `Console TypeError: Failed to fetch` in `fetchServerResponse` / `navigateReducer` (Next 15.5.4, Turbopack) on client navigation | The client router can't reach the dev server. The user's `npm run dev` (port 3000) shares `.next/` with the `npm run build` checks run during B0–B2, and each build overwrote the running server's output. A server restart after `npm install` has the same effect. | Restart `npm run dev`. Build checks now use `NEXT_DIST_DIR=.next-check` (see `next.config.ts`), so they no longer touch `.next/`. If it still happens after a clean restart, look at the request in the Network tab (failing route + status) and check for a server error in the terminal. Next 15.5.4 is flagged "outdated"; upgrading Next is a separate, deliberate change. |
+
+| 2026-10-24 | `notFound()` on dynamic routes (`/p/[slug]`, `/admin/runs/[id]`) returns HTTP 200 with the not-found page and `noindex`, instead of 404. Unknown URLs correctly return 404. | Next 15.5 starts streaming the response before the page throws, even with `htmlLimitedBots` and `notFound()` in `generateMetadata`. | Look at again when upgrading Next. Crawlers already see `noindex`. Fallback: check the slug in middleware against a cached slug list. |
 
 ## 9. Decisions to confirm
 

@@ -2,7 +2,7 @@
 
 import { ShieldCheck, Shield, ShieldAlert, Sparkles, TrendingUp, TrendingDown, Infinity as InfinityIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/primitives'
-import { Tooltip } from '@/components/ui/controls'
+import { Tooltip } from '@/components/ui/tooltip'
 import { CONFIDENCE, type ConfidenceLabel } from './score'
 
 const CONFIDENCE_ICON: Record<ConfidenceLabel, React.ReactNode> = {

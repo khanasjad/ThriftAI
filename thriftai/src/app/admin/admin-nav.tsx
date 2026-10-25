@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils'
 const TABS = [
   { href: '/admin/runs', label: 'Runs' },
   { href: '/admin/spend', label: 'Spend' },
+  { href: '/admin/evals', label: 'Evals' },
+  { href: '/admin/pilots', label: 'Pilots' },
 ]
 
 export function AdminNav() {

@@ -16,8 +16,20 @@ export type CommandItem = {
 }
 
 /** ⌘K palette. Opens with ⌘K / Ctrl+K, or programmatically via `open`. */
-export function CommandPalette({ items, open, onOpenChange }: { items: CommandItem[]; open: boolean; onOpenChange: (o: boolean) => void }) {
+export function CommandPalette({
+  items,
+  open,
+  onOpenChange,
+  hotkey = true,
+}: {
+  items: CommandItem[]
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  /** Set false when the parent owns the ⌘K shortcut (e.g. to lazy-load this component). */
+  hotkey?: boolean
+}) {
   React.useEffect(() => {
+    if (!hotkey) return
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -26,7 +38,7 @@ export function CommandPalette({ items, open, onOpenChange }: { items: CommandIt
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onOpenChange])
+  }, [open, onOpenChange, hotkey])
 
   const groups = Array.from(new Set(items.map((i) => i.group)))
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import type * as React from 'react'
 import { cn } from '@/lib/utils'
 import { scoreBand } from './score'
 
@@ -26,7 +26,6 @@ export function ScoreRing({
   /** Optional text under the ring (e.g. "Veritas Score") */
   caption?: string
 }) {
-  const reduce = useReducedMotion()
   const s = SIZES[size]
   const r = (s.box - s.stroke) / 2
   const c = 2 * Math.PI * r
@@ -40,7 +39,7 @@ export function ScoreRing({
         <svg width={s.box} height={s.box} viewBox={`0 0 ${s.box} ${s.box}`} className="-rotate-90" aria-hidden>
           <circle cx={s.box / 2} cy={s.box / 2} r={r} fill="none" stroke="var(--score-track)" strokeWidth={s.stroke} />
           {band && (
-            <motion.circle
+            <circle
               cx={s.box / 2}
               cy={s.box / 2}
               r={r}
@@ -49,9 +48,9 @@ export function ScoreRing({
               strokeWidth={s.stroke}
               strokeLinecap="round"
               strokeDasharray={c}
-              initial={{ strokeDashoffset: reduce ? c * (1 - value / 100) : c }}
-              animate={{ strokeDashoffset: c * (1 - value / 100) }}
-              transition={{ duration: reduce ? 0 : 0.9, ease: [0.22, 1, 0.36, 1] }}
+              strokeDashoffset={c * (1 - value / 100)}
+              className="animate-ring-fill"
+              style={{ '--ring-from': c } as React.CSSProperties}
             />
           )}
         </svg>

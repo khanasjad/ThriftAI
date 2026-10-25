@@ -4,6 +4,7 @@
  *        sortBy = score | name | price | newest
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { scoreApiGate } from '@/lib/veritas/apikeys'
 import { z } from 'zod'
 import { Prisma, ClothingCategory, ClothingGender, ConfidenceLabel } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
@@ -22,6 +23,8 @@ const querySchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
+  const gate = await scoreApiGate()
+  if (gate instanceof Response) return gate
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams))
   if (!parsed.success) {
     return NextResponse.json(

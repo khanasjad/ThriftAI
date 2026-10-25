@@ -1,15 +1,9 @@
 'use client'
 
-import { SessionProvider } from 'next-auth/react'
-import { TooltipProvider } from '@/components/ui/controls'
 import { Toaster } from '@/components/ui/toast'
 
+// Tooltips bring their own provider (components/ui/tooltip.tsx). NextAuth's SessionProvider
+// returns with sign-in (B7); nothing reads the session yet.
 export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      <TooltipProvider delayDuration={150}>
-        <Toaster>{children}</Toaster>
-      </TooltipProvider>
-    </SessionProvider>
-  )
+  return <Toaster>{children}</Toaster>
 }
