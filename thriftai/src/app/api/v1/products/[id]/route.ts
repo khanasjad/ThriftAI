@@ -3,9 +3,11 @@
  * Unrated products return null scores with `rated: false` (never 0).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { visibleProducts } from '@/lib/veritas/scope'
 import { scoreApiGate } from '@/lib/veritas/apikeys'
 import { prisma } from '@/lib/prisma'
 import { tagsForProducts } from '@/lib/veritas/read/tags'
+import { driversForProducts } from '@/lib/veritas/read/drivers'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await scoreApiGate()
@@ -13,7 +15,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   try {
     const product = await prisma.clothingProduct.findFirst({
-      where: { OR: [{ id }, { slug: id }] },
+      where: { AND: [{ OR: [{ id }, { slug: id }] }, visibleProducts(gate.tenantId)] },
       include: {
         brand: { select: { id: true, name: true, slug: true, description: true, reputationScore: true, website: true } },
         productScore: true,
@@ -56,6 +58,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }, {})
     const score = product.productScore
     const tags = (await tagsForProducts([product.id])).get(product.id) ?? []
+    const drivers = score ? (await driversForProducts([product.id])).get(product.id) ?? null : null
     const current = Number(product.currentPrice)
     const original = product.originalPrice ? Number(product.originalPrice) : null
 
@@ -104,6 +107,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         rated: Boolean(score),
         /** Code-built labels with the numbers behind them (B9 enrichment). */
         tags,
+        /** Product quality (reviews), Price, Brand reputation: each { value 0–100 | null, basis }. */
+        drivers,
 
         factors: product.factorScores.map((f) => ({
           factor: f.factor,

@@ -1,4 +1,5 @@
 import 'server-only'
+import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { prisma } from '@/lib/prisma'
 import type { Candidate } from './rank'
 
@@ -8,7 +9,7 @@ import type { Candidate } from './rank'
  */
 export async function loadCandidates(): Promise<Candidate[]> {
   const rows = await prisma.clothingProduct.findMany({
-    where: { isAvailable: true },
+    where: { isAvailable: true, ...PUBLIC_PRODUCTS },
     select: {
       id: true,
       slug: true,

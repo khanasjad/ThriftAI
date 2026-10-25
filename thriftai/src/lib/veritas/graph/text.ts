@@ -11,6 +11,9 @@ import type { ProductBundle } from '../evidence/types'
 import type { ProductScoreResult } from '../scoring/v2'
 import { checkSentence, compose, type DraftSentence } from '../text/check'
 import { buildWriterItems } from '../text/items'
+import { createHash } from 'node:crypto'
+import { VERIFIER_VERSION } from '../agents/verifier'
+import { WRITER_VERSION } from '../agents/writer'
 import type { StoredEvidence } from './data'
 
 export type TextResult = {
@@ -21,6 +24,12 @@ export type TextResult = {
   costUsd: number
   kept: number
   dropped: { text: string; reason: string }[]
+}
+
+/** Hash of everything the writer sees (numbered items) plus prompt versions: same hash → same text can be reused. */
+export function writerInputsHash(bundle: ProductBundle, evidence: StoredEvidence[]) {
+  const items = buildWriterItems(bundle, evidence)
+  return createHash('sha256').update(JSON.stringify({ v: [WRITER_VERSION, VERIFIER_VERSION], items })).digest('hex')
 }
 
 export async function writeAndVerify(

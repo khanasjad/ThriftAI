@@ -1,5 +1,6 @@
 import 'server-only'
 import { prisma } from '@/lib/prisma'
+import { visibleProducts } from '../scope'
 import { explainScore } from './why'
 import { DEFAULT_RETURN_COST_SHARE, buildBrandInsights, type InsightProduct, type PeerProduct } from './brand'
 
@@ -13,11 +14,13 @@ const pillarsOf = (s: { fit: number | null; quality: number | null; styleValue: 
 
 /** Loads everything insights need for one brand plus catalog peers. Callers must authorize the brand first. */
 export async function loadBrandInsights(brandId: string) {
-  const brand = await prisma.brand.findUnique({ where: { id: brandId }, select: { id: true, slug: true, name: true, tenant: { select: { settings: true, plan: true } } } })
+  const brand = await prisma.brand.findUnique({ where: { id: brandId }, select: { id: true, slug: true, name: true, tenantId: true, tenant: { select: { settings: true, plan: true } } } })
   if (!brand) return null
+  // A brand sees the shared catalog plus its own tenant's imports, never another platform's private data.
+  const pool = visibleProducts(brand.tenantId)
   const [rows, peerRows] = await Promise.all([
     prisma.clothingProduct.findMany({
-      where: { brandId },
+      where: { AND: [{ brandId }, pool] },
       select: {
         id: true,
         slug: true,
@@ -32,7 +35,7 @@ export async function loadBrandInsights(brandId: string) {
         returns: { select: { returnReason: true, sizePurchased: true, purchasePrice: true } },
       },
     }),
-    prisma.clothingProduct.findMany({ select: { slug: true, name: true, category: true, subcategory: true, currentPrice: true, productScore: true } }),
+    prisma.clothingProduct.findMany({ where: pool, select: { slug: true, name: true, category: true, subcategory: true, currentPrice: true, productScore: true } }),
   ])
   const products: InsightProduct[] = rows.map((r) => ({
     id: r.id,
@@ -65,11 +68,11 @@ export async function loadBrandInsights(brandId: string) {
 export async function loadWhy(productId: string) {
   const product = await prisma.clothingProduct.findUnique({
     where: { id: productId },
-    select: { id: true, category: true, productScore: { select: { overall: true, ratedByRunId: true } }, factorScores: { where: { version: 'v2' }, select: { factor: true, value: true, evidenceCount: true } } },
+    select: { id: true, tenantId: true, category: true, productScore: { select: { overall: true, ratedByRunId: true } }, factorScores: { where: { version: 'v2' }, select: { factor: true, value: true, evidenceCount: true } } },
   })
   if (!product) return null
   const peers = await prisma.clothingProduct.findMany({
-    where: { category: product.category, id: { not: product.id }, productScore: { isNot: null } },
+    where: { AND: [{ category: product.category, id: { not: product.id }, productScore: { isNot: null } }, visibleProducts(product.tenantId)] },
     select: { productScore: { select: { overall: true } }, factorScores: { where: { version: 'v2' }, select: { factor: true, value: true } } },
   })
   // Most common negative signal per factor, from the evidence behind the current score only.

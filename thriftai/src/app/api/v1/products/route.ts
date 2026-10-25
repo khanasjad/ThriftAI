@@ -4,11 +4,13 @@
  *        sortBy = score | name | price | newest
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { visibleProducts } from '@/lib/veritas/scope'
 import { scoreApiGate } from '@/lib/veritas/apikeys'
 import { z } from 'zod'
 import { Prisma, ClothingCategory, ClothingGender, ConfidenceLabel } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { tagsForProducts } from '@/lib/veritas/read/tags'
+import { driversForProducts } from '@/lib/veritas/read/drivers'
 
 const querySchema = z.object({
   category: z.nativeEnum(ClothingCategory).optional(),
@@ -43,6 +45,7 @@ export async function GET(req: NextRequest) {
 
   const where: Prisma.ClothingProductWhereInput = {
     isAvailable: true,
+    ...visibleProducts(gate.tenantId),
     category: q.category,
     subcategory: q.subcategory,
     gender: q.gender,
@@ -75,7 +78,7 @@ export async function GET(req: NextRequest) {
       prisma.clothingProduct.count({ where }),
     ])
 
-    const tags = await tagsForProducts(products.map((p) => p.id))
+    const [tags, drivers] = await Promise.all([tagsForProducts(products.map((p) => p.id)), driversForProducts(products.map((p) => p.id))])
     const data = products.map((p) => {
       const s = p.productScore
       return {
@@ -106,6 +109,7 @@ export async function GET(req: NextRequest) {
         confidence: s?.confidence ?? null,
         confidenceLabel: s?.confidenceLabel ?? null,
         tags: tags.get(p.id) ?? [],
+        drivers: s ? drivers.get(p.id) ?? null : null,
         reviewCount: p._count.reviews,
         returnCount: p._count.returns,
         createdAt: p.createdAt,

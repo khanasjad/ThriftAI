@@ -115,7 +115,7 @@ Nav: **Search · How it works · For brands · Developers**, with a ⌘K command
 Height, build, usual sizes, climate, budget, style, pillar priorities, brand allow/deny lists. **Delete everything** in one click. Stored server-side for signed-in users, or per browser session otherwise.
 
 ### 5.5 Brands
-- `/brands`: the pitch ("Constructor shows you what sells. Veritas shows you what's worth buying."), what a brand sees, dashboard screenshots, free pilot scorecard CTA.
+- `/brands`: the pitch ("Sales data shows you what sells. Veritas shows you what's worth buying."), what a brand sees, dashboard screenshots, free pilot scorecard CTA.
 - `/brands/pricing`: Starter $299 · Growth $799 · Pro $2,000 · Platform (annual contract), exactly as in the product plan.
 - `/pilot`: existing form, restyled.
 - `/dashboard` (brand app):
@@ -246,6 +246,13 @@ Frontend phases follow the backend phases that supply their data.
 - [x] "Ask about this product" on the product page: instant-answer chips + a question box; answers cite their evidence
 - [x] Brand dashboard product page: "Why this score" with points lost per factor and top fixes
 - **Gate:** see B9.
+
+### F8 · Platform UI (with B10/B11, 2026-10-25) — ✅ done
+- [x] `/dashboard/ads` "Data and ads": feed upload with dry run and inline validation report, recent uploads, ad previews with verified evidence, "not advertised and why", eligible/full ad-feed CSV downloads, social posts with copy buttons
+- [x] Three drivers (`DriverTiles`) on product pages and the demo store panel; `drivers` in the Score API
+- [x] Demo store: rule-based "Sponsored" slot (labelled, never top 3, explains why it's shown)
+- [x] Developers page: ingest and feeds sections
+- **Gate:** ✅ `tests/e2e/b2b.spec.ts` 2/2 (dry-run upload report incl. rejected row reason; sponsored slot never in the top 3); full e2e 78/78; build passes.
 
 ## Known issues (saved for later)
 

@@ -482,7 +482,7 @@ Decisions from B7 (2026-10-25):
 - Sign-in form posts (`method="post"`), so credentials never land in a URL even before JavaScript loads; post-sign-in redirects accept only same-site relative paths.
 
 ### B9 · Discovery and insights (product plan change 2026-10-25)
-Mapped from Constructor's product list. All read stored scores and evidence; only free-text product Q&A calls a model.
+Mapped from a search platform's product list. All read stored scores and evidence; only free-text product Q&A calls a model.
 - [x] **Enrichment tags** (`enrich/tags.ts`): code turns factor scores and counts into shopper tags ("Doesn't shrink", "Runs small", "Breathable", "Real sale price"…), each with the numbers behind it. Shown on cards and product pages; added to the Score API.
 - [x] **Autosuggest** (`GET /api/v1/suggest?q=`): query completions from catalog facets, matching products (score first), collections. Code only.
 - [x] **Browse filters**: search catalog gets filters (gender, colour, fit, min score, price) on top of sort.
@@ -495,6 +495,19 @@ Mapped from Constructor's product list. All read stored scores and evidence; onl
   - ✅ Product Q&A live (Haiku 5.5) on 4 questions: "Does it shrink?" answered with 2 verified sentences and their sources; "Is it see-through in white?" → not enough evidence (honest, no guess); off-topic → declined; injection → refused by code before any model call. **Cost ≈ $0.0007 per answered question** (agent + verifier, prompt cache hit); repeats are cached per server.
   - ✅ e2e: `tests/e2e/discovery.spec.ts` 5/5 (×3 repeats), page sweep adds `/collections` and a collection page (light + dark, axe, phone); full run 75/76 with one wait-for-stream fix since. Build passes.
   - Not built, on purpose: retail media / sponsored placements and merchandiser boost/bury rules (break the neutral score), email/SMS (needs a provider account).
+
+### B10 · Ingest (B2B plan §5, 2026-10-25) — ✅ done
+- [x] Data contract with normalisers (`ingest/contract.ts`): category (tees/jeans only, others reported), gender, fit answers, return reasons, materials, colour/fit/cut from messy titles
+- [x] Engine (`ingest/run.ts`): idempotent upserts by the platform's ids, one price snapshot per product × seller × day, dry run, `IngestRun` report; imported products are `isPrivate` (new `scope.ts`, applied to every public query and the Score API)
+- [x] Push API `POST /api/v1/ingest/:kind` (API key, CSV or JSON), dashboard upload, `npm run ingest`
+- [x] Rating reuses agent evidence when review/return text is unchanged (`reviewTextHash`) and keeps verified text when writer inputs are unchanged (`writerInputsHash`)
+- **Gate:** ✅ 2026-10-25 `npm run ingest:gate`: fictional marketplace, 200 products (269 offer rows), 2,000 reviews, 811 returns in 6.4 s; 3 bad catalog + 3 bad review rows rejected with reasons ("Dresses is not scored yet", bad price, bad url, unknown product, rating 9, bad date); dry run wrote nothing; re-sending all three files: 0 created / 0 updated; next day with 10 re-priced products: exactly 10 updated, snapshots doubled (price history); 0 imported products visible publicly. Live: a price-only change re-rated with no evidence-agent call ($0.0009 for the writer step only, vs $0.0046).
+
+### B11 · Ads and social (B2B plan §6, 2026-10-25) — ✅ done
+- [x] Rules (`ads/rules.ts`): eligibility (score ≥ 70, not low/new-launch, no fake sale price, not often returned), score tiers, price status, sponsored-slot picker (eligible sponsor products only, never in the organic top 3)
+- [x] Ad copy agent + pipeline (`agents/ad-copy.ts`, `ads/copy.ts`): headline ≤ 40, body ≤ 125, code checks (length, hype, urgency, prices, numbers) then the Verifier; stored in `AdCopy`, reused while inputs are unchanged; `npm run ads`
+- [x] Ad feed (standard catalog-feed columns + Veritas custom labels + verified copy) and social pack: `GET /api/v1/feeds/ads`, `GET /api/v1/feeds/social`, dashboard CSV download
+- **Gate:** ✅ 2026-10-25 unit tests (rules, ad-line checks); 10 eligible products → 8 verified ad copies, 2 rejected by the Verifier (one called the jeans "denim" and claimed an inseam detail no evidence stated) · **$0.0075 for all 10** (≈ $0.0008 each). Feed: 40 rows, 10 eligible. Finding: "often cheaper" initially blocked 30 of 40 products; it is a label now, not a block.
 
 ### B8 · Production (~6 h, then the real-data plan)
 - [ ] Supabase + Vercel setup, prod migrations, spend cap, Langfuse, smoke tests

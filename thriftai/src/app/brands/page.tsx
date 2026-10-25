@@ -19,7 +19,7 @@ const FEATURES = [
   { icon: <Ruler />, t: 'Size-chart corrections', d: 'Suggestions from fit evidence: which sizes run off, and by how much.' },
   { icon: <Tag />, t: 'Price position', d: 'Where each product sits on value versus similar items from other brands.' },
   { icon: <Radar />, t: 'Launch watch', d: 'An early warning when a new launch’s first signals turn negative.' },
-  { icon: <Plug />, t: 'Score API', d: 'Feed the score into your site search (Constructor, Algolia, Shopify search) and product pages.' },
+  { icon: <Plug />, t: 'Score API', d: 'Feed the score into your site search and product pages.' },
 ]
 
 export default async function BrandsPage() {
@@ -40,7 +40,7 @@ export default async function BrandsPage() {
           <div>
             <p className="text-sm font-medium text-accent">For brands</p>
             <h1 className="mt-3 text-balance text-[clamp(2.25rem,5vw,3.5rem)] font-semibold leading-[1.04] tracking-[-0.035em] text-fg">
-              Constructor shows you what sells. Veritas shows you what’s worth buying.
+              Sales data shows you what sells. Veritas shows you what’s worth buying.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-fg-muted">
               Your products scored on the same 27 factors shoppers see, plus the reasons behind each number, so you know what to fix first.

@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { prisma } from '@/lib/prisma'
 
 export const alt = 'Veritas Score'
@@ -12,7 +13,7 @@ const BAND = (s: number) => (s >= 85 ? ['Excellent', '#104281'] : s >= 70 ? ['Go
 export default async function ProductOgImage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const p = await prisma.clothingProduct.findFirst({
-    where: { OR: [{ slug }, { id: slug }] },
+    where: { OR: [{ slug }, { id: slug }], ...PUBLIC_PRODUCTS },
     select: { name: true, brand: { select: { name: true } }, productScore: { select: { overall: true, confidenceLabel: true } }, reviews: { select: { fitsAs: true } } },
   })
   const name = p?.name ?? 'Product not found'

@@ -154,7 +154,10 @@ model Brand {
 
 model Seller {
   id        String   @id @default(cuid())
-  name      String   @unique
+  /// Set for a platform's own vendors (marketplace sellers); null for shared dev/public sellers
+  tenantId   String?
+  externalId String?
+  name      String
   slug      String   @unique
   website   String?
   source    String
@@ -163,6 +166,7 @@ model Seller {
 
   prices PriceSnapshot[]
 
+  @@unique([tenantId, externalId])
   @@map("sellers")
 }
 
@@ -211,6 +215,13 @@ model ClothingProduct {
   images          String[]  @default([])
   primaryImageUrl String?
 
+  /// Private to its tenant (imported platform data). Public pages never show private products.
+  isPrivate  Boolean @default(false)
+  /// The platform's own id for this product (ingest upserts by tenant + externalId)
+  externalId String?
+  /// Product page on the platform, for ads and deep links
+  url        String?
+
   source    String
   licence   String?
   createdAt DateTime @default(now())
@@ -226,7 +237,9 @@ model ClothingProduct {
   productScore   ProductScore?
   findings       AgentFinding[]
   agentRuns      AgentRun[]
+  adCopy         AdCopy?
 
+  @@unique([tenantId, externalId])
   @@index([tenantId])
   @@index([brandId])
   @@index([category, subcategory])
@@ -265,6 +278,9 @@ model ClothingReview {
   helpfulVotes       Int      @default(0)
   reviewDate         DateTime @default(now())
 
+  /// The platform's own review id (ingest upserts by product + externalId)
+  externalId String?
+
   /// Set by guardrails when the text looks like a prompt-injection attempt
   injectionFlag Boolean   @default(false)
   processedAt   DateTime?
@@ -276,6 +292,7 @@ model ClothingReview {
   product      ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   evidenceTags EvidenceTag[]
 
+  @@unique([productId, externalId])
   @@index([productId])
   @@index([reviewDate])
   @@map("clothing_reviews")
@@ -292,6 +309,8 @@ model ReturnEvent {
   purchaseDate   DateTime?
   returnDate     DateTime       @default(now())
   exchangedForSize String?
+  /// The platform's own return id (idempotent ingest)
+  externalId     String?
   processedAt    DateTime?
   source         String
   licence        String?
@@ -300,6 +319,7 @@ model ReturnEvent {
   product      ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   evidenceTags EvidenceTag[]
 
+  @@unique([productId, externalId])
   @@index([productId])
   @@index([returnCategory])
   @@map("return_events")
@@ -321,6 +341,7 @@ model PriceSnapshot {
   product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   seller  Seller?         @relation(fields: [sellerId], references: [id])
 
+  @@unique([productId, sellerId, observedAt])
   @@index([productId, observedAt])
   @@index([sellerId])
   @@map("price_snapshots")
@@ -821,4 +842,44 @@ enum TurnRole {
 enum FeedbackTarget {
   PRODUCT_SCORE
   SEARCH_TURN
+}
+
+/// One upload or push to the ingest API, with its validation report (B10).
+model IngestRun {
+  id        String   @id @default(cuid())
+  tenantId  String
+  /// catalog | reviews | returns
+  kind      String
+  source    String
+  licence   String?
+  dryRun    Boolean  @default(false)
+  rows      Int
+  accepted  Int
+  rejected  Int
+  /// Created / updated / unchanged counts and the first rejected rows with reasons
+  report    Json
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@map("ingest_runs")
+}
+
+/// Verified ad copy for one product (B11). Written by the ad-copy agent from evidence, checked by code and the Verifier.
+model AdCopy {
+  id          String   @id @default(cuid())
+  productId   String   @unique
+  headline    String
+  body        String
+  /// Writer items each line cites (shown as the ad's sources)
+  sources     Json
+  /// Same writer inputs + versions → same copy (no repeat cost)
+  inputsHash  String
+  costUsd     Decimal  @db.Decimal(10, 6)
+  runIds      String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("ad_copies")
 }

@@ -6,6 +6,7 @@ import { CONFIDENCE, formatPrice } from '@/components/veritas/score'
 import { cn } from '@/lib/utils'
 import { storeSearch, type StoreSort } from '@/lib/veritas/read/store-demo'
 import { DemoBanner, HeadsUpList, Stars, StoreHeader } from './parts'
+import { AD_MIN_SCORE, pickSponsored } from '@/lib/veritas/ads/rules'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -27,6 +28,11 @@ export default async function DemoStorePage({ searchParams }: Props) {
   const q = (sp.q ?? 't-shirt').slice(0, 80)
   const sort: StoreSort = SORTS.some((s) => s.key === sp.sort) ? (sp.sort as StoreSort) : 'featured'
   const { items } = await storeSearch(q, sort)
+
+  // Demo sponsors (fictional brands). The rule, not the sponsor, decides: eligible products only, never in the top 3.
+  const SPONSORS = ['hollow-pine-supply', 'velo-thread']
+  const [sponsored] = pickSponsored(items, SPONSORS, items.slice(0, 3).map((x) => x.slug))
+  const shown = sponsored ? [...items.slice(0, 3).filter((x) => x.slug !== sponsored.slug), { ...sponsored, isSponsored: true }, ...items.slice(3).filter((x) => x.slug !== sponsored.slug)] : items
 
   // The gap the demo is about: the store's top-starred item vs. where Veritas puts it.
   const byStars = [...items].sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0) || b.reviewCount - a.reviewCount)[0]
@@ -76,13 +82,19 @@ export default async function DemoStorePage({ searchParams }: Props) {
           <p className="mt-10 text-center text-fg-muted">No results. Try “t-shirt” or “jeans”.</p>
         ) : (
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((it) => (
-              <li key={it.slug}>
+            {shown.map((it) => (
+              <li key={it.slug} className="relative">
                 <Link
                   href={`/demo/store/${it.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-[box-shadow,border-color] hover:border-border-strong hover:shadow-md"
                 >
                   <ProductThumb category={it.category} subcategory={it.subcategory} silhouette={it.silhouette} color={it.colors[0]} className="aspect-[5/4] rounded-none" />
+                  {'isSponsored' in it && (
+                    <p className="border-b border-border bg-surface-2 px-4 py-1.5 text-xs text-fg-muted">
+                      <span className="font-semibold text-fg">Sponsored</span> · shown because it scores {AD_MIN_SCORE}+ with enough evidence and an honest price. Sponsors can’t buy a top-3 spot or a
+                      better score.
+                    </p>
+                  )}
                   <div className="flex flex-1 flex-col gap-2 p-4">
                     <h2 className="text-sm font-medium leading-snug text-fg group-hover:underline group-hover:underline-offset-4">
                       {it.brand} {it.name}

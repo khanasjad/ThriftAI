@@ -137,12 +137,11 @@ export default async function HomePage() {
         <div className="max-w-3xl">
           <p className="text-sm font-medium text-accent">The problem</p>
           <h2 className="mt-3 text-balance text-[clamp(1.75rem,3.5vw,2.75rem)] font-semibold leading-tight tracking-[-0.025em] text-fg">
-            Up to 1 in 4 clothing orders gets returned. Most returns are a question answered wrong.
+            Every return starts with a question answered wrong.
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-fg-muted">
             Will it fit? Will it last? Is the sale real? Shoppers answer these by opening ten tabs. Veritas answers them in one place, with sources.
           </p>
-          <p className="mt-3 text-xs text-fg-subtle">Return rates: roughly 1 in 5 fashion purchases, 25–40% for apparel and footwear (Stellagent, citing True Fit).</p>
         </div>
       </section>
 
@@ -263,7 +262,7 @@ export default async function HomePage() {
             </code>
           </pre>
           <p className="mt-4 text-sm text-fg-muted">
-            Feed the score into Constructor, Algolia or Shopify search, or let AI shopping agents rank by it. We complement search, we don’t replace it.
+            Feed the score into your site search, or let AI shopping agents rank by it. We complement search, we don’t replace it.
           </p>
           <div className="mt-6">
             <Button asChild variant="secondary">
@@ -282,7 +281,7 @@ export default async function HomePage() {
           <div className="relative">
             <ShieldCheck className="mx-auto size-8 text-accent" aria-hidden />
             <h2 className="mx-auto mt-4 max-w-2xl text-balance text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold tracking-[-0.025em] text-fg">
-              Constructor shows you what sells. Veritas shows you what’s worth buying.
+              Sales data shows you what sells. Veritas shows you what’s worth buying.
             </h2>
             <dl className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-6 sm:grid-cols-4">
               {[

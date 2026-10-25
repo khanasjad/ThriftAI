@@ -3,6 +3,7 @@
  * up to 4 products (score first) and matching collections. Reads stored data only; no model call.
  */
 import { prisma } from '@/lib/prisma'
+import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { fail, ok, rateLimit } from '@/lib/veritas/http'
 import { buildVocabulary, suggest, type SuggestProduct } from '@/lib/veritas/match/suggest'
 import { COLLECTIONS } from '@/lib/veritas/read/collections'
@@ -14,7 +15,7 @@ const TTL_MS = 60_000
 async function catalog() {
   if (cache && Date.now() - cache.at < TTL_MS) return cache
   const rows = await prisma.clothingProduct.findMany({
-    where: { isAvailable: true },
+    where: { isAvailable: true, ...PUBLIC_PRODUCTS },
     select: { slug: true, name: true, category: true, subcategory: true, silhouette: true, fitType: true, colors: true, currentPrice: true, brand: { select: { name: true } }, productScore: { select: { overall: true } } },
   })
   const products: SuggestProduct[] = rows.map((r) => ({

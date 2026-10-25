@@ -21,7 +21,10 @@
     "search:gate": "node scripts/with-env.mjs tsx --conditions=react-server scripts/dev/search-gate.ts",
     "seed:accounts": "node scripts/with-env.mjs tsx scripts/dev/accounts.ts",
     "eval": "node scripts/with-env.mjs tsx scripts/eval.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "ingest": "node scripts/with-env.mjs tsx scripts/ingest.ts",
+    "ingest:gate": "node scripts/with-env.mjs tsx scripts/dev/ingest-gate.ts",
+    "ads": "node scripts/with-env.mjs tsx scripts/ads.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",

@@ -9,6 +9,7 @@ import { FactorRow, PillarBars } from '@/components/veritas/bars'
 import { PILLARS, formatPrice, type Pillar } from '@/components/veritas/score'
 import { storeProduct } from '@/lib/veritas/read/store-demo'
 import { DemoBanner, HeadsUpList, Stars, StoreHeader } from '../parts'
+import { DriverTiles } from '@/components/veritas/drivers'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,6 +104,8 @@ export default async function DemoStoreProduct({ params }: Props) {
                   )}
                 </div>
               </div>
+
+              {d.drivers && <DriverTiles drivers={d.drivers} className="mt-4" />}
 
               <HeadsUpList items={it.headsUp} className="mt-4 [&_li]:text-sm" />
 

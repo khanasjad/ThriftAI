@@ -151,7 +151,32 @@ export async function latestAgentEvidence(productId: string): Promise<{ runId: s
     orderBy: { startedAt: 'desc' },
     select: { id: true, evidence: true },
   })
-  if (!run) return null
+  return run ? toStored(run) : null
+}
+
+/**
+ * Agent evidence from an earlier run over exactly the same review and return text (same hash).
+ * Lets full ratings skip the paid agent when only prices or other structured data changed.
+ */
+export async function agentEvidenceForText(productId: string, textHash: string): Promise<{ runId: string; evidence: StoredEvidence[] } | null> {
+  const run = await prisma.agentRun.findFirst({
+    where: { productId, agent: 'evidence', inputsHash: textHash, status: 'OK', evidence: { some: {} } },
+    orderBy: { startedAt: 'desc' },
+    select: { id: true, evidence: true },
+  })
+  return run ? toStored(run) : null
+}
+
+/** The stored verified shopper text, if it was written from exactly these writer inputs (same hash). */
+export async function verifiedTextFor(productId: string, itemsHash: string) {
+  const ps = await prisma.productScore.findUnique({ where: { productId }, select: { verified: true, summary: true, sizeAdvice: true, downside: true, ratedByRunId: true } })
+  if (!ps?.verified || !ps.ratedByRunId) return null
+  const run = await prisma.agentRun.findUnique({ where: { id: ps.ratedByRunId }, select: { finishPayload: true } })
+  const prevHash = (run?.finishPayload as { textHash?: string } | null)?.textHash
+  return prevHash === itemsHash ? { summary: ps.summary, sizeAdvice: ps.sizeAdvice, downside: ps.downside } : null
+}
+
+function toStored(run: { id: string; evidence: Prisma.EvidenceTagGetPayload<object>[] }): { runId: string; evidence: StoredEvidence[] } {
   return {
     runId: run.id,
     evidence: run.evidence.map((e) => ({

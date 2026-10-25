@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import Link from 'next/link'
 import { KeyRound, Gauge, Bot } from 'lucide-react'
 import { SiteShell } from '@/components/site/shell'
@@ -30,7 +31,15 @@ const DETAIL_FIELDS: [string, string][] = [
   ['factors[]', '{ factor, pillar, value, rawValue, weight, evidenceCount, confidence }'],
   ['summary, sizeAdvice, downside', 'Verified text only (every sentence checked against evidence), else null'],
   ['returnReasons', 'Count of returns per reason'],
+  ['drivers', '{ quality, price, brand }: each { value 0–100 or null, basis }. Product quality from reviews, Price from price history and peers, Brand reputation from the brand’s other rated products.'],
   ['tags[]', '{ key, label, tone: good | warn, group, detail }: labels built by code from counts and factor scores (e.g. “Runs small”, detail “7 of 12 owners say it runs small”). Also on the list endpoint.'],
+]
+
+const INGEST_FIELDS: [string, string][] = [
+  ['catalog (daily)', 'Required: external_id, title, brand, category, price, url. Optional: seller_id, seller_name, gender, list_price, sizes (a|b|c), colors, materials (cotton:95|elastane:5), image_url, care, description, fabric_gsm, units_sold. One row per seller offer; prices build the price history.'],
+  ['reviews (daily)', 'Required: external_id, product_external_id, rating (1–5), text, date. Optional: title, verified, size_bought, fit_answer (runs small / true to size / runs large), height_cm, body_type, language.'],
+  ['returns (optional, weekly)', 'Required: external_id, product_external_id, reason (free text is fine), date. Optional: size. Return rates also need units_sold in the catalog.'],
+  ['source, licence', 'Who sent the data and under which terms; stored on every record.'],
 ]
 
 function Code({ code, lang = 'bash' }: { code: string; lang?: string }) {
@@ -48,7 +57,7 @@ function Code({ code, lang = 'bash' }: { code: string; lang?: string }) {
 }
 
 export default async function DevelopersPage() {
-  const sample = await prisma.clothingProduct.findFirst({ orderBy: { slug: 'asc' }, select: { slug: true } })
+  const sample = await prisma.clothingProduct.findFirst({ where: PUBLIC_PRODUCTS, orderBy: { slug: 'asc' }, select: { slug: true } })
   const slug = sample?.slug ?? 'your-product-slug'
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
@@ -60,7 +69,7 @@ export default async function DevelopersPage() {
           The Score API. Rank by what’s worth buying.
         </h1>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-fg-muted">
-          Read Veritas Scores, pillars, factors and verified text as JSON. Built for site search (Constructor, Algolia, Shopify search), product pages and AI
+          Read Veritas Scores, pillars, factors and verified text as JSON. Built for site search, product pages and AI
           shopping agents.
         </p>
         <p className="mt-4">
@@ -171,6 +180,69 @@ if (data.rated) {
             </Link>
             .
           </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="ingest-h" className="mx-auto grid max-w-6xl gap-8 border-t border-border px-4 py-16 sm:px-6 lg:grid-cols-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <Badge tone="accent">POST</Badge>
+            <h2 id="ingest-h" className="font-mono text-base font-semibold text-fg">
+              /api/v1/ingest/{'{catalog | reviews | returns}'}
+            </h2>
+          </div>
+          <p className="mt-3 text-sm text-fg-muted">
+            Send your data with your API key: three simple feeds, CSV or JSON, up to 5,000 rows per request. Rows are matched by your own ids, so re-sending a file never
+            creates duplicates. Add <code className="text-xs">?dryRun=1</code> to check a file without saving. The response is a validation report naming every rejected row.
+            Your data stays private to your organisation.
+          </p>
+          <dl className="mt-6 divide-y divide-border text-sm">
+            {INGEST_FIELDS.map(([k, v]) => (
+              <div key={k} className="py-2.5">
+                <dt className="font-mono text-[13px] text-fg">{k}</dt>
+                <dd className="mt-0.5 text-fg-muted">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <Code
+            code={`curl -X POST "${base}/api/v1/ingest/catalog?source=nightly-export&dryRun=1" \\
+  -H "Authorization: Bearer vk_live_…" \\
+  -H "Content-Type: text/csv" \\
+  --data-binary @catalog.csv`}
+          />
+          <Code
+            lang="json"
+            code={`{ "success": true, "data": {
+  "rows": 269, "accepted": 266, "rejected": 3,
+  "created": 200, "updated": 0, "unchanged": 0, "productsChanged": 200,
+  "errors": [{ "row": 267, "field": "category",
+    "message": "\"Dresses\" is not scored yet (Veritas scores tees and jeans for now)" }]
+} }`}
+          />
+        </div>
+      </section>
+
+      <section aria-labelledby="feeds-h" className="mx-auto grid max-w-6xl gap-8 border-t border-border px-4 py-16 sm:px-6 lg:grid-cols-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <Badge tone="accent">GET</Badge>
+            <h2 id="feeds-h" className="font-mono text-base font-semibold text-fg">
+              /api/v1/feeds/ads · /api/v1/feeds/social
+            </h2>
+          </div>
+          <p className="mt-3 text-sm text-fg-muted">
+            The ad feed is your catalog in the standard catalog-feed shape that ad and social tools import, plus labels: <code className="text-xs">custom_label_0</code> score tier,{' '}
+            <code className="text-xs">1</code> top highlight, <code className="text-xs">2</code> price status, <code className="text-xs">3</code> confidence,{' '}
+            <code className="text-xs">4</code> ad ok or hold, and verified ad copy. Target <code className="text-xs">veritas_ad_ok</code> to advertise only products that are worth
+            buying. The social feed gives ready-to-post “top rated this week” lists with tracked links.
+          </p>
+          <p className="mt-3 text-sm text-fg-muted">The score decides which products may be advertised (70+, enough evidence, no fake sale price, not often returned). Paying never changes a score.</p>
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <Code code={`curl "${base}/api/v1/feeds/ads?eligible=1&format=csv" -H "Authorization: Bearer vk_live_…" -o ad-feed.csv`} />
+          <Code code={`curl "${base}/api/v1/feeds/social?n=5" -H "Authorization: Bearer vk_live_…"`} />
         </div>
       </section>
     </SiteShell>

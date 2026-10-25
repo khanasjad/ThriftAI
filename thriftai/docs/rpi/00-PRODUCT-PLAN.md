@@ -25,9 +25,11 @@ Veritas gives every clothing item one trustworthy score that answers the shopper
 
 - **Shoppers** — a conversational search that asks one smart question when needed, then shows the best 3 picks with reasons.
 - **Brands** — a score and insights dashboard ($299–$2K/month) that shows why products sell, get returned, or get kept.
-- **Search and AI platforms** — an API so Constructor-style search and AI shopping agents can rank by the Veritas Score. We complement them, not compete.
+- **Search and AI platforms** — an API so site search and AI shopping agents can rank by the Veritas Score. We complement them, not compete.
 
-**Pitch:** *"Constructor shows you what sells. Veritas shows you what's worth buying."*
+**Pitch:** *"Sales data shows you what sells. Veritas shows you what's worth buying."*
+
+**Naming rule:** product pages, marketing copy, prompts and demo data never name other companies (search vendors, retailers, marketplaces, fit or review providers). Describe the category instead ("your site search", "a marketplace"). The competition section below is internal analysis only.
 
 ## How people decide to buy clothing
 
@@ -46,7 +48,7 @@ A clothing purchase is a dozen quiet questions at once. Today shoppers answer th
 | Is it made responsibly? | Sustainability (optional) |
 | Is it right for *my* event, weather and budget? | Personal Match |
 
-Apparel has the highest return rates online — roughly 1 in 5 fashion purchases, and 25–40% for apparel and footwear (Stellagent, citing True Fit). Most of those returns are one of these questions answered wrong.
+Apparel has some of the highest return rates online (industry reports put it at roughly 1 in 5 fashion purchases, 25–40% for apparel and footwear; internal note, not for public copy). Most of those returns are one of these questions answered wrong.
 
 ## The Veritas Clothing Score
 
@@ -176,7 +178,7 @@ Brands get their own products scored on the same 27 factors, plus the reasons be
 - Price-position insight: where each product sits on value vs. competitors
 - New-launch watch: early warning when a launch's signals turn negative
 - Trend fit for upcoming collections
-- An API to feed the score into their own site search (Constructor, Algolia, Shopify search) and product pages
+- An API to feed the score into their own site search and product pages
 
 **Pricing (to validate with pilots):**
 
@@ -214,6 +216,8 @@ Six agents, each owning a slice of the 27 factors. Heavy reading happens offline
 **Rule:** only sources whose terms allow this use; no scraping of sites that forbid it. Brand-provided data stays private to that brand.
 
 ## Competition and positioning
+
+> Internal analysis. Never quote these names in product or marketing copy (see the naming rule in the Summary).
 
 | Player | What they cover | Gap Veritas fills |
 | --- | --- | --- |
@@ -258,4 +262,6 @@ The full 27-factor model is designed from day one; factors switch on as their da
 
 - 2026-10-24 — Added to repo as the source of truth for RPI planning.
 - 2026-10-25 — Search: from "at most two questions, only when it changes the top pick" to a shopkeeper-style conversation, up to four questions (chips from stock + free text), always skippable, with chat refinement afterwards. Decided by Asjad.
-- 2026-10-25 — Discovery and insights features, mapped from a search platform's product list (Constructor). In: autosuggest, browse filters, "better-scoring alternatives" recommendations, rule-based collections, enrichment tags (shopper pages + Score API), product Q&A (instant answers from counts + free-text answers from stored evidence, verified), and a brand "why this score" explainer. Out: retail media / sponsored placements and merchandiser boost/bury rules (they break a neutral score; see design principles), and email/SMS (needs a provider, later). Decided by Asjad.
+- 2026-10-25 — Discovery and insights features, mapped from a search platform's product list. In: autosuggest, browse filters, "better-scoring alternatives" recommendations, rule-based collections, enrichment tags (shopper pages + Score API), product Q&A (instant answers from counts + free-text answers from stored evidence, verified), and a brand "why this score" explainer. Out: retail media / sponsored placements and merchandiser boost/bury rules (they break a neutral score; see design principles), and email/SMS (needs a provider, later). Decided by Asjad.
+- 2026-10-25 — Pitch changed to "Sales data shows you what sells. Veritas shows you what's worth buying." and a naming rule added: no other company is named in product, marketing, prompt or demo copy. The unsourced-in-public return statistic was removed from the home page. Decided by Asjad.
+- 2026-10-25 — B2B focus (details: 04-PLAN-B2B.md). Primary buyers: multi-vendor marketplaces and large retailers; clothing brands second. The score is shown as three drivers (Product quality from reviews, Price, Brand reputation) on top of the unchanged 27-factor engine. Data in production comes from three simple feeds (catalog with prices, reviews, optional returns) via upload or push API. Ads: the score picks which products may be advertised (ad feed labels, verified ad copy, social posts); on-site sponsored slots are labelled, need score 70+, and never appear in the top 3; paying never changes a score. Decided by Asjad.

@@ -20,6 +20,8 @@ import { ProductCard } from '@/components/veritas/product-card'
 import { tagsForProducts } from '@/lib/veritas/read/tags'
 import { loadAlternatives } from '@/lib/veritas/read/alternatives'
 import { loadInstantAnswers } from '@/lib/veritas/read/qa'
+import { driversForProducts } from '@/lib/veritas/read/drivers'
+import { DriverTiles } from '@/components/veritas/drivers'
 import { ProductQA } from './product-qa'
 
 export const dynamic = 'force-dynamic'
@@ -48,7 +50,8 @@ export default async function ProductPage({ params }: Props) {
   const data = await getProductPage(slug)
   if (!data) notFound()
   const { product, brand, score, reported, returns, prices } = data
-  const [tagMap, alternatives, instant] = await Promise.all([tagsForProducts([product.id]), loadAlternatives(product.id), loadInstantAnswers(product.id)])
+  const [tagMap, alternatives, instant, driverMap] = await Promise.all([tagsForProducts([product.id]), loadAlternatives(product.id), loadInstantAnswers(product.id), driversForProducts([product.id])])
+  const drivers = driverMap.get(product.id)
   const tags = tagMap.get(product.id) ?? []
 
   const factors: FactorMeta[] = FACTOR_TAXONOMY.map((f) => ({ key: f.key, name: f.name, pillar: f.pillar as Pillar, weight: f.weight }))
@@ -106,6 +109,8 @@ export default async function ProductPage({ params }: Props) {
               </p>
               <p className="mt-1 text-sm text-fg-muted">by {brand.name}</p>
             </header>
+
+            {score && drivers && <DriverTiles drivers={drivers} />}
 
             <ScorePanel
               score={score}

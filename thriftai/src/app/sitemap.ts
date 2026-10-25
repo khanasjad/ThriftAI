@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { prisma } from '@/lib/prisma'
 import { COLLECTIONS } from '@/lib/veritas/read/collections'
 
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages = ['', '/search', '/collections', ...COLLECTIONS.map((c) => `/collections/${c.slug}`), '/how-it-works', '/brands', '/brands/pricing', '/pilot', '/developers', '/about', '/privacy-policy', '/terms-of-service']
-  const products = await prisma.clothingProduct.findMany({ where: { isAvailable: true }, select: { slug: true, updatedAt: true, productScore: { select: { calculatedAt: true } } } })
+  const products = await prisma.clothingProduct.findMany({ where: { isAvailable: true, ...PUBLIC_PRODUCTS }, select: { slug: true, updatedAt: true, productScore: { select: { calculatedAt: true } } } })
   return [
     ...pages.map((p) => ({ url: `${base}${p}`, changeFrequency: 'weekly' as const, priority: p === '' ? 1 : 0.6 })),
     ...products.map((p) => ({

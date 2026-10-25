@@ -1,4 +1,5 @@
 import 'server-only'
+import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { prisma } from '@/lib/prisma'
 import { alternativesFor } from '../match/alternatives'
 import { tagsForProducts } from './tags'
@@ -9,7 +10,7 @@ const NEW_LAUNCH_DAYS = 30
 /** Up to 3 better-scoring alternatives for a product page, as catalog cards with a one-line reason. */
 export async function loadAlternatives(productId: string): Promise<{ item: CatalogItem; reason: string }[]> {
   const rows = await prisma.clothingProduct.findMany({
-    where: { isAvailable: true },
+    where: { isAvailable: true, ...PUBLIC_PRODUCTS },
     select: {
       id: true,
       slug: true,

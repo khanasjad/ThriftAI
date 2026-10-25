@@ -1,4 +1,5 @@
 import 'server-only'
+import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { Prisma, type ClothingCategory } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { scanInjection } from '../harness/guardrails'
@@ -101,7 +102,7 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48, .
   const cat = category ?? parsed.category
 
   const rows = await prisma.clothingProduct.findMany({
-    where: { isAvailable: true, ...(cat && { category: cat }), ...(parsed.maxPrice && { currentPrice: { lte: parsed.maxPrice } }) },
+    where: { isAvailable: true, ...PUBLIC_PRODUCTS, ...(cat && { category: cat }), ...(parsed.maxPrice && { currentPrice: { lte: parsed.maxPrice } }) },
     select: {
       id: true,
       slug: true,
@@ -200,10 +201,10 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48, .
 
 export async function catalogStats() {
   const [products, reviews, returns, prices, brands, sellers, rated] = await Promise.all([
-    prisma.clothingProduct.count(),
-    prisma.clothingReview.count(),
-    prisma.returnEvent.count(),
-    prisma.priceSnapshot.count(),
+    prisma.clothingProduct.count({ where: PUBLIC_PRODUCTS }),
+    prisma.clothingReview.count({ where: { product: PUBLIC_PRODUCTS } }),
+    prisma.returnEvent.count({ where: { product: PUBLIC_PRODUCTS } }),
+    prisma.priceSnapshot.count({ where: { product: PUBLIC_PRODUCTS } }),
     prisma.brand.count(),
     prisma.seller.count(),
     prisma.productScore.count(),
@@ -257,7 +258,7 @@ function toProductReview(r: ReviewRow): ProductReview {
 
 /** A page of reviews, most helpful first (same order as the product page). */
 export async function listProductReviews(slugOrId: string, offset: number, limit: number) {
-  const product = await prisma.clothingProduct.findFirst({ where: { OR: [{ slug: slugOrId }, { id: slugOrId }] }, select: { id: true } })
+  const product = await prisma.clothingProduct.findFirst({ where: { OR: [{ slug: slugOrId }, { id: slugOrId }], ...PUBLIC_PRODUCTS }, select: { id: true } })
   if (!product) return null
   const [rows, total] = await Promise.all([
     prisma.clothingReview.findMany({
@@ -274,7 +275,7 @@ export async function listProductReviews(slugOrId: string, offset: number, limit
 /** Accepts a slug or an id (old /products/:id links redirect here). */
 export async function getProductPage(slugOrId: string) {
   const p = await prisma.clothingProduct.findFirst({
-    where: { OR: [{ slug: slugOrId }, { id: slugOrId }] },
+    where: { OR: [{ slug: slugOrId }, { id: slugOrId }], ...PUBLIC_PRODUCTS },
     include: {
       brand: true,
       productScore: true,
@@ -405,7 +406,7 @@ export async function getProductPage(slugOrId: string) {
 export type ProductPageData = NonNullable<Awaited<ReturnType<typeof getProductPage>>>
 
 export async function listProductSlugs() {
-  return prisma.clothingProduct.findMany({ select: { slug: true, id: true } })
+  return prisma.clothingProduct.findMany({ where: PUBLIC_PRODUCTS, select: { slug: true, id: true } })
 }
 
 // ---------------------------------------------------------------------------
@@ -413,7 +414,7 @@ export async function listProductSlugs() {
 // ---------------------------------------------------------------------------
 
 export async function returnReasonSummary(brandSlug?: string) {
-  const where = brandSlug ? { product: { brand: { slug: brandSlug } } } : {}
+  const where = brandSlug ? { product: { brand: { slug: brandSlug }, ...PUBLIC_PRODUCTS } } : { product: PUBLIC_PRODUCTS }
   const [grouped, total] = await Promise.all([
     prisma.returnEvent.groupBy({ by: ['returnReason'], where, _count: { _all: true } }),
     prisma.returnEvent.count({ where }),
@@ -433,7 +434,7 @@ export async function returnReasonSummary(brandSlug?: string) {
 
 /** The product whose reviewers most often say it runs small, with one real quote. */
 export async function fitSpotlight() {
-  const rows = await prisma.clothingReview.groupBy({ by: ['productId', 'fitsAs'], _count: { _all: true } })
+  const rows = await prisma.clothingReview.groupBy({ by: ['productId', 'fitsAs'], where: { product: PUBLIC_PRODUCTS }, _count: { _all: true } })
   const byProduct = new Map<string, { small: number; total: number }>()
   for (const r of rows) {
     const e = byProduct.get(r.productId) ?? { small: 0, total: 0 }

@@ -10,7 +10,7 @@ const PAGES: [string, RegExp][] = [
   ['/collections', /Collections/],
   ['/collections/built-to-last', /Built to last/],
   ['/how-it-works', /One score for/],
-  ['/brands', /Constructor shows you what sells/],
+  ['/brands', /Sales data shows you what sells/],
   ['/brands/pricing', /Pay for insight and freshness/],
   ['/pilot', /See your catalog the way your customers do/],
   ['/developers', /The Score API/],

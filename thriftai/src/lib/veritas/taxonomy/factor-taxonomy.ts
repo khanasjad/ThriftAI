@@ -331,7 +331,7 @@ export const FACTOR_TAXONOMY: Factor[] = [
       { signal: 'fake_discount', sentiment: -1.0, description: 'Fake discount, always "on sale"' }
     ],
     examplePhrases: [
-      'found it cheaper on Amazon',
+      'found it cheaper at another store',
       'best price I could find',
       'always "50% off", seems fake'
     ]

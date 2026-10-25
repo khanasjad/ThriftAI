@@ -4,10 +4,12 @@
  *   load bundle + peer stats → hash inputs → unchanged? skip
  *     → structured evidence (code)
  *     → roll-up evidence (code): brand reputation, value for money
- *     → evidence agent (LLM) if mode = full and the product has reviews
+ *     → evidence agent (LLM) if mode = full and the product has reviews, unless the review/return text is
+ *       unchanged since an earlier agent run (then that run's evidence is reused: daily price feeds cost $0)
  *       (mode = structured reuses the last agent evidence, so no model calls)
  *     → scoring v2 (code) → new-launch early score (code) if the product is a new launch
- *     → writer → code checks → verifier (LLM, mode = full, only when the score is publishable)
+ *     → writer → code checks → verifier (LLM, mode = full, only when the score is publishable and the
+ *       writer's inputs changed; otherwise the stored verified text is kept)
  *     → save evidence, findings, factor scores, product score, trend tag
  *
  * One failed product never throws: the result says what happened.
@@ -28,7 +30,7 @@ import { extractStructuredEvidence, trendTagFor } from '../evidence/structured'
 import { signalSentiment, type ProductBundle } from '../evidence/types'
 import { SCORE_VERSION, computeBaselines, scoreProduct, type ProductScoreResult } from '../scoring/v2'
 import * as data from './data'
-import { writeAndVerify, type TextResult } from './text'
+import { writeAndVerify, writerInputsHash, type TextResult } from './text'
 
 export type RateMode = 'full' | 'structured'
 
@@ -132,7 +134,13 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
     let agentEvidence: data.StoredEvidence[] = []
     let agent: RateResult['agent']
     let reusedAgentRunId: string | undefined
-    if (mode === 'full' && bundle.reviews.length > 0) {
+    const textHash = reviewTextHash(bundle)
+    const prior = mode === 'full' && bundle.reviews.length > 0 && !opts.force && !opts.dryRun ? await data.agentEvidenceForText(bundle.product.id, textHash) : null
+    if (prior) {
+      // Same review and return text as an earlier agent run: reuse its evidence, no model call.
+      agentEvidence = prior.evidence
+      reusedAgentRunId = prior.runId
+    } else if (mode === 'full' && bundle.reviews.length > 0) {
       const out: EvidenceRunOutput = { accepted: [], rejectedCount: 0 }
       const r = await runAgent(makeEvidenceAgent(bundle, out), evidenceTask(bundle), {
         llm: opts.llm,
@@ -140,7 +148,7 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
         graph: 'rate-product',
         productId: bundle.product.id,
         parentRunId: graphRunId,
-        inputsHash,
+        inputsHash: textHash,
       })
       // Partial results are kept even when the run stopped early (plan §4.2); confidence reflects coverage.
       agentEvidence = out.accepted
@@ -152,7 +160,7 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
       agentEvidence = prev?.evidence ?? []
       reusedAgentRunId = prev?.runId
     }
-    await trace('agent_evidence', { mode, source: mode === 'full' ? 'this run' : 'latest stored agent run', items: agentEvidence.length, agent })
+    await trace('agent_evidence', { mode, source: agent ? 'this run' : prior ? 'reused: review text unchanged' : 'latest stored agent run', items: agentEvidence.length, agent })
 
     // 3. Scoring (code), then the early score for new launches.
     const all = [...structured, ...rollups, ...agentEvidence]
@@ -184,8 +192,13 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
 
     // 4. Shopper text: writer → code checks → verifier. Only for publishable scores in full mode.
     let text: TextResult | undefined
-    if (mode === 'full' && result.publishable) {
-      text = await writeAndVerify(bundle, result, all, { llm: opts.llm, sink, parentRunId: graphRunId, inputsHash })
+    const textHash2 = writerInputsHash(bundle, all)
+    const keptText = mode === 'full' && result.publishable && !opts.force && !opts.dryRun ? await data.verifiedTextFor(bundle.product.id, textHash2) : null
+    if (keptText) {
+      text = { text: keptText, verified: true, costUsd: 0, kept: [keptText.summary, keptText.sizeAdvice, keptText.downside].filter(Boolean).length, dropped: [] }
+      await trace('text', { verified: true, reused: 'writer inputs unchanged' })
+    } else if (mode === 'full' && result.publishable) {
+      text = await writeAndVerify(bundle, result, all, { llm: opts.llm, sink, parentRunId: graphRunId, inputsHash: textHash2 })
       cost += text.costUsd
       await trace('text', { verified: text.verified, kept: text.kept, writerRunId: text.writerRunId, verifierRunId: text.verifierRunId })
       for (const d of text.dropped) await trace('verifier.drop', d, 'GUARDRAIL')
@@ -238,6 +251,7 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
         early: early?.score ?? null,
         agent,
         text: text && { verified: text.verified, kept: text.kept, dropped: text.dropped.length },
+        textHash: textHash2,
         // The runs whose evidence produced this score; the product page shows only these.
         evidenceRunIds: [graphRunId, agent?.runId ?? reusedAgentRunId].filter(Boolean),
       },
@@ -258,6 +272,13 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
       .catch(() => {})
     return { slug, status: 'ERROR', graphRunId, error: message, costUsd: cost }
   }
+}
+
+/** Hash of the text the evidence agent reads (reviews + written return reasons) and of its versions. */
+export function reviewTextHash(b: ProductBundle) {
+  const reviews = [...b.reviews].sort((x, y) => x.id.localeCompare(y.id)).map((r) => [r.id, r.title, r.content, r.rating, r.fitsAs, r.language])
+  const returns = [...b.returns].sort((x, y) => x.id.localeCompare(y.id)).map((r) => [r.id, r.detailedReason])
+  return createHash('sha256').update(JSON.stringify({ v: [EVIDENCE_AGENT_VERSION, GUARDRAILS_VERSION], reviews, returns })).digest('hex')
 }
 
 function countBy(xs: string[]) {

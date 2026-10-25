@@ -63,6 +63,7 @@ If a request conflicts with the product plan (for example a new category, pay-fo
 - Use design tokens from `globals.css` (`@theme`) and components from `src/components/ui` and `src/components/veritas`. No new global CSS outside a `@layer` (Tailwind v4: un-layered CSS overrides utilities).
 - Server Components for data pages; client components only where interactive.
 - Show score and evidence first, price second, brand last. Every number links to its evidence. Show "not enough evidence" honestly.
+- **Never name other companies** (search vendors, retailers, marketplaces, fit or review providers) in pages, marketing copy, prompts or demo data. Say "your site search", "a marketplace" instead.
 - **No unbacked marketing claims:** no fake testimonials, made-up stats, trials or uptime promises. Pricing must match the product plan ($299 / $799 / $2,000 / Platform).
 - Before writing any chart or data visualization, load the `dataviz` skill.
 
@@ -90,6 +91,9 @@ npm run rate -- --all --baselines          # recompute category baselines, then 
 npm run search:gate -- --simulate          # B5 gate: 5 personas × 4 needs (simulated scores in memory; drop flag for stored scores)
 npm run eval                               # golden set + deterministic checks + agent health ($0) → .veritas/evals/ and /admin/evals
 npm run eval -- --judge --yes              # + LLM judge on Opus (live; prints estimate first)
+npm run ingest -- --tenant <slug> --kind catalog|reviews|returns --file f.csv --source "<who>" [--dry-run]
+npm run ingest:gate                        # B10 gate: fictional marketplace feeds end to end, then cleans up ($0)
+npm run ads -- --eligible [--limit N] --yes   # verified ad copy for ad-eligible products (live; estimate first)
 ```
 
 ## Working style

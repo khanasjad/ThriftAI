@@ -2,7 +2,8 @@ import { PrismaClient } from '@prisma/client'
 import { loadEnvConfig } from '@next/env'
 
 /**
- * Removes anonymous search sessions created by this run (every /search?q= visit records one).
+ * Removes anonymous search sessions created by this run (every /search?q= visit records one) and the
+ * dry-run upload logs from the b2b test.
  * Local runs only: never touches a remote deployment's database.
  */
 export default async function globalTeardown() {
@@ -13,6 +14,8 @@ export default async function globalTeardown() {
   try {
     const { count } = await prisma.searchSession.deleteMany({ where: { profileId: null, createdAt: { gte: new Date(process.env.E2E_STARTED_AT) } } })
     if (count) console.log(`e2e teardown: removed ${count} test search sessions`)
+    const runs = await prisma.ingestRun.deleteMany({ where: { source: 'e2e test file', dryRun: true } })
+    if (runs.count) console.log(`e2e teardown: removed ${runs.count} dry-run upload logs`)
   } finally {
     await prisma.$disconnect()
   }

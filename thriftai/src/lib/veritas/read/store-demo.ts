@@ -6,9 +6,13 @@
  * (like the pick-card reasons), never generated text.
  */
 import { prisma } from '@/lib/prisma'
+import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { computePriceFacts, type SellerSeries } from '../price/facts'
 import { FACTOR_TAXONOMY } from '../taxonomy/factor-taxonomy'
 import { RETURN_BENCHMARK as BENCH } from '../evidence/structured'
+import { driversForProducts } from './drivers'
+import { tagsForProducts } from './tags'
+import type { Tag } from '../enrich/tags'
 
 export const DEMO_STORE = 'Cartwheel Marketplace'
 
@@ -18,7 +22,10 @@ const QUALITY_REASONS = new Set(['POOR_QUALITY', 'DAMAGE_DEFECT'])
 export type HeadsUp = { tone: 'good' | 'warn'; text: string }
 
 export type StoreListing = {
+  id: string
   slug: string
+  brandSlug: string
+  tags: Tag[]
   name: string
   brand: string
   category: 'TOPS' | 'BOTTOMS'
@@ -42,9 +49,9 @@ type Row = Awaited<ReturnType<typeof loadRows>>[number]
 
 function loadRows(where: { slug?: string; category?: 'TOPS' | 'BOTTOMS' }) {
   return prisma.clothingProduct.findMany({
-    where: { isAvailable: true, ...where },
+    where: { isAvailable: true, ...PUBLIC_PRODUCTS, ...where },
     include: {
-      brand: { select: { name: true } },
+      brand: { select: { name: true, slug: true } },
       productScore: true,
       reviews: { select: { rating: true, fitsAs: true } },
       returns: { select: { returnReason: true } },
@@ -96,7 +103,10 @@ function toListing(r: Row): StoreListing {
   const ps = r.productScore
   const published = ps && ps.overall !== null ? ps : null
   return {
+    id: r.id,
     slug: r.slug,
+    brandSlug: r.brand.slug,
+    tags: [],
     name: r.name,
     brand: r.brand.name,
     category: r.category === 'BOTTOMS' ? 'BOTTOMS' : 'TOPS',
@@ -136,7 +146,8 @@ export function readStoreQuery(q: string) {
 export async function storeSearch(q: string, sort: StoreSort) {
   const { category, gender, words } = readStoreQuery(q)
   const rows = await loadRows(category ? { category } : {})
-  let items = rows.map(toListing).filter((x) => !gender || x.gender === gender || x.gender === 'UNISEX')
+  const tagMap = await tagsForProducts(rows.map((r) => r.id))
+  let items = rows.map((r) => ({ ...toListing(r), tags: tagMap.get(r.id) ?? [] })).filter((x) => !gender || x.gender === gender || x.gender === 'UNISEX')
   const wanted = (c: string) => c.toLowerCase().split(' ').every((w) => words.includes(w))
   const colourHit = items.filter((x) => x.colors.some(wanted))
   // Show the colourway the shopper asked for first, so the picture matches the search.
@@ -170,8 +181,10 @@ export async function storeProduct(slug: string) {
     take: 3,
     select: { id: true, title: true, content: true, rating: true, isVerifiedPurchase: true },
   })
+  const drivers = ps ? (await driversForProducts([row.id])).get(row.id) ?? null : null
   return {
     listing,
+    drivers,
     sizes: row.sizes,
     materials: (row.materials ?? {}) as Record<string, number>,
     care: row.careInstructions,

@@ -62,7 +62,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-fg">{data.brand.name}</h1>
           </div>
-          {user.role === 'ADMIN' && <BrandSwitcher brands={allBrands} current={data.brand.slug} />}
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/dashboard/ads" className="inline-flex h-9 items-center rounded-lg border border-border-strong px-3 text-sm font-medium text-fg hover:bg-surface-2">
+              Data and ads →
+            </Link>
+            {user.role === 'ADMIN' && <BrandSwitcher brands={allBrands} current={data.brand.slug} />}
+          </div>
         </div>
 
         {/* Overview */}
