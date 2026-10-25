@@ -27,6 +27,7 @@ function readAs(i: SearchResponse['intent']) {
     i.gender && (i.gender === 'MENS' ? 'Men' : i.gender === 'WOMENS' ? 'Women' : 'Unisex'),
     i.minPrice && i.maxPrice ? `$${i.minPrice}–$${i.maxPrice}` : i.maxPrice ? `Under $${i.maxPrice}` : i.minPrice ? `From $${i.minPrice}` : null,
     ...(i.colors ?? []),
+    ...(i.patterns ?? []).map((p) => `${p[0].toUpperCase()}${p.slice(1)}`),
     ...(i.excludeColors ?? []).map((c) => `Not ${c}`),
     i.fit && FIT_LABEL[i.fit],
     ...(i.cuts ?? []).map((c) => c.replace(/-/g, ' ')),

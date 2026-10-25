@@ -22,6 +22,10 @@ function cand(over: Partial<Candidate> = {}): Candidate {
     fitType: 'regular',
     silhouette: `sil-${n}`,
     colors: ['Black'],
+    pattern: null,
+    visualColors: [],
+    colorFamilies: [],
+    styleTags: [],
     gender: 'UNISEX',
     length: null,
     gsm: 170,
@@ -47,7 +51,9 @@ describe('intent parsing', () => {
   it('reads category, budget, fit, climate, priorities, occasion and terms', () => {
     const i = parseIntent('Relaxed black jeans for summer, really comfy, under $60 for the office')
     expect(i).toMatchObject({ category: 'BOTTOMS', maxPrice: 60, fit: 'relaxed', climate: 'hot', occasion: 'office', priorities: { COMFORT: 1.5 } })
-    expect(i.terms).toEqual(['black'])
+    // Colour words are a colour filter now (matched against catalog names, photo colours and families), not loose terms.
+    expect(i.colors).toEqual(['black'])
+    expect(i.terms).toEqual([])
   })
   it('flags sustainability', () => {
     expect(parseIntent('organic cotton tee').sustainability).toBe(true)

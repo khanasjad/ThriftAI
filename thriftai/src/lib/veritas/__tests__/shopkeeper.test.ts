@@ -26,6 +26,10 @@ const cand = (over: Partial<Candidate> = {}): Candidate => ({
   fitType: 'regular',
   silhouette: 'straight',
   colors: ['Black'],
+  pattern: null,
+  visualColors: [],
+  colorFamilies: [],
+  styleTags: [],
   gender: 'UNISEX',
   length: null,
   gsm: 350,
@@ -95,6 +99,7 @@ describe('agent output is validated by code', () => {
         exclude_colors: ['Black'],
         fit: 'relaxed',
         cuts: ['Wide-leg', 'flare'],
+        patterns: [],
         length: null,
         climate: null,
         occasion: 'weekend',
@@ -113,7 +118,7 @@ describe('agent output is validated by code', () => {
   it('the shopkeeper runs through the harness with a strict schema', async () => {
     const turn = {
       reply: 'Jeans it is. What cut do you like?',
-      filters: { category: 'BOTTOMS', gender: null, min_price: null, max_price: null, colors: [], exclude_colors: [], fit: null, cuts: [], length: null, climate: null, occasion: null, priorities: [], sustainability: false },
+      filters: { category: 'BOTTOMS', gender: null, min_price: null, max_price: null, colors: [], exclude_colors: [], fit: null, cuts: [], patterns: [], length: null, climate: null, occasion: null, priorities: [], sustainability: false },
       next_question: { slot: 'cut', question: 'What cut do you like?', chips: ['wide-leg', 'bootcut'] },
       ready: false,
       off_topic: false,

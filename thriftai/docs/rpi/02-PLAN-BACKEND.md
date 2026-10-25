@@ -509,6 +509,18 @@ Mapped from a search platform's product list. All read stored scores and evidenc
 - [x] Ad feed (standard catalog-feed columns + Veritas custom labels + verified copy) and social pack: `GET /api/v1/feeds/ads`, `GET /api/v1/feeds/social`, dashboard CSV download
 - **Gate:** ✅ 2026-10-25 unit tests (rules, ad-line checks); 10 eligible products → 8 verified ad copies, 2 rejected by the Verifier (one called the jeans "denim" and claimed an inseam detail no evidence stated) · **$0.0075 for all 10** (≈ $0.0008 each). Feed: 40 rows, 10 eligible. Finding: "often cheaper" initially blocked 30 of 40 products; it is a label now, not a block.
 
+### B12 · Style from product photos (2026-10-25) — ✅ done
+- [x] Harness accepts image content blocks (base64 for local dev files, URL for vendor images)
+- [x] `ProductVisual` table; `vision` agent (Haiku, strict finish schema: colours, pattern, neckline, sleeve, shape, style tags, short description); reused while the image is unchanged; `npm run vision`
+- [x] Dev images: each fictional product rendered as a PNG from its illustration with a known pattern (truth in the fixture) so accuracy can be measured
+- [x] Search uses the attributes: pattern and style filters, shopkeeper asks about pattern when it matters, synonyms ("flowered" → floral), Style match shown per pick
+- [x] Product page "What the photos show" and `visual` in the Score API
+- **Gate:** vision agreement with the known pattern ≥ 90% and colour ≥ 85% on the 40 dev images, cost measured; "blue flowered" search returns only floral, blue items ranked by score; unit + e2e tests; build passes.
+  - ✅ 2026-10-25 `npm run vision -- --all --yes --check`: **pattern 100%, main colour family 100%** on 40 dev images (Haiku 5.5, **$0.011 for all 40**, ≈ $0.0003 per photo; unchanged photos are skipped). Known gap: some jeans read as "straight" instead of skinny/taper (shape is shown, not filtered on).
+  - ✅ Live shopkeeper: "I need a blue flowered shirt under $40" → tees · navy · floral · under $40 → the one navy floral tee in budget (score 70, Style match 100), and an honest widen offer ("No budget limit" → 2). Catalog grid for "blue flowered tee": exactly the 2 navy floral tees, "Floral (from photos)" shown as a filter.
+  - ✅ Unit tests 131/131 (new: style 5); e2e 79/79 (new: style from photos); build passes.
+  - Decisions: pattern and colour words are filters, not loose terms; "blue" matches colour families (navy, indigo), from catalog names or the photo; a product whose photo hasn't been read never matches a pattern filter (no guessing). Dev images: `npm run dev:images` renders each fictional product with a known pattern (salt chosen so every pattern occurs and two navy florals exist for the demo).
+
 ### B8 · Production (~6 h, then the real-data plan)
 - [ ] Supabase + Vercel setup, prod migrations, spend cap, Langfuse, smoke tests
 - [ ] Real-data plan: CSV/JSON import for pilot brands first (`source` + `licence` required), then licensed feeds

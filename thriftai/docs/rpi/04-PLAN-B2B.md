@@ -41,6 +41,10 @@ The 27-factor engine stays (it already works and is tested), but buyers and shop
 
 Everything else (trend, resale, certifications) is optional enrichment and shown only when present.
 
+### Fourth parameter: Style match (2026-10-25)
+
+Shoppers ask for a look ("blue flowered shirt"). Vendors already upload photos, so a vision agent reads each product's photos once into structured attributes (colours, pattern, neckline, sleeve, shape, style tags). Search filters on those attributes, then ranks the matches by the score: the right look, in budget, best quality first. Style match is computed per search and shown next to the three drivers; it never changes the product score. Cost: one Haiku call per new photo (about $0.0002); unchanged photos are never re-read.
+
 ## 5. Data in production: three feeds, nothing exotic
 
 | Feed | Frequency | Required fields | Optional |

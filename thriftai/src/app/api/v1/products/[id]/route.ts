@@ -19,6 +19,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       include: {
         brand: { select: { id: true, name: true, slug: true, description: true, reputationScore: true, website: true } },
         productScore: true,
+        visual: { select: { attributes: true, updatedAt: true } },
         factorScores: { orderBy: { factor: 'asc' } },
         reviews: {
           take: 10,
@@ -109,6 +110,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         tags,
         /** Product quality (reviews), Price, Brand reputation: each { value 0–100 | null, basis }. */
         drivers,
+        /** What the product photo shows (vision agent): colours, pattern, neckline, sleeve, shape, style tags. Null until read. */
+        visual: product.visual?.attributes ?? null,
 
         factors: product.factorScores.map((f) => ({
           factor: f.factor,

@@ -32,6 +32,7 @@ const DETAIL_FIELDS: [string, string][] = [
   ['summary, sizeAdvice, downside', 'Verified text only (every sentence checked against evidence), else null'],
   ['returnReasons', 'Count of returns per reason'],
   ['drivers', '{ quality, price, brand }: each { value 0–100 or null, basis }. Product quality from reviews, Price from price history and peers, Brand reputation from the brand’s other rated products.'],
+  ['visual', 'What the product photo shows, read by AI: { colors[{name, family}], pattern, pattern_detail, neckline, sleeve, shape, style_tags[], description }. Describes the look; never part of the score. Null until the photo is read.'],
   ['tags[]', '{ key, label, tone: good | warn, group, detail }: labels built by code from counts and factor scores (e.g. “Runs small”, detail “7 of 12 owners say it runs small”). Also on the list endpoint.'],
 ]
 

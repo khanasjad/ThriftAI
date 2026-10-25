@@ -45,7 +45,7 @@ export default async function DemoStoreProduct({ params }: Props) {
         </nav>
 
         <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <ProductGallery name={it.name} category={it.category} subcategory={it.subcategory} silhouette={it.silhouette} colors={it.colors} />
+          <ProductGallery name={it.name} category={it.category} subcategory={it.subcategory} silhouette={it.silhouette} colors={it.colors} pattern={it.pattern} />
 
           <div className="flex min-w-0 flex-col gap-6">
             {/* The store's own buy box */}

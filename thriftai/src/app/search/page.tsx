@@ -126,6 +126,8 @@ async function Results({
   const chips = [
     interpreted.category && (interpreted.category === 'TOPS' ? 'Tees' : 'Jeans'),
     interpreted.maxPrice && `Under $${interpreted.maxPrice}`,
+    ...interpreted.colors.map((c) => c[0].toUpperCase() + c.slice(1)),
+    ...interpreted.patterns.map((p) => `${p[0].toUpperCase()}${p.slice(1)} (from photos)`),
     ...interpreted.terms.map((t) => `“${t}”`),
   ].filter(Boolean) as string[]
 

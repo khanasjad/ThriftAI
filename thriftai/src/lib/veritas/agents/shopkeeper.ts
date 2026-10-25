@@ -18,13 +18,13 @@ Each turn you receive: the conversation so far, the current filters, how many qu
 
 Your job each turn:
 1. Update the filters from everything the shopper has said, including their latest message. Keep earlier choices unless they change them. Understand refinements: "cheaper" lowers max_price below the current picks' prices; "not black" adds Black to exclude_colors; "show me jeans instead" changes category; "any colour" clears colours.
-2. Ask like a curious, helpful shopkeeper. Aim for 2-4 questions in total, one per turn, in roughly this order, skipping anything the shopper already told you: who it's for (men, women or unisex), budget, then whichever of fit, colour, cut (jeans) or length (tees) matters most for their request, or what they need it for. Never ask about something they already told you, never repeat a question, and never ask more than ${MAX_SHOPKEEPER_QUESTIONS} in total. Stop early only if the shopper asks to see results, or if no option would change what's left (for example only one product remains).
+2. Ask like a curious, helpful shopkeeper. Aim for 2-4 questions in total, one per turn, in roughly this order, skipping anything the shopper already told you: who it's for (men, women or unisex), budget, then whichever of colour, pattern (tees: plain, striped, floral…), fit, cut (jeans) or length (tees) matters most for their request, or what they need it for. Never ask about something they already told you, never repeat a question, and never ask more than ${MAX_SHOPKEEPER_QUESTIONS} in total. Stop early only if the shopper asks to see results, or if no option would change what's left (for example only one product remains).
 3. If you ask, give 2-5 short chips taken ONLY from the facets (real colours, real price bands, real fits and cuts). The shopper can also type freely.
 4. Set ready = true when you have enough, when the shopper says to just show results, or when no question would help.
 5. Write a one- or two-sentence reply: acknowledge what they said, then ask your question (or say you'll show the best options). Do not name products, prices of specific products, scores, or claims about quality: the product cards handle that.
 
 Filter rules:
-- Use exact colour, fit and cut values from the facets. Price bands: set min_price/max_price from the band the shopper picked; "No limit" clears them.
+- Use exact colour, fit, cut and pattern values from the facets. Patterns come from product photos: map "flowered"/"flowery" to floral, "stripes" to striped, "checked"/"tartan" to plaid, "dots" to polka-dot, "printed"/"logo" to graphic, "plain" to solid. Colours can be families too ("blue" finds navy and indigo). Price bands: set min_price/max_price from the band the shopper picked; "No limit" clears them.
 - Only set category to TOPS (tees, shirts, tops) or BOTTOMS (jeans, trousers) when the shopper's wish implies it.
 - gender: MENS or WOMENS when the shopper says who it's for ('for my husband', 'women's', 'for me, I'm a guy'); UNISEX only if they ask for unisex. Unisex items always appear for both.
 - priorities: pillars the shopper emphasises (FIT, QUALITY for lasting/durable, COMFORT for soft/comfy, STYLE_VALUE for value/cheap, SUSTAINABILITY for eco/ethical).
@@ -43,6 +43,7 @@ export const filtersSchema = z.object({
   exclude_colors: z.array(z.string()),
   fit: z.enum(['slim', 'regular', 'relaxed', 'oversized']).nullable(),
   cuts: z.array(z.string()),
+  patterns: z.array(z.enum(['solid', 'striped', 'floral', 'polka-dot', 'plaid', 'graphic'])),
   length: z.enum(['cropped', 'regular', 'longline']).nullable(),
   climate: z.enum(['hot', 'mild', 'cold']).nullable(),
   occasion: z.string().nullable(),
@@ -56,7 +57,7 @@ const finishSchema = z.object({
   filters: filtersSchema,
   next_question: z
     .object({
-      slot: z.enum(['need', 'gender', 'category', 'budget', 'color', 'fit', 'cut', 'length', 'climate', 'priority']),
+      slot: z.enum(['need', 'gender', 'category', 'budget', 'color', 'pattern', 'fit', 'cut', 'length', 'climate', 'priority']),
       question: z.string(),
       chips: z.array(z.string()).describe('2-5 options taken from the facets'),
     })
@@ -79,4 +80,4 @@ export function makeShopkeeperAgent() {
   })
 }
 
-export const SHOPKEEPER_VERSION = 'shopkeeper@2' // @2: gender question, aims for 2-4 curated questions
+export const SHOPKEEPER_VERSION = 'shopkeeper@3' // @2: gender question, aims for 2-4 curated questions; @3: patterns from product photos

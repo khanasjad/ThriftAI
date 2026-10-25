@@ -22,7 +22,7 @@ export default async function AdsPage() {
     loadAdRows(scope),
     socialPack(scope, 5),
     user.tenantId ? prisma.ingestRun.findMany({ where: { tenantId: user.tenantId }, orderBy: { createdAt: 'desc' }, take: 8 }) : Promise.resolve([]),
-    prisma.clothingProduct.findMany({ where: scope, select: { slug: true, category: true, subcategory: true, silhouette: true, colors: true } }),
+    prisma.clothingProduct.findMany({ where: scope, select: { slug: true, category: true, subcategory: true, silhouette: true, colors: true, visual: { select: { attributes: true } } } }),
   ])
   const look = new Map(products.map((p) => [p.slug, p]))
   const eligible = rows.filter((r) => r.eligible).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -123,7 +123,7 @@ export default async function AdsPage() {
                       <span className="font-medium uppercase tracking-wide">Ad preview</span>
                       <span>Sponsored</span>
                     </div>
-                    {p && <ProductThumb category={p.category} subcategory={p.subcategory} silhouette={p.silhouette} color={p.colors[0]} showTag={false} className="aspect-[16/9] rounded-none" />}
+                    {p && <ProductThumb category={p.category} subcategory={p.subcategory} silhouette={p.silhouette} color={p.colors[0]} pattern={(p.visual?.attributes as { pattern?: string } | undefined)?.pattern} showTag={false} className="aspect-[16/9] rounded-none" />}
                     <div className="p-3">
                       <p className="text-sm font-semibold text-fg">{r.feed.ad_headline}</p>
                       <p className="mt-1 text-sm text-fg-muted">{r.feed.ad_body || r.feed.description}</p>

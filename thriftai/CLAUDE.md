@@ -94,6 +94,8 @@ npm run eval -- --judge --yes              # + LLM judge on Opus (live; prints e
 npm run ingest -- --tenant <slug> --kind catalog|reviews|returns --file f.csv --source "<who>" [--dry-run]
 npm run ingest:gate                        # B10 gate: fictional marketplace feeds end to end, then cleans up ($0)
 npm run ads -- --eligible [--limit N] --yes   # verified ad copy for ad-eligible products (live; estimate first)
+npm run dev:images                         # dev only: render product PNGs with known patterns (needs npm run dev)
+npm run vision -- --all --yes [--check]    # read product photos into style attributes (live; unchanged photos $0; --check = accuracy on dev images)
 ```
 
 ## Working style

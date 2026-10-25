@@ -15,6 +15,8 @@ export type Facets = {
   fits: { value: string; count: number }[]
   cuts: { value: string; count: number }[]
   lengths: { value: string; count: number }[]
+  /** Surface patterns read from product photos. */
+  patterns: { value: string; count: number }[]
 }
 
 const tally = (xs: (string | null)[]) => {
@@ -54,6 +56,7 @@ export function buildFacets(cands: Candidate[], intent: SearchIntent): Facets {
   const forLength = without({ length: undefined })
   const forCategory = without({ category: undefined })
   const forGender = without({ gender: undefined })
+  const forPattern = without({ patterns: [] })
 
   return {
     matching: all.length,
@@ -68,6 +71,7 @@ export function buildFacets(cands: Candidate[], intent: SearchIntent): Facets {
     fits: tally(forFit.map((c) => c.fitType)),
     cuts: tally(forCut.map((c) => c.silhouette)),
     lengths: tally(forLength.map((c) => c.length)),
+    patterns: tally(forPattern.map((c) => c.pattern)),
   }
 }
 
@@ -83,5 +87,6 @@ export function facetsText(f: Facets) {
     `Fits: ${list(f.fits)}`,
     `Cuts: ${list(f.cuts)}`,
     `Tee lengths: ${list(f.lengths)}`,
+    `Patterns (from product photos): ${list(f.patterns)}`,
   ].join('\n')
 }

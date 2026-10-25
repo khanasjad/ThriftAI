@@ -24,7 +24,9 @@
     "test:e2e": "playwright test",
     "ingest": "node scripts/with-env.mjs tsx scripts/ingest.ts",
     "ingest:gate": "node scripts/with-env.mjs tsx scripts/dev/ingest-gate.ts",
-    "ads": "node scripts/with-env.mjs tsx scripts/ads.ts"
+    "ads": "node scripts/with-env.mjs tsx scripts/ads.ts",
+    "dev:images": "node scripts/with-env.mjs tsx scripts/dev/render-images.ts",
+    "vision": "node scripts/with-env.mjs tsx scripts/vision.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",

@@ -32,6 +32,7 @@ export type StoreListing = {
   subcategory: string | null
   silhouette: string | null
   colors: string[]
+  pattern: string | null
   gender: string
   stars: number | null
   reviewCount: number
@@ -52,6 +53,7 @@ function loadRows(where: { slug?: string; category?: 'TOPS' | 'BOTTOMS' }) {
     where: { isAvailable: true, ...PUBLIC_PRODUCTS, ...where },
     include: {
       brand: { select: { name: true, slug: true } },
+      visual: { select: { attributes: true } },
       productScore: true,
       reviews: { select: { rating: true, fitsAs: true } },
       returns: { select: { returnReason: true } },
@@ -113,6 +115,7 @@ function toListing(r: Row): StoreListing {
     subcategory: r.subcategory,
     silhouette: r.silhouette,
     colors: r.colors,
+    pattern: ((r.visual?.attributes as { pattern?: string } | undefined)?.pattern ?? null),
     gender: r.gender,
     stars: r.reviews.length ? r.reviews.reduce((s, x) => s + x.rating, 0) / r.reviews.length : null,
     reviewCount: r.reviews.length,

@@ -23,6 +23,8 @@ export type SearchIntent = {
   cuts?: string[]
   /** Tee length. */
   length?: Length
+  /** Surface patterns read from product photos (any of): floral, striped, plaid, polka-dot, graphic, solid. */
+  patterns?: string[]
   fit?: Fit
   climate?: Climate
   /** Pillar weight boosts, e.g. { COMFORT: 1.5 } for "soft and comfy". */
@@ -63,6 +65,17 @@ const PRIORITY: Record<string, PillarKey> = {
   cheap: 'STYLE_VALUE', value: 'STYLE_VALUE', affordable: 'STYLE_VALUE', budget: 'STYLE_VALUE',
   sustainable: 'SUSTAINABILITY', eco: 'SUSTAINABILITY', organic: 'SUSTAINABILITY', ethical: 'SUSTAINABILITY', recycled: 'SUSTAINABILITY',
 }
+/** Shopper words → the pattern names the vision agent uses. */
+export const PATTERN_WORDS: Record<string, string> = {
+  floral: 'floral', flower: 'floral', flowers: 'floral', flowered: 'floral', flowery: 'floral', botanical: 'floral',
+  striped: 'striped', stripe: 'striped', stripes: 'striped', stripy: 'striped', breton: 'striped',
+  plaid: 'plaid', check: 'plaid', checked: 'plaid', checkered: 'plaid', tartan: 'plaid', gingham: 'plaid',
+  polka: 'polka-dot', 'polka-dot': 'polka-dot', dot: 'polka-dot', dots: 'polka-dot', dotted: 'polka-dot', spotted: 'polka-dot',
+  graphic: 'graphic', print: 'graphic', printed: 'graphic', logo: 'graphic', slogan: 'graphic',
+  plain: 'solid', solid: 'solid',
+}
+/** Colour words a shopper types; matched against catalog colour names, photo colour names and colour families. */
+export const COLOR_WORDS = ['black', 'white', 'grey', 'gray', 'blue', 'navy', 'red', 'pink', 'green', 'sage', 'yellow', 'orange', 'purple', 'brown', 'beige', 'cream', 'ecru', 'oatmeal']
 const OCCASION = ['office', 'work', 'interview', 'wedding', 'gym', 'travel', 'weekend', 'campus', 'date', 'party', 'hiking']
 
 export function parseIntent(q: string): SearchIntent {
@@ -78,6 +91,8 @@ export function parseIntent(q: string): SearchIntent {
     if (w.length < 2 || STOP.has(w)) continue
     if (CATEGORY[w]) intent.category ??= CATEGORY[w]
     else if (FIT[w]) intent.fit ??= FIT[w]
+    else if (PATTERN_WORDS[w]) intent.patterns = [...new Set([...(intent.patterns ?? []), PATTERN_WORDS[w]])]
+    else if (COLOR_WORDS.includes(w)) intent.colors = [...new Set([...(intent.colors ?? []), w === 'gray' ? 'grey' : w])]
     else if (CLIMATE[w]) intent.climate ??= CLIMATE[w]
     else if (PRIORITY[w]) {
       const p = PRIORITY[w]

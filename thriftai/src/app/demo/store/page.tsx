@@ -88,7 +88,7 @@ export default async function DemoStorePage({ searchParams }: Props) {
                   href={`/demo/store/${it.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-[box-shadow,border-color] hover:border-border-strong hover:shadow-md"
                 >
-                  <ProductThumb category={it.category} subcategory={it.subcategory} silhouette={it.silhouette} color={it.colors[0]} className="aspect-[5/4] rounded-none" />
+                  <ProductThumb category={it.category} subcategory={it.subcategory} silhouette={it.silhouette} color={it.colors[0]} pattern={it.pattern} className="aspect-[5/4] rounded-none" />
                   {'isSponsored' in it && (
                     <p className="border-b border-border bg-surface-2 px-4 py-1.5 text-xs text-fg-muted">
                       <span className="font-semibold text-fg">Sponsored</span> · shown because it scores {AD_MIN_SCORE}+ with enough evidence and an honest price. Sponsors can’t buy a top-3 spot or a

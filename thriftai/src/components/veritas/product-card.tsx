@@ -15,6 +15,7 @@ export type ProductCardData = {
   subcategory: string | null
   silhouette?: string | null
   color?: string | null
+  pattern?: string | null
   price: number
   currency: string
   reviewCount: number
@@ -35,7 +36,7 @@ export function ProductCard({ item, className }: { item: ProductCardData; classN
       )}
     >
       <div className="relative">
-        <ProductThumb category={item.category} subcategory={item.subcategory} silhouette={item.silhouette} color={item.color} />
+        <ProductThumb category={item.category} subcategory={item.subcategory} silhouette={item.silhouette} color={item.color} pattern={item.pattern} />
         <div className="absolute right-2 top-2 rounded-full bg-surface/90 p-0.5 shadow-sm backdrop-blur">
           <ScoreRing score={item.score} size="sm" />
         </div>

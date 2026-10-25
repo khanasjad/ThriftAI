@@ -238,6 +238,7 @@ model ClothingProduct {
   findings       AgentFinding[]
   agentRuns      AgentRun[]
   adCopy         AdCopy?
+  visual         ProductVisual?
 
   @@unique([tenantId, externalId])
   @@index([tenantId])
@@ -882,4 +883,23 @@ model AdCopy {
   product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("ad_copies")
+}
+
+/// What the product's photo shows, read by the vision agent (B12). Descriptive attributes only, never a score.
+model ProductVisual {
+  id         String   @id @default(cuid())
+  productId  String   @unique
+  imageUrl   String
+  /// Image + agent version; same hash → not re-read
+  imageHash  String
+  /// { colors[{name,family}], pattern, pattern_detail, neckline, sleeve, shape, style_tags[], description, confidence }
+  attributes Json
+  runId      String?
+  costUsd    Decimal  @db.Decimal(10, 6)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_visuals")
 }

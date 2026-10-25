@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { scanInjection } from '../harness/guardrails'
 import { computePriceFacts, type PriceFacts } from '../price/facts'
 import { tagsForProducts } from './tags'
+import { COLOR_WORDS, PATTERN_WORDS } from '../match/intent'
+import { colorHit } from '../match/rank'
 import type { Tag } from '../enrich/tags'
 
 export type { PriceFacts }
@@ -25,6 +27,8 @@ export type CatalogItem = {
   subcategory: string | null
   silhouette: string | null
   color: string | null
+  /** From the product photo (vision agent), when read. */
+  pattern?: string | null
   price: number
   currency: string
   reviewCount: number
@@ -68,7 +72,7 @@ const CATEGORY_WORDS: Record<string, ClothingCategory> = {
   jeans: 'BOTTOMS', jean: 'BOTTOMS', denim: 'BOTTOMS', pants: 'BOTTOMS', trousers: 'BOTTOMS',
 }
 
-export type Interpretation = { category?: ClothingCategory; maxPrice?: number; terms: string[]; matchedAny: boolean }
+export type Interpretation = { category?: ClothingCategory; maxPrice?: number; colors: string[]; patterns: string[]; terms: string[]; matchedAny: boolean }
 
 /** Turns a free-text query into a category, a price ceiling and search terms. Shown to the user as-is. */
 export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
@@ -81,6 +85,8 @@ export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
   }
   let category: ClothingCategory | undefined
   const terms: string[] = []
+  const colors: string[] = []
+  const patterns: string[] = []
   for (const raw of text.split(/[\s,]+/)) {
     const w = raw.replace(/[^\p{L}\p{N}-]/gu, '')
     if (w.length < 2 || STOPWORDS.has(w)) continue
@@ -88,9 +94,12 @@ export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
       category ??= CATEGORY_WORDS[w]
       continue
     }
-    terms.push(w.replace(/-/g, ' '))
+    // Colour and pattern words are filters ("flowered" → floral, read from photos; "blue" also finds navy).
+    if (PATTERN_WORDS[w]) patterns.push(PATTERN_WORDS[w])
+    else if (COLOR_WORDS.includes(w)) colors.push(w === 'gray' ? 'grey' : w)
+    else terms.push(w.replace(/-/g, ' '))
   }
-  return { category, maxPrice, terms: [...new Set(terms)].slice(0, 6) }
+  return { category, maxPrice, colors: [...new Set(colors)], patterns: [...new Set(patterns)], terms: [...new Set(terms)].slice(0, 6) }
 }
 
 /**
@@ -119,6 +128,7 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48, .
       currency: true,
       launchDate: true,
       brand: { select: { name: true } },
+      visual: { select: { attributes: true } },
       productScore: { select: { overall: true, confidenceLabel: true } },
       reviews: parsed.terms.length ? { select: { content: true } } : false,
       _count: { select: { reviews: true } },
@@ -128,7 +138,8 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48, .
   const cutoff = Date.now() - NEW_LAUNCH_DAYS * 864e5
   const tagMap = await tagsForProducts(rows.map((r) => r.id))
   let scored = rows.map((r) => {
-    const own = [r.name, r.subcategory, r.description, r.fitType, r.silhouette, r.brand.name, ...r.colors, ...Object.keys((r.materials ?? {}) as object)]
+    const v = r.visual?.attributes as { pattern?: string; pattern_detail?: string; colors?: { name: string; family: string }[]; style_tags?: string[] } | undefined
+    const own = [r.name, r.subcategory, r.description, r.fitType, r.silhouette, r.brand.name, ...r.colors, ...Object.keys((r.materials ?? {}) as object), v?.pattern ?? '', v?.pattern_detail ?? '', ...(v?.colors ?? []).flatMap((c) => [c.name, c.family]), ...(v?.style_tags ?? [])]
       .join(' ')
       .toLowerCase()
     const reviewText = (r.reviews || []).map((x) => x.content.toLowerCase())
@@ -145,6 +156,7 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48, .
       subcategory: r.subcategory,
       silhouette: r.silhouette,
       color: r.colors[0] ?? null,
+      pattern: v?.pattern ?? null,
       price: Number(r.currentPrice),
       currency: r.currency,
       reviewCount: r._count.reviews,
@@ -153,11 +165,14 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48, .
       isNewLaunch: !!r.launchDate && r.launchDate.getTime() > cutoff,
       tags: tagMap.get(r.id) ?? [],
     }
-    return { item, relevance, launch: r.launchDate?.getTime() ?? 0, gender: r.gender, colors: r.colors, fit: r.fitType }
+    return { item, relevance, launch: r.launchDate?.getTime() ?? 0, gender: r.gender, colors: r.colors, fit: r.fitType, look: { colors: r.colors, visualColors: (v?.colors ?? []).map((c) => c.name), colorFamilies: (v?.colors ?? []).map((c) => c.family), pattern: v?.pattern ?? null } }
   })
 
   const matchedAny = parsed.terms.length === 0 || scored.some((x) => x.relevance > 0)
   if (parsed.terms.length && matchedAny) scored = scored.filter((x) => x.relevance > 0)
+  // Look filters from the query: every colour/pattern word must match (catalog data or the product photo).
+  if (parsed.colors.length) scored = scored.filter((x) => parsed.colors.some((w) => colorHit(x.look, w)))
+  if (parsed.patterns.length) scored = scored.filter((x) => x.look.pattern !== null && parsed.patterns.includes(x.look.pattern))
 
   // Facets are counted on the query's results before browse filters, so every option stays visible.
   const tally = (xs: string[]) =>
@@ -279,6 +294,7 @@ export async function getProductPage(slugOrId: string) {
     include: {
       brand: true,
       productScore: true,
+      visual: { select: { attributes: true } },
       factorScores: { where: { version: 'v2' } },
       reviews: { orderBy: [{ helpfulVotes: 'desc' }, { reviewDate: 'desc' }, { id: 'asc' }] },
       returns: { select: { returnReason: true, returnCategory: true } },
@@ -361,6 +377,7 @@ export async function getProductPage(slugOrId: string) {
       licence: p.licence,
     },
     brand: { name: p.brand.name, slug: p.brand.slug, description: p.brand.description },
+    visual: (p.visual?.attributes ?? null) as import('@/components/veritas/visual-panel').Visual | null,
     score: p.productScore
       ? {
           overall: p.productScore.overall,

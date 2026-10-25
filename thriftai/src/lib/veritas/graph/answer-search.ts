@@ -21,7 +21,7 @@ import { runAgent } from '../harness/loop'
 import { parseIntent, type SearchIntent, type ShopperContext } from '../match/intent'
 import { loadCandidates } from '../match/candidates'
 import { buildFacets, facetsText, type Facets } from '../match/facets'
-import { chooseQuestion, filterCandidates, pickThree, rank, type Candidate, type PickResult } from '../match/rank'
+import { chooseQuestion, filterCandidates, pickThree, rank, styleMatch, type Candidate, type PickResult } from '../match/rank'
 import { swatchFor } from '@/components/veritas/colors'
 import { checkReply } from '../text/check'
 
@@ -34,7 +34,11 @@ export type SearchPick = {
   subcategory: string | null
   silhouette: string | null
   color: string | null
+  /** From the product photo (vision agent). */
+  pattern: string | null
   score: number
+  /** 4th parameter, per search: how many of the asked-for looks this item has. */
+  style: { value: number; matched: string[]; missed: string[] } | null
   label: NonNullable<PickResult['label']>
   match: number | null
   pillars: PickResult['pillars']
@@ -69,7 +73,7 @@ export type SearchResponse = {
 
 type TurnPayload = { intent?: SearchIntent; asked?: number; question?: Question | null; ready?: boolean; picks?: string[] }
 
-function toPick(p: PickResult): SearchPick {
+function toPick(p: PickResult, intent: SearchIntent): SearchPick {
   return {
     role: p.role,
     slug: p.slug,
@@ -78,8 +82,10 @@ function toPick(p: PickResult): SearchPick {
     category: p.category,
     subcategory: p.subcategory,
     silhouette: p.silhouette ?? null,
-    color: p.colors[0] ?? null,
+    color: (intent.colors?.length ? p.colors.find((c) => intent.colors!.some((w) => c.toLowerCase().includes(w.toLowerCase()))) : null) ?? p.colors[0] ?? null,
+    pattern: p.pattern,
     score: p.productScore,
+    style: styleMatch(p, intent),
     label: p.label!,
     match: p.match,
     pillars: p.pillars,
@@ -128,6 +134,7 @@ export function filtersToIntent(f: ShopkeeperFilters, facets: Facets): SearchInt
     excludeColors: f.exclude_colors.map((c) => c.trim()).filter(Boolean),
     fit: f.fit ?? undefined,
     cuts: [...new Set(canon(f.cuts, facets.cuts))],
+    patterns: f.patterns.length ? [...new Set(f.patterns)] : undefined,
     length: f.length ?? undefined,
     climate: f.climate ?? undefined,
     occasion: f.occasion ?? undefined,
@@ -147,6 +154,7 @@ function intentToFilters(i: SearchIntent): ShopkeeperFilters {
     exclude_colors: i.excludeColors ?? [],
     fit: i.fit ?? null,
     cuts: i.cuts ?? [],
+    patterns: (i.patterns ?? []) as ShopkeeperFilters['patterns'],
     length: i.length ?? null,
     climate: i.climate ?? null,
     occasion: i.occasion ?? null,
@@ -181,6 +189,8 @@ function applyChip(slot: string, chip: string, intent: SearchIntent, f: Facets):
       return clear ? { ...intent, fit: undefined } : ['slim', 'regular', 'relaxed', 'oversized'].includes(c.toLowerCase()) ? { ...intent, fit: c.toLowerCase() as SearchIntent['fit'] } : null
     case 'cut':
       return clear ? { ...intent, cuts: [] } : { ...intent, cuts: [c] }
+    case 'pattern':
+      return clear ? { ...intent, patterns: undefined } : f.patterns.some((p) => p.value === c.toLowerCase()) ? { ...intent, patterns: [c.toLowerCase()] } : null
     case 'length':
       return clear ? { ...intent, length: undefined } : ['cropped', 'regular', 'longline'].includes(c.toLowerCase()) ? { ...intent, length: c.toLowerCase() as SearchIntent['length'] } : null
     case 'widen': {
@@ -190,6 +200,7 @@ function applyChip(slot: string, chip: string, intent: SearchIntent, f: Facets):
         'any fit': { fit: undefined },
         'any cut': { cuts: [] },
         'any length': { length: undefined },
+        'any pattern': { patterns: undefined },
         'show all genders': { gender: undefined },
         'show jeans too': { category: undefined },
         'show tees too': { category: undefined },
@@ -235,6 +246,8 @@ function chipsFromFacets(slot: string, f: Facets): string[] {
       return [...f.cuts.slice(0, 5).map((x) => x.value), 'No preference']
     case 'length':
       return [...f.lengths.map((x) => x.value), 'No preference']
+    case 'pattern':
+      return [...f.patterns.slice(0, 5).map((x) => x.value), 'No preference']
     default:
       return []
   }
@@ -244,7 +257,7 @@ function chipsFromFacets(slot: string, f: Facets): string[] {
 function validChips(q: NonNullable<ShopkeeperTurn['next_question']>, f: Facets) {
   if (FREE_SLOTS.has(q.slot)) return q.chips.slice(0, 5)
   const pool = new Set(
-    [...f.colors, ...f.fits, ...f.cuts, ...f.lengths].map((x) => x.value.toLowerCase()).concat(f.priceBands.map((b) => b.label.toLowerCase()), f.categories.map((c) => c.label.toLowerCase()), f.genders.map((g) => g.label.toLowerCase())),
+    [...f.colors, ...f.fits, ...f.cuts, ...f.lengths, ...f.patterns].map((x) => x.value.toLowerCase()).concat(f.priceBands.map((b) => b.label.toLowerCase()), f.categories.map((c) => c.label.toLowerCase()), f.genders.map((g) => g.label.toLowerCase())),
   )
   return q.chips.filter((c) => pool.has(c.toLowerCase().trim()) || /^(any|no preference|no limit|not sure)/i.test(c)).slice(0, 5)
 }
@@ -354,6 +367,7 @@ export async function runSearch(input: {
       intent.fit && 'Any fit',
       intent.cuts?.length && 'Any cut',
       intent.length && 'Any length',
+      intent.patterns?.length && 'Any pattern',
       intent.gender && intent.gender !== 'UNISEX' && 'Show all genders',
       intent.category && (intent.category === 'TOPS' ? 'Show jeans too' : 'Show tees too'),
     ].filter(Boolean) as string[]
@@ -389,7 +403,7 @@ export async function runSearch(input: {
     question,
     asked,
     maxQuestions: MAX_SHOPKEEPER_QUESTIONS,
-    picks: picks.map(toPick),
+    picks: picks.map((p) => toPick(p, intent)),
     provisional: question !== null,
     rated: ranked.length,
     unrated,

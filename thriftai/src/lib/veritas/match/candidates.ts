@@ -29,6 +29,7 @@ export async function loadCandidates(): Promise<Candidate[]> {
       currentPrice: true,
       brand: { select: { slug: true, name: true } },
       productScore: true,
+      visual: { select: { attributes: true } },
       factorScores: { where: { version: 'v2', factor: { in: ['comfort.breathability'] } }, select: { factor: true, value: true } },
       reviews: { select: { fitsAs: true, heightCm: true, bodyType: true } },
       priceSnapshots: { orderBy: { observedAt: 'desc' }, select: { price: true, sellerId: true, observedAt: true } },
@@ -40,6 +41,7 @@ export async function loadCandidates(): Promise<Candidate[]> {
     for (const s of r.priceSnapshots) if (!latest.has(s.sellerId ?? 'brand')) latest.set(s.sellerId ?? 'brand', Number(s.price))
     const prices = latest.size ? [...latest.values()] : [Number(r.currentPrice)]
     const ps = r.productScore
+    const v = r.visual?.attributes as { pattern?: string; pattern_detail?: string; colors?: { name: string; family: string }[]; style_tags?: string[] } | undefined
     return {
       id: r.id,
       slug: r.slug,
@@ -49,7 +51,11 @@ export async function loadCandidates(): Promise<Candidate[]> {
       category: r.category,
       subcategory: r.subcategory,
       gender: r.gender,
-      text: [r.name, r.subcategory, r.description, r.fitType, r.silhouette, r.brand.name, ...r.colors, ...Object.keys((r.materials ?? {}) as object)].join(' ').toLowerCase(),
+      text: [r.name, r.subcategory, r.description, r.fitType, r.silhouette, r.brand.name, ...r.colors, ...Object.keys((r.materials ?? {}) as object), v?.pattern, v?.pattern_detail, ...(v?.colors ?? []).flatMap((c) => [c.name, c.family]), ...(v?.style_tags ?? [])].filter(Boolean).join(' ').toLowerCase(),
+      pattern: v?.pattern ?? null,
+      visualColors: (v?.colors ?? []).map((c) => c.name),
+      colorFamilies: [...new Set((v?.colors ?? []).map((c) => c.family))],
+      styleTags: v?.style_tags ?? [],
       fitType: r.fitType,
       silhouette: r.silhouette,
       colors: r.colors,

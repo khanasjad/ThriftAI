@@ -32,7 +32,7 @@ export default async function CollectionsPage() {
                 <div className="grid grid-cols-3 gap-2" aria-hidden>
                   {[0, 1, 2].map((i) =>
                     items[i] ? (
-                      <ProductThumb key={i} category={items[i].item.category} subcategory={items[i].item.subcategory} silhouette={items[i].item.silhouette} color={items[i].item.color} showTag={false} />
+                      <ProductThumb key={i} category={items[i].item.category} subcategory={items[i].item.subcategory} silhouette={items[i].item.silhouette} color={items[i].item.color} pattern={items[i].item.pattern} showTag={false} />
                     ) : (
                       <div key={i} className="aspect-[4/5] rounded-lg bg-surface-2" />
                     ),

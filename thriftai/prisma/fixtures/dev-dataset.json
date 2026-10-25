@@ -198,10 +198,9 @@
    "unitsSold": 316,
    "resaleRetainedPct": 44,
    "launchDate": "2025-05-20T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/ardent-denim-oversized-boxy-tee/800/1000",
+   "primaryImageUrl": "/dev-images/ardent-denim-oversized-boxy-tee.png",
    "images": [
-    "https://picsum.photos/seed/ardent-denim-oversized-boxy-tee/800/1000",
-    "https://picsum.photos/seed/ardent-denim-oversized-boxy-tee-2/800/1000"
+    "/dev-images/ardent-denim-oversized-boxy-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -219,7 +218,8 @@
     "photoAccuracy": 0.8870083132060245,
     "versatility": 0.7607378474902362,
     "flattering": 0.20945856617763636,
-    "notes": []
+    "notes": [],
+    "pattern": "graphic"
    }
   },
   {
@@ -261,10 +261,9 @@
    "unitsSold": 275,
    "resaleRetainedPct": 42,
    "launchDate": "2025-03-16T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/lumen-basics-soft-v-neck-tee/800/1000",
+   "primaryImageUrl": "/dev-images/lumen-basics-soft-v-neck-tee.png",
    "images": [
-    "https://picsum.photos/seed/lumen-basics-soft-v-neck-tee/800/1000",
-    "https://picsum.photos/seed/lumen-basics-soft-v-neck-tee-2/800/1000"
+    "/dev-images/lumen-basics-soft-v-neck-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -282,7 +281,8 @@
     "photoAccuracy": 0.9399251360842027,
     "versatility": 0.6000750856008381,
     "flattering": 0.6653140533249825,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -324,10 +324,9 @@
    "unitsSold": 288,
    "resaleRetainedPct": 42,
    "launchDate": "2025-12-28T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/saltmarsh-co-slub-v-neck-tee/800/1000",
+   "primaryImageUrl": "/dev-images/saltmarsh-co-slub-v-neck-tee.png",
    "images": [
-    "https://picsum.photos/seed/saltmarsh-co-slub-v-neck-tee/800/1000",
-    "https://picsum.photos/seed/saltmarsh-co-slub-v-neck-tee-2/800/1000"
+    "/dev-images/saltmarsh-co-slub-v-neck-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -345,7 +344,8 @@
     "photoAccuracy": 0.8213442417560145,
     "versatility": 0.5549475325504318,
     "flattering": 0.7021116574993357,
-    "notes": []
+    "notes": [],
+    "pattern": "striped"
    }
   },
   {
@@ -385,10 +385,9 @@
    "unitsSold": 160,
    "resaleRetainedPct": 26,
    "launchDate": "2025-02-03T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/velo-thread-boxy-heavyweight-tee/800/1000",
+   "primaryImageUrl": "/dev-images/velo-thread-boxy-heavyweight-tee.png",
    "images": [
-    "https://picsum.photos/seed/velo-thread-boxy-heavyweight-tee/800/1000",
-    "https://picsum.photos/seed/velo-thread-boxy-heavyweight-tee-2/800/1000"
+    "/dev-images/velo-thread-boxy-heavyweight-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -408,7 +407,8 @@
     "flattering": 0.34192577926442025,
     "notes": [
      "has_injection_review"
-    ]
+    ],
+    "pattern": "floral"
    }
   },
   {
@@ -454,10 +454,9 @@
    "unitsSold": 307,
    "resaleRetainedPct": 43,
    "launchDate": "2025-03-28T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee/800/1000",
+   "primaryImageUrl": "/dev-images/copper-and-chalk-curved-hem-longline-tee.png",
    "images": [
-    "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee/800/1000",
-    "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee-2/800/1000"
+    "/dev-images/copper-and-chalk-curved-hem-longline-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -475,7 +474,8 @@
     "photoAccuracy": 0.9220552880899049,
     "versatility": 0.441354160499759,
     "flattering": 0.5657677634386346,
-    "notes": []
+    "notes": [],
+    "pattern": "striped"
    }
   },
   {
@@ -515,10 +515,9 @@
    "unitsSold": null,
    "resaleRetainedPct": null,
    "launchDate": "2026-09-29T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/hollow-pine-supply-longline-tee/800/1000",
+   "primaryImageUrl": "/dev-images/hollow-pine-supply-longline-tee.png",
    "images": [
-    "https://picsum.photos/seed/hollow-pine-supply-longline-tee/800/1000",
-    "https://picsum.photos/seed/hollow-pine-supply-longline-tee-2/800/1000"
+    "/dev-images/hollow-pine-supply-longline-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -538,7 +537,8 @@
     "flattering": 0.7764805307611823,
     "notes": [
      "new_launch"
-    ]
+    ],
+    "pattern": "plaid"
    }
   },
   {
@@ -582,10 +582,9 @@
    "unitsSold": 225,
    "resaleRetainedPct": 41,
    "launchDate": "2024-11-05T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/ardent-denim-soft-v-neck-tee/800/1000",
+   "primaryImageUrl": "/dev-images/ardent-denim-soft-v-neck-tee.png",
    "images": [
-    "https://picsum.photos/seed/ardent-denim-soft-v-neck-tee/800/1000",
-    "https://picsum.photos/seed/ardent-denim-soft-v-neck-tee-2/800/1000"
+    "/dev-images/ardent-denim-soft-v-neck-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -603,7 +602,8 @@
     "photoAccuracy": 0.9710854750592262,
     "versatility": 0.3652151749236509,
     "flattering": 0.44595553297549484,
-    "notes": []
+    "notes": [],
+    "pattern": "floral"
    }
   },
   {
@@ -644,10 +644,9 @@
    "unitsSold": 305,
    "resaleRetainedPct": 39,
    "launchDate": "2025-04-06T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/lumen-basics-curved-hem-longline-tee/800/1000",
+   "primaryImageUrl": "/dev-images/lumen-basics-curved-hem-longline-tee.png",
    "images": [
-    "https://picsum.photos/seed/lumen-basics-curved-hem-longline-tee/800/1000",
-    "https://picsum.photos/seed/lumen-basics-curved-hem-longline-tee-2/800/1000"
+    "/dev-images/lumen-basics-curved-hem-longline-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -665,7 +664,8 @@
     "photoAccuracy": 0.7998459345358424,
     "versatility": 0.7952933305175975,
     "flattering": 0.7211555011104792,
-    "notes": []
+    "notes": [],
+    "pattern": "striped"
    }
   },
   {
@@ -705,10 +705,9 @@
    "unitsSold": 304,
    "resaleRetainedPct": 41,
    "launchDate": "2026-02-18T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/saltmarsh-co-organic-crew-tee/800/1000",
+   "primaryImageUrl": "/dev-images/saltmarsh-co-organic-crew-tee.png",
    "images": [
-    "https://picsum.photos/seed/saltmarsh-co-organic-crew-tee/800/1000",
-    "https://picsum.photos/seed/saltmarsh-co-organic-crew-tee-2/800/1000"
+    "/dev-images/saltmarsh-co-organic-crew-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -728,7 +727,8 @@
     "flattering": 0.7071934319334104,
     "notes": [
      "fake_markdown"
-    ]
+    ],
+    "pattern": "solid"
    }
   },
   {
@@ -770,10 +770,9 @@
    "unitsSold": 431,
    "resaleRetainedPct": 28,
    "launchDate": "2025-01-09T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/velo-thread-longline-tee/800/1000",
+   "primaryImageUrl": "/dev-images/velo-thread-longline-tee.png",
    "images": [
-    "https://picsum.photos/seed/velo-thread-longline-tee/800/1000",
-    "https://picsum.photos/seed/velo-thread-longline-tee-2/800/1000"
+    "/dev-images/velo-thread-longline-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -791,7 +790,8 @@
     "photoAccuracy": 0.308061561267823,
     "versatility": 0.310430256370455,
     "flattering": 0.41482999224681405,
-    "notes": []
+    "notes": [],
+    "pattern": "floral"
    }
   },
   {
@@ -834,10 +834,9 @@
    "unitsSold": 290,
    "resaleRetainedPct": 44,
    "launchDate": "2026-06-26T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee-ii/800/1000",
+   "primaryImageUrl": "/dev-images/copper-and-chalk-curved-hem-longline-tee-ii.png",
    "images": [
-    "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee-ii/800/1000",
-    "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee-ii-2/800/1000"
+    "/dev-images/copper-and-chalk-curved-hem-longline-tee-ii.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -855,7 +854,8 @@
     "photoAccuracy": 0.8127050434588454,
     "versatility": 0.43683058239985256,
     "flattering": 0.4900092847179621,
-    "notes": []
+    "notes": [],
+    "pattern": "polka-dot"
    }
   },
   {
@@ -895,10 +895,9 @@
    "unitsSold": 306,
    "resaleRetainedPct": 48,
    "launchDate": "2026-06-11T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/hollow-pine-supply-soft-v-neck-tee/800/1000",
+   "primaryImageUrl": "/dev-images/hollow-pine-supply-soft-v-neck-tee.png",
    "images": [
-    "https://picsum.photos/seed/hollow-pine-supply-soft-v-neck-tee/800/1000",
-    "https://picsum.photos/seed/hollow-pine-supply-soft-v-neck-tee-2/800/1000"
+    "/dev-images/hollow-pine-supply-soft-v-neck-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -918,7 +917,8 @@
     "flattering": 0.8108998575713485,
     "notes": [
      "has_es_review"
-    ]
+    ],
+    "pattern": "solid"
    }
   },
   {
@@ -962,10 +962,9 @@
    "unitsSold": 178,
    "resaleRetainedPct": 50,
    "launchDate": "2025-11-24T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/ardent-denim-oversized-boxy-tee-ii/800/1000",
+   "primaryImageUrl": "/dev-images/ardent-denim-oversized-boxy-tee-ii.png",
    "images": [
-    "https://picsum.photos/seed/ardent-denim-oversized-boxy-tee-ii/800/1000",
-    "https://picsum.photos/seed/ardent-denim-oversized-boxy-tee-ii-2/800/1000"
+    "/dev-images/ardent-denim-oversized-boxy-tee-ii.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -983,7 +982,8 @@
     "photoAccuracy": 0.8585930590052158,
     "versatility": 0.6302966380724684,
     "flattering": 0.45573112976271657,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1025,10 +1025,9 @@
    "unitsSold": 669,
    "resaleRetainedPct": 38,
    "launchDate": "2026-04-11T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/lumen-basics-soft-v-neck-tee-ii/800/1000",
+   "primaryImageUrl": "/dev-images/lumen-basics-soft-v-neck-tee-ii.png",
    "images": [
-    "https://picsum.photos/seed/lumen-basics-soft-v-neck-tee-ii/800/1000",
-    "https://picsum.photos/seed/lumen-basics-soft-v-neck-tee-ii-2/800/1000"
+    "/dev-images/lumen-basics-soft-v-neck-tee-ii.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1046,7 +1045,8 @@
     "photoAccuracy": 0.9526555826701224,
     "versatility": 0.5048604931915179,
     "flattering": 0.5192581594688818,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1088,10 +1088,9 @@
    "unitsSold": 440,
    "resaleRetainedPct": 38,
    "launchDate": "2025-10-28T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/saltmarsh-co-soft-v-neck-tee/800/1000",
+   "primaryImageUrl": "/dev-images/saltmarsh-co-soft-v-neck-tee.png",
    "images": [
-    "https://picsum.photos/seed/saltmarsh-co-soft-v-neck-tee/800/1000",
-    "https://picsum.photos/seed/saltmarsh-co-soft-v-neck-tee-2/800/1000"
+    "/dev-images/saltmarsh-co-soft-v-neck-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1111,7 +1110,8 @@
     "flattering": 0.5758600008208304,
     "notes": [
      "often_cheaper"
-    ]
+    ],
+    "pattern": "floral"
    }
   },
   {
@@ -1151,10 +1151,9 @@
    "unitsSold": 319,
    "resaleRetainedPct": 21,
    "launchDate": "2026-05-01T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/velo-thread-everyday-crew-tee/800/1000",
+   "primaryImageUrl": "/dev-images/velo-thread-everyday-crew-tee.png",
    "images": [
-    "https://picsum.photos/seed/velo-thread-everyday-crew-tee/800/1000",
-    "https://picsum.photos/seed/velo-thread-everyday-crew-tee-2/800/1000"
+    "/dev-images/velo-thread-everyday-crew-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1172,7 +1171,8 @@
     "photoAccuracy": 0.518453606183175,
     "versatility": 0.7795227685594,
     "flattering": 0.4263249403098598,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1215,10 +1215,9 @@
    "unitsSold": 372,
    "resaleRetainedPct": 48,
    "launchDate": "2025-05-24T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee-iii/800/1000",
+   "primaryImageUrl": "/dev-images/copper-and-chalk-curved-hem-longline-tee-iii.png",
    "images": [
-    "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee-iii/800/1000",
-    "https://picsum.photos/seed/copper-and-chalk-curved-hem-longline-tee-iii-2/800/1000"
+    "/dev-images/copper-and-chalk-curved-hem-longline-tee-iii.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1236,7 +1235,8 @@
     "photoAccuracy": 0.830899625190068,
     "versatility": 0.3223285537213087,
     "flattering": 0.5510734762297943,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1278,10 +1278,9 @@
    "unitsSold": 668,
    "resaleRetainedPct": 48,
    "launchDate": "2025-05-31T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/hollow-pine-supply-everyday-crew-tee/800/1000",
+   "primaryImageUrl": "/dev-images/hollow-pine-supply-everyday-crew-tee.png",
    "images": [
-    "https://picsum.photos/seed/hollow-pine-supply-everyday-crew-tee/800/1000",
-    "https://picsum.photos/seed/hollow-pine-supply-everyday-crew-tee-2/800/1000"
+    "/dev-images/hollow-pine-supply-everyday-crew-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1299,7 +1298,8 @@
     "photoAccuracy": 0.9325075140991248,
     "versatility": 0.7965892276726663,
     "flattering": 0.3981983304489404,
-    "notes": []
+    "notes": [],
+    "pattern": "floral"
    }
   },
   {
@@ -1342,10 +1342,9 @@
    "unitsSold": 327,
    "resaleRetainedPct": 50,
    "launchDate": "2024-11-22T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/ardent-denim-soft-v-neck-tee-ii/800/1000",
+   "primaryImageUrl": "/dev-images/ardent-denim-soft-v-neck-tee-ii.png",
    "images": [
-    "https://picsum.photos/seed/ardent-denim-soft-v-neck-tee-ii/800/1000",
-    "https://picsum.photos/seed/ardent-denim-soft-v-neck-tee-ii-2/800/1000"
+    "/dev-images/ardent-denim-soft-v-neck-tee-ii.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1363,7 +1362,8 @@
     "photoAccuracy": 0.7850044643855654,
     "versatility": 0.6908194717951119,
     "flattering": 0.8434893436729908,
-    "notes": []
+    "notes": [],
+    "pattern": "striped"
    }
   },
   {
@@ -1404,10 +1404,9 @@
    "unitsSold": 212,
    "resaleRetainedPct": 40,
    "launchDate": "2025-12-11T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/lumen-basics-classic-crew-tee/800/1000",
+   "primaryImageUrl": "/dev-images/lumen-basics-classic-crew-tee.png",
    "images": [
-    "https://picsum.photos/seed/lumen-basics-classic-crew-tee/800/1000",
-    "https://picsum.photos/seed/lumen-basics-classic-crew-tee-2/800/1000"
+    "/dev-images/lumen-basics-classic-crew-tee.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1427,7 +1426,8 @@
     "flattering": 0.6344778175931424,
     "notes": [
      "has_injection_review"
-    ]
+    ],
+    "pattern": "solid"
    }
   },
   {
@@ -1476,10 +1476,9 @@
    "unitsSold": 211,
    "resaleRetainedPct": 42,
    "launchDate": "2026-03-24T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/saltmarsh-co-straight-leg-jean/800/1000",
+   "primaryImageUrl": "/dev-images/saltmarsh-co-straight-leg-jean.png",
    "images": [
-    "https://picsum.photos/seed/saltmarsh-co-straight-leg-jean/800/1000",
-    "https://picsum.photos/seed/saltmarsh-co-straight-leg-jean-2/800/1000"
+    "/dev-images/saltmarsh-co-straight-leg-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1497,7 +1496,8 @@
     "photoAccuracy": 0.6345539742847904,
     "versatility": 0.762174807593692,
     "flattering": 0.7963701556669548,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1546,10 +1546,9 @@
    "unitsSold": 274,
    "resaleRetainedPct": 25,
    "launchDate": "2025-10-18T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/velo-thread-high-rise-wide-leg-jean/800/1000",
+   "primaryImageUrl": "/dev-images/velo-thread-high-rise-wide-leg-jean.png",
    "images": [
-    "https://picsum.photos/seed/velo-thread-high-rise-wide-leg-jean/800/1000",
-    "https://picsum.photos/seed/velo-thread-high-rise-wide-leg-jean-2/800/1000"
+    "/dev-images/velo-thread-high-rise-wide-leg-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1567,7 +1566,8 @@
     "photoAccuracy": 0.5266212571412325,
     "versatility": 0.49283146795351057,
     "flattering": 0.6467073078034445,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1620,10 +1620,9 @@
    "unitsSold": null,
    "resaleRetainedPct": null,
    "launchDate": "2026-10-12T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/copper-and-chalk-relaxed-wide-jean/800/1000",
+   "primaryImageUrl": "/dev-images/copper-and-chalk-relaxed-wide-jean.png",
    "images": [
-    "https://picsum.photos/seed/copper-and-chalk-relaxed-wide-jean/800/1000",
-    "https://picsum.photos/seed/copper-and-chalk-relaxed-wide-jean-2/800/1000"
+    "/dev-images/copper-and-chalk-relaxed-wide-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1643,7 +1642,8 @@
     "flattering": 0.6192669997923076,
     "notes": [
      "new_launch"
-    ]
+    ],
+    "pattern": "solid"
    }
   },
   {
@@ -1691,10 +1691,9 @@
    "unitsSold": 197,
    "resaleRetainedPct": 39,
    "launchDate": "2026-03-10T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/hollow-pine-supply-stretch-skinny-jean/800/1000",
+   "primaryImageUrl": "/dev-images/hollow-pine-supply-stretch-skinny-jean.png",
    "images": [
-    "https://picsum.photos/seed/hollow-pine-supply-stretch-skinny-jean/800/1000",
-    "https://picsum.photos/seed/hollow-pine-supply-stretch-skinny-jean-2/800/1000"
+    "/dev-images/hollow-pine-supply-stretch-skinny-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1712,7 +1711,8 @@
     "photoAccuracy": 0.8920205719955265,
     "versatility": 0.5415979970246554,
     "flattering": 0.45708549665287135,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1761,10 +1761,9 @@
    "unitsSold": 115,
    "resaleRetainedPct": 51,
    "launchDate": "2025-01-20T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/ardent-denim-skinny-jean/800/1000",
+   "primaryImageUrl": "/dev-images/ardent-denim-skinny-jean.png",
    "images": [
-    "https://picsum.photos/seed/ardent-denim-skinny-jean/800/1000",
-    "https://picsum.photos/seed/ardent-denim-skinny-jean-2/800/1000"
+    "/dev-images/ardent-denim-skinny-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1782,7 +1781,8 @@
     "photoAccuracy": 0.9228780742269009,
     "versatility": 0.7628990401979536,
     "flattering": 0.29914076302666215,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1832,10 +1832,9 @@
    "unitsSold": 311,
    "resaleRetainedPct": 42,
    "launchDate": "2025-03-25T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/lumen-basics-bootcut-jean/800/1000",
+   "primaryImageUrl": "/dev-images/lumen-basics-bootcut-jean.png",
    "images": [
-    "https://picsum.photos/seed/lumen-basics-bootcut-jean/800/1000",
-    "https://picsum.photos/seed/lumen-basics-bootcut-jean-2/800/1000"
+    "/dev-images/lumen-basics-bootcut-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1855,7 +1854,8 @@
     "flattering": 0.7946045595686883,
     "notes": [
      "has_fr_review"
-    ]
+    ],
+    "pattern": "solid"
    }
   },
   {
@@ -1901,10 +1901,9 @@
    "unitsSold": 267,
    "resaleRetainedPct": 44,
    "launchDate": "2025-05-18T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/saltmarsh-co-bootcut-jean/800/1000",
+   "primaryImageUrl": "/dev-images/saltmarsh-co-bootcut-jean.png",
    "images": [
-    "https://picsum.photos/seed/saltmarsh-co-bootcut-jean/800/1000",
-    "https://picsum.photos/seed/saltmarsh-co-bootcut-jean-2/800/1000"
+    "/dev-images/saltmarsh-co-bootcut-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1922,7 +1921,8 @@
     "photoAccuracy": 0.6110180647461675,
     "versatility": 0.7946798207238317,
     "flattering": 0.5278244653251022,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -1969,10 +1969,9 @@
    "unitsSold": 135,
    "resaleRetainedPct": 24,
    "launchDate": "2025-04-11T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/velo-thread-skinny-jean/800/1000",
+   "primaryImageUrl": "/dev-images/velo-thread-skinny-jean.png",
    "images": [
-    "https://picsum.photos/seed/velo-thread-skinny-jean/800/1000",
-    "https://picsum.photos/seed/velo-thread-skinny-jean-2/800/1000"
+    "/dev-images/velo-thread-skinny-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -1992,7 +1991,8 @@
     "flattering": 0.2381266132229939,
     "notes": [
      "fake_markdown"
-    ]
+    ],
+    "pattern": "solid"
    }
   },
   {
@@ -2042,10 +2042,9 @@
    "unitsSold": 396,
    "resaleRetainedPct": 46,
    "launchDate": "2026-04-02T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/copper-and-chalk-rigid-straight-jean/800/1000",
+   "primaryImageUrl": "/dev-images/copper-and-chalk-rigid-straight-jean.png",
    "images": [
-    "https://picsum.photos/seed/copper-and-chalk-rigid-straight-jean/800/1000",
-    "https://picsum.photos/seed/copper-and-chalk-rigid-straight-jean-2/800/1000"
+    "/dev-images/copper-and-chalk-rigid-straight-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2063,7 +2062,8 @@
     "photoAccuracy": 0.8362496518413536,
     "versatility": 0.8095835279556922,
     "flattering": 0.39477061773650346,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2111,10 +2111,9 @@
    "unitsSold": 448,
    "resaleRetainedPct": 43,
    "launchDate": "2026-01-08T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/hollow-pine-supply-wide-leg-jean/800/1000",
+   "primaryImageUrl": "/dev-images/hollow-pine-supply-wide-leg-jean.png",
    "images": [
-    "https://picsum.photos/seed/hollow-pine-supply-wide-leg-jean/800/1000",
-    "https://picsum.photos/seed/hollow-pine-supply-wide-leg-jean-2/800/1000"
+    "/dev-images/hollow-pine-supply-wide-leg-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2132,7 +2131,8 @@
     "photoAccuracy": 0.9084813185804523,
     "versatility": 0.6328004502691329,
     "flattering": 0.4090434985933825,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2181,10 +2181,9 @@
    "unitsSold": 555,
    "resaleRetainedPct": 41,
    "launchDate": "2025-03-04T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/ardent-denim-bootcut-jean/800/1000",
+   "primaryImageUrl": "/dev-images/ardent-denim-bootcut-jean.png",
    "images": [
-    "https://picsum.photos/seed/ardent-denim-bootcut-jean/800/1000",
-    "https://picsum.photos/seed/ardent-denim-bootcut-jean-2/800/1000"
+    "/dev-images/ardent-denim-bootcut-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2204,7 +2203,8 @@
     "flattering": 0.669086977164261,
     "notes": [
      "has_injection_review"
-    ]
+    ],
+    "pattern": "solid"
    }
   },
   {
@@ -2256,10 +2256,9 @@
    "unitsSold": 281,
    "resaleRetainedPct": 45,
    "launchDate": "2025-12-02T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/lumen-basics-relaxed-wide-jean/800/1000",
+   "primaryImageUrl": "/dev-images/lumen-basics-relaxed-wide-jean.png",
    "images": [
-    "https://picsum.photos/seed/lumen-basics-relaxed-wide-jean/800/1000",
-    "https://picsum.photos/seed/lumen-basics-relaxed-wide-jean-2/800/1000"
+    "/dev-images/lumen-basics-relaxed-wide-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2277,7 +2276,8 @@
     "photoAccuracy": 0.8646017501992174,
     "versatility": 0.5951407105429098,
     "flattering": 0.5062188743846491,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2324,10 +2324,9 @@
    "unitsSold": 268,
    "resaleRetainedPct": 43,
    "launchDate": "2026-01-19T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/saltmarsh-co-slim-taper-jean/800/1000",
+   "primaryImageUrl": "/dev-images/saltmarsh-co-slim-taper-jean.png",
    "images": [
-    "https://picsum.photos/seed/saltmarsh-co-slim-taper-jean/800/1000",
-    "https://picsum.photos/seed/saltmarsh-co-slim-taper-jean-2/800/1000"
+    "/dev-images/saltmarsh-co-slim-taper-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2345,7 +2344,8 @@
     "photoAccuracy": 0.8219071261351928,
     "versatility": 0.3800271742045879,
     "flattering": 0.6414588453713804,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2395,10 +2395,9 @@
    "unitsSold": null,
    "resaleRetainedPct": null,
    "launchDate": "2026-10-17T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/velo-thread-original-straight-jean/800/1000",
+   "primaryImageUrl": "/dev-images/velo-thread-original-straight-jean.png",
    "images": [
-    "https://picsum.photos/seed/velo-thread-original-straight-jean/800/1000",
-    "https://picsum.photos/seed/velo-thread-original-straight-jean-2/800/1000"
+    "/dev-images/velo-thread-original-straight-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2418,7 +2417,8 @@
     "flattering": 0.7897041854681447,
     "notes": [
      "new_launch"
-    ]
+    ],
+    "pattern": "solid"
    }
   },
   {
@@ -2469,10 +2469,9 @@
    "unitsSold": 172,
    "resaleRetainedPct": 52,
    "launchDate": "2025-07-26T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/copper-and-chalk-stretch-skinny-jean/800/1000",
+   "primaryImageUrl": "/dev-images/copper-and-chalk-stretch-skinny-jean.png",
    "images": [
-    "https://picsum.photos/seed/copper-and-chalk-stretch-skinny-jean/800/1000",
-    "https://picsum.photos/seed/copper-and-chalk-stretch-skinny-jean-2/800/1000"
+    "/dev-images/copper-and-chalk-stretch-skinny-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2490,7 +2489,8 @@
     "photoAccuracy": 0.8030838621081784,
     "versatility": 0.5037482978776098,
     "flattering": 0.383584198099561,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2535,10 +2535,9 @@
    "unitsSold": 251,
    "resaleRetainedPct": 51,
    "launchDate": "2026-07-15T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/hollow-pine-supply-straight-leg-jean/800/1000",
+   "primaryImageUrl": "/dev-images/hollow-pine-supply-straight-leg-jean.png",
    "images": [
-    "https://picsum.photos/seed/hollow-pine-supply-straight-leg-jean/800/1000",
-    "https://picsum.photos/seed/hollow-pine-supply-straight-leg-jean-2/800/1000"
+    "/dev-images/hollow-pine-supply-straight-leg-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2556,7 +2555,8 @@
     "photoAccuracy": 0.9729149049567059,
     "versatility": 0.89327112310566,
     "flattering": 0.5305784815223887,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2606,10 +2606,9 @@
    "unitsSold": 561,
    "resaleRetainedPct": 46,
    "launchDate": "2024-11-30T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/ardent-denim-bootcut-jean-ii/800/1000",
+   "primaryImageUrl": "/dev-images/ardent-denim-bootcut-jean-ii.png",
    "images": [
-    "https://picsum.photos/seed/ardent-denim-bootcut-jean-ii/800/1000",
-    "https://picsum.photos/seed/ardent-denim-bootcut-jean-ii-2/800/1000"
+    "/dev-images/ardent-denim-bootcut-jean-ii.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2627,7 +2626,8 @@
     "photoAccuracy": 0.8085189855191857,
     "versatility": 0.5524632073473186,
     "flattering": 0.7670374154346064,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2678,10 +2678,9 @@
    "unitsSold": 142,
    "resaleRetainedPct": 34,
    "launchDate": "2025-07-16T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/lumen-basics-original-straight-jean/800/1000",
+   "primaryImageUrl": "/dev-images/lumen-basics-original-straight-jean.png",
    "images": [
-    "https://picsum.photos/seed/lumen-basics-original-straight-jean/800/1000",
-    "https://picsum.photos/seed/lumen-basics-original-straight-jean-2/800/1000"
+    "/dev-images/lumen-basics-original-straight-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2699,7 +2698,8 @@
     "photoAccuracy": 0.7760951968771406,
     "versatility": 0.9353293880005367,
     "flattering": 0.4192412864882499,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2746,10 +2746,9 @@
    "unitsSold": 381,
    "resaleRetainedPct": 36,
    "launchDate": "2025-10-22T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/saltmarsh-co-bootcut-jean-ii/800/1000",
+   "primaryImageUrl": "/dev-images/saltmarsh-co-bootcut-jean-ii.png",
    "images": [
-    "https://picsum.photos/seed/saltmarsh-co-bootcut-jean-ii/800/1000",
-    "https://picsum.photos/seed/saltmarsh-co-bootcut-jean-ii-2/800/1000"
+    "/dev-images/saltmarsh-co-bootcut-jean-ii.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2767,7 +2766,8 @@
     "photoAccuracy": 0.8243511056294665,
     "versatility": 0.668702550418675,
     "flattering": 0.7168130350997671,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   },
   {
@@ -2816,10 +2816,9 @@
    "unitsSold": 243,
    "resaleRetainedPct": 27,
    "launchDate": "2025-06-25T12:00:00.000Z",
-   "primaryImageUrl": "https://picsum.photos/seed/velo-thread-tapered-selvedge-jean/800/1000",
+   "primaryImageUrl": "/dev-images/velo-thread-tapered-selvedge-jean.png",
    "images": [
-    "https://picsum.photos/seed/velo-thread-tapered-selvedge-jean/800/1000",
-    "https://picsum.photos/seed/velo-thread-tapered-selvedge-jean-2/800/1000"
+    "/dev-images/velo-thread-tapered-selvedge-jean.png"
    ],
    "source": "dev-fixture",
    "_truth": {
@@ -2837,7 +2836,8 @@
     "photoAccuracy": 0.3166082995710895,
     "versatility": 0.5533376100473106,
     "flattering": 0.3854569990886375,
-    "notes": []
+    "notes": [],
+    "pattern": "solid"
    }
   }
  ],

@@ -64,3 +64,18 @@ test('brand dashboard explains the score with fixes', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Why this score' })).toBeVisible()
   await expect(page.getByText(/vs\. a median of/)).toBeVisible()
 })
+
+test('style from photos: "blue flowered tee" shows only blue floral items, and the product page shows what the photo shows', async ({ page }) => {
+  await page.route('**/api/v1/search', (r) => r.abort())
+  await page.goto('/search?q=blue+flowered+tee')
+  const results = page.locator('section[aria-labelledby="results-h"] > ul > li')
+  await expect(results.first()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('status').getByText('Floral (from photos)')).toBeVisible()
+  const hrefs = await results.locator('a[href^="/p/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href')))
+  expect(hrefs.length).toBeGreaterThan(0)
+  await page.goto(hrefs[0]!)
+  const panel = page.locator('section[aria-labelledby="visual-h"]')
+  await expect(panel).toBeVisible()
+  await expect(panel).toContainText(/floral/i)
+  await expect(panel).toContainText(/never changes the score/)
+})

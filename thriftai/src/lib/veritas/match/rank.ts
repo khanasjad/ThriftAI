@@ -21,6 +21,11 @@ export type Candidate = {
   fitType: string | null
   silhouette: string | null
   colors: string[]
+  /** From the product photo (vision agent): pattern, colour names and families, style words. Null/empty until read. */
+  pattern: string | null
+  visualColors: string[]
+  colorFamilies: string[]
+  styleTags: string[]
   /** Tees: cropped / regular / longline (from name and silhouette). Null for other categories. */
   length: 'cropped' | 'regular' | 'longline' | null
   gsm: number | null
@@ -152,6 +157,12 @@ export const BUDGET_STRETCH = 1.25
 const norm = (x: string) => x.toLowerCase().trim()
 /** Colour names match by containment: "grey" matches "Heather Grey". */
 const colorMatch = (productColor: string, wanted: string) => norm(productColor).includes(norm(wanted)) || norm(wanted).includes(norm(productColor))
+/** Catalog colour names → families, so "blue" finds navy and indigo. Photo colour families add to these. */
+const CATALOG_FAMILY: Record<string, string> = { black: 'black', white: 'white', ecru: 'beige', oatmeal: 'beige', cream: 'beige', 'heather grey': 'grey', grey: 'grey', navy: 'blue', sage: 'green', 'washed red': 'red', 'light vintage': 'blue', 'mid wash': 'blue', 'indigo rinse': 'blue' }
+export function colorHit(c: Pick<Candidate, 'colors' | 'visualColors' | 'colorFamilies'>, wanted: string) {
+  const w = norm(wanted)
+  return c.colors.some((pc) => colorMatch(pc, w) || CATALOG_FAMILY[norm(pc)] === w) || c.visualColors.some((vc) => colorMatch(vc, w)) || c.colorFamilies.includes(w)
+}
 
 export function filterCandidates(cands: Candidate[], intent: SearchIntent, who: ShopperContext, budgetFactor = 1) {
   const budget = intent.maxPrice ?? who.budgetMax ?? undefined
@@ -163,7 +174,8 @@ export function filterCandidates(cands: Candidate[], intent: SearchIntent, who: 
     .filter((c) => !intent.gender || c.gender === intent.gender || c.gender === 'UNISEX')
     .filter((c) => !budget || c.priceMin <= budget * budgetFactor)
     .filter((c) => !intent.minPrice || c.priceMax >= intent.minPrice)
-    .filter((c) => !colors.length || c.colors.some((pc) => colors.some((w) => colorMatch(pc, w))))
+    .filter((c) => !colors.length || colors.some((w) => colorHit(c, w)))
+    .filter((c) => !intent.patterns?.length || (c.pattern !== null && intent.patterns.includes(c.pattern)))
     // Excluding a colour removes a product only when every colour it comes in is excluded.
     .filter((c) => !exclude.length || !c.colors.length || c.colors.some((pc) => !exclude.some((w) => colorMatch(pc, w))))
     .filter((c) => !cuts.length || cuts.some((k) => norm(c.silhouette ?? '').includes(k) || norm(c.name).includes(k.replace(/-/g, ' '))))
@@ -172,6 +184,22 @@ export function filterCandidates(cands: Candidate[], intent: SearchIntent, who: 
     .filter((c) => !(who.brandAllow ?? []).length || who.brandAllow!.includes(c.brandSlug))
     .map((c) => ({ c, relevance: intent.terms.filter((t) => c.text.includes(t)).length }))
     .filter((x) => intent.terms.length === 0 || x.relevance > 0 || intent.category !== undefined)
+}
+
+/**
+ * Style match (4th parameter, per search): how many of the looks the shopper asked for this item has
+ * (colour, pattern, fit, cut, length), from catalog data and the product photo. Null when nothing was asked.
+ */
+export function styleMatch(c: Candidate, intent: SearchIntent): { value: number; matched: string[]; missed: string[] } | null {
+  const checks: [string, boolean][] = []
+  if (intent.colors?.length) checks.push([intent.colors.join(' or '), intent.colors.some((w) => colorHit(c, w))])
+  if (intent.patterns?.length) checks.push([intent.patterns.join(' or '), c.pattern !== null && intent.patterns.includes(c.pattern)])
+  if (intent.fit) checks.push([`${intent.fit} fit`, fitOf(c) === intent.fit])
+  if (intent.cuts?.length) checks.push([intent.cuts.join(' or ').replace(/-/g, ' '), intent.cuts.some((k) => norm(c.silhouette ?? '').includes(norm(k)))])
+  if (intent.length) checks.push([`${intent.length} length`, c.length === intent.length])
+  if (!checks.length) return null
+  const matched = checks.filter(([, ok]) => ok).map(([k]) => k)
+  return { value: Math.round((100 * matched.length) / checks.length), matched, missed: checks.filter(([, ok]) => !ok).map(([k]) => k) }
 }
 
 export function rank(cands: Candidate[], intent: SearchIntent, who: ShopperContext): { ranked: Ranked[]; unrated: number; stretch: Ranked[] } {

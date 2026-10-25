@@ -74,11 +74,57 @@ function shapeFor(category: string, subcategory?: string | null, silhouette?: st
 /** Colour names that are light enough to need a darker outline and darker detail lines. */
 const LIGHT = new Set(['white', 'ecru', 'oatmeal', 'light vintage', 'heather grey', 'sage'])
 
+/** Repeating pattern tiles drawn over the garment colour; ink contrasts with the base colour. */
+function PatternDefs({ id, pattern, light }: { id: string; pattern?: string | null; light: boolean }) {
+  const ink = light ? 'rgb(31 42 68 / 0.75)' : 'rgb(255 255 255 / 0.8)'
+  if (pattern === 'striped')
+    return (
+      <pattern id={`pat-${id}`} width="8" height="8" patternUnits="userSpaceOnUse">
+        <rect width="8" height="3" fill={ink} />
+      </pattern>
+    )
+  if (pattern === 'polka-dot')
+    return (
+      <pattern id={`pat-${id}`} width="10" height="10" patternUnits="userSpaceOnUse">
+        <circle cx="3" cy="3" r="1.8" fill={ink} />
+        <circle cx="8" cy="8" r="1.8" fill={ink} />
+      </pattern>
+    )
+  if (pattern === 'plaid')
+    return (
+      <pattern id={`pat-${id}`} width="16" height="16" patternUnits="userSpaceOnUse">
+        <rect width="16" height="4" fill={ink} opacity="0.45" />
+        <rect width="4" height="16" fill={ink} opacity="0.45" />
+        <rect y="9" width="16" height="1" fill={ink} opacity="0.6" />
+        <rect x="9" width="1" height="16" fill={ink} opacity="0.6" />
+      </pattern>
+    )
+  if (pattern === 'floral')
+    return (
+      <pattern id={`pat-${id}`} width="18" height="18" patternUnits="userSpaceOnUse">
+        {[
+          [5, 5],
+          [14, 13],
+        ].map(([x, y]) => (
+          <g key={`${x}-${y}`}>
+            {[0, 72, 144, 216, 288].map((a) => (
+              <ellipse key={a} cx={x} cy={y - 2.4} rx="1.5" ry="2.4" fill={light ? '#c4566a' : '#f4c6d0'} transform={`rotate(${a} ${x} ${y})`} />
+            ))}
+            <circle cx={x} cy={y} r="1.2" fill="#f2c94c" />
+          </g>
+        ))}
+        <path d="M9 14 q2 -3 4 -2" stroke={light ? '#6d8b5a' : '#cfe3c0'} strokeWidth="0.8" fill="none" />
+      </pattern>
+    )
+  return null
+}
+
 export function ProductThumb({
   category,
   subcategory,
   silhouette,
   color,
+  pattern,
   label,
   showTag = true,
   className,
@@ -89,6 +135,8 @@ export function ProductThumb({
   silhouette?: string | null
   /** Catalog colour name, e.g. "Sage". */
   color?: string | null
+  /** solid | striped | floral | polka-dot | plaid | graphic (from the vision agent, or the dev truth for dev images) */
+  pattern?: string | null
   /** Accessible name, e.g. the product name. Omit when the image is decorative. */
   label?: string
   showTag?: boolean
@@ -105,7 +153,7 @@ export function ProductThumb({
     <div
       className={cn('relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-surface-2 to-surface-3', className)}
       role={label ? 'img' : undefined}
-      aria-label={label ? `${label}${color ? `, ${color}` : ''} (illustration)` : undefined}
+      aria-label={label ? `${label}${color ? `, ${color}` : ''}${pattern && pattern !== 'solid' ? `, ${pattern}` : ''} (illustration)` : undefined}
       aria-hidden={label ? undefined : true}
     >
       <svg viewBox="0 0 120 146" className="h-[78%] w-[78%] drop-shadow-[0_6px_8px_rgb(0_0_0/0.12)]">
@@ -115,9 +163,20 @@ export function ProductThumb({
             <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
             <stop offset="1" stopColor="#000" stopOpacity="0.18" />
           </linearGradient>
+          <clipPath id={`body-${id}`}>
+            <path d={shape.body} />
+          </clipPath>
+          <PatternDefs id={id} pattern={pattern} light={light} />
         </defs>
         <ellipse cx="60" cy={shape.floor ?? 139} rx="34" ry="3" fill="rgb(0 0 0 / 0.10)" />
         <path d={shape.body} style={{ fill }} />
+        {pattern && pattern !== 'solid' && pattern !== 'graphic' && <path d={shape.body} fill={`url(#pat-${id})`} />}
+        {pattern === 'graphic' && (
+          <g clipPath={`url(#body-${id})`} opacity="0.85">
+            <circle cx="60" cy="62" r="14" fill={light ? '#2f3a6b' : '#f2e6c9'} />
+            <path d="M40 86 L52 70 L60 78 L70 64 L82 86 Z" fill={light ? '#b0524a' : '#9cad8a'} />
+          </g>
+        )}
         <path d={shape.body} fill={`url(#shade-${id})`} />
         {shape.details.map((d) => (
           <path key={d} d={d} fill="none" stroke={line} strokeWidth="1.2" strokeLinecap="round" />

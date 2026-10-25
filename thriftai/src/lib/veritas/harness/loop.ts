@@ -42,7 +42,8 @@ type Stop = { status: AgentRunStatus; error?: string }
 
 export async function runAgent<F extends z.ZodObject>(
   agent: AgentDef<F>,
-  input: string,
+  /** The task: text, or content blocks (e.g. an image plus text for the vision agent). */
+  input: string | Anthropic.ContentBlockParam[],
   opts: RunOptions = {},
 ): Promise<RunResult<z.infer<F>>> {
   const llm = opts.llm ?? getLlm()

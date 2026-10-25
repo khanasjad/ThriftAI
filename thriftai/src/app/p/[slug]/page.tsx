@@ -22,6 +22,7 @@ import { loadAlternatives } from '@/lib/veritas/read/alternatives'
 import { loadInstantAnswers } from '@/lib/veritas/read/qa'
 import { driversForProducts } from '@/lib/veritas/read/drivers'
 import { DriverTiles } from '@/components/veritas/drivers'
+import { VisualPanel } from '@/components/veritas/visual-panel'
 import { ProductQA } from './product-qa'
 
 export const dynamic = 'force-dynamic'
@@ -81,7 +82,7 @@ export default async function ProductPage({ params }: Props) {
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
           {/* Left column */}
           <aside className="order-2 flex flex-col gap-6 lg:order-none lg:sticky lg:top-24 lg:self-start">
-            <ProductGallery name={product.name} category={product.category} subcategory={product.subcategory} silhouette={product.silhouette} colors={product.colors} />
+            <ProductGallery name={product.name} category={product.category} subcategory={product.subcategory} silhouette={product.silhouette} colors={product.colors} pattern={data.visual?.pattern} />
             <SpecCard data={data} />
           </aside>
 
@@ -153,6 +154,8 @@ export default async function ProductPage({ params }: Props) {
                 {score.downside && <Callout title="Main downside" body={score.downside} />}
               </section>
             ) : null}
+
+            {data.visual && <VisualPanel visual={data.visual} />}
 
             <ProductQA productId={product.slug} instant={instant} />
 

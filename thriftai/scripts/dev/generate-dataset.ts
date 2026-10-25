@@ -10,6 +10,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { devPatternFor } from '../../src/lib/veritas/dev/patterns'
 
 // ---------------------------------------------------------------------------
 // Deterministic randomness
@@ -262,7 +263,7 @@ const brands = BRANDS.map((b) => ({
 
 const sellers = SELLERS.map((name) => ({ slug: slugify(name), name, website: `https://${slugify(name)}.example`, source: SOURCE }))
 
-type Product = Record<string, unknown> & { slug: string; _truth: Truth & { notes: string[] } }
+type Product = Record<string, unknown> & { slug: string; _truth: Truth & { notes: string[]; pattern?: string } }
 const products: Product[] = []
 const reviews: Record<string, unknown>[] = []
 const returns: Record<string, unknown>[] = []
@@ -345,10 +346,11 @@ plan.forEach(({ brand, kind }, idx) => {
     unitsSold: null as number | null, // set below from the review count
     resaleRetainedPct: isNew ? null : Math.round(clamp(0.1 + 0.45 * (0.6 * q + 0.4 * truth.washDurability) + between(-0.06, 0.06)) * 100),
     launchDate: daysAgo(launchDaysAgo).toISOString(),
-    primaryImageUrl: `https://picsum.photos/seed/${slug}/800/1000`,
-    images: [`https://picsum.photos/seed/${slug}/800/1000`, `https://picsum.photos/seed/${slug}-2/800/1000`],
+    // Rendered by npm run dev:images (illustration + known pattern), standing in for vendor photos.
+    primaryImageUrl: `/dev-images/${slug}.png`,
+    images: [`/dev-images/${slug}.png`],
     source: SOURCE,
-    _truth: truth,
+    _truth: { ...truth, pattern: devPatternFor(slug, kind === 'tee' ? 'TOPS' : 'BOTTOMS') },
   })
 
   // --- Reviews ---
