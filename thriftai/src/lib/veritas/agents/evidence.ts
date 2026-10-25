@@ -19,7 +19,8 @@ import { FACTOR_KEYS, signalsFor, type EvidenceDraft, type ProductBundle } from 
 
 export const REVIEWS_PER_PAGE = 10
 export const MAX_REVIEWS_READ = 40
-const MAX_ITEMS_PER_CALL = 20
+// Strict tool schemas can't enforce array maximums, so the handler processes the first N and asks for the rest.
+const MAX_ITEMS_PER_CALL = 40
 
 /** Taxonomy block for the system prompt. Deterministic, so the prompt stays byte-stable (cacheable). */
 const TAXONOMY_TEXT = FACTOR_TAXONOMY.map((f) => `- ${f.key} (${f.name}): ${f.description} Signals: ${f.signals.map((s) => s.signal).join(', ')}`).join('\n')
@@ -138,8 +139,10 @@ export function makeEvidenceAgent(bundle: ProductBundle, out: EvidenceRunOutput)
   const recordEvidence = defineTool({
     name: 'record_evidence',
     description: `Record evidence items (max ${MAX_ITEMS_PER_CALL} per call). Each quote is checked against its source; invalid items are rejected with a reason.`,
-    schema: z.object({ items: z.array(evidenceItem).min(1).max(MAX_ITEMS_PER_CALL) }),
-    handler: ({ items }) => {
+    schema: z.object({ items: z.array(evidenceItem).min(1) }),
+    handler: ({ items: all }) => {
+      const items = all.slice(0, MAX_ITEMS_PER_CALL)
+      const overflow = all.length - items.length
       const rejected: string[] = []
       let accepted = 0
       for (const [i, it] of items.entries()) {
@@ -182,7 +185,8 @@ export function makeEvidenceAgent(bundle: ProductBundle, out: EvidenceRunOutput)
       }
       out.rejectedCount += rejected.length
       if (accepted === 0 && rejected.length > 0) throw new ToolError(`Nothing recorded. ${rejected.join(' | ')}`)
-      return rejected.length ? `Recorded ${accepted}. Rejected ${rejected.length}: ${rejected.join(' | ')}` : `Recorded ${accepted}.`
+      const more = overflow > 0 ? ` Only the first ${MAX_ITEMS_PER_CALL} items were processed; send the remaining ${overflow} in another call.` : ''
+      return (rejected.length ? `Recorded ${accepted}. Rejected ${rejected.length}: ${rejected.join(' | ')}` : `Recorded ${accepted}.`) + more
     },
   })
 
@@ -208,4 +212,4 @@ Read the reviews and written return reasons and record evidence.`
 }
 
 /** Version of the prompt + tools, part of the inputs hash: changing the agent re-rates products. */
-export const EVIDENCE_AGENT_VERSION = 'evidence@1'
+export const EVIDENCE_AGENT_VERSION = 'evidence@2' // @2: oversized record_evidence calls are processed in part, not rejected

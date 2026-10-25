@@ -55,6 +55,8 @@ export async function loadBundle(slugOrId: string): Promise<ProductBundle | null
       careInstructions: p.careInstructions,
       certifications: p.certifications,
       recycledContent: p.recycledContent,
+      unitsSold: p.unitsSold,
+      resaleRetainedPct: p.resaleRetainedPct,
       launchDate: p.launchDate,
       updatedAt: p.updatedAt,
     },

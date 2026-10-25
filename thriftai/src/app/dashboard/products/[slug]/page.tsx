@@ -7,6 +7,8 @@ import { SiteShell } from '@/components/site/shell'
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/primitives'
 import { RETURN_REASON } from '@/components/veritas/labels'
 import { brandForUser, requirePageRole } from '@/lib/veritas/authz'
+import { loadWhy } from '@/lib/veritas/insights/load'
+import { WhyScore } from './why-score'
 
 export const metadata: Metadata = { title: 'Product insights', robots: { index: false } }
 export const dynamic = 'force-dynamic'
@@ -50,6 +52,7 @@ export default async function ProductInsightsPage({ params, searchParams }: Prop
   const sizeRows = [...sizes.entries()].sort((a, b) => sizeKey(a[0]) - sizeKey(b[0]))
   const reasons = Object.entries(product.returns.reduce<Record<string, number>>((a, r) => ((a[r.returnReason] = (a[r.returnReason] ?? 0) + 1), a), {})).sort((a, b) => b[1] - a[1])
   const back = `/dashboard${requested ? `?brand=${requested}` : ''}`
+  const why = await loadWhy(product.id)
 
   return (
     <SiteShell>
@@ -63,6 +66,8 @@ export default async function ProductInsightsPage({ params, searchParams }: Prop
             Public product page <ExternalLink className="size-3.5" aria-hidden />
           </Link>
         </div>
+
+        {why && <WhyScore why={why} />}
 
         <section aria-labelledby="sizes-h" className="mt-8 rounded-2xl border border-border bg-surface p-6 shadow-sm">
           <h2 id="sizes-h" className="text-base font-semibold text-fg">

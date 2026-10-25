@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, BadgeCheck, Ban, Gauge, Quote, Scale, Search, ShieldCheck, Sparkles, Trophy, BadgeDollarSign } from 'lucide-react'
 import { SiteShell } from '@/components/site/shell'
+import { SuggestInput } from '@/components/veritas/suggest-input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/primitives'
 import { PILLARS } from '@/components/veritas/score'
@@ -55,13 +56,7 @@ export default async function HomePage() {
               </label>
               <div className="flex items-center gap-2 rounded-xl border border-border-strong bg-surface p-1.5 shadow-md focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
                 <Search className="ml-2.5 size-5 shrink-0 text-fg-subtle" aria-hidden />
-                <input
-                  id="hero-q"
-                  name="q"
-                  placeholder="e.g. jeans that don’t stretch out"
-                  autoComplete="off"
-                  className="h-11 min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"
-                />
+                <SuggestInput id="hero-q" placeholder="e.g. jeans that don’t stretch out" />
                 <Button type="submit" size="md">
                   Search
                 </Button>

@@ -14,6 +14,7 @@ import { Logo } from './logo'
 
 const NAV = [
   { href: '/search', label: 'Search' },
+  { href: '/collections', label: 'Collections' },
   { href: '/how-it-works', label: 'How it works' },
   { href: '/brands', label: 'For brands' },
   { href: '/developers', label: 'Developers' },
@@ -82,6 +83,7 @@ export function SiteHeader() {
   const items: CommandItem[] = [
     { id: 'home', group: 'Pages', label: 'Home', icon: <Home />, onSelect: () => go('/') },
     { id: 'search', group: 'Pages', label: 'Search clothing', icon: <Search />, onSelect: () => go('/search') },
+    { id: 'collections', group: 'Pages', label: 'Collections', icon: <Search />, onSelect: () => go('/collections') },
     { id: 'how', group: 'Pages', label: 'How the score works', icon: <BookOpen />, onSelect: () => go('/how-it-works') },
     { id: 'profile', group: 'Pages', label: 'Your fit profile', icon: <UserRound />, onSelect: () => go('/profile') },
     { id: 'brands', group: 'Pages', label: 'For brands', icon: <Building2 />, onSelect: () => go('/brands') },

@@ -9,7 +9,7 @@ export type DraftSentence = { field: Field; text: string; evidence_ids: string[]
 export type CheckedSentence = DraftSentence & { ok: boolean; reason?: string }
 
 // Product plan: nothing about health, safety or legal claims; no hype.
-const BANNED = [
+export const BANNED = [
   { re: /\b(cure|heal|medical|therapeutic|allerg\w*|hypoallergenic|non-?toxic|toxic|safe for|eczema|skin condition)\b/i, why: 'health or safety claim' },
   { re: /\b(lawsuit|legal|illegal|certified safe|guarantee\w*|warrant(y|ied))\b/i, why: 'legal or guarantee claim' },
   { re: /\b(best ever|perfect|flawless|must-have|life-?changing|amazing|incredible|unbeatable|game-?changer)\b/i, why: 'hype' },
@@ -50,4 +50,17 @@ export function compose(sentences: DraftSentence[]) {
     return t || null
   }
   return { summary: join('summary'), sizeAdvice: join('size_advice'), downside: join('downside') }
+}
+
+/**
+ * The shopkeeper's conversational reply: short, no product names, no hype, health or legal claims.
+ * Returns the reply, or null when it must be replaced by a templated one.
+ */
+export function checkReply(reply: string, productNames: string[]): string | null {
+  const r = reply.trim().replace(/\s+/g, ' ')
+  if (!r || r.length > 320) return null
+  if (BANNED.some((b) => b.re.test(r))) return null
+  const lower = r.toLowerCase()
+  if (productNames.some((n) => n.length > 6 && lower.includes(n.toLowerCase()))) return null
+  return r
 }

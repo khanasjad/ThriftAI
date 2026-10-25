@@ -16,9 +16,13 @@ export type Candidate = {
   brandName: string
   category: string
   subcategory: string | null
+  gender: string
   text: string
   fitType: string | null
   silhouette: string | null
+  colors: string[]
+  /** Tees: cropped / regular / longline (from name and silhouette). Null for other categories. */
+  length: 'cropped' | 'regular' | 'longline' | null
   gsm: number | null
   elastanePct: number | null
   breathability: number | null
@@ -37,11 +41,15 @@ export type Candidate = {
 }
 
 export type MatchPart = { key: 'fit' | 'style' | 'climate' | 'budget' | 'priorities'; value: number; weight: number; reason?: string }
-export type MatchResult = { score: number | null; parts: MatchPart[]; reasons: string[] }
+export type MatchResult = { score: number | null; parts: MatchPart[]; reasons: string[]; weight: number }
 
 const clamp = (x: number) => Math.max(0, Math.min(100, x))
-const PRODUCT_WEIGHT = 0.6
+/** Plan: final = 0.6 × Product + 0.4 × Match, at full strength once enough is known about the shopper. */
 const MATCH_WEIGHT = 0.4
+/** Match part weight (of 100) at which the match gets its full 0.4; below it the match counts proportionally less. */
+const FULL_MATCH_AT = 60
+/** Below this much match evidence no match number is shown (one weak signal must not look like a verdict). */
+export const SHOW_MATCH_AT = 35
 
 // --- Personal Match components ------------------------------------------------
 
@@ -123,14 +131,14 @@ export function personalMatch(c: Candidate, intent: SearchIntent, who: ShopperCo
     budgetFit(c, intent.maxPrice ?? who.budgetMax),
     priorityFit(c, priorities),
   ].filter((p): p is MatchPart => p !== null)
-  if (!parts.length) return { score: null, parts, reasons: [] }
+  if (!parts.length) return { score: null, parts, reasons: [], weight: 0 }
   const w = parts.reduce((s, p) => s + p.weight, 0)
   const score = Math.round(parts.reduce((s, p) => s + p.value * p.weight, 0) / w)
   const reasons = parts
     .filter((p) => p.reason && p.value >= 60)
     .sort((a, b) => b.value * b.weight - a.value * a.weight)
     .map((p) => p.reason!)
-  return { score, parts, reasons }
+  return { score, parts, reasons, weight: w }
 }
 
 // --- Filtering, ranking, picks --------------------------------------------------
@@ -141,11 +149,25 @@ export type Ranked = Candidate & { productScore: number; match: number | null; f
 export const BUDGET_STRETCH = 1.25
 
 /** Hard filters: category, budget, brand lists. Relevance from query terms (0 when there are none). */
+const norm = (x: string) => x.toLowerCase().trim()
+/** Colour names match by containment: "grey" matches "Heather Grey". */
+const colorMatch = (productColor: string, wanted: string) => norm(productColor).includes(norm(wanted)) || norm(wanted).includes(norm(productColor))
+
 export function filterCandidates(cands: Candidate[], intent: SearchIntent, who: ShopperContext, budgetFactor = 1) {
   const budget = intent.maxPrice ?? who.budgetMax ?? undefined
+  const colors = intent.colors ?? []
+  const exclude = intent.excludeColors ?? []
+  const cuts = (intent.cuts ?? []).map(norm)
   return cands
     .filter((c) => !intent.category || c.category === intent.category)
+    .filter((c) => !intent.gender || c.gender === intent.gender || c.gender === 'UNISEX')
     .filter((c) => !budget || c.priceMin <= budget * budgetFactor)
+    .filter((c) => !intent.minPrice || c.priceMax >= intent.minPrice)
+    .filter((c) => !colors.length || c.colors.some((pc) => colors.some((w) => colorMatch(pc, w))))
+    // Excluding a colour removes a product only when every colour it comes in is excluded.
+    .filter((c) => !exclude.length || !c.colors.length || c.colors.some((pc) => !exclude.some((w) => colorMatch(pc, w))))
+    .filter((c) => !cuts.length || cuts.some((k) => norm(c.silhouette ?? '').includes(k) || norm(c.name).includes(k.replace(/-/g, ' '))))
+    .filter((c) => !intent.length || c.length === null || c.length === intent.length)
     .filter((c) => !(who.brandDeny ?? []).includes(c.brandSlug))
     .filter((c) => !(who.brandAllow ?? []).length || who.brandAllow!.includes(c.brandSlug))
     .map((c) => ({ c, relevance: intent.terms.filter((t) => c.text.includes(t)).length }))
@@ -174,8 +196,11 @@ function score(items: { c: Candidate; relevance: number }[], intent: SearchInten
     .map(({ c, relevance }) => {
       const productScore = (sustain && c.scoreWithSustainability !== null ? c.scoreWithSustainability : c.score)!
       const m = personalMatch(c, intent, who)
-      const final = m.score === null ? productScore : PRODUCT_WEIGHT * productScore + MATCH_WEIGHT * m.score
-      return { ...c, productScore, match: m.score, final: Math.round(final * 10) / 10, reasons: m.reasons, relevance }
+      // The match's share grows with how much we know: one weak signal (e.g. climate alone) can't outrank the score.
+      const w = m.score === null ? 0 : MATCH_WEIGHT * Math.min(1, m.weight / FULL_MATCH_AT)
+      const final = (1 - w) * productScore + w * (m.score ?? 0)
+      const shown = m.weight >= SHOW_MATCH_AT ? m.score : null
+      return { ...c, productScore, match: shown, final: Math.round(final * 10) / 10, reasons: m.reasons, relevance }
     })
     .sort((a, b) => b.relevance - a.relevance || b.final - a.final || a.slug.localeCompare(b.slug))
 }

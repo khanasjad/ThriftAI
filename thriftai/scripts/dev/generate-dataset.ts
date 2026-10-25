@@ -100,6 +100,8 @@ type Truth = {
   itch: number
   photoAccuracy: number
   versatility: number
+  /** How flattering the cut is across body types, 0..1 */
+  flattering: number
 }
 
 // ---------------------------------------------------------------------------
@@ -165,7 +167,12 @@ function qualityLines(truth: Truth, kind: 'tee' | 'jeans', washes: number): Line
 function comfortLine(truth: Truth, kind: 'tee' | 'jeans'): Line | null {
   const r = rand()
   if (r < 0.35) return truth.softness > 0.65 ? { text: `Super soft and comfortable.`, s: 0.9 } : truth.softness < 0.35 ? { text: `Feels stiff and a bit rough.`, s: -0.6 } : null
-  if (r < 0.55) return truth.itch > 0.6 ? { text: `The tag and side seam are scratchy.`, s: -0.6 } : null
+  if (r < 0.55)
+    return truth.itch > 0.6
+      ? pick([{ text: `The tag and side seam are scratchy.`, s: -0.6 }, { text: `Made my skin itch around the collar.`, s: -0.7 }])
+      : truth.itch < 0.25
+        ? { text: `Gentle on my sensitive skin, no itching at all.`, s: 0.7 }
+        : null
   if (r < 0.75 && kind === 'jeans') return truth.stretch > 0.5 ? { text: `Has some stretch, easy to move and sit in.`, s: 0.7 } : { text: `Rigid denim, takes a while to break in.`, s: -0.3 }
   if (r < 0.9) return truth.breathability > 0.65 ? { text: `Breathable, great for warm days.`, s: 0.7 } : truth.breathability < 0.35 ? { text: `Gets hot quickly, not for summer.`, s: -0.5 } : null
   return null
@@ -182,13 +189,47 @@ function photoLine(truth: Truth): Line | null {
 
 function extraLine(truth: Truth, kind: 'tee' | 'jeans'): Line | null {
   const r = rand()
-  if (r < 0.25 && truth.versatility > 0.7) return { text: `Goes with everything in my wardrobe.`, s: 0.6 }
+  if (r < 0.25) {
+    if (truth.versatility > 0.7) return pick([{ text: `Goes with everything in my wardrobe.`, s: 0.6 }, { text: `A real staple, I can dress it up or down.`, s: 0.7 }])
+    if (truth.versatility < 0.45) return { text: `Hard to style, it only works with a couple of outfits.`, s: -0.4 }
+  }
   if (r < 0.4 && truth.lengthIssue !== 'none') {
     if (kind === 'jeans') return truth.lengthIssue === 'long' ? { text: `Inseam is really long, needed hemming.`, s: -0.4 } : { text: `Inseam is short, ankle-length on me.`, s: -0.4 }
     return truth.lengthIssue === 'short' ? { text: `Body length is short, rides up when I lift my arms.`, s: -0.5 } : { text: `Quite long in the body.`, s: -0.2 }
   }
-  if (r < 0.5 && truth.sizeInconsistent) return { text: `My usual size in this brand fits totally differently than my other pair from them.`, s: -0.6 }
+  if (r < 0.4 && truth.lengthIssue === 'none' && chance(0.5)) return kind === 'jeans' ? { text: `Inseam is spot on for me.`, s: 0.6 } : { text: `Length is just right, not too short or long.`, s: 0.6 }
+  if (r < 0.5) return truth.sizeInconsistent
+    ? { text: `My usual size in this brand fits totally differently than my other pair from them.`, s: -0.6 }
+    : chance(0.5) ? { text: `Same fit as the other one I own from this brand.`, s: 0.5 } : null
   if (r < 0.6) return { text: `Easy care, machine wash and done.`, s: 0.5 }
+  return null
+}
+
+/** Long-term wear, only from reviewers who have owned it for months. */
+function longevityLine(truth: Truth, months: number): Line | null {
+  if (months < 3 || !chance(0.6)) return null
+  const d = (truth.washDurability + truth.construction) / 2
+  if (d > 0.75) return pick([
+    { text: `I've worn it every week for ${months} months and it's still going strong.`, s: 0.9 },
+    { text: `Owned it ${months} months now, still looks like new.`, s: 0.9 },
+  ])
+  if (d < 0.45) return pick([
+    { text: `Wore out within a couple of months.`, s: -0.9 },
+    { text: `Only lasted a few months before it fell apart.`, s: -0.9 },
+  ])
+  return { text: `Still wearing it after ${months} months, some signs of wear.`, s: 0.3 }
+}
+
+function wearLine(truth: Truth, washes: number): Line | null {
+  if (washes >= 3 && truth.pillingRisk < 0.3 && chance(0.4)) return { text: `No pilling at all, even after lots of wear.`, s: 0.8 }
+  if (truth.pillingRisk > 0.6 && chance(0.25)) return { text: `Snags really easily on bags and zips.`, s: -0.6 }
+  return null
+}
+
+function bodyLine(truth: Truth, bodyType: string | null): Line | null {
+  if (!bodyType || !chance(0.45)) return null
+  if (truth.flattering > 0.65) return { text: `Really flattering on my ${bodyType} build.`, s: 0.7 }
+  if (truth.flattering < 0.35) return { text: `Unflattering on my ${bodyType} frame, the proportions feel off.`, s: -0.6 }
   return null
 }
 
@@ -242,7 +283,8 @@ const usedNames = new Set<string>()
 plan.forEach(({ brand, kind }, idx) => {
   const silhouette = kind === 'tee' ? pick(TEE_SILHOUETTES) : pick(JEAN_SILHOUETTES)
   let name = pick((kind === 'tee' ? TEE_NAMES : JEAN_NAMES)[silhouette])
-  if (usedNames.has(`${brand.name}|${name}`)) name = `${name} II`
+  const baseName = name
+  for (let n = 2; usedNames.has(`${brand.name}|${name}`); n++) name = `${baseName} ${['II', 'III', 'IV', 'V'][n - 2]}`
   usedNames.add(`${brand.name}|${name}`)
   const slug = slugify(`${brand.name} ${name}`)
 
@@ -261,6 +303,7 @@ plan.forEach(({ brand, kind }, idx) => {
     itch: clamp(between(0, 0.8)),
     photoAccuracy: clamp(brand.photoHonesty + between(-0.15, 0.1)),
     versatility: silhouette === 'crew-tee' || silhouette === 'straight' ? between(0.7, 0.95) : between(0.3, 0.8),
+    flattering: clamp((silhouette === 'skinny' || silhouette === 'boxy-tee' ? 0.35 : 0.6) + between(-0.25, 0.25)),
     notes: [],
   }
 
@@ -299,6 +342,8 @@ plan.forEach(({ brand, kind }, idx) => {
     hasTall: chance(0.3),
     hasPlus: chance(0.35),
     certifications: brand.certifications,
+    unitsSold: null as number | null, // set below from the review count
+    resaleRetainedPct: isNew ? null : Math.round(clamp(0.1 + 0.45 * (0.6 * q + 0.4 * truth.washDurability) + between(-0.06, 0.06)) * 100),
     launchDate: daysAgo(launchDaysAgo).toISOString(),
     primaryImageUrl: `https://picsum.photos/seed/${slug}/800/1000`,
     images: [`https://picsum.photos/seed/${slug}/800/1000`, `https://picsum.photos/seed/${slug}-2/800/1000`],
@@ -312,17 +357,22 @@ plan.forEach(({ brand, kind }, idx) => {
     const washes = pick([0, 1, 2, 3, 5, 8, 10, 15])
     const lines: Line[] = []
     const reviewerBias = between(-0.15, 0.15)
+    const shares = chance(0.4)
+    const bodyType = shares ? pick(BODY_TYPES) : null
+    const months = washes === 0 ? 0 : washes < 4 ? 0 : int(2, 18)
     if (chance(0.75)) lines.push(fitLine(truth, kind, reviewerBias))
     lines.push(...qualityLines(truth, kind, washes))
     const c = comfortLine(truth, kind); if (c) lines.push(c)
     const p = photoLine(truth); if (p) lines.push(p)
     const e = extraLine(truth, kind); if (e) lines.push(e)
+    const lg = longevityLine(truth, months); if (lg) lines.push(lg)
+    const w = wearLine(truth, washes); if (w) lines.push(w)
+    const bl = bodyLine(truth, bodyType); if (bl) lines.push(bl)
     if (lines.length === 0) lines.push(pick([{ text: 'Good basic, does the job.', s: 0.4 }, { text: 'It is fine. Nothing special.', s: 0.0 }]))
-    const shuffled = lines.sort(() => rand() - 0.5).slice(0, 4)
+    const shuffled = lines.sort(() => rand() - 0.5).slice(0, 5)
     const avg = shuffled.reduce((a, l) => a + l.s, 0) / shuffled.length
     const rating = Math.max(1, Math.min(5, Math.round(3 + 2 * avg + between(-0.6, 0.6))))
     const value = avg > 0.4 && currentPrice < (kind === 'tee' ? 35 : 100) ? ' Great value for the price.' : avg < -0.4 && currentPrice > (kind === 'tee' ? 40 : 110) ? ' Not worth the price.' : ''
-    const shares = chance(0.4)
     const fitsAs = truth.fitOffset + reviewerBias < -0.2 ? 'runs_small' : truth.fitOffset + reviewerBias > 0.2 ? 'runs_large' : 'true_to_size'
     reviews.push({
       productSlug: slug,
@@ -334,8 +384,8 @@ plan.forEach(({ brand, kind }, idx) => {
       fitsAs: chance(0.6) ? fitsAs : null,
       heightCm: shares ? int(155, 192) : null,
       weightKg: shares ? int(48, 105) : null,
-      bodyType: shares ? pick(BODY_TYPES) : null,
-      wearDuration: washes === 0 ? 'just arrived' : washes < 4 ? `${int(1, 4)} weeks` : `${int(2, 18)} months`,
+      bodyType,
+      wearDuration: washes === 0 ? 'just arrived' : washes < 4 ? `${int(1, 4)} weeks` : `${months} months`,
       isVerifiedPurchase: chance(0.8),
       helpfulVotes: int(0, 40),
       reviewDate: daysAgo(int(1, Math.min(launchDaysAgo, 400))).toISOString(),
@@ -343,27 +393,35 @@ plan.forEach(({ brand, kind }, idx) => {
     })
   }
 
-  // --- Returns (from truth, plus a little noise that clashes) ---
+  // --- Units sold and returns. Reviews are ~4–8% of buyers; return rates come from the truth. ---
+  const product = products[products.length - 1]
   if (!isNew) {
-    const returnCount = Math.round(reviewCount * between(0.15, 0.45))
-    for (let r = 0; r < returnCount; r++) {
-      let reason: string
-      const roll = rand()
-      if (Math.abs(truth.fitOffset) > 0.35 && roll < 0.6) reason = truth.fitOffset < 0 ? 'TOO_SMALL' : 'TOO_LARGE'
-      else if (truth.washDurability < 0.45 && roll < 0.75) reason = pick(['POOR_QUALITY', 'DAMAGE_DEFECT'])
-      else if (truth.photoAccuracy < 0.55 && roll < 0.85) reason = pick(['NOT_AS_DESCRIBED', 'COLOR_MISMATCH'])
-      else reason = pick(['CHANGED_MIND', 'STYLE_DISLIKE', 'POOR_FIT', 'OTHER'])
-      const category = ['TOO_SMALL', 'TOO_LARGE', 'POOR_FIT'].includes(reason) ? 'FIT' : ['POOR_QUALITY', 'DAMAGE_DEFECT'].includes(reason) ? 'QUALITY' : ['NOT_AS_DESCRIBED', 'COLOR_MISMATCH', 'STYLE_DISLIKE'].includes(reason) ? 'STYLE' : 'OTHER'
-      returns.push({
-        productSlug: slug,
-        returnReason: reason,
-        returnCategory: category,
-        sizePurchased: kind === 'tee' ? pick(['S', 'M', 'L']) : pick(['28', '30', '32']),
-        purchasePrice: round2(currentPrice),
-        returnDate: daysAgo(int(1, 300)).toISOString(),
-        source: SOURCE,
-      })
+    const units = Math.round(reviewCount * between(12, 25))
+    product.unitsSold = units
+    const fitRate = (kind === 'jeans' ? 0.07 : 0.03) + 0.2 * Math.abs(truth.fitOffset) + (truth.sizeInconsistent ? 0.06 : 0) + (truth.lengthIssue !== 'none' ? 0.02 : 0)
+    const qualityRate = 0.004 + 0.035 * (1 - truth.washDurability) + 0.025 * (1 - truth.construction)
+    const styleRate = 0.01 + 0.06 * (1 - truth.photoAccuracy)
+    const otherRate = 0.03
+    const add = (n: number, reasonFor: () => string) => {
+      for (let r = 0; r < n; r++) {
+        const reason = reasonFor()
+        const category = ['TOO_SMALL', 'TOO_LARGE', 'POOR_FIT'].includes(reason) ? 'FIT' : ['POOR_QUALITY', 'DAMAGE_DEFECT'].includes(reason) ? 'QUALITY' : ['NOT_AS_DESCRIBED', 'COLOR_MISMATCH', 'STYLE_DISLIKE'].includes(reason) ? 'STYLE' : 'OTHER'
+        returns.push({
+          productSlug: slug,
+          returnReason: reason,
+          returnCategory: category,
+          sizePurchased: kind === 'tee' ? pick(['S', 'M', 'L']) : pick(['28', '30', '32']),
+          purchasePrice: round2(currentPrice),
+          returnDate: daysAgo(int(1, 300)).toISOString(),
+          source: SOURCE,
+        })
+      }
     }
+    const fitReason = () => (Math.abs(truth.fitOffset) > 0.2 && chance(0.8) ? (truth.fitOffset < 0 ? 'TOO_SMALL' : 'TOO_LARGE') : pick(['TOO_SMALL', 'TOO_LARGE', 'POOR_FIT']))
+    add(Math.round(units * fitRate * between(0.85, 1.15)), fitReason)
+    add(Math.round(units * qualityRate * between(0.85, 1.15)), () => pick(['POOR_QUALITY', 'DAMAGE_DEFECT']))
+    add(Math.round(units * styleRate), () => pick(['NOT_AS_DESCRIBED', 'COLOR_MISMATCH', 'STYLE_DISLIKE']))
+    add(Math.round(units * otherRate), () => pick(['CHANGED_MIND', 'OTHER']))
   }
 
   // --- Prices: 13 weekly snapshots from 2–3 sellers ---

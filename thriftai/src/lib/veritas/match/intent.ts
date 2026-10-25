@@ -6,10 +6,23 @@ import type { PillarKey } from '../scoring/v2'
 
 export type Fit = 'slim' | 'regular' | 'relaxed' | 'oversized'
 export type Climate = 'hot' | 'mild' | 'cold'
+export type Length = 'cropped' | 'regular' | 'longline'
+export type Gender = 'MENS' | 'WOMENS' | 'UNISEX'
 
 export type SearchIntent = {
   category?: 'TOPS' | 'BOTTOMS'
+  /** Who it's for. Unisex products always match. */
+  gender?: Gender
+  minPrice?: number
   maxPrice?: number
+  /** Any of these colours (matched against the product's colour names). */
+  colors?: string[]
+  /** Leave out products available only in these colours. */
+  excludeColors?: string[]
+  /** Cuts / silhouettes, e.g. wide-leg, bootcut, boxy-tee (any of). */
+  cuts?: string[]
+  /** Tee length. */
+  length?: Length
   fit?: Fit
   climate?: Climate
   /** Pillar weight boosts, e.g. { COMFORT: 1.5 } for "soft and comfy". */

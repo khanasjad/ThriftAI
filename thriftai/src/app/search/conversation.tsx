@@ -2,15 +2,15 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { AlertCircle, Hourglass, MessageSquareOff, UserRound } from 'lucide-react'
+import { AlertCircle, ArrowUp, Hourglass, Store, UserRound } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/primitives'
-import { ClarifyChips } from '@/components/veritas/clarify-chips'
 import { PickCard, type Pick } from '@/components/veritas/pick-card'
 import type { SearchResponse } from '@/lib/veritas/graph/answer-search'
+import { QuestionCard } from './question-card'
+import { cn } from '@/lib/utils'
 
-type State = { status: 'loading' } | { status: 'error'; message: string } | { status: 'done'; res: SearchResponse; answered: string[] }
-
-const FIT_LABEL: Record<string, string> = { slim: 'Slim fit', regular: 'Regular fit', relaxed: 'Relaxed fit', oversized: 'Oversized fit' }
+type Msg = { role: 'shopper' | 'shopkeeper'; text: string }
 
 async function post(body: unknown): Promise<SearchResponse> {
   const res = await fetch('/api/v1/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -19,77 +19,169 @@ async function post(body: unknown): Promise<SearchResponse> {
   return json.data
 }
 
-/** Conversational search: one clarifying question at a time (only when it changes the top pick), then 3 picks. */
+const FIT_LABEL: Record<string, string> = { slim: 'Slim fit', regular: 'Regular fit', relaxed: 'Relaxed fit', oversized: 'Oversized' }
+
+function readAs(i: SearchResponse['intent']) {
+  return [
+    i.category && (i.category === 'TOPS' ? 'Tees' : 'Jeans'),
+    i.gender && (i.gender === 'MENS' ? 'Men' : i.gender === 'WOMENS' ? 'Women' : 'Unisex'),
+    i.minPrice && i.maxPrice ? `$${i.minPrice}–$${i.maxPrice}` : i.maxPrice ? `Under $${i.maxPrice}` : i.minPrice ? `From $${i.minPrice}` : null,
+    ...(i.colors ?? []),
+    ...(i.excludeColors ?? []).map((c) => `Not ${c}`),
+    i.fit && FIT_LABEL[i.fit],
+    ...(i.cuts ?? []).map((c) => c.replace(/-/g, ' ')),
+    i.length && `${i.length[0].toUpperCase()}${i.length.slice(1)} length`,
+    i.climate && `${i.climate[0].toUpperCase()}${i.climate.slice(1)} weather`,
+    i.occasion,
+    ...Object.keys(i.priorities).map((p) => `Cares about ${p.toLowerCase().replace('_', ' & ')}`),
+    i.sustainability && 'Sustainable',
+    ...i.terms.map((t) => `“${t}”`),
+  ].filter(Boolean) as string[]
+}
+
+/**
+ * Shopkeeper conversation: up to 4 questions (chips or free text), "Just show me" at any time,
+ * picks below that update after every message. Picks come from code + the Veritas Score, never from the agent.
+ */
 export function Conversation({ query }: { query: string }) {
-  const [state, setState] = React.useState<State>({ status: 'loading' })
-  const [busy, setBusy] = React.useState(false)
+  const [msgs, setMsgs] = React.useState<Msg[]>([{ role: 'shopper', text: query }])
+  const [res, setRes] = React.useState<SearchResponse | null>(null)
+  const [busy, setBusy] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+  const [draft, setDraft] = React.useState('')
+  const endRef = React.useRef<HTMLLIElement>(null)
 
   React.useEffect(() => {
     let cancelled = false
-    setState({ status: 'loading' })
+    setMsgs([{ role: 'shopper', text: query }])
+    setBusy(true)
     post({ message: query })
-      .then((res) => !cancelled && setState({ status: 'done', res, answered: [] }))
-      .catch((e) => !cancelled && setState({ status: 'error', message: e.message }))
+      .then((r) => {
+        if (cancelled) return
+        setRes(r)
+        setMsgs((m) => [...m, { role: 'shopkeeper', text: r.reply }])
+      })
+      .catch((e) => !cancelled && setError(e.message))
+      .finally(() => !cancelled && setBusy(false))
     return () => {
       cancelled = true
     }
   }, [query])
 
-  async function answer(label: string) {
-    if (state.status !== 'done' || !state.res.question) return
-    const q = state.res.question
-    const chip = q.chips.find((c) => c.label === label)
-    if (!chip) return
+  React.useEffect(() => {
+    if (msgs.length > 2) endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [msgs])
+
+  async function send(body: { message?: string; action?: 'show' }, shown: string) {
+    if (!res || busy) return
     setBusy(true)
+    setError(null)
+    setMsgs((m) => [...m, { role: 'shopper', text: shown }])
     try {
-      const res = await post({ sessionId: state.res.sessionId, answer: { slot: q.slot, value: chip.value } })
-      setState({ status: 'done', res, answered: [...state.answered, label] })
+      const r = await post({ sessionId: res.sessionId, ...body })
+      setRes(r)
+      setMsgs((m) => [...m, { role: 'shopkeeper', text: r.reply }])
     } catch (e) {
-      setState({ status: 'error', message: e instanceof Error ? e.message : 'Search failed' })
+      setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
       setBusy(false)
     }
   }
 
-  if (state.status === 'loading') return <PicksSkeleton />
-  if (state.status === 'error')
-    return (
-      <p role="alert" className="mt-6 flex items-center gap-2 rounded-lg border border-critical/40 bg-critical-soft px-4 py-3 text-sm text-critical-fg">
-        <AlertCircle className="size-4" aria-hidden /> {state.message}
-      </p>
-    )
+  function submit(e: React.FormEvent) {
+    e.preventDefault()
+    const t = draft.trim()
+    if (!t) return
+    setDraft('')
+    send({ message: t }, t)
+  }
 
-  const { res } = state
-  if (res.offTopic)
-    return (
-      <div className="mt-6 flex items-start gap-3 rounded-xl border border-border bg-surface p-5 text-sm text-fg-muted">
-        <MessageSquareOff className="mt-0.5 size-5 shrink-0 text-fg-subtle" aria-hidden />
-        <p>Veritas helps you find clothing worth buying. Try describing what you need, like “soft tee for hot weather under $40”.</p>
-      </div>
-    )
-
-  const i = res.intent
-  const readAs = [
-    i.category && (i.category === 'TOPS' ? 'Tees' : 'Jeans'),
-    i.maxPrice && `Under $${i.maxPrice}`,
-    i.fit && FIT_LABEL[i.fit],
-    i.climate && `${i.climate[0].toUpperCase()}${i.climate.slice(1)} weather`,
-    ...Object.keys(i.priorities).map((p) => `Cares about ${p.toLowerCase().replace('_', ' & ')}`),
-    i.sustainability && 'Sustainable',
-    ...i.terms.map((t) => `“${t}”`),
-  ].filter(Boolean) as string[]
-
-  const picks: Pick[] = res.picks.map((p) => ({ ...p, href: `/p/${p.slug}`, confidence: p.label }))
+  const picks: Pick[] = (res?.picks ?? []).map((p) => ({ ...p, href: `/p/${p.slug}`, confidence: p.label }))
+  const chips = res ? readAs(res.intent) : []
 
   return (
-    <section aria-labelledby="picks-h" className="mt-6">
-      <h2 id="picks-h" className="sr-only">
-        Picks for you
+    <section aria-labelledby="chat-h" className="mt-6">
+      <h2 id="chat-h" className="sr-only">
+        Conversation with the shopkeeper
       </h2>
-      {readAs.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-sm text-fg-subtle">
-          <span>Read as</span>
-          {readAs.map((c) => (
+
+      <div className="rounded-2xl border border-border bg-surface shadow-sm">
+        <ol className="flex max-h-[26rem] flex-col gap-3 overflow-y-auto p-4 sm:p-5" aria-live="polite" aria-relevant="additions" tabIndex={0} aria-label="Messages">
+          {msgs.map((m, i) => (
+            <li key={i} className={cn('flex gap-2', m.role === 'shopper' ? 'justify-end' : 'justify-start')}>
+              {m.role === 'shopkeeper' && (
+                <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent" aria-hidden>
+                  <Store className="size-4" />
+                </span>
+              )}
+              <p
+                className={cn(
+                  'max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed',
+                  m.role === 'shopper' ? 'rounded-br-md bg-accent text-accent-fg' : 'rounded-bl-md bg-surface-2 text-fg',
+                )}
+              >
+                <span className="sr-only">{m.role === 'shopper' ? 'You: ' : 'Shopkeeper: '}</span>
+                {m.text}
+              </p>
+            </li>
+          ))}
+          {busy && (
+            <li className="flex gap-2" aria-label="Shopkeeper is typing">
+              <span className="inline-flex size-7 items-center justify-center rounded-full bg-accent-soft text-accent" aria-hidden>
+                <Store className="size-4" />
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-2xl rounded-bl-md bg-surface-2 px-4 py-3" aria-hidden>
+                {[0, 1, 2].map((d) => (
+                  <span key={d} className="size-1.5 animate-pulse rounded-full bg-fg-subtle" style={{ animationDelay: `${d * 150}ms` }} />
+                ))}
+              </span>
+            </li>
+          )}
+          <li ref={endRef} aria-hidden className="h-0" />
+        </ol>
+
+        {res?.question && (
+          <QuestionCard
+            key={`${res.sessionId}-${msgs.length}`}
+            question={res.question}
+            asked={res.asked}
+            max={res.maxQuestions}
+            busy={busy}
+            autoFocus={msgs.length > 2}
+            onPick={(label) => send({ message: label }, label)}
+            onShow={() => send({ action: 'show' }, 'Just show me')}
+          />
+        )}
+
+        <form onSubmit={submit} className="flex items-center gap-2 border-t border-border p-2 sm:p-3">
+          <label htmlFor="chat-input" className="sr-only">
+            Message the shopkeeper
+          </label>
+          <input
+            id="chat-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={300}
+            disabled={!res}
+            placeholder={res?.question ? 'Or type your own answer…' : 'Refine: “cheaper”, “not black”, “show jeans instead”…'}
+            className="h-11 min-w-0 flex-1 rounded-lg bg-transparent px-3 text-sm text-fg outline-none placeholder:text-fg-subtle"
+          />
+          <Button type="submit" size="icon-sm" disabled={!draft.trim() || busy || !res} aria-label="Send">
+            <ArrowUp />
+          </Button>
+        </form>
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-3 flex items-center gap-2 rounded-lg border border-critical/40 bg-critical-soft px-4 py-3 text-sm text-critical-fg">
+          <AlertCircle className="size-4" aria-hidden /> {error}
+        </p>
+      )}
+
+      {chips.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-fg-subtle">
+          <span>Looking for</span>
+          {chips.map((c) => (
             <span key={c} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-fg-muted">
               {c}
             </span>
@@ -97,44 +189,40 @@ export function Conversation({ query }: { query: string }) {
         </div>
       )}
 
-      {res.question && (
-        <div className="mt-4" aria-busy={busy}>
-          <ClarifyChips question={res.question.question} chips={res.question.chips.map((c) => c.label)} onAnswer={answer} />
-          <p className="mt-2 text-xs text-fg-subtle">Asked only because your answer changes the best pick. The picks below are provisional.</p>
-        </div>
-      )}
-
-      {picks.length > 0 ? (
-        <>
-          <div className={`mt-5 grid gap-4 md:grid-cols-3 ${busy ? 'opacity-60' : ''}`} role="status" aria-live="polite">
+      {!res && busy ? (
+        <PicksSkeleton />
+      ) : picks.length > 0 ? (
+        <div className="mt-5">
+          <h3 className="text-sm font-medium text-fg">{res?.provisional ? 'Best so far (updates as you answer)' : 'Our three picks for you'}</h3>
+          <div className={cn('mt-3 grid gap-4 md:grid-cols-3', busy && 'opacity-60')}>
             {picks.map((p, idx) => (
               <PickCard key={`${p.role}-${p.href}`} pick={p} index={idx} />
             ))}
           </div>
           {picks.length < 3 && (
             <p className="mt-3 text-sm text-fg-muted">
-              Only {picks.length} {picks.length === 1 ? 'product fits' : 'products fit'} this search{picks.some((p) => p.overBudget) ? ', including one a little over budget' : ''}.
+              Only {picks.length} {picks.length === 1 ? 'product fits' : 'products fit'} so far{picks.some((p) => p.overBudget) ? ', including one a little over budget' : ''}. Try
+              relaxing a filter in the chat.
             </p>
           )}
-        </>
-      ) : (
+        </div>
+      ) : res && !res.offTopic ? (
         <div className="mt-5 flex items-start gap-3 rounded-xl border border-dashed border-border-strong p-5 text-sm text-fg-muted" role="status">
           <Hourglass className="mt-0.5 size-5 shrink-0 text-fg-subtle" aria-hidden />
           <p>
             {res.unrated > 0 ? (
               <>
-                {res.unrated} {res.unrated === 1 ? 'product matches' : 'products match'}, but none {res.unrated === 1 ? 'is' : 'are'} rated yet, so there are no picks. Picks
-                appear once the rating agents have read the evidence.{' '}
+                {res.unrated} {res.unrated === 1 ? 'product matches' : 'products match'}, but none {res.unrated === 1 ? 'is' : 'are'} rated yet, so there are no picks.{' '}
               </>
             ) : (
-              <>No products match. Try fewer words or a higher budget. </>
+              <>Nothing matches all of that. Tell the shopkeeper what to relax, like “any colour” or “a bit more budget”. </>
             )}
             <Link href="/how-it-works" className="text-accent underline underline-offset-4">
               How rating works
             </Link>
           </p>
         </div>
-      )}
+      ) : null}
 
       <p className="mt-4 flex items-center gap-2 text-sm text-fg-muted">
         <UserRound className="size-4 text-fg-subtle" aria-hidden />

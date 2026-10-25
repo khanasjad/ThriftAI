@@ -200,6 +200,10 @@ model ClothingProduct {
   hasPlus          Boolean  @default(false)
   recycledContent  Int?
   certifications   String[] @default([])
+  /// Units sold over the same window as the return events (from the brand or platform). Enables return *rates*.
+  unitsSold        Int?
+  /// Median resale price as % of retail, from a licensed resale-data partner. Null when unknown.
+  resaleRetainedPct Int?
 
   launchDate      DateTime?
   trendTag        TrendTag?

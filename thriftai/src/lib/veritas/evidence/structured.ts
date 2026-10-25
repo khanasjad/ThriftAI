@@ -4,8 +4,10 @@
  * price history and trend phase. Each rule is small, documented and unit-tested.
  * Free-text reading (fabric feel, construction, wash problems…) is the evidence agent's job.
  *
+ * Return rates and resale value are turned into a fixed number of weighted "votes" (see `votes`), so the
+ * factor score equals the computed share and its weight is capped: one big number can't swamp the reviews.
+ *
  * Not derived here, on purpose:
- * - Fit / quality return *rates* need order volumes; return events alone only show the mix of reasons.
  * - Value for money and brand reputation need other products' scores (B4 roll-ups).
  */
 import { computePriceFacts } from '../price/facts'
@@ -101,6 +103,54 @@ function priceFairness(b: ProductBundle): EvidenceDraft[] {
   return out
 }
 
+/**
+ * Turns a 0–1 share into VOTES drafts: round(share·VOTES) with the good signal, the rest with the bad one.
+ * With ±1 sentiments the factor's raw score is then ≈ share·100, and the total weight is VOTES·confidence.
+ */
+const VOTES = 10
+function votes(share: number, good: EvidenceDraft, bad: EvidenceDraft): EvidenceDraft[] {
+  const n = Math.round(Math.max(0, Math.min(1, share)) * VOTES)
+  return [...Array.from({ length: n }, () => ({ ...good })), ...Array.from({ length: VOTES - n }, () => ({ ...bad }))]
+}
+
+/** Typical return rates for the category (dev benchmark, to be replaced by real platform data). */
+export const RETURN_BENCHMARK = { TOPS: { fit: 0.08, quality: 0.03 }, BOTTOMS: { fit: 0.14, quality: 0.03 } } as const
+export const MIN_UNITS_FOR_RATE = 50
+const FIT_REASONS = { TOO_SMALL: 'returned_too_small', TOO_LARGE: 'returned_too_large', POOR_FIT: 'returned_poor_fit' } as const
+const QUALITY_REASONS = { POOR_QUALITY: 'returned_poor_quality', DAMAGE_DEFECT: 'returned_defect' } as const
+
+/**
+ * Fit and quality return *rates* (returns ÷ units sold), compared with the category benchmark:
+ * 0% → 100, at the benchmark → 50, twice the benchmark or worse → 0. The bad signal is the most common reason.
+ */
+function returnRates(b: ProductBundle): EvidenceDraft[] {
+  const units = b.product.unitsSold ?? 0
+  if (units < MIN_UNITS_FOR_RATE) return []
+  const bench = RETURN_BENCHMARK[b.product.category === 'BOTTOMS' ? 'BOTTOMS' : 'TOPS']
+  const out: EvidenceDraft[] = []
+  const rate = (reasons: Record<string, string>, factor: string, good: string, benchmark: number) => {
+    const hits = b.returns.filter((r) => r.returnReason in reasons)
+    const counts = new Map<string, number>()
+    for (const r of hits) counts.set(r.returnReason, (counts.get(r.returnReason) ?? 0) + 1)
+    const top = [...counts.entries()].sort((x, y) => y[1] - x[1])[0]?.[0]
+    const bad = top ? reasons[top] : Object.values(reasons)[0]
+    const share = 1 - hits.length / units / (2 * benchmark)
+    const draft = (signal: string): EvidenceDraft => ({ sourceType: 'RETURN', factor, signal, confidence: 0.6, quote: null, origin: 'code:return_rate' })
+    out.push(...votes(share, draft(good), draft(bad)))
+  }
+  rate(FIT_REASONS, 'fit.return_rate_fit', 'kept_good_fit', bench.fit)
+  rate(QUALITY_REASONS, 'quality.return_rate_quality', 'kept_good_quality', bench.quality)
+  return out
+}
+
+/** Resale value: median resale price as % of retail. 10% or less → 0, 50% or more → 100. Weaker weight. */
+function resale(b: ProductBundle): EvidenceDraft[] {
+  const pct = b.product.resaleRetainedPct
+  if (pct == null) return []
+  const draft = (signal: string): EvidenceDraft => ({ sourceType: 'PRICE', factor: 'style_value.resale_value', signal, confidence: 0.4, quote: null, origin: 'code:resale' })
+  return votes((pct - 10) / 40, draft('holds_value'), draft('no_resale_value'))
+}
+
 const TREND_SIGNAL = { EMERGING: 'on_trend', PEAK: 'on_trend', CLASSIC: 'timeless', DECLINING: 'dated' } as const
 
 function trend(b: ProductBundle): EvidenceDraft[] {
@@ -114,7 +164,7 @@ export function trendTagFor(phase: ProductBundle['trendPhase']): 'TRENDING' | 'C
   return phase === 'CLASSIC' ? 'CLASSIC' : phase === 'DECLINING' ? 'FADING' : 'TRENDING'
 }
 
-export const STRUCTURED_RULES = { fitAnswers, sizeRange, fabricWeight, stretch, careLabel, sustainability, priceFairness, trend }
+export const STRUCTURED_RULES = { fitAnswers, sizeRange, fabricWeight, stretch, careLabel, sustainability, priceFairness, returnRates, resale, trend }
 
 export function extractStructuredEvidence(b: ProductBundle): EvidenceDraft[] {
   return Object.values(STRUCTURED_RULES).flatMap((rule) => rule(b))

@@ -22,6 +22,10 @@ export type ProductBundle = {
     careInstructions: string | null
     certifications: string[]
     recycledContent: number | null
+    /** Units sold over the returns window (brand/platform data). Enables return rates. */
+    unitsSold?: number | null
+    /** Median resale price as % of retail (licensed resale data). */
+    resaleRetainedPct?: number | null
     launchDate: Date | null
     updatedAt: Date
   }

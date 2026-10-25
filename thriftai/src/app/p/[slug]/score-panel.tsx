@@ -114,7 +114,7 @@ export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inp
             {showTraceLink && score.ratedByRunId && (
               <>
                 {' · '}
-                <Link href={`/admin/runs/${score.ratedByRunId}`} className="text-accent hover:underline">
+                <Link href={`/admin/runs/${score.ratedByRunId}`} className="text-accent underline underline-offset-4">
                   View agent trace
                 </Link>
               </>

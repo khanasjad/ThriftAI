@@ -153,7 +153,7 @@ As reviews arrive, the early score blends into the evidence-based one. Brands ge
 One search box that understands needs, asks only when it matters, and ends with the best answer — not 300 results.
 
 1. The shopper types naturally: *"blazer for a job interview, under $150"*.
-2. If something missing would change the best pick (size, occasion, climate, budget), Veritas asks **one** question with tap-to-answer chips, and shows provisional picks at the same time. At most two questions per search.
+2. Like a good shopkeeper, Veritas asks what it needs to know (who it's for, what it's for, budget, colour, fit, cut, length), **one question at a time, up to four per search**, skipping anything the shopper already said. Each question has tap-to-answer chips taken from what's actually in stock, plus free text. A **"Just show me"** option is always there, and provisional picks update after every answer. Afterwards the shopper can keep refining in plain words ("cheaper", "not black", "show jeans instead").
 3. It returns **3 picks**: Best overall, Best value, and a Wildcard (most on-trend, most sustainable, or a new launch worth trying).
 4. Each pick shows the Clothing Score, the Personal Match, the pillar breakdown, size advice, the main downside, and live prices from several sellers.
 
@@ -257,3 +257,5 @@ The full 27-factor model is designed from day one; factors switch on as their da
 ## Change log
 
 - 2026-10-24 — Added to repo as the source of truth for RPI planning.
+- 2026-10-25 — Search: from "at most two questions, only when it changes the top pick" to a shopkeeper-style conversation, up to four questions (chips from stock + free text), always skippable, with chat refinement afterwards. Decided by Asjad.
+- 2026-10-25 — Discovery and insights features, mapped from a search platform's product list (Constructor). In: autosuggest, browse filters, "better-scoring alternatives" recommendations, rule-based collections, enrichment tags (shopper pages + Score API), product Q&A (instant answers from counts + free-text answers from stored evidence, verified), and a brand "why this score" explainer. Out: retail media / sponsored placements and merchandiser boost/bury rules (they break a neutral score; see design principles), and email/SMS (needs a provider, later). Decided by Asjad.

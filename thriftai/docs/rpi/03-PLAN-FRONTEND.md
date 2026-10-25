@@ -136,6 +136,7 @@ Height, build, usual sizes, climate, budget, style, pillar priorities, brand all
 
 ### 5.7 Developers `/developers`
 API overview, auth (API keys), endpoints with copyable examples, response shapes, rate limits, the score methodology link and an MCP note.
+- **Demo store `/demo/store` (added 2026-10-25, user request):** a fictional marketplace ("cartwheel.", one of the fictional dev sellers) that shows the Veritas Score next to the store's star rating, the way a platform would through the Score API. Search results can be sorted by stars, Veritas Score or price; each listing shows code-built heads-ups (runs small: n of m owners, fake "was" price, fit/quality return rate vs. the category benchmark). The product page has a store buy box (disabled) plus an embedded Veritas panel: score, verified size advice and summary, pillars and all 27 factors. Banner on every page: "Demo, nothing is sold here". No real store's name, branding or data, and `noindex`.
 
 ---
 
@@ -228,7 +229,23 @@ Frontend phases follow the backend phases that supply their data.
 - **Smoke tests:** `@playwright/test` 1.56.0 on system Chrome (`playwright.config.ts`, `tests/e2e/`). Desktop runs everything; phone (Pixel 7) runs the page sweep. The pilot form is tested with the API mocked; the profile test deletes what it creates; a global teardown removes the run's anonymous search sessions (local DB only).
 - **Motion:** all entrance motion is CSS keyframes (`animate-ring-fill`, `animate-bar-grow`, `animate-rise-in`) under the global `prefers-reduced-motion` rule; no JS animation library remains.
 
+**Shopkeeper chat (2026-10-25):** `/search` is now a conversation: message bubbles, the current question with chips from stock, a free-text box that's always available ("cheaper", "not black"), "Just show me", a "Question n of 4" counter, a "Looking for" summary, and picks below that update after every message ("Best so far" while questions are open). e2e covers question → chip → free-text refinement → final picks and "Just show me" with canned turns.
+
+**Question card (2026-10-25, user feedback: "make it like a flash card"):** each shopkeeper question pops up as a card (`search/question-card.tsx`): a progress bar ("Question 2 of 4"), a large question, and big option tiles showing how many products each choice leaves ("Men · 12 products"), colour swatches for colours, dashed tiles for "No preference" / "No limit", options with 0 matches disabled, number keys 1–9, "Just show me", and the free-text box right below. The API returns `question.options` with counts computed by applying each choice to the current filters.
+
+**Product illustrations (2026-10-25, user request "add some images"):** `ProductThumb` draws each product from its own data: the cut (crew, v-neck, boxy, longline tee; straight, wide-leg, skinny, slim-taper, bootcut jean) in its catalog colour, labelled "Illustration" so it's never mistaken for a photo. The product page gets colour swatches that switch the illustration (`product-gallery.tsx`).
+
 **All frontend phases are built.** Pages that depend on scores (search picks, score panels, dashboard scores and the scatter) are verified with temporary data and fill in when products are rated live (B3).
+
+### F7 · Discovery and insights (with B9, 2026-10-25)
+- [x] Autosuggest dropdown on the search boxes (combobox pattern: arrow keys, Enter, Escape; groups: searches, products with score, collections)
+- [x] Filter bar on the catalog (gender, colour swatches, fit, "score 70+", price), URL-driven so results stay shareable and server-rendered
+- [x] Tags on product cards and the product page, each with a tooltip giving the numbers
+- [x] "Better-scoring alternatives" on the product page
+- [x] `/collections` index and `/collections/[slug]` pages
+- [x] "Ask about this product" on the product page: instant-answer chips + a question box; answers cite their evidence
+- [x] Brand dashboard product page: "Why this score" with points lost per factor and top fixes
+- **Gate:** see B9.
 
 ## Known issues (saved for later)
 

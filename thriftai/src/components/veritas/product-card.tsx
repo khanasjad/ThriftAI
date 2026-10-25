@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils'
 import { ScoreRing } from './score-ring'
 import { CONFIDENCE, formatPrice, type ConfidenceLabel } from './score'
 import { ProductThumb } from './product-thumb'
+import { TagChips } from './tag-chips'
+import { topTags, type Tag } from '@/lib/veritas/enrich/tags'
 
 export type ProductCardData = {
   slug: string
@@ -11,12 +13,15 @@ export type ProductCardData = {
   brand: string
   category: string
   subcategory: string | null
+  silhouette?: string | null
+  color?: string | null
   price: number
   currency: string
   reviewCount: number
   score: number | null
   confidenceLabel: ConfidenceLabel | null
   isNewLaunch: boolean
+  tags?: Tag[]
 }
 
 /** Catalog card. Score first, price second, brand last (product plan design principles). */
@@ -30,7 +35,7 @@ export function ProductCard({ item, className }: { item: ProductCardData; classN
       )}
     >
       <div className="relative">
-        <ProductThumb category={item.category} subcategory={item.subcategory} />
+        <ProductThumb category={item.category} subcategory={item.subcategory} silhouette={item.silhouette} color={item.color} />
         <div className="absolute right-2 top-2 rounded-full bg-surface/90 p-0.5 shadow-sm backdrop-blur">
           <ScoreRing score={item.score} size="sm" />
         </div>
@@ -41,6 +46,7 @@ export function ProductCard({ item, className }: { item: ProductCardData; classN
           {item.score === null ? 'Not rated yet' : CONFIDENCE[item.confidenceLabel ?? 'LOW'].label}
           {item.isNewLaunch && ' · New launch'}
         </p>
+        {item.tags && item.tags.length > 0 && <TagChips tags={topTags(item.tags, 2)} className="mt-2" />}
         <div className="mt-auto flex items-center justify-between gap-2 pt-3 text-sm">
           <span className="font-semibold tabular text-fg">{formatPrice(item.price, item.currency)}</span>
           <span className="inline-flex items-center gap-1 text-xs text-fg-subtle tabular">

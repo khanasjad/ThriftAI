@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { scoreApiGate } from '@/lib/veritas/apikeys'
 import { prisma } from '@/lib/prisma'
+import { tagsForProducts } from '@/lib/veritas/read/tags'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await scoreApiGate()
@@ -54,6 +55,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       return acc
     }, {})
     const score = product.productScore
+    const tags = (await tagsForProducts([product.id])).get(product.id) ?? []
     const current = Number(product.currentPrice)
     const original = product.originalPrice ? Number(product.originalPrice) : null
 
@@ -100,6 +102,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         sizeAdvice: score?.verified ? score.sizeAdvice : null,
         downside: score?.verified ? score.downside : null,
         rated: Boolean(score),
+        /** Code-built labels with the numbers behind them (B9 enrichment). */
+        tags,
 
         factors: product.factorScores.map((f) => ({
           factor: f.factor,

@@ -33,7 +33,7 @@ If a request conflicts with the product plan (for example a new category, pay-fo
   - agents can't write scores
   - every sentence shown to a shopper goes through the Verifier
 - Every LLM and tool call is traced to `AgentRun` / `AgentStep`. No untraced model calls.
-- Online search reads stored scores only. Heavy reading happens offline in the `rate-product` graph.
+- Online search reads stored scores only. Heavy reading happens offline in the `rate-product` graph. The shopkeeper agent (search) only updates filters and asks questions; code ranks and the cards show verified text.
 - Scores are versioned with an inputs hash. Re-rate only when inputs change.
 - No pay-for-score logic anywhere. No sponsored items in the top 3.
 

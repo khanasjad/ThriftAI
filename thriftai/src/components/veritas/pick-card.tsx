@@ -22,6 +22,8 @@ export type Pick = {
   brand: string
   category: string
   subcategory?: string | null
+  silhouette?: string | null
+  color?: string | null
   score: number
   confidence: ConfidenceLabel
   match?: number | null
@@ -56,7 +58,7 @@ export function PickCard({ pick, index = 0 }: { pick: Pick; index?: number }) {
       </div>
 
       <div className="flex gap-4 p-5">
-        <ProductThumb category={pick.category} subcategory={pick.subcategory} className="w-20 shrink-0 [&>span]:hidden" />
+        <ProductThumb category={pick.category} subcategory={pick.subcategory} silhouette={pick.silhouette} color={pick.color} showTag={false} className="w-24 shrink-0" />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold leading-snug text-fg">
             <Link href={pick.href} className="after:absolute after:inset-0 focus-visible:outline-none">

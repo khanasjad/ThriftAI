@@ -8,6 +8,7 @@ import { scoreApiGate } from '@/lib/veritas/apikeys'
 import { z } from 'zod'
 import { Prisma, ClothingCategory, ClothingGender, ConfidenceLabel } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { tagsForProducts } from '@/lib/veritas/read/tags'
 
 const querySchema = z.object({
   category: z.nativeEnum(ClothingCategory).optional(),
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest) {
       prisma.clothingProduct.count({ where }),
     ])
 
+    const tags = await tagsForProducts(products.map((p) => p.id))
     const data = products.map((p) => {
       const s = p.productScore
       return {
@@ -103,6 +105,7 @@ export async function GET(req: NextRequest) {
         sustainabilityScore: s?.sustainability ?? null,
         confidence: s?.confidence ?? null,
         confidenceLabel: s?.confidenceLabel ?? null,
+        tags: tags.get(p.id) ?? [],
         reviewCount: p._count.reviews,
         returnCount: p._count.returns,
         createdAt: p.createdAt,

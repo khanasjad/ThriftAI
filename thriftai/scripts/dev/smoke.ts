@@ -14,7 +14,7 @@ import { runAgent } from '../../src/lib/veritas/harness/loop'
 import { prismaSink } from '../../src/lib/veritas/harness/telemetry'
 import { ToolError, defineTool } from '../../src/lib/veritas/harness/tools'
 
-const SLUG = 'velo-thread-curved-hem-longline-tee'
+const SLUG = 'velo-thread-longline-tee'
 
 const getProduct = defineTool({
   name: 'get_product',

@@ -15,9 +15,37 @@ const money = (n: number) => `$${n.toFixed(2)}`
 export function buildWriterItems(bundle: ProductBundle, evidence: StoredEvidence[]): WriterItem[] {
   const items: WriterItem[] = []
 
-  // Quotes: most confident first, balanced between positive and negative so the downside is visible.
-  const quotes = evidence
-    .filter((e) => e.origin === 'agent:evidence' && e.quote && !e.injectionFlag)
+  const agentEv = evidence.filter((e) => e.origin === 'agent:evidence' && e.quote && !e.injectionFlag)
+
+  // Counts first: how many different owners report each signal. These back words like "several" or "most common".
+  const bySignal = new Map<string, { factor: string; signal: string; reviews: Set<string>; s: number }>()
+  for (const e of agentEv) {
+    const k = `${e.factor}|${e.signal}`
+    const v = bySignal.get(k) ?? { factor: e.factor, signal: e.signal, reviews: new Set<string>(), s: signalSentiment(e.factor, e.signal) ?? 0 }
+    v.reviews.add(e.reviewId ?? e.returnId ?? e.quote!)
+    bySignal.set(k, v)
+  }
+  const counted = [...bySignal.values()].filter((v) => v.reviews.size >= 2).sort((a, b) => b.reviews.size - a.reviews.size)
+  const totalOwners = new Set(agentEv.map((e) => e.reviewId).filter(Boolean)).size
+  counted.slice(0, 12).forEach((v, i) =>
+    items.push({
+      id: `c${i + 1}`,
+      kind: 'fact',
+      factor: v.factor,
+      sentiment: v.s,
+      text: `${v.reviews.size} of ${totalOwners} owners who wrote about it: ${v.signal.replace(/_/g, ' ')} (${v.factor}).${i === 0 && counted.length > 1 ? ' This is the most reported signal.' : ''}`,
+    }),
+  )
+
+  // Quotes: most confident first, balanced between positive and negative so the downside is visible; identical text once.
+  const seenText = new Set<string>()
+  const quotes = agentEv
+    .filter((e) => {
+      const k = e.quote!.trim().toLowerCase()
+      if (seenText.has(k)) return false
+      seenText.add(k)
+      return true
+    })
     .map((e) => ({ e, s: signalSentiment(e.factor, e.signal) ?? 0 }))
     .sort((a, b) => b.e.effectiveConfidence - a.e.effectiveConfidence)
   const neg = quotes.filter((q) => q.s < 0).slice(0, MAX_QUOTES / 2)

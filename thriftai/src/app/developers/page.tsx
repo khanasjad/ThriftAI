@@ -30,6 +30,7 @@ const DETAIL_FIELDS: [string, string][] = [
   ['factors[]', '{ factor, pillar, value, rawValue, weight, evidenceCount, confidence }'],
   ['summary, sizeAdvice, downside', 'Verified text only (every sentence checked against evidence), else null'],
   ['returnReasons', 'Count of returns per reason'],
+  ['tags[]', '{ key, label, tone: good | warn, group, detail }: labels built by code from counts and factor scores (e.g. “Runs small”, detail “7 of 12 owners say it runs small”). Also on the list endpoint.'],
 ]
 
 function Code({ code, lang = 'bash' }: { code: string; lang?: string }) {
@@ -61,6 +62,11 @@ export default async function DevelopersPage() {
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-fg-muted">
           Read Veritas Scores, pillars, factors and verified text as JSON. Built for site search (Constructor, Algolia, Shopify search), product pages and AI
           shopping agents.
+        </p>
+        <p className="mt-4">
+          <Link href="/demo/store" className="text-sm font-medium text-accent underline underline-offset-4">
+            See it in a demo store: star ratings vs. the Veritas Score
+          </Link>
         </p>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           {[

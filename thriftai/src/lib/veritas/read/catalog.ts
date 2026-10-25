@@ -3,6 +3,8 @@ import { Prisma, type ClothingCategory } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { scanInjection } from '../harness/guardrails'
 import { computePriceFacts, type PriceFacts } from '../price/facts'
+import { tagsForProducts } from './tags'
+import type { Tag } from '../enrich/tags'
 
 export type { PriceFacts }
 
@@ -20,15 +22,35 @@ export type CatalogItem = {
   brand: string
   category: ClothingCategory
   subcategory: string | null
+  silhouette: string | null
+  color: string | null
   price: number
   currency: string
   reviewCount: number
   score: number | null
   confidenceLabel: 'HIGH' | 'MEDIUM' | 'LOW' | 'NEW_LAUNCH' | null
   isNewLaunch: boolean
+  tags: Tag[]
 }
 
-export type CatalogQuery = {
+/** Browse filters (B9). Each one narrows the list; facets are counted before the filters are applied. */
+export type CatalogFilters = {
+  gender?: 'MENS' | 'WOMENS'
+  color?: string
+  fit?: string
+  minScore?: number
+  /** Enrichment tag key, e.g. "quality.wash_durability:good" or "true_to_size". */
+  tag?: string
+}
+
+export type CatalogFacets = {
+  genders: { value: 'MENS' | 'WOMENS'; count: number }[]
+  colors: { value: string; count: number }[]
+  fits: { value: string; count: number }[]
+  tags: { key: string; label: string; count: number }[]
+}
+
+export type CatalogQuery = CatalogFilters & {
   q?: string
   category?: ClothingCategory
   sort?: 'score' | 'price_asc' | 'price_desc' | 'reviews' | 'newest'
@@ -74,17 +96,19 @@ export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
  * Interim keyword search (replaced by the answer-search graph in B5).
  * Ranks by how many query terms appear in the product's own fields (×3) or in its reviews (×1).
  */
-export async function searchCatalog({ q, category, sort = 'score', limit = 48 }: CatalogQuery = {}): Promise<{ items: CatalogItem[]; interpreted: Interpretation }> {
+export async function searchCatalog({ q, category, sort = 'score', limit = 48, ...filters }: CatalogQuery = {}): Promise<{ items: CatalogItem[]; interpreted: Interpretation; facets: CatalogFacets }> {
   const parsed = interpretQuery(q ?? '')
   const cat = category ?? parsed.category
 
   const rows = await prisma.clothingProduct.findMany({
     where: { isAvailable: true, ...(cat && { category: cat }), ...(parsed.maxPrice && { currentPrice: { lte: parsed.maxPrice } }) },
     select: {
+      id: true,
       slug: true,
       name: true,
       category: true,
       subcategory: true,
+      gender: true,
       description: true,
       fitType: true,
       silhouette: true,
@@ -101,6 +125,7 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48 }:
   })
 
   const cutoff = Date.now() - NEW_LAUNCH_DAYS * 864e5
+  const tagMap = await tagsForProducts(rows.map((r) => r.id))
   let scored = rows.map((r) => {
     const own = [r.name, r.subcategory, r.description, r.fitType, r.silhouette, r.brand.name, ...r.colors, ...Object.keys((r.materials ?? {}) as object)]
       .join(' ')
@@ -117,18 +142,45 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48 }:
       brand: r.brand.name,
       category: r.category,
       subcategory: r.subcategory,
+      silhouette: r.silhouette,
+      color: r.colors[0] ?? null,
       price: Number(r.currentPrice),
       currency: r.currency,
       reviewCount: r._count.reviews,
       score: r.productScore?.overall ?? null,
       confidenceLabel: r.productScore?.confidenceLabel ?? null,
       isNewLaunch: !!r.launchDate && r.launchDate.getTime() > cutoff,
+      tags: tagMap.get(r.id) ?? [],
     }
-    return { item, relevance, launch: r.launchDate?.getTime() ?? 0 }
+    return { item, relevance, launch: r.launchDate?.getTime() ?? 0, gender: r.gender, colors: r.colors, fit: r.fitType }
   })
 
   const matchedAny = parsed.terms.length === 0 || scored.some((x) => x.relevance > 0)
   if (parsed.terms.length && matchedAny) scored = scored.filter((x) => x.relevance > 0)
+
+  // Facets are counted on the query's results before browse filters, so every option stays visible.
+  const tally = (xs: string[]) =>
+    [...xs.reduce((m, x) => m.set(x, (m.get(x) ?? 0) + 1), new Map<string, number>())].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+  const tagCounts = new Map<string, { label: string; count: number }>()
+  for (const x of scored) for (const t of x.item.tags) if (t.tone === 'good') tagCounts.set(t.key, { label: t.label, count: (tagCounts.get(t.key)?.count ?? 0) + 1 })
+  const facets: CatalogFacets = {
+    genders: (['WOMENS', 'MENS'] as const).map((g) => ({ value: g, count: scored.filter((x) => x.gender === g || x.gender === 'UNISEX').length })).filter((g) => g.count > 0),
+    colors: tally(scored.flatMap((x) => x.colors)),
+    fits: tally(scored.map((x) => x.fit).filter((f): f is string => !!f)),
+    tags: [...tagCounts].map(([key, v]) => ({ key, ...v })).sort((a, b) => b.count - a.count).slice(0, 8),
+  }
+
+  const f = filters
+  scored = scored.filter(
+    (x) =>
+      (!f.gender || x.gender === f.gender || x.gender === 'UNISEX') &&
+      (!f.color || x.colors.some((c) => c.toLowerCase() === f.color!.toLowerCase())) &&
+      (!f.fit || x.fit === f.fit) &&
+      (f.minScore === undefined || (x.item.score ?? -1) >= f.minScore) &&
+      (!f.tag || x.item.tags.some((t) => t.key === f.tag)),
+  )
+  // Show the colourway the shopper filtered on.
+  if (f.color) for (const x of scored) x.item.color = x.colors.find((c) => c.toLowerCase() === f.color!.toLowerCase()) ?? x.item.color
 
   const cmp: Record<NonNullable<CatalogQuery['sort']>, (a: (typeof scored)[number], b: (typeof scored)[number]) => number> = {
     score: (a, b) => (b.item.score ?? -1) - (a.item.score ?? -1) || b.item.reviewCount - a.item.reviewCount,
@@ -142,6 +194,7 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48 }:
   return {
     items: scored.slice(0, Math.min(limit, 100)).map((x) => x.item),
     interpreted: { ...parsed, category: cat, matchedAny },
+    facets,
   }
 }
 
@@ -398,6 +451,8 @@ export async function fitSpotlight() {
       name: true,
       category: true,
       subcategory: true,
+      silhouette: true,
+      colors: true,
       brand: { select: { name: true } },
       reviews: {
         where: { fitsAs: 'runs_small', content: { contains: 'small', mode: 'insensitive' } },
@@ -415,6 +470,8 @@ export async function fitSpotlight() {
     brand: product.brand.name,
     category: product.category,
     subcategory: product.subcategory,
+    silhouette: product.silhouette,
+    color: product.colors[0] ?? null,
     runsSmall: counts.small,
     total: counts.total,
     quote: review ? { text: review.content, date: review.reviewDate.toISOString(), verified: review.isVerifiedPurchase } : null,

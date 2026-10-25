@@ -4,7 +4,11 @@ import { expectAccessible, expectNoHorizontalScroll, trackErrors } from './helpe
 const PAGES: [string, RegExp][] = [
   ['/', /Is it worth buying\?/],
   ['/search?q=relaxed+jeans', /Search/],
-  ['/p/velo-thread-curved-hem-longline-tee', /Curved-Hem Longline Tee/],
+  ['/p/velo-thread-longline-tee', /Longline Tee/],
+  ['/demo/store?q=t-shirt', /results for/],
+  ['/demo/store/hollow-pine-supply-everyday-crew-tee', /Everyday Crew Tee/],
+  ['/collections', /Collections/],
+  ['/collections/built-to-last', /Built to last/],
   ['/how-it-works', /One score for/],
   ['/brands', /Constructor shows you what sells/],
   ['/brands/pricing', /Pay for insight and freshness/],
@@ -21,6 +25,10 @@ for (const theme of ['light', 'dark'] as const) {
     for (const [path, heading] of PAGES) {
       test(`${path} renders, is accessible and fits the screen`, async ({ page }) => {
         const noErrors = trackErrors(page)
+        // Never call the live shopkeeper from tests.
+        await page.route('**/api/v1/search', (r) =>
+          r.fulfill({ json: { success: true, data: { sessionId: 's', reply: 'What cut do you like?', intent: { category: 'BOTTOMS', priorities: {}, terms: [] }, offTopic: false, question: { slot: 'cut', question: 'What cut do you like?', chips: ['wide-leg', 'bootcut'] }, asked: 1, maxQuestions: 4, picks: [], provisional: true, rated: 0, unrated: 0, usedAgent: true } } }),
+        )
         await page.addInitScript((t) => localStorage.setItem('veritas-theme', t), theme)
         const res = await page.goto(path, { waitUntil: 'networkidle' })
         expect(res?.status()).toBe(200)

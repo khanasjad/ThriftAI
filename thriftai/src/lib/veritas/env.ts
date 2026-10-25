@@ -21,11 +21,11 @@ const schema = z.object({
   VERITAS_MODEL_ROUTER: z.string().default('claude-haiku-5-5'),
   VERITAS_MODEL_JUDGE: z.string().default('claude-opus-5-5'),
   SPEND_CAP_USD: z.coerce.number().positive().default(15),
-  /** Use the intent agent (a live model call) on searches. Off by default; the code parser always runs. */
-  SEARCH_INTENT_AGENT: z
+  /** Shopkeeper agent on searches (live model call, ~$0.001 per turn). On by default; 0 = code-only questions. */
+  SEARCH_AGENT: z
     .string()
     .optional()
-    .transform((v) => v === '1' || v === 'true'),
+    .transform((v) => v !== '0' && v !== 'false'),
 
   RESEND_API_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),

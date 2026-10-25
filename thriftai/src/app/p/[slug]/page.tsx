@@ -5,7 +5,7 @@ import { AlertTriangle, ChevronRight, Clock, ShieldCheck, Tag } from 'lucide-rea
 import { SiteShell } from '@/components/site/shell'
 import { Badge } from '@/components/ui/primitives'
 import { PriceHistory } from '@/components/veritas/price-history'
-import { ProductThumb } from '@/components/veritas/product-thumb'
+import { ProductGallery } from '@/components/veritas/product-gallery'
 import { TrendTag } from '@/components/veritas/badges'
 import { CATEGORY, GENDER, RETURN_REASON } from '@/components/veritas/labels'
 import { formatPrice, type Pillar } from '@/components/veritas/score'
@@ -15,6 +15,12 @@ import { getProductPage, type ProductPageData } from '@/lib/veritas/read/catalog
 import { ReviewCard } from '@/components/veritas/review-card'
 import { MoreReviews } from './more-reviews'
 import { ScorePanel, type FactorMeta } from './score-panel'
+import { TagChips } from '@/components/veritas/tag-chips'
+import { ProductCard } from '@/components/veritas/product-card'
+import { tagsForProducts } from '@/lib/veritas/read/tags'
+import { loadAlternatives } from '@/lib/veritas/read/alternatives'
+import { loadInstantAnswers } from '@/lib/veritas/read/qa'
+import { ProductQA } from './product-qa'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +48,8 @@ export default async function ProductPage({ params }: Props) {
   const data = await getProductPage(slug)
   if (!data) notFound()
   const { product, brand, score, reported, returns, prices } = data
+  const [tagMap, alternatives, instant] = await Promise.all([tagsForProducts([product.id]), loadAlternatives(product.id), loadInstantAnswers(product.id)])
+  const tags = tagMap.get(product.id) ?? []
 
   const factors: FactorMeta[] = FACTOR_TAXONOMY.map((f) => ({ key: f.key, name: f.name, pillar: f.pillar as Pillar, weight: f.weight }))
   const factorValues = Object.fromEntries(data.factors.map((f) => [f.factor, { value: f.value, evidenceCount: f.evidenceCount }]))
@@ -70,7 +78,7 @@ export default async function ProductPage({ params }: Props) {
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
           {/* Left column */}
           <aside className="order-2 flex flex-col gap-6 lg:order-none lg:sticky lg:top-24 lg:self-start">
-            <ProductThumb category={product.category} subcategory={product.subcategory} label={product.name} className="rounded-2xl" />
+            <ProductGallery name={product.name} category={product.category} subcategory={product.subcategory} silhouette={product.silhouette} colors={product.colors} />
             <SpecCard data={data} />
           </aside>
 
@@ -109,6 +117,16 @@ export default async function ProductPage({ params }: Props) {
               productId={product.id}
             />
 
+            {tags.length > 0 && (
+              <section aria-labelledby="highlights-h" className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+                <h2 id="highlights-h" className="text-base font-semibold text-fg">
+                  Highlights
+                </h2>
+                <p className="mt-1 text-sm text-fg-muted">Labels earned from the counts and factor scores, with the numbers behind each one.</p>
+                <TagChips tags={tags} detailed className="mt-4" />
+              </section>
+            )}
+
             {score?.summary && (
               <section aria-labelledby="owners-h" className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -131,6 +149,8 @@ export default async function ProductPage({ params }: Props) {
               </section>
             ) : null}
 
+            <ProductQA productId={product.slug} instant={instant} />
+
             <ReportedFit fit={reported.fit} total={reported.reviewCount} />
             <ReportedIssues data={data} />
             <PriceSection data={data} />
@@ -143,6 +163,23 @@ export default async function ProductPage({ params }: Props) {
             </p>
           </div>
         </div>
+
+        {alternatives.length > 0 && (
+          <section aria-labelledby="alts-h" className="mt-14">
+            <h2 id="alts-h" className="text-lg font-semibold text-fg">
+              {score ? 'Better-scoring alternatives' : 'Rated alternatives'}
+            </h2>
+            <p className="mt-1 text-sm text-fg-muted">Same category, similar or lower price, chosen by score. Nobody pays to appear here.</p>
+            <ul className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+              {alternatives.map((a) => (
+                <li key={a.item.slug} className="flex flex-col gap-2">
+                  <p className="text-xs font-medium text-accent">{a.reason}</p>
+                  <ProductCard item={a.item} className="h-full" />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </SiteShell>
   )

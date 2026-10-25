@@ -299,9 +299,9 @@ Generated once by `scripts/dev/generate-dataset.ts` (seeded random, deterministi
 |---|---|---|
 | Brands (fictional) | 6 | Strong/weak sizing consistency, honest vs. inflated photos, sustainability claims with/without certs |
 | Products | 40 (20 tees, 20 jeans) | Specs: GSM, composition, elastane %, care label, size range (incl. petite/tall/plus) |
-| Reviews | 620, 0–30 per product | Messy text, typos, mixed sentiment, body measurements on ~40%, long-term reviews, 2 non-English, **3 prompt-injection attempts** |
+| Reviews | 671, 0–30 per product | Messy text, typos, mixed sentiment, body measurements on ~40%, long-term reviews, 2 non-English, **3 prompt-injection attempts**; since 2026-10-25 also skin/itch, body shape, length, longevity, pilling/snags, versatility and same-brand fit lines |
 | New launches | 3 | 0–2 reviews, launch date < 30 days |
-| Returns | 191 | Reason mix (fit / quality / not as pictured / changed mind) that agrees or clashes with reviews |
+| Returns | 2,261 + units sold per product | Since 2026-10-25: generated as rates over `unitsSold` (fit 3–31%, quality 1–5%), so return *rates* can be scored; plus `resaleRetainedPct` (median resale as % of retail, 21–52%) |
 | Sellers | 4 (fictional) | 90-day price history; **2 fake markdowns**, 1 item "often cheaper in sales" |
 | Trend signals | 8 silhouettes/colours | Trending (wide-leg, boxy tee), classic (straight jean, crew tee), fading (skinny) |
 | Shopper profiles | 5 personas | Build, climate, budget and priorities for search tests |
@@ -366,14 +366,15 @@ Notes from B2:
 - Haiku 5.5 caches prefixes of 512+ tokens. Agent system prompts should stay above that, or caching silently does nothing.
 - OpenTelemetry / Langfuse export moves to B6 (same `TraceSink` interface).
 
-### B3 · Evidence agent + scoring v2 (~12 h) — code done 2026-10-25; live gate waits on API credit
+### B3 · Evidence agent + scoring v2 (~12 h) — ✅ done 2026-10-25 (live)
 - [x] Evidence agent with tools, quote grounding, injection handling (`agents/evidence.ts`; tested in mock mode)
 - [x] Scoring v2 (§6) with unit tests; `rate-product` graph (evidence → score) (`scoring/v2.ts`, `graph/rate-product.ts`, `graph/data.ts`)
 - [x] Structured evidence read by code (`evidence/structured.ts`) and `npm run rate`
 - **Gate:**
   - ✅ Unit tests: 51/51 (`npm test`): scoring maths, structured rules, and agent guardrails against a scripted mock (grounding, invalid signals, fit duplicates, injection penalty, all-rejected → `is_error`, 40-review limit, byte-stable prompt + tools).
   - ✅ `npm run rate -- --all` (structured mode, $0) runs on all 40 products: 620 evidence items, 300 factor scores, 34 trend tags, 0 published scores (code evidence covers 12–28% of the score; publish bar is 35%). A second run skips all 40 (inputs unchanged).
-  - ⏳ Live: 5 products rated with `--mode full` · cost per product measured and ≤ $0.25 · 100% grounded quotes · injection reviews flagged. First command once credit is added: `npm run rate -- --product <slug> --mode full --yes`.
+  - ✅ Live (2026-10-25, Haiku 5.5): 5 gate products rated, then all 40. **Cost per product $0.001–0.011 (all 40: $0.24)** vs. ≤ $0.25 · **every stored quote grounded**: 99% of proposed quotes accepted; the rest rejected by the check and never stored · injection reviews: 3/3 down-weighted (eval). Prompt caching works (cache reads grow turn over turn).
+  - Fixed from the live runs: the agent sometimes sent > 20 evidence items per call (strict schemas can't enforce array max), so 4 calls were rejected → `TOOL_ERRORS` on one product. The handler now processes the first 40 and asks for the rest (`evidence@2`).
 
 Decisions and changes from B3 (2026-10-25):
 - **Code reads structured data; the agent reads text.** Fit answers, size range, fabric weight vs item type, elastane (bottoms), care label, certifications / organic / recycled, brand supplier list / repair / take-back, price fairness (fake "was" price, often cheaper, ≥ 4 weeks of history) and trend phase become evidence with no model call. The agent reads review text and written return reasons only. That's cheaper, deterministic and testable.
@@ -387,14 +388,20 @@ Decisions and changes from B3 (2026-10-25):
 - **Product page evidence** is scoped to the runs listed on the rating run (`finishPayload.evidenceRunIds`), not every past run.
 - The old v1 scorers (flat decay, missing factor = 0) were deleted.
 
-### B4 · Remaining offline agents (~12 h) — code done 2026-10-25; live gate waits on API credit
+**All 27 factors get evidence (2026-10-25, user request "fill all parameters"):** three factors never had any (skin-friendly, quality return rate, resale value) and ten were thin.
+- Schema: `ClothingProduct.unitsSold` and `resaleRetainedPct` (nullable; migration `product_units_resale`). Real data must come from the brand/platform and a licensed resale source.
+- `structured@2` adds two code rules. **Return rates** (fit and quality returns ÷ units sold, ≥ 50 units) are compared with a category benchmark (dev values: tees 8% fit / 3% quality, jeans 14% / 3%): 0% → 100, benchmark → 50, 2× benchmark → 0. **Resale**: 10% of retail → 0, 50% → 100. Each becomes 10 fixed-weight "votes" (good vs. bad taxonomy signal), so the factor's raw score equals the computed share, sentiment still comes from the taxonomy, and its weight is capped (6 for returns, 4 for resale) so one number can't swamp the reviews.
+- The generator writes review lines for the thin factors. Code-only coverage rose from 20–28% to 22–38%; publishing still needs text evidence, so no score is code-only.
+
+### B4 · Remaining offline agents (~12 h) — ✅ done 2026-10-25 (live)
 - [x] Price & Value (fake discounts, "often cheaper"), Trend & Brand (roll-ups, trend tag), new-launch early score: as **code**, not agents (`evidence/structured.ts`, `evidence/rollups.ts`)
 - [x] Writer + Verifier (`agents/writer.ts`, `agents/verifier.ts`, `text/check.ts`, `graph/text.ts`); full `rate-product` graph
 - **Gate:**
   - ✅ 63/63 unit tests: roll-ups, early score, publish rule, writer items, sentence checks, and writer → checks → verifier with scripted responses (including "verifier fails → no text").
   - ✅ Full pipeline dry run on a real dev product with a mock model: 5 grounded quotes accepted, 1 invented quote rejected, 2 sentences kept, score 45 / MEDIUM / 43% coverage, every step traced, nothing written.
   - ✅ `npm run rate -- --all` (structured, $0): all 40 rated, none published (no text evidence yet); second pass re-rates 0 (inputs unchanged).
-  - ⏳ Live: all 40 rated with `--mode full` · total dev spend ≤ $10 · every shown sentence verified.
+  - ✅ Live: **all 40 rated** (31 from evidence, 9 new launches blended with early scores) · **total dev spend $0.52** (≤ $10) · every shown sentence verified. Judge rubric on the shopper text: faithful 4.7, size advice 4.8, downside 4.5, no hype 5.0 (of 5).
+  - Fixed from the live runs: the first verifier dropped every sentence (it even rejected size advice it called accurate). The writer now gets **count items** ("13 of 19 owners mention pilling") so quantities and rankings are citable, and the verifier accepts accurate restatements and size directions that follow from fit-answer counts (`writer@3`, `verifier@3`). Duplicate quotes are removed from writer input.
 
 Decisions from B4 (2026-10-25):
 - **Price & Value and Trend & Brand are code, not LLM agents.** Every input is structured (prices, trend phases, published scores, fit answers), so an LLM would add cost and variance for no gain. The plan's agent sketch for them is dropped; only text-reading work uses models (evidence, writer, verifier).
@@ -406,7 +413,7 @@ Decisions from B4 (2026-10-25):
 - Roll-ups and early scores depend on peers, so the inputs hash includes a digest of the relevant peers. `npm run rate -- --all` runs a second $0 pass that re-rates only products whose peers changed.
 - Writer and verifier prompts are ~400 tokens, under Haiku's 512-token cache minimum. Not padded: one call each per product.
 
-### B5 · Search, Personal Match, ranking (~14 h) — code done 2026-10-25; real gate waits on published scores (B3 live)
+### B5 · Search, Personal Match, ranking (~14 h) — ✅ done 2026-10-25; shopkeeper conversation added the same day
 - [x] Intent: deterministic parser (`match/intent.ts`) + optional intent agent (`agents/intent.ts`, off unless `SEARCH_INTENT_AGENT=1`). It replaces the planned router + conversation agent; see decisions.
 - [x] `match/`: Personal Match, filters, ranking, 3 picks, clarifying question (`match/rank.ts`); candidates read stored scores only (`match/candidates.ts`)
 - [x] `answer-search` graph with persisted `SearchSession` / `SearchTurn` (`graph/answer-search.ts`); `POST /api/v1/search`
@@ -416,7 +423,16 @@ Decisions from B4 (2026-10-25):
   - ✅ 78/78 unit tests (intent parsing, every Personal Match part, filters, the 0.6/0.4 blend, sustainability score, pick roles and diversity, question only when it changes the top pick, intent-agent merge + strict finish).
   - ✅ `npm run search:gate -- --simulate`: 20/20 (5 personas × 4 needs) with simulated in-memory scores: ≤ 2 questions, distinct picks, no brand + silhouette twins. Two budget-student jeans searches correctly return 2 picks: only 2 jeans exist within 25% of a $40 budget.
   - ✅ End to end on the dev server with temporary scores (deleted afterwards): question → answer → second question → final picks; turns persisted; axe 0 in light and dark at 1280 and 390 px.
-  - ⏳ Real gate: `npm run search:gate` on stored scores once products are rated live (B3).
+  - ✅ Real gate on stored live scores: **20/20**.
+
+**Shopkeeper conversation (product plan change, 2026-10-25):**
+- `agents/shopkeeper.ts` (Haiku, ~670-token cached prompt) runs once per message. It reads the conversation, current filters, questions asked and the **catalog facets** (`match/facets.ts`: categories, price bands, colours, fits, cuts, tee lengths with counts for the products still matching), then returns updated filters, the next question with chips, ready / off-topic, and a short reply.
+- Code keeps control. Filters are mapped to real catalog values (unknown colours and cuts dropped). There are at most 4 questions, none once fewer than 4 products match. Chips must come from the facets (code builds them when the agent's don't match). The reply is checked (no product names, hype, health or legal claims), and a reply that asks a question code dropped is replaced. Ranking stays code + Veritas Score.
+- New filters: who it's for (gender; unisex items match everyone), price range, include / exclude colours (exclude only drops products available only in that colour), cut, tee length.
+- **Curated questions (`shopkeeper@2`, after user feedback 2026-10-25):** "need a white shirt" used to go straight to results, because a code rule stopped questions once fewer than 4 products matched, and gender wasn't a filter. Now the shopkeeper aims for 2–4 questions (who it's for → budget → fit / colour / cut / length), questions are allowed while ≥ 2 products match, and when fewer than 3 match, code says so and offers to widen ("Any colour", "No budget limit", "Show all genders"…). Widen offers don't count toward the 4 questions.
+- **Match weighting fix:** the 0.4 match share now scales with how much is known (full at 60 of 100 match-part weight), and no match number is shown below 35. Before, a single weak signal (climate only) ranked a 50-score product above a 68 and showed "Match 0".
+- API: `POST /api/v1/search` `{ message }` / `{ sessionId, message }` / `{ sessionId, action: "show" }`. `SEARCH_AGENT` (default on, `0` = code-only questions). The intent agent is removed (replaced).
+- Live cost ≈ $0.0004 per message. 100/100 unit tests; e2e uses canned shopkeeper turns (no API calls).
 
 Decisions from B5 (2026-10-25):
 - **Code does the conversation; a model only reads intent.** Choosing the question, ranking and picking are deterministic: testable, instant and free per search. The intent agent only turns messy phrasing into the same structured intent. Code's parse wins on conflicts, and the agent can flag off-topic messages. It's off by default, so search costs $0 until it's turned on.
@@ -427,7 +443,7 @@ Decisions from B5 (2026-10-25):
 - **Clarifying question:** asked for fit → budget → climate, only for slots unknown from query, answers or profile, and only if different answers change the best pick. Max 2 per search; the picks shown meanwhile are marked provisional.
 - **Unrated products are never picked.** When nothing matching is rated, the response says how many match and that picks appear once they're rated.
 
-### B6 · Evals and observability (~8 h) — code done 2026-10-25; judge gate waits on API credit
+### B6 · Evals and observability (~8 h) — ✅ done 2026-10-25
 - [x] Feedback API: `POST /api/v1/feedback` (one vote per browser session per target, rate-limited, target must exist), done 2026-10-24 ahead of B6 so the product page could use it
 - [x] Golden set: 15 products (every edge case, then the strongest signals) with labels from the generator's ground truth, using the same thresholds the generator used to write review text (`evals/golden.ts`). They are generator labels, not hand-written; the report says so.
 - [x] Deterministic checks, $0 (`evals/checks.ts`): raw evidence direction vs. label per factor; "no evidence" is reported as coverage, never as a failure
@@ -438,7 +454,8 @@ Decisions from B5 (2026-10-25):
 - **Gate:**
   - ✅ Eval report generated: `npm run eval` → `.veritas/evals/report-*.md` and `/admin/evals`.
   - ✅ Deterministic checks on code evidence (2026-10-25): **94% agreement** (17/18 judged labels: fit 10/11, fabric 4/4, manipulation reviews 3/3), 26% coverage. The rest (wash, pilling, softness, photo, size consistency) needs text read by the evidence agent.
-  - ⏳ Judge ≥ 80% agreement with the labels: `npm run eval -- --judge --yes` once API credit is added (15 Opus calls, ≈ $0.45).
+  - ✅ On live evidence: **checks 95% agreement on 63 labels, 91% coverage** (wash 10/10, pilling 7/7, photo 7/7, size consistency 7/7 from text, injection 3/3, fabric 6/6, fit 10/11, softness 9/11).
+  - ✅ **Judge (Opus 5.5) 89% agreement over 37 comparisons** (gate ≥ 80%), $0.21.
   - 93/93 unit tests.
 
 What the eval caught on its first runs (2026-10-25), fixed the same day:
@@ -463,6 +480,21 @@ Decisions from B7 (2026-10-25):
 - **Return cost is an estimate:** each preventable return costs `returnCostShare` × price (default 30%, per-tenant override in `Tenant.settings.returnCostShare`), shown on the dashboard as an assumption.
 - **API keys on every plan during pilots;** gating keys to Growth+ (product plan pricing) happens with billing in B8.
 - Sign-in form posts (`method="post"`), so credentials never land in a URL even before JavaScript loads; post-sign-in redirects accept only same-site relative paths.
+
+### B9 · Discovery and insights (product plan change 2026-10-25)
+Mapped from Constructor's product list. All read stored scores and evidence; only free-text product Q&A calls a model.
+- [x] **Enrichment tags** (`enrich/tags.ts`): code turns factor scores and counts into shopper tags ("Doesn't shrink", "Runs small", "Breathable", "Real sale price"…), each with the numbers behind it. Shown on cards and product pages; added to the Score API.
+- [x] **Autosuggest** (`GET /api/v1/suggest?q=`): query completions from catalog facets, matching products (score first), collections. Code only.
+- [x] **Browse filters**: search catalog gets filters (gender, colour, fit, min score, price) on top of sort.
+- [x] **Recommendations** (`match/alternatives.ts`): on a product, up to 3 same-category items that score higher at a similar price, or fix its biggest weakness; the reason is a fact ("+12 on fit, runs true to size").
+- [x] **Collections** (`read/collections.ts`): rule-based pages ("Tees that don't shrink", "True-to-size jeans", "Best under $30", "Real sale prices"), rules in code, ranked by score, each item shows the fact that qualifies it.
+- [x] **Product Q&A**: instant answers to common questions from counts ($0); free-text questions answered by a `product-qa` agent (Haiku, tools read stored evidence and counts only, `finish` with sentences + evidence ids) and checked by the Verifier before display. Limits: 4 iterations, $0.01, 30 s. Off-topic and injection attempts refused.
+- [x] **Brand "why this score"** (`insights/why.ts`): per product, points lost per factor vs. the category's published median, top fixes ranked by points, with the evidence counts. Code only.
+- **Gate:** unit tests for tags, alternatives, collections, suggest and why-maths; product Q&A live on 3–5 questions (cost per question measured, every shown sentence verified, an injection question refused); e2e covers autosuggest, filters, a collection page, Q&A instant answers (mocked agent) and the brand explainer; build passes.
+  - ✅ 2026-10-25: unit tests 120/120 (new: alternatives 3, suggest 3, why 2, instant answers 3, Q&A pipeline 4 with a mocked model, return-rate/resale rules 4). Collections: 4–21 products each on the dev data.
+  - ✅ Product Q&A live (Haiku 5.5) on 4 questions: "Does it shrink?" answered with 2 verified sentences and their sources; "Is it see-through in white?" → not enough evidence (honest, no guess); off-topic → declined; injection → refused by code before any model call. **Cost ≈ $0.0007 per answered question** (agent + verifier, prompt cache hit); repeats are cached per server.
+  - ✅ e2e: `tests/e2e/discovery.spec.ts` 5/5 (×3 repeats), page sweep adds `/collections` and a collection page (light + dark, axe, phone); full run 75/76 with one wait-for-stream fix since. Build passes.
+  - Not built, on purpose: retail media / sponsored placements and merchandiser boost/bury rules (break the neutral score), email/SMS (needs a provider account).
 
 ### B8 · Production (~6 h, then the real-data plan)
 - [ ] Supabase + Vercel setup, prod migrations, spend cap, Langfuse, smoke tests

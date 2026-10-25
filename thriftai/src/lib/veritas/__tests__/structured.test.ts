@@ -76,3 +76,36 @@ describe('structured evidence rules', () => {
     expect(fit.find((e) => e.reviewId === 'ok')!.effectiveConfidence).toBe(0.9)
   })
 })
+
+describe('return rates and resale (structured@2)', () => {
+  const ret = (reason: string, n: number) => Array.from({ length: n }, (_, i) => ({ id: `${reason}-${i}`, returnReason: reason, detailedReason: null }))
+  const share = (out: { signal: string }[], good: string) => out.filter((e) => e.signal === good).length / out.length
+
+  it('needs enough units sold', () => {
+    expect(STRUCTURED_RULES.returnRates(makeBundle({ product: { unitsSold: 20 }, returns: ret('TOO_SMALL', 5) }))).toEqual([])
+    expect(STRUCTURED_RULES.returnRates(makeBundle({ product: { unitsSold: null } }))).toEqual([])
+  })
+
+  it('scores the fit return rate against the tee benchmark (8%)', () => {
+    const at = STRUCTURED_RULES.returnRates(makeBundle({ product: { category: 'TOPS', unitsSold: 200 }, returns: ret('TOO_SMALL', 16) })).filter((e) => e.factor === 'fit.return_rate_fit')
+    expect(at).toHaveLength(10)
+    expect(share(at, 'kept_good_fit')).toBe(0.5)
+    expect(at.find((e) => e.signal !== 'kept_good_fit')!.signal).toBe('returned_too_small')
+    const low = STRUCTURED_RULES.returnRates(makeBundle({ product: { category: 'TOPS', unitsSold: 200 }, returns: ret('TOO_LARGE', 2) })).filter((e) => e.factor === 'fit.return_rate_fit')
+    expect(share(low, 'kept_good_fit')).toBe(0.9)
+  })
+
+  it('jeans get a looser fit benchmark and quality returns count separately', () => {
+    const out = STRUCTURED_RULES.returnRates(makeBundle({ product: { category: 'BOTTOMS', unitsSold: 100 }, returns: [...ret('TOO_SMALL', 14), ...ret('DAMAGE_DEFECT', 6), ...ret('CHANGED_MIND', 30)] }))
+    expect(share(out.filter((e) => e.factor === 'fit.return_rate_fit'), 'kept_good_fit')).toBe(0.5)
+    const q = out.filter((e) => e.factor === 'quality.return_rate_quality')
+    expect(share(q, 'kept_good_quality')).toBe(0)
+    expect(q[0].signal).toBe('returned_defect')
+  })
+
+  it('maps resale share of retail to holds_value votes', () => {
+    expect(STRUCTURED_RULES.resale(makeBundle({ product: { resaleRetainedPct: null } }))).toEqual([])
+    expect(share(STRUCTURED_RULES.resale(makeBundle({ product: { resaleRetainedPct: 50 } })), 'holds_value')).toBe(1)
+    expect(share(STRUCTURED_RULES.resale(makeBundle({ product: { resaleRetainedPct: 30 } })), 'holds_value')).toBe(0.5)
+  })
+})

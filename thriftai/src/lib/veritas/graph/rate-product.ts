@@ -58,7 +58,7 @@ export const GRAPH_VERSIONS = {
   evidenceAgent: EVIDENCE_AGENT_VERSION,
   writer: WRITER_VERSION,
   verifier: VERIFIER_VERSION,
-  structured: 'structured@1',
+  structured: 'structured@2', // @2: return rates (units sold) and resale value
   rollups: 'rollups@2', // @2: size-consistency rule removed after the B6 eval
   guardrails: GUARDRAILS_VERSION,
 }
