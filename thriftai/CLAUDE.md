@@ -96,6 +96,11 @@ npm run ingest:gate                        # B10 gate: fictional marketplace fee
 npm run ads -- --eligible [--limit N] --yes   # verified ad copy for ad-eligible products (live; estimate first)
 npm run dev:images                         # dev only: render product PNGs with known patterns (needs npm run dev)
 npm run vision -- --all --yes [--check]    # read product photos into style attributes (live; unchanged photos $0; --check = accuracy on dev images)
+APP_ENV=production npm run prod:check      # B8 gate: production config, no dev/fictional rows, migrations (fails on dev data by design)
+npm run smoke:prod -- --url <site>         # read-only smoke test of a deployed site
+npm run admin:create -- --email <e> --out <file>   # first admin (password never printed); also ADMIN_PASSWORD=…
+npm run org:create -- --name "<org>" --email <e> [--brand "<b>"] --out <file>   # onboard a pilot customer
+# Production runbook: docs/rpi/05-RUNBOOK-PRODUCTION.md
 ```
 
 ## Working style

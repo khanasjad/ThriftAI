@@ -186,3 +186,18 @@ describe('writer → checks → verifier', () => {
     expect(llm.calls).toHaveLength(0)
   })
 })
+
+describe('spend cap during text', () => {
+  it('flags budgetHit so the rating is not saved', async () => {
+    const bundle = makeBundle({ reviews: [review('r1', 'x')] })
+    const ev: StoredEvidence[] = [{ sourceType: 'REVIEW', reviewId: 'r1', factor: 'comfort.softness', signal: 'very_soft', confidence: 0.9, quote: 'really soft', origin: 'agent:evidence', injectionFlag: false, effectiveConfidence: 0.9 }]
+    const sink = new MemorySink()
+    sink.alreadySpentUsd = 1000 // far above any cap
+    const llm = new MockClient(() => mockMessage([mockToolUse('finish', { sentences: [] })], 'tool_use'))
+    // MockClient is mode 'mock', so the cap check (live only) doesn't fire; simulate with a live-mode client.
+    ;(llm as unknown as { mode: string }).mode = 'live'
+    const t = await writeAndVerify(bundle, scoreProduct({ evidence: [], reviewCount: 1, launchDate: null }), ev, { llm, sink, parentRunId: 'g', inputsHash: 'h' })
+    expect(t.budgetHit).toBe(true)
+    expect(llm.calls).toHaveLength(0)
+  })
+})

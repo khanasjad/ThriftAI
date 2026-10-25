@@ -8,6 +8,7 @@ import { ConfidenceBadge } from '@/components/veritas/badges'
 import { FactorRow, PillarBars } from '@/components/veritas/bars'
 import { PILLARS, formatPrice, type Pillar } from '@/components/veritas/score'
 import { storeProduct } from '@/lib/veritas/read/store-demo'
+import { env } from '@/lib/veritas/env'
 import { DemoBanner, HeadsUpList, Stars, StoreHeader } from '../parts'
 import { DriverTiles } from '@/components/veritas/drivers'
 
@@ -23,6 +24,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function DemoStoreProduct({ params }: Props) {
+  // Off in production unless DEMO_STORE=1: it would show real products under a fictional store name.
+  if (env().APP_ENV === 'production' && !env().DEMO_STORE) notFound()
   const { slug } = await params
   const d = await storeProduct(slug)
   if (!d) notFound()

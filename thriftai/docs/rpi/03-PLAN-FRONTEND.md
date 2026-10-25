@@ -254,6 +254,10 @@ Frontend phases follow the backend phases that supply their data.
 - [x] Developers page: ingest and feeds sections
 - **Gate:** ✅ `tests/e2e/b2b.spec.ts` 2/2 (dry-run upload report incl. rejected row reason; sponsored slot never in the top 3); full e2e 78/78; build passes.
 
+### Brand scorecard (product plan pilot offer, 2026-10-25) — ✅ done
+- [x] `/dashboard/scorecard` (brand or admin): one printable page per brand: average score and three drivers, preventable returns and their estimated cost, ad readiness, price warnings, top 3 fixes (points lost vs. the category median, summed across products, with the fix), costliest return reasons, size-chart fixes, strongest and weakest products, price-vs-quality position. "Print or save as PDF"; a fictional-data banner on test data; pricing in the footer matches the product plan.
+- **Gate:** ✅ e2e (scorecard renders with all sections and plan pricing); sample PDF rendered for Hollow Pine Supply (fictional).
+
 ## Known issues (saved for later)
 
 | Date | Issue | Likely cause | Planned fix |

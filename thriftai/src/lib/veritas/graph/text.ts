@@ -24,6 +24,8 @@ export type TextResult = {
   costUsd: number
   kept: number
   dropped: { text: string; reason: string }[]
+  /** The spend cap stopped the writer or verifier: the caller must not save. */
+  budgetHit?: boolean
 }
 
 /** Hash of everything the writer sees (numbered items) plus prompt versions: same hash → same text can be reused. */
@@ -45,7 +47,7 @@ export async function writeAndVerify(
   const common = { llm: opts.llm, sink: opts.sink, graph: 'rate-product', productId: bundle.product.id, parentRunId: opts.parentRunId, inputsHash: opts.inputsHash }
   const w = await runAgent(makeWriterAgent(), writerTask(bundle.product.name, result, items), common)
   let cost = w.totals.costUsd
-  if (w.status !== 'OK' || !w.finish) return { ...empty, writerRunId: w.runId, costUsd: cost }
+  if (w.status !== 'OK' || !w.finish) return { ...empty, writerRunId: w.runId, costUsd: cost, budgetHit: w.status === 'BUDGET' }
 
   const checked = w.finish.sentences.map((s) => checkSentence(s as DraftSentence, items))
   const dropped = checked.filter((c) => !c.ok).map((c) => ({ text: c.text, reason: `code: ${c.reason}` }))
@@ -56,7 +58,7 @@ export async function writeAndVerify(
   cost += v.totals.costUsd
   if (v.status !== 'OK' || !v.finish) {
     // No verification, no text: unverified sentences are never shown.
-    return { ...empty, writerRunId: w.runId, verifierRunId: v.runId, costUsd: cost, dropped: [...dropped, ...passed.map((p) => ({ text: p.text, reason: `verifier did not finish (${v.status})` }))] }
+    return { ...empty, budgetHit: v.status === 'BUDGET', writerRunId: w.runId, verifierRunId: v.runId, costUsd: cost, dropped: [...dropped, ...passed.map((p) => ({ text: p.text, reason: `verifier did not finish (${v.status})` }))] }
   }
 
   const decisions = new Map(v.finish.results.map((r) => [r.sentence_id, r]))

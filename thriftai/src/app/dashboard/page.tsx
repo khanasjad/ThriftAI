@@ -39,8 +39,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     return (
       <SiteShell>
         <div className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
-          <h1 className="text-2xl font-semibold text-fg">No brand on this account</h1>
-          <p className="mt-2 text-fg-muted">Your account isn’t linked to a brand yet.</p>
+          <h1 className="text-2xl font-semibold text-fg">{user.tenantId ? 'Your catalog' : 'No brand on this account'}</h1>
+          <p className="mt-2 text-fg-muted">
+            {user.tenantId
+              ? 'This account is a platform account (not linked to a single brand). Send your catalog, reviews and returns, then see scores, ads and social posts.'
+              : 'Your account isn’t linked to a brand yet.'}
+          </p>
+          {user.tenantId && (
+            <Link href="/dashboard/ads" className="mt-6 inline-flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-fg hover:opacity-90">
+              Data and ads →
+            </Link>
+          )}
         </div>
       </SiteShell>
     )
@@ -63,6 +72,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-fg">{data.brand.name}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Link href={`/dashboard/scorecard?brand=${data.brand.slug}`} className="inline-flex h-9 items-center rounded-lg border border-border-strong px-3 text-sm font-medium text-fg hover:bg-surface-2">
+              Scorecard (PDF) →
+            </Link>
             <Link href="/dashboard/ads" className="inline-flex h-9 items-center rounded-lg border border-border-strong px-3 text-sm font-medium text-fg hover:bg-surface-2">
               Data and ads →
             </Link>

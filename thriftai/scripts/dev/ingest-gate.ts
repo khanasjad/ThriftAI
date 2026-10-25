@@ -181,7 +181,8 @@ async function main() {
   if (process.argv.includes('--keep')) console.log(`\nKept tenant ${TENANT.slug} and its data.`)
   else {
     await cleanup(tenant.id)
-    console.log('\nCleaned up the gate tenant’s products, sellers and ingest runs.')
+    await prisma.tenant.delete({ where: { id: tenant.id } })
+    console.log('\nCleaned up the gate tenant and its products, sellers and ingest runs.')
   }
   console.log(failures ? `\n${failures} check(s) failed.` : '\nB10 gate: all checks passed.')
   process.exit(failures ? 1 : 0)

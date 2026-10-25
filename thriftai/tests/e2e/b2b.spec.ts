@@ -34,3 +34,16 @@ test('demo store: a sponsored slot is labelled and never inside the top 3', asyn
   if (sponsoredIndex >= 0) expect(sponsoredIndex).toBeGreaterThanOrEqual(3)
   for (let i = 0; i < 3; i++) await expect(cards.nth(i)).not.toContainText('Sponsored')
 })
+
+test('brand scorecard: printable page with headline numbers, fixes and pricing that matches the plan', async ({ page }) => {
+  const brand = devAccount('BRAND')
+  test.skip(!brand, 'run npm run seed:accounts first')
+  const noErrors = trackErrors(page)
+  await signIn(page, brand!, '/dashboard/scorecard')
+  await expect(page.getByText('Veritas scorecard')).toBeVisible()
+  for (const t of ['Average Veritas Score', 'Fix these first', 'Costliest return reasons', 'Strongest products']) await expect(page.getByText(t, { exact: true })).toBeVisible()
+  await expect(page.getByText(/fictional test data/)).toBeVisible()
+  await expect(page.locator('footer')).toContainText('$299/month')
+  await expect(page.getByRole('button', { name: /Print or save as PDF/ })).toBeVisible()
+  noErrors()
+})

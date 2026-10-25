@@ -73,11 +73,13 @@ export default async function DevelopersPage() {
           Read Veritas Scores, pillars, factors and verified text as JSON. Built for site search, product pages and AI
           shopping agents.
         </p>
+        {(process.env.APP_ENV !== 'production' || process.env.DEMO_STORE === '1') && (
         <p className="mt-4">
           <Link href="/demo/store" className="text-sm font-medium text-accent underline underline-offset-4">
             See it in a demo store: star ratings vs. the Veritas Score
           </Link>
         </p>
+        )}
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           {[
             { icon: <KeyRound />, t: 'Auth', d: 'Open in development. API keys (Growth plan and up) come with the brand accounts release.' },

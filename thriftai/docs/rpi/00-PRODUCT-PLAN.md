@@ -255,7 +255,7 @@ The full 27-factor model is designed from day one; factors switch on as their da
 - [ ] Build the Evidence agent and Scoring engine for the Fit, Quality and Comfort pillars first
 - [ ] Collect data for 500 tees and jeans; produce the first scores
 - [ ] Compare scores with expert picks and owner sentiment; adjust weights
-- [ ] Make one sample brand scorecard and show it to 3 brand operators
+- [ ] Make one sample brand scorecard and show it to 3 brand operators (scorecard built 2026-10-25: `/dashboard/scorecard`, printable; showing it to brands is still to do)
 - [ ] Write the pilot one-pager and a 100-brand outreach list
 
 ## Change log

@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { ProductThumb } from '@/components/veritas/product-thumb'
 import { ScoreRing } from '@/components/veritas/score-ring'
 import { CONFIDENCE, formatPrice } from '@/components/veritas/score'
 import { cn } from '@/lib/utils'
 import { storeSearch, type StoreSort } from '@/lib/veritas/read/store-demo'
+import { env } from '@/lib/veritas/env'
 import { DemoBanner, HeadsUpList, Stars, StoreHeader } from './parts'
 import { AD_MIN_SCORE, pickSponsored } from '@/lib/veritas/ads/rules'
 
@@ -24,6 +26,8 @@ const SORTS: { key: StoreSort; label: string }[] = [
 type Props = { searchParams: Promise<{ q?: string; sort?: string }> }
 
 export default async function DemoStorePage({ searchParams }: Props) {
+  // Off in production unless DEMO_STORE=1: it would show real products under a fictional store name.
+  if (env().APP_ENV === 'production' && !env().DEMO_STORE) notFound()
   const sp = await searchParams
   const q = (sp.q ?? 't-shirt').slice(0, 80)
   const sort: StoreSort = SORTS.some((s) => s.key === sp.sort) ? (sp.sort as StoreSort) : 'featured'

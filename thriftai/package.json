@@ -26,7 +26,13 @@
     "ingest:gate": "node scripts/with-env.mjs tsx scripts/dev/ingest-gate.ts",
     "ads": "node scripts/with-env.mjs tsx scripts/ads.ts",
     "dev:images": "node scripts/with-env.mjs tsx scripts/dev/render-images.ts",
-    "vision": "node scripts/with-env.mjs tsx scripts/vision.ts"
+    "vision": "node scripts/with-env.mjs tsx scripts/vision.ts",
+    "prod:check": "node scripts/with-env.mjs tsx scripts/prod-check.ts",
+    "smoke:prod": "tsx scripts/smoke-prod.ts",
+    "admin:create": "node scripts/with-env.mjs tsx scripts/admin-create.ts",
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build --turbopack",
+    "org:create": "node scripts/with-env.mjs tsx scripts/org-create.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",

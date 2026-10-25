@@ -522,9 +522,24 @@ Mapped from a search platform's product list. All read stored scores and evidenc
   - Decisions: pattern and colour words are filters, not loose terms; "blue" matches colour families (navy, indigo), from catalog names or the photo; a product whose photo hasn't been read never matches a pattern filter (no guessing). Dev images: `npm run dev:images` renders each fictional product with a known pattern (salt chosen so every pattern occurs and two navy florals exist for the demo).
 
 ### B8 · Production (~6 h, then the real-data plan)
+**B8a · Ready to deploy (no accounts needed, 2026-10-25) — ✅ done:**
+- [x] Production config fails fast: requires `ANTHROPIC_API_KEY`, `NEXTAUTH_SECRET` (≥ 32 chars), https `NEXTAUTH_URL`, `DIRECT_URL`, `CRON_SECRET`
+- [x] Monthly spend cap in production (`SPEND_CAP_WINDOW=month`); all-time in development
+- [x] Security headers (HSTS, frame, content-type, referrer, permissions)
+- [x] Demo store off in production unless `DEMO_STORE=1` (it would show real products under a fictional store name)
+- [x] `npm run prod:check`: no fictional/dev rows, every record has a source, required config present, migrations applied
+- [x] `npm run smoke:prod -- --url <site>`: public pages, API, auth walls, robots, headers
+- [x] `npm run admin:create`: first admin in production without printing a password
+- [x] Nightly job (`/api/cron/nightly`, Vercel cron, `CRON_SECRET`): reads new product photos, re-rates changed products, within a time and spend budget
+- [x] `vercel-build` runs migrations; runbook `docs/rpi/05-RUNBOOK-PRODUCTION.md`
+- [x] `npm run org:create`: onboard a pilot customer (organisation + sign-in, optional brand) without printing a password; platform accounts without a brand land on "Data and ads"
+- [x] Spend cap safety: if the cap stops the evidence agent, writer or verifier mid-rating, the rating aborts and the previous score and text are kept (it used to save a thinner score)
+- **B8a gate:** ✅ `npm run prod:check` on the dev database fails on all 7 data/config checks (40 fictional products, 7 dev accounts, dev images, total-window cap…) and passes migrations, which is the intended behaviour; `npm run smoke:prod -- --url http://localhost:3000` passes 13/16, the 3 failures are the expected development differences (dev UI on, demo store on, robots blocks all); nightly job on dev data: 1 product re-rated ($0.0086, legacy evidence without a text hash), stopped cleanly at the time budget; unit tests 134/134 (new: production config 2, spend-cap text 1); e2e 80/80; build passes.
+
+**B8b · Go live (needs accounts):**
 - [ ] Supabase + Vercel setup, prod migrations, spend cap, Langfuse, smoke tests
 - [ ] Real-data plan: CSV/JSON import for pilot brands first (`source` + `licence` required), then licensed feeds
-- **Gate:** prod smoke test green · no dummy rows in prod (checked by script)
+- **Gate:** `npm run smoke:prod -- --url <production>` green · `APP_ENV=production npm run prod:check` prints "Ready." (runbook: `05-RUNBOOK-PRODUCTION.md`)
 
 ---
 

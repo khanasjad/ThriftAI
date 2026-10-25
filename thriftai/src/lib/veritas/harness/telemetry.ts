@@ -96,7 +96,10 @@ export const prismaSink: TraceSink = {
     })
   },
   async spentUsd(env) {
-    const agg = await prisma.agentRun.aggregate({ where: { env }, _sum: { costUsd: true } })
+    // Production caps spend per calendar month (UTC); development counts all-time spend.
+    const now = new Date()
+    const since = process.env.SPEND_CAP_WINDOW === 'month' ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)) : undefined
+    const agg = await prisma.agentRun.aggregate({ where: { env, ...(since && { startedAt: { gte: since } }) }, _sum: { costUsd: true } })
     return Number(agg._sum.costUsd ?? 0)
   },
 }

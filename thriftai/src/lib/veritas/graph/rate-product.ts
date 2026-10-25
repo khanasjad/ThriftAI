@@ -150,6 +150,8 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
         parentRunId: graphRunId,
         inputsHash: textHash,
       })
+      // The spend cap must never replace a good score with a thinner one: stop and keep the previous rating.
+      if (r.status === 'BUDGET') throw new Error('Spend cap reached: rating stopped, previous score kept')
       // Partial results are kept even when the run stopped early (plan §4.2); confidence reflects coverage.
       agentEvidence = out.accepted
       cost += r.totals.costUsd
@@ -199,6 +201,7 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
       await trace('text', { verified: true, reused: 'writer inputs unchanged' })
     } else if (mode === 'full' && result.publishable) {
       text = await writeAndVerify(bundle, result, all, { llm: opts.llm, sink, parentRunId: graphRunId, inputsHash: textHash2 })
+      if (text.budgetHit) throw new Error('Spend cap reached: rating stopped, previous score and text kept')
       cost += text.costUsd
       await trace('text', { verified: text.verified, kept: text.kept, writerRunId: text.writerRunId, verifierRunId: text.verifierRunId })
       for (const d of text.dropped) await trace('verifier.drop', d, 'GUARDRAIL')

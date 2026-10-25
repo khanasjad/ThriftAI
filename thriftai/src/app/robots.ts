@@ -6,7 +6,7 @@ const base = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? 'htt
 export default function robots(): MetadataRoute.Robots {
   if (process.env.APP_ENV !== 'production') return { rules: { userAgent: '*', disallow: '/' } }
   return {
-    rules: { userAgent: '*', allow: '/', disallow: ['/admin', '/dashboard', '/api/', '/sign-in', '/profile', '/dev'] },
+    rules: { userAgent: '*', allow: '/', disallow: ['/admin', '/dashboard', '/api/', '/sign-in', '/profile', '/dev', '/demo'] },
     sitemap: `${base}/sitemap.xml`,
   }
 }
