@@ -2,8 +2,9 @@ import type { MetadataRoute } from 'next'
 import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { prisma } from '@/lib/prisma'
 import { COLLECTIONS } from '@/lib/veritas/read/collections'
+import { siteUrl } from '@/lib/site-url'
 
-const base = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+const base = siteUrl()
 
 export const dynamic = 'force-dynamic'
 

@@ -82,11 +82,15 @@ export type FeedKind = keyof typeof FEEDS
 // Normalisers (vendor wording → our values)
 // ---------------------------------------------------------------------------
 
-/** Product plan: tees and jeans only for now. Anything else is reported, not guessed. */
-export function normaliseCategory(category: string, title: string): { category: 'TOPS' | 'BOTTOMS'; subcategory: 'tee' | 'jeans' } | null {
+export type Subcategory = 'tee' | 'shirt' | 'jeans'
+
+/** Product plan: t-shirts, button-up shirts and jeans for now. Anything else is reported, not guessed. */
+export function normaliseCategory(category: string, title: string): { category: 'TOPS' | 'BOTTOMS'; subcategory: Subcategory } | null {
   const t = `${category} ${title}`.toLowerCase()
   if (/\b(jeans?|denim)\b/.test(t)) return { category: 'BOTTOMS', subcategory: 'jeans' }
   if (/\b(t-?shirts?|tees?|tshirts?)\b/.test(t)) return { category: 'TOPS', subcategory: 'tee' }
+  // After the t-shirt check: "shirt" alone, button-ups and named shirt types.
+  if (/\b(shirts?|button[- ]?(up|down)s?|oxfords?|flannels?|blouses?)\b/.test(t)) return { category: 'TOPS', subcategory: 'shirt' }
   return null
 }
 
@@ -154,8 +158,9 @@ export function fitFromTitle(title: string): 'slim' | 'regular' | 'relaxed' | 'o
   if (/regular|classic|straight|crew/.test(t)) return 'regular'
   return null
 }
-export function silhouetteFromTitle(title: string, sub: 'tee' | 'jeans'): string | null {
+export function silhouetteFromTitle(title: string, sub: Subcategory): string | null {
   const t = title.toLowerCase()
+  if (sub === 'shirt') return /flannel/.test(t) ? 'flannel-shirt' : /linen/.test(t) ? 'linen-shirt' : /short[- ]sleeve|camp|resort|hawaiian/.test(t) ? 'short-sleeve-shirt' : /oxford/.test(t) ? 'oxford-shirt' : 'poplin-shirt'
   if (sub === 'tee') return /v-?neck/.test(t) ? 'v-neck-tee' : /boxy|oversized/.test(t) ? 'boxy-tee' : /longline|long line/.test(t) ? 'longline-tee' : /crew/.test(t) ? 'crew-tee' : 'crew-tee'
   return /wide/.test(t) ? 'wide-leg' : /bootcut|boot cut|flare/.test(t) ? 'bootcut' : /skinny/.test(t) ? 'skinny' : /taper/.test(t) ? 'slim-taper' : /straight/.test(t) ? 'straight' : null
 }

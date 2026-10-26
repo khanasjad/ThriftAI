@@ -17,20 +17,23 @@ import { Conversation } from './conversation'
 export const metadata: Metadata = { title: 'Search', description: 'Search clothing by what matters: fit, quality, comfort, value.' }
 export const dynamic = 'force-dynamic'
 
-const CATEGORIES: { value?: ClothingCategory; label: string }[] = [
+const KINDS: { value?: 'tee' | 'shirt' | 'jeans'; label: string }[] = [
   { label: 'All' },
-  { value: 'TOPS', label: 'Tees' },
-  { value: 'BOTTOMS', label: 'Jeans' },
+  { value: 'tee', label: 'T-shirts' },
+  { value: 'shirt', label: 'Shirts' },
+  { value: 'jeans', label: 'Jeans' },
 ]
 const SORTS = ['score', 'reviews', 'price_asc', 'price_desc', 'newest'] as const
 type Sort = (typeof SORTS)[number]
 
-type Params = { q?: string; category?: string; sort?: string; gender?: string; color?: string; fit?: string; min?: string; tag?: string }
+type Params = { q?: string; kind?: string; category?: string; sort?: string; gender?: string; color?: string; fit?: string; min?: string; tag?: string }
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Params> }) {
   const sp = await searchParams
   const q = (sp.q ?? '').slice(0, 200)
-  const category = CATEGORIES.find((c) => c.value === sp.category)?.value
+  const kind = KINDS.find((c) => c.value === sp.kind)?.value
+  // Old links used ?category=TOPS|BOTTOMS; still honoured.
+  const category = sp.category === 'TOPS' || sp.category === 'BOTTOMS' ? (sp.category as ClothingCategory) : undefined
   const sort: Sort = (SORTS as readonly string[]).includes(sp.sort ?? '') ? (sp.sort as Sort) : 'score'
   const filters: CatalogFilters = {
     gender: sp.gender === 'MENS' || sp.gender === 'WOMENS' ? sp.gender : undefined,
@@ -42,7 +45,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   const href = (patch: Partial<Params>) => {
     const p = new URLSearchParams()
-    const merged = { q, category, sort: sort === 'score' ? undefined : sort, gender: filters.gender, color: filters.color, fit: filters.fit, min: filters.minScore?.toString(), tag: filters.tag, ...patch }
+    const merged = { q, kind, category, sort: sort === 'score' ? undefined : sort, gender: filters.gender, color: filters.color, fit: filters.fit, min: filters.minScore?.toString(), tag: filters.tag, ...patch }
     for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v)
     const s = p.toString()
     return s ? `/search?${s}` : '/search'
@@ -54,6 +57,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <h1 className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold tracking-[-0.025em] text-fg">Search</h1>
 
         <form action="/search" method="get" role="search" className="mt-6">
+          {kind && <input type="hidden" name="kind" value={kind} />}
           {category && <input type="hidden" name="category" value={category} />}
           {sort !== 'score' && <input type="hidden" name="sort" value={sort} />}
           <label htmlFor="q" className="sr-only">
@@ -77,13 +81,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
         <h2 className="mt-12 text-lg font-semibold text-fg">{q ? 'All matching products' : 'Browse the catalog'}</h2>
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <nav aria-label="Category" className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => {
-              const active = c.value === category
+          <nav aria-label="Product type" className="flex flex-wrap gap-2">
+            {KINDS.map((c) => {
+              const active = c.value === kind
               return (
                 <Link
                   key={c.label}
-                  href={href({ category: c.value })}
+                  href={href({ kind: c.value, category: undefined })}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'inline-flex min-h-9 items-center rounded-full border px-4 text-sm transition-colors',
@@ -98,8 +102,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <SortSelect value={sort} />
         </div>
 
-        <Suspense key={`${q}|${category}|${sort}|${JSON.stringify(filters)}`} fallback={<ResultsSkeleton />}>
-          <Results q={q} category={category} sort={sort} filters={filters} href={href} clearHref={href({ q: undefined, gender: undefined, color: undefined, fit: undefined, min: undefined, tag: undefined })} />
+        <Suspense key={`${q}|${kind}|${category}|${sort}|${JSON.stringify(filters)}`} fallback={<ResultsSkeleton />}>
+          <Results q={q} kind={kind} category={category} sort={sort} filters={filters} href={href} clearHref={href({ q: undefined, gender: undefined, color: undefined, fit: undefined, min: undefined, tag: undefined })} />
         </Suspense>
       </div>
     </SiteShell>
@@ -108,6 +112,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
 async function Results({
   q,
+  kind,
   category,
   sort,
   filters,
@@ -115,16 +120,17 @@ async function Results({
   clearHref,
 }: {
   q: string
+  kind?: 'tee' | 'shirt' | 'jeans'
   category?: ClothingCategory
   sort: Sort
   filters: CatalogFilters
   href: (patch: Partial<Params>) => string
   clearHref: string
 }) {
-  const { items, interpreted, facets } = await searchCatalog({ q, category, sort, ...filters })
+  const { items, interpreted, facets } = await searchCatalog({ q, kind, category, sort, ...filters })
   const filterBar = <FilterBar facets={facets} filters={filters} href={href} />
   const chips = [
-    interpreted.category && (interpreted.category === 'TOPS' ? 'Tees' : 'Jeans'),
+    interpreted.kind ? ({ tee: 'T-shirts', shirt: 'Shirts', jeans: 'Jeans' } as const)[interpreted.kind] : interpreted.category && (interpreted.category === 'TOPS' ? 'Tops' : 'Jeans'),
     interpreted.maxPrice && `Under $${interpreted.maxPrice}`,
     ...interpreted.colors.map((c) => c[0].toUpperCase() + c.slice(1)),
     ...interpreted.patterns.map((p) => `${p[0].toUpperCase()}${p.slice(1)} (from photos)`),
@@ -138,7 +144,7 @@ async function Results({
       <div className="mt-12 flex flex-col items-center rounded-2xl border border-dashed border-border-strong px-6 py-16 text-center">
         <SearchX className="size-8 text-fg-subtle" aria-hidden />
         <h3 className="mt-4 text-lg font-semibold text-fg">No matches{q && <> for “{q}”</>}</h3>
-        <p className="mt-2 max-w-md text-sm text-fg-muted">The test catalog has tees and jeans only. Try a colour, a fit like “relaxed”, a higher budget, or a brand name.</p>
+        <p className="mt-2 max-w-md text-sm text-fg-muted">The test catalog has t-shirts, shirts and jeans. Try a colour, a fit like “relaxed”, a higher budget, or a brand name.</p>
         <Button asChild variant="secondary" className="mt-6">
           <Link href={clearHref}>Clear search and filters</Link>
         </Button>

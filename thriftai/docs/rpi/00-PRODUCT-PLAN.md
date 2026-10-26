@@ -251,8 +251,8 @@ The full 27-factor model is designed from day one; factors switch on as their da
 ## Next 30 days
 
 - [x] Lock the 27-factor definitions and the data source for each (2026-10-25: `taxonomy/sources.ts`, shown on /how-it-works)
-- [ ] Refactor the codebase to the new score structure (keep tenants, auth, Claude integration)
-- [ ] Build the Evidence agent and Scoring engine for the Fit, Quality and Comfort pillars first
+- [x] Refactor the codebase to the new score structure (keep tenants, auth, Claude integration) (done 2026-10-24/25, backend phases B0–B7)
+- [x] Build the Evidence agent and Scoring engine for the Fit, Quality and Comfort pillars first (done 2026-10-25, all five pillars, B3–B4)
 - [ ] Collect data for 500 tees and jeans; produce the first scores
 - [ ] Compare scores with expert picks and owner sentiment; adjust weights
 - [ ] Make one sample brand scorecard and show it to 3 brand operators (scorecard built 2026-10-25: `/dashboard/scorecard`, printable; showing it to brands is still to do)
@@ -267,3 +267,4 @@ The full 27-factor model is designed from day one; factors switch on as their da
 - 2026-10-25 — B2B focus (details: 04-PLAN-B2B.md). Primary buyers: multi-vendor marketplaces and large retailers; clothing brands second. The score is shown as three drivers (Product quality from reviews, Price, Brand reputation) on top of the unchanged 27-factor engine. Data in production comes from three simple feeds (catalog with prices, reviews, optional returns) via upload or push API. Ads: the score picks which products may be advertised (ad feed labels, verified ad copy, social posts); on-site sponsored slots are labelled, need score 70+, and never appear in the top 3; paying never changes a score. Decided by Asjad.
 - 2026-10-25 — Fourth parameter: **Style match**. A vision agent reads each product's own photos (vendor-uploaded) into structured attributes (colours, pattern such as floral or striped, neckline, sleeve, shape, style), so a request like "blue flowered shirt under $40" filters to items that look like that, then ranks them by the score. Style match is per search (how well an item matches what was asked), not part of the product score. Decided by Asjad. Note: the catalog is still tees and jeans, so "shirt" means tees until button-up shirts are added as a category.
 - 2026-10-25 — Platform pricing stays "contact us" (annual contract, priced by catalog size) until 2–3 pilots show the value. Competitor analysis stays in this plan as internal-only. Outreach is tracked in an admin tracker; the team adds real brands (no scraped personal contact data). Decided by Asjad.
+- 2026-10-25 — Categories widened from t-shirts and jeans to **t-shirts, button-up shirts and jeans** (all three are tops/bottoms everyday staples where all 27 factors apply). Shirt-specific evidence (collar, buttons, wrinkling, sleeve length) maps to existing factors; no new factors. Decided by Asjad.

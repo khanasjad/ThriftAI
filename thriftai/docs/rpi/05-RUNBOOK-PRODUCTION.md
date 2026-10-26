@@ -2,6 +2,27 @@
 
 How to take Veritas live and keep it running. Written 2026-10-25 (B8a). Every command below exists and is tested in development; production-only steps are marked.
 
+## Hosted development (do this first, production stays on hold)
+
+A shared dev site on the internet with the same **fictional** data as local development: Vercel **Preview** deployments + a separate Supabase project. It is still `APP_ENV=development` (robots block indexing, test pages and the demo store are on, fictional data only). Never point it at the production database.
+
+1. **Supabase:** create a project named `veritas-dev` (separate from production). Copy `.env.hosted.example` to `.env.hosted.local` and fill in its pooled `DATABASE_URL` and direct `DIRECT_URL`.
+2. **Database:** `DEV_TARGET=hosted npm run db:deploy` (creates the tables), then either
+   - `npm run dev:hosted:copy -- --yes`: copies the local dev database there, ratings included ($0), or
+   - `DEV_TARGET=hosted npm run seed` then `DEV_TARGET=hosted npm run rate -- --all --mode full --yes` (re-rates, ~$0.45).
+   Then `DEV_TARGET=hosted npm run seed:accounts` for dev sign-ins (passwords go to `.veritas/dev-accounts.json`, never printed).
+3. **Vercel:** import the repository (root directory `thriftai`). In **Settings → Environment Variables → Preview**, set:
+   `APP_ENV=development`, `DATABASE_URL` and `DIRECT_URL` (the dev project's), `ANTHROPIC_API_KEY` (a dev key), `NEXTAUTH_SECRET` (`openssl rand -base64 48`), `SPEND_CAP_USD=3`. Leave `NEXTAUTH_URL` empty for previews: the login library uses Vercel's preview address. Every push to a non-main branch deploys a preview; builds run migrations on the dev database (`vercel-build`).
+4. Check a preview: `DEV_TARGET=hosted npm run smoke:hosted -- --url https://<preview>.vercel.app` (expect the 3 development differences: dev UI on, demo store on, robots block all).
+
+**Set up 2026-10-25:** Supabase project `veritas-dev` (ref `kaulkgbjvgjcmigdzsqh`, us-east-1, separate from "khanasjad's Project"); Vercel project `veritas-dev` (team `veritas-c5a5`, root directory `thriftai`, GitHub `khanasjad/ThriftAI` connected, Preview variables set). Notes:
+- **Previews are protected** by Vercel login (only you can open them). Scripts use an automation bypass secret stored in `.env.hosted.local` (`VERCEL_AUTOMATION_BYPASS_SECRET`), sent as the `x-vercel-protection-bypass` header.
+- **Production builds are skipped** while production is on hold (project "Ignored Build Step" exits early when `VERCEL_ENV=production`). Remove that setting when going live.
+- **Deploy the working copy** (uncommitted changes) as a preview from the repo root: `npx vercel deploy --target=preview` (`.vercelignore` keeps other folders, dependencies and every `.env*.local` out of the upload). Pushing a branch to GitHub also builds a preview.
+- Dev sign-ins for the hosted database are in `.veritas/dev-accounts.hosted.json` (separate from local).
+
+Any command can target the hosted dev database with `DEV_TARGET=hosted` in front (it loads `.env.hosted.local`; seeding a non-local database is allowed only there, and never in production).
+
 ## 0. What you need
 
 | Account | Used for | Notes |

@@ -43,7 +43,7 @@ export default function AboutPage() {
 
         <h2 className="mt-14 text-xl font-semibold text-fg">Where we are</h2>
         <p className="mt-3 leading-relaxed text-fg-muted">
-          Veritas is in development. The site runs on a fictional test catalog of tees and jeans while the rating agents are built and tested. Real brand data
+          Veritas is in development. The site runs on a fictional test catalog of t-shirts, shirts and jeans while the rating agents are built and tested. Real brand data
           comes only from brands directly, or from sources whose terms allow it.
         </p>
 

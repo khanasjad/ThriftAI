@@ -7,12 +7,22 @@ import { swatchFor } from './colors'
  * Drawn from the product's own data: its cut (silhouette) and its colour, so a "Sage boxy tee" looks like one.
  * It is labelled "Illustration" so nobody mistakes it for a real photo.
  */
-type Shape = { body: string; details: string[]; dashed?: string[]; /** y of the floor shadow, just under the hem */ floor?: number }
+type Shape = { body: string; details: string[]; dashed?: string[]; /** y of the floor shadow, just under the hem */ floor?: number; buttons?: [number, number][] }
 
 const TEE_BODY = (neck: string, hemY: number, hem = '') =>
   `M48 18 ${neck} L90 24 L108 42 L96 54 L88 48 L88 ${hemY} ${hem || `L32 ${hemY}`} L32 48 L24 54 L12 42 L30 24 Z`
 
+const LONG_SHIRT = 'M44 16 L52 12 L60 20 L68 12 L76 16 L92 22 L104 40 L112 98 L100 101 L92 54 L90 54 L90 126 L30 126 L30 54 L28 54 L20 101 L8 98 L16 40 L28 22 Z'
+const SHORT_SHIRT = 'M44 16 L52 12 L60 20 L68 12 L76 16 L92 22 L108 44 L98 56 L90 50 L90 122 L30 122 L30 50 L22 56 L12 44 L28 22 Z'
+const COLLAR = ['M52 12 L46 25 L60 24 L74 25 L68 12', 'M52 12 L60 24 L68 12', 'M60 24 L60 124']
+const BUTTONS = (bottom: number): [number, number][] => Array.from({ length: 5 }, (_, i) => [60, 34 + i * ((bottom - 44) / 4)])
+
 const SHAPES: Record<string, Shape> = {
+  'oxford-shirt': { floor: 133, body: LONG_SHIRT, details: [...COLLAR, 'M66 44 h11 v12 h-11 z'], dashed: ['M9 92 L21 95', 'M111 92 L99 95', 'M31 122 L89 122'], buttons: BUTTONS(118) },
+  'poplin-shirt': { floor: 133, body: LONG_SHIRT, details: COLLAR, dashed: ['M9 92 L21 95', 'M111 92 L99 95', 'M31 122 L89 122'], buttons: BUTTONS(118) },
+  'flannel-shirt': { floor: 133, body: LONG_SHIRT, details: [...COLLAR, 'M38 42 h12 v12 h-12 z', 'M70 42 h12 v12 h-12 z'], dashed: ['M9 92 L21 95', 'M111 92 L99 95'], buttons: BUTTONS(118) },
+  'linen-shirt': { floor: 133, body: LONG_SHIRT, details: COLLAR, dashed: ['M31 122 L89 122'], buttons: BUTTONS(118) },
+  'short-sleeve-shirt': { floor: 129, body: SHORT_SHIRT, details: [...COLLAR.slice(0, 2), 'M60 24 L60 120'], dashed: ['M14 46 L24 54', 'M106 46 L96 54', 'M31 118 L89 118'], buttons: BUTTONS(114) },
   'crew-tee': {
     floor: 127,
     body: TEE_BODY('Q60 30 72 18', 120),
@@ -68,11 +78,12 @@ function shapeFor(category: string, subcategory?: string | null, silhouette?: st
   if (silhouette && SHAPES[silhouette]) return SHAPES[silhouette]
   const s = (subcategory ?? '').toLowerCase()
   if (s.includes('jean') || s.includes('denim') || category === 'BOTTOMS') return SHAPES.straight
+  if (s === 'shirt') return SHAPES['poplin-shirt']
   return SHAPES['crew-tee']
 }
 
 /** Colour names that are light enough to need a darker outline and darker detail lines. */
-const LIGHT = new Set(['white', 'ecru', 'oatmeal', 'light vintage', 'heather grey', 'sage'])
+const LIGHT = new Set(['white', 'ecru', 'oatmeal', 'light vintage', 'heather grey', 'sage', 'light blue'])
 
 /** Repeating pattern tiles drawn over the garment colour; ink contrasts with the base colour. */
 function PatternDefs({ id, pattern, light }: { id: string; pattern?: string | null; light: boolean }) {
@@ -183,6 +194,9 @@ export function ProductThumb({
         ))}
         {shape.dashed?.map((d) => (
           <path key={d} d={d} fill="none" stroke={line} strokeWidth="0.9" strokeDasharray="2 2" strokeLinecap="round" />
+        ))}
+        {shape.buttons?.map(([x, y]) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r="1.3" fill={line} />
         ))}
         <path d={shape.body} fill="none" stroke={outline} strokeWidth="1.2" strokeLinejoin="round" />
       </svg>

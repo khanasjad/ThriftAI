@@ -12,44 +12,41 @@ function apply(theme: Theme) {
   document.documentElement.dataset.theme = dark ? 'dark' : 'light'
 }
 
-/** Light / system / dark segmented toggle. The pre-paint script in layout.tsx applies the saved value on load. */
-export function ThemeToggle({ className }: { className?: string }) {
-  const [theme, setTheme] = React.useState<Theme>('system')
+function readTheme(): Theme {
+  try {
+    return (localStorage.getItem(KEY) as Theme) || 'system'
+  } catch {
+    return 'system'
+  }
+}
+// Saved theme as an external store: other tabs ('storage') and the ⌘K menu ('veritas-theme') notify changes.
+function subscribe(onChange: () => void) {
+  window.addEventListener('storage', onChange)
+  window.addEventListener('veritas-theme', onChange)
+  return () => {
+    window.removeEventListener('storage', onChange)
+    window.removeEventListener('veritas-theme', onChange)
+  }
+}
 
+/** Light / system / dark segmented toggle. public/theme.js applies the saved value before first paint. */
+export function ThemeToggle({ className }: { className?: string }) {
+  const theme = React.useSyncExternalStore(subscribe, readTheme, () => 'system' as Theme)
+
+  // Follow the OS setting while on "system".
   React.useEffect(() => {
-    let saved: Theme = 'system'
-    try {
-      saved = (localStorage.getItem(KEY) as Theme) || 'system'
-    } catch {}
-    setTheme(saved)
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => {
-      let current: Theme = 'system'
-      try {
-        current = (localStorage.getItem(KEY) as Theme) || 'system'
-      } catch {}
-      if (current === 'system') apply('system')
-    }
-    // Theme changed elsewhere (e.g. the ⌘K menu).
-    const onExternal = () => {
-      try {
-        setTheme((localStorage.getItem(KEY) as Theme) || 'system')
-      } catch {}
-    }
+    const onChange = () => readTheme() === 'system' && apply('system')
     mq.addEventListener('change', onChange)
-    window.addEventListener('veritas-theme', onExternal)
-    return () => {
-      mq.removeEventListener('change', onChange)
-      window.removeEventListener('veritas-theme', onExternal)
-    }
+    return () => mq.removeEventListener('change', onChange)
   }, [])
 
   const choose = (t: Theme) => {
-    setTheme(t)
     try {
       localStorage.setItem(KEY, t)
     } catch {}
     apply(t)
+    window.dispatchEvent(new Event('veritas-theme'))
   }
 
   const options: { value: Theme; label: string; icon: React.ReactNode }[] = [

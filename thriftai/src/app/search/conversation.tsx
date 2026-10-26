@@ -23,7 +23,7 @@ const FIT_LABEL: Record<string, string> = { slim: 'Slim fit', regular: 'Regular 
 
 function readAs(i: SearchResponse['intent']) {
   return [
-    i.category && (i.category === 'TOPS' ? 'Tees' : 'Jeans'),
+    i.kind ? ({ tee: 'T-shirts', shirt: 'Shirts', jeans: 'Jeans' } as const)[i.kind] : i.category && (i.category === 'TOPS' ? 'Tops' : 'Jeans'),
     i.gender && (i.gender === 'MENS' ? 'Men' : i.gender === 'WOMENS' ? 'Women' : 'Unisex'),
     i.minPrice && i.maxPrice ? `$${i.minPrice}–$${i.maxPrice}` : i.maxPrice ? `Under $${i.maxPrice}` : i.minPrice ? `From $${i.minPrice}` : null,
     ...(i.colors ?? []),
@@ -53,9 +53,8 @@ export function Conversation({ query }: { query: string }) {
   const endRef = React.useRef<HTMLLIElement>(null)
 
   React.useEffect(() => {
+    // The page renders <Conversation key={query}>, so a new query mounts fresh state; only fetch here.
     let cancelled = false
-    setMsgs([{ role: 'shopper', text: query }])
-    setBusy(true)
     post({ message: query })
       .then((r) => {
         if (cancelled) return

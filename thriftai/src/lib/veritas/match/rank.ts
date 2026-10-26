@@ -158,7 +158,7 @@ const norm = (x: string) => x.toLowerCase().trim()
 /** Colour names match by containment: "grey" matches "Heather Grey". */
 const colorMatch = (productColor: string, wanted: string) => norm(productColor).includes(norm(wanted)) || norm(wanted).includes(norm(productColor))
 /** Catalog colour names → families, so "blue" finds navy and indigo. Photo colour families add to these. */
-const CATALOG_FAMILY: Record<string, string> = { black: 'black', white: 'white', ecru: 'beige', oatmeal: 'beige', cream: 'beige', 'heather grey': 'grey', grey: 'grey', navy: 'blue', sage: 'green', 'washed red': 'red', 'light vintage': 'blue', 'mid wash': 'blue', 'indigo rinse': 'blue' }
+const CATALOG_FAMILY: Record<string, string> = { black: 'black', white: 'white', ecru: 'beige', oatmeal: 'beige', cream: 'beige', 'heather grey': 'grey', grey: 'grey', navy: 'blue', sage: 'green', 'washed red': 'red', 'light vintage': 'blue', 'mid wash': 'blue', 'indigo rinse': 'blue', 'light blue': 'blue' }
 export function colorHit(c: Pick<Candidate, 'colors' | 'visualColors' | 'colorFamilies'>, wanted: string) {
   const w = norm(wanted)
   return c.colors.some((pc) => colorMatch(pc, w) || CATALOG_FAMILY[norm(pc)] === w) || c.visualColors.some((vc) => colorMatch(vc, w)) || c.colorFamilies.includes(w)
@@ -171,6 +171,7 @@ export function filterCandidates(cands: Candidate[], intent: SearchIntent, who: 
   const cuts = (intent.cuts ?? []).map(norm)
   return cands
     .filter((c) => !intent.category || c.category === intent.category)
+    .filter((c) => !intent.kind || (c.subcategory ?? '').toLowerCase() === intent.kind)
     .filter((c) => !intent.gender || c.gender === intent.gender || c.gender === 'UNISEX')
     .filter((c) => !budget || c.priceMin <= budget * budgetFactor)
     .filter((c) => !intent.minPrice || c.priceMax >= intent.minPrice)

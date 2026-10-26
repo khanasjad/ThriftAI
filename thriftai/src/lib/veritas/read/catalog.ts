@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { scanInjection } from '../harness/guardrails'
 import { computePriceFacts, type PriceFacts } from '../price/facts'
 import { tagsForProducts } from './tags'
-import { COLOR_WORDS, PATTERN_WORDS } from '../match/intent'
+import { COLOR_WORDS, KIND_WORDS, PATTERN_WORDS } from '../match/intent'
 import { colorHit } from '../match/rank'
 import type { Tag } from '../enrich/tags'
 
@@ -58,6 +58,8 @@ export type CatalogFacets = {
 export type CatalogQuery = CatalogFilters & {
   q?: string
   category?: ClothingCategory
+  /** Product type tab: tee, shirt or jeans. */
+  kind?: 'tee' | 'shirt' | 'jeans'
   sort?: 'score' | 'price_asc' | 'price_desc' | 'reviews' | 'newest'
   limit?: number
 }
@@ -72,7 +74,7 @@ const CATEGORY_WORDS: Record<string, ClothingCategory> = {
   jeans: 'BOTTOMS', jean: 'BOTTOMS', denim: 'BOTTOMS', pants: 'BOTTOMS', trousers: 'BOTTOMS',
 }
 
-export type Interpretation = { category?: ClothingCategory; maxPrice?: number; colors: string[]; patterns: string[]; terms: string[]; matchedAny: boolean }
+export type Interpretation = { category?: ClothingCategory; kind?: 'tee' | 'shirt' | 'jeans'; maxPrice?: number; colors: string[]; patterns: string[]; terms: string[]; matchedAny: boolean }
 
 /** Turns a free-text query into a category, a price ceiling and search terms. Shown to the user as-is. */
 export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
@@ -84,12 +86,18 @@ export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
     text = text.replace(price[0], ' ')
   }
   let category: ClothingCategory | undefined
+  let kind: Interpretation['kind']
   const terms: string[] = []
   const colors: string[] = []
   const patterns: string[] = []
   for (const raw of text.split(/[\s,]+/)) {
     const w = raw.replace(/[^\p{L}\p{N}-]/gu, '')
     if (w.length < 2 || STOPWORDS.has(w)) continue
+    if (KIND_WORDS[w]) {
+      kind ??= KIND_WORDS[w]
+      category ??= KIND_WORDS[w] === 'jeans' ? 'BOTTOMS' : 'TOPS'
+      continue
+    }
     if (CATEGORY_WORDS[w]) {
       category ??= CATEGORY_WORDS[w]
       continue
@@ -99,19 +107,20 @@ export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
     else if (COLOR_WORDS.includes(w)) colors.push(w === 'gray' ? 'grey' : w)
     else terms.push(w.replace(/-/g, ' '))
   }
-  return { category, maxPrice, colors: [...new Set(colors)], patterns: [...new Set(patterns)], terms: [...new Set(terms)].slice(0, 6) }
+  return { category, kind, maxPrice, colors: [...new Set(colors)], patterns: [...new Set(patterns)], terms: [...new Set(terms)].slice(0, 6) }
 }
 
 /**
  * Interim keyword search (replaced by the answer-search graph in B5).
  * Ranks by how many query terms appear in the product's own fields (×3) or in its reviews (×1).
  */
-export async function searchCatalog({ q, category, sort = 'score', limit = 48, ...filters }: CatalogQuery = {}): Promise<{ items: CatalogItem[]; interpreted: Interpretation; facets: CatalogFacets }> {
+export async function searchCatalog({ q, category, kind, sort = 'score', limit = 48, ...filters }: CatalogQuery = {}): Promise<{ items: CatalogItem[]; interpreted: Interpretation; facets: CatalogFacets }> {
   const parsed = interpretQuery(q ?? '')
-  const cat = category ?? parsed.category
+  const k = kind ?? parsed.kind
+  const cat = category ?? parsed.category ?? (k ? (k === 'jeans' ? 'BOTTOMS' : 'TOPS') : undefined)
 
   const rows = await prisma.clothingProduct.findMany({
-    where: { isAvailable: true, ...PUBLIC_PRODUCTS, ...(cat && { category: cat }), ...(parsed.maxPrice && { currentPrice: { lte: parsed.maxPrice } }) },
+    where: { isAvailable: true, ...PUBLIC_PRODUCTS, ...(cat && { category: cat }), ...(k && { subcategory: k }), ...(parsed.maxPrice && { currentPrice: { lte: parsed.maxPrice } }) },
     select: {
       id: true,
       slug: true,
@@ -209,7 +218,7 @@ export async function searchCatalog({ q, category, sort = 'score', limit = 48, .
 
   return {
     items: scored.slice(0, Math.min(limit, 100)).map((x) => x.item),
-    interpreted: { ...parsed, category: cat, matchedAny },
+    interpreted: { ...parsed, category: cat, kind: k, matchedAny },
     facets,
   }
 }

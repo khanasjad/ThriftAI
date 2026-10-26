@@ -9,7 +9,7 @@ const QUALITY_REASONS = ['POOR_QUALITY', 'DAMAGE_DEFECT']
 export async function tagsForProducts(ids: string[]): Promise<Map<string, Tag[]>> {
   if (ids.length === 0) return new Map()
   const [products, factors, fits, returns, prices] = await Promise.all([
-    prisma.clothingProduct.findMany({ where: { id: { in: ids } }, select: { id: true, category: true, unitsSold: true } }),
+    prisma.clothingProduct.findMany({ where: { id: { in: ids } }, select: { id: true, category: true, subcategory: true, unitsSold: true } }),
     prisma.factorScore.findMany({ where: { productId: { in: ids }, version: 'v2' }, select: { productId: true, factor: true, value: true, evidenceCount: true } }),
     prisma.clothingReview.groupBy({ by: ['productId', 'fitsAs'], where: { productId: { in: ids }, fitsAs: { not: null } }, _count: { _all: true } }),
     prisma.returnEvent.groupBy({ by: ['productId', 'returnReason'], where: { productId: { in: ids } }, _count: { _all: true } }),
@@ -44,6 +44,7 @@ export async function tagsForProducts(ids: string[]): Promise<Map<string, Tag[]>
       p.id,
       buildTags({
         category: p.category,
+        subcategory: p.subcategory,
         factors: factors.filter((f) => f.productId === p.id).map((f) => ({ factor: f.factor, value: Number(f.value), evidenceCount: f.evidenceCount })),
         fit,
         returns: { fit: count(FIT_REASONS), quality: count(QUALITY_REASONS), units: p.unitsSold },

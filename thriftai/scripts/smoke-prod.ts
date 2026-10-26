@@ -1,6 +1,7 @@
 /**
  * Smoke test for a deployed site (B8 gate). Read-only: GET requests only, no sign-in, no model calls.
  *   npm run smoke:prod -- --url https://your-site.example
+ *   DEV_TARGET=hosted npm run smoke:hosted -- --url https://<preview>.vercel.app   (protected previews: uses the bypass secret)
  * Checks public pages, the Score API, auth walls, robots/sitemap, security headers, and that dev pages are off.
  */
 const i = process.argv.indexOf('--url')
@@ -13,7 +14,9 @@ if (!/^https?:\/\//.test(base)) {
 let failures = 0
 async function check(name: string, path: string, test: (r: Response, body: string) => boolean | string) {
   try {
-    const r = await fetch(`${base}${path}`, { redirect: 'manual', headers: { 'user-agent': 'veritas-smoke/1' } })
+    // Protected Vercel previews: send the automation bypass secret when one is set (never printed).
+    const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+    const r = await fetch(`${base}${path}`, { redirect: 'manual', headers: { 'user-agent': 'veritas-smoke/1', ...(bypass && { 'x-vercel-protection-bypass': bypass }) } })
     const body = /json|text|xml/.test(r.headers.get('content-type') ?? '') ? await r.text() : ''
     const out = test(r, body)
     const ok = out === true

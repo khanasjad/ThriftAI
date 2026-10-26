@@ -1,16 +1,10 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
+// Next.js 16: eslint-config-next ships flat configs (no FlatCompat needed).
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextVitals,
+  ...nextTs,
   {
     // Legacy agents and the routes that use them are replaced in backend phase B5
     // (docs/rpi/02-PLAN-BACKEND.md). Don't extend these files; new code must pass the full rules.
@@ -33,6 +27,8 @@ const eslintConfig = [
       "node_modules/**",
       ".next/**",
       ".next-check/**",
+      "playwright-report/**",
+      "test-results/**",
       "out/**",
       "build/**",
       "next-env.d.ts",

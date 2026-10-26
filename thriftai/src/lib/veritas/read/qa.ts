@@ -15,6 +15,7 @@ export async function loadInstantAnswers(productId: string) {
     where: { id: productId },
     select: {
       category: true,
+      subcategory: true,
       fabricWeightGsm: true,
       unitsSold: true,
       reviews: { select: { fitsAs: true } },
@@ -60,6 +61,7 @@ export async function loadInstantAnswers(productId: string) {
 
   return instantAnswers({
     category: p.category,
+    subcategory: p.subcategory,
     fit,
     mentions,
     fabricWeightGsm: p.fabricWeightGsm,

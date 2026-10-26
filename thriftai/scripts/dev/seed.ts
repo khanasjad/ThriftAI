@@ -2,10 +2,11 @@
  * Loads prisma/fixtures/dev-dataset.json into the development database.
  *
  *   npm run seed            # wipe fixture data and reload
+ *   npm run seed -- --append  # add only fixture products not in the database yet (keeps existing data and ratings)
  *
  * Guards (in order):
  *   1. Refuses when APP_ENV=production.
- *   2. Refuses when DATABASE_URL is not a local database.
+ *   2. Refuses when DATABASE_URL is not a local database, unless it's the hosted dev database (DEV_TARGET=hosted).
  *   3. Refuses when the catalog contains any row that didn't come from the fixture (real data).
  */
 import { readFileSync } from 'node:fs'
@@ -22,7 +23,8 @@ function fail(msg: string): never {
 async function main() {
   if (process.env.APP_ENV === 'production') fail('APP_ENV=production. Dummy data never goes to production.')
   const url = process.env.DATABASE_URL ?? ''
-  if (!/@(localhost|127\.0\.0\.1)(:\d+)?\//.test(url)) fail('DATABASE_URL is not a local database.')
+  // A hosted dev database (Supabase dev project) is allowed only when .env.hosted.local opts in (DEV_TARGET=hosted).
+  if (!/@(localhost|127\.0\.0\.1)(:\d+)?\//.test(url) && process.env.ALLOW_HOSTED_DEV_DB !== '1') fail('DATABASE_URL is not a local database (for the hosted dev database use DEV_TARGET=hosted).')
 
   const prisma = new PrismaClient()
   try {
@@ -31,6 +33,7 @@ async function main() {
     if (foreign + foreignBrands > 0) fail(`found ${foreign} products / ${foreignBrands} brands not from the fixture.`)
 
     const d = JSON.parse(readFileSync(join(process.cwd(), 'prisma/fixtures/dev-dataset.json'), 'utf8'))
+    if (process.argv.includes('--append')) return await append(prisma, d)
     console.log(`Seeding ${d.meta.counts.products} products, ${d.meta.counts.reviews} reviews…`)
 
     // Wipe derived + fixture data (children first). Agent traces are kept unless they point at products.
@@ -109,6 +112,39 @@ async function main() {
   } finally {
     await prisma.$disconnect()
   }
+}
+
+/** Adds fixture products the database doesn't have yet (with their reviews, returns and prices). Nothing is deleted. */
+async function append(prisma: PrismaClient, d: { products: Record<string, unknown>[]; reviews: Record<string, unknown>[]; returns: Record<string, unknown>[]; prices: Record<string, unknown>[] }) {
+  const strip = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith('_'))) as T
+  const have = new Set((await prisma.clothingProduct.findMany({ select: { slug: true } })).map((p) => p.slug))
+  const fresh = d.products.filter((p) => !have.has(p.slug as string))
+  if (!fresh.length) return console.log('Nothing to append: every fixture product is already loaded.')
+  const brandId = Object.fromEntries((await prisma.brand.findMany()).map((b) => [b.slug, b.id]))
+  const sellerId = Object.fromEntries((await prisma.seller.findMany()).map((s) => [s.slug, s.id]))
+  await prisma.clothingProduct.createMany({
+    data: fresh.map((p) => {
+      const { brandSlug, ...rest } = strip(p)
+      return { ...rest, brandId: brandId[brandSlug as string] } as Prisma.ClothingProductCreateManyInput
+    }),
+  })
+  const slugs = new Set(fresh.map((p) => p.slug as string))
+  const productId = Object.fromEntries((await prisma.clothingProduct.findMany({ where: { slug: { in: [...slugs] } }, select: { id: true, slug: true } })).map((p) => [p.slug, p.id]))
+  const mine = (rows: Record<string, unknown>[]) =>
+    rows.filter((r) => slugs.has(r.productSlug as string)).map((r) => {
+      const { productSlug, ...rest } = strip(r)
+      return { ...rest, productId: productId[productSlug as string] }
+    })
+  const reviews = mine(d.reviews)
+  const returns = mine(d.returns)
+  const prices = mine(d.prices).map((r) => {
+    const { sellerSlug, ...rest } = r as Record<string, unknown>
+    return { ...rest, sellerId: sellerId[sellerSlug as string] }
+  })
+  await prisma.clothingReview.createMany({ data: reviews as Prisma.ClothingReviewCreateManyInput[] })
+  await prisma.returnEvent.createMany({ data: returns as Prisma.ReturnEventCreateManyInput[] })
+  await prisma.priceSnapshot.createMany({ data: prices as Prisma.PriceSnapshotCreateManyInput[] })
+  console.log(`✓ Appended ${fresh.length} products, ${reviews.length} reviews, ${returns.length} returns, ${prices.length} prices. Existing data untouched.`)
 }
 
 main().catch((e) => {

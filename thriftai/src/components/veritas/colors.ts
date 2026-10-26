@@ -11,6 +11,7 @@ export const SWATCH: Record<string, string> = {
   'light vintage': '#a9c0d9',
   'mid wash': '#5e7fa6',
   'indigo rinse': '#2f3a6b',
+  'light blue': '#a9c4e0',
 }
 
 export function swatchFor(name: string): string | undefined {

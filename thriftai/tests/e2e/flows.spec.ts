@@ -115,9 +115,10 @@ test('brand sign-in opens only that brand’s dashboard', async ({ page }) => {
   test.skip(!brand, 'run npm run seed:accounts first')
   await signIn(page, brand!, '/dashboard')
   await expect(page.getByRole('heading', { name: 'Top problems by estimated cost' })).toBeVisible()
-  const own = (await page.locator('h1').innerText()).trim()
+  // Role query = visible headings only (Next 16 streams a hidden copy of the page before swapping it in).
+  const own = (await page.getByRole('heading', { level: 1 }).innerText()).trim()
   await page.goto('/dashboard?brand=velo-thread')
-  await expect(page.locator('h1')).toHaveText(own) // never another brand
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(own, { timeout: 20_000 }) // never another brand
   expect((await page.request.get('/api/v1/pilot-applications')).status()).toBe(403)
 })
 

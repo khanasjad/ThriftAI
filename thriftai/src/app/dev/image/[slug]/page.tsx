@@ -11,7 +11,7 @@ export default async function DevImage({ params }: { params: Promise<{ slug: str
   if (!p) notFound()
   return (
     <div id="shot" style={{ width: 512, height: 640, background: '#f4f4f2' }}>
-      <ProductThumb category={p.category} subcategory={p.subcategory} silhouette={p.silhouette} color={p.colors[0]} pattern={devPatternFor(slug, p.category)} showTag={false} className="h-full w-full rounded-none !bg-none" />
+      <ProductThumb category={p.category} subcategory={p.subcategory} silhouette={p.silhouette} color={p.colors[0]} pattern={devPatternFor(slug, p.category, p.subcategory)} showTag={false} className="h-full w-full rounded-none !bg-none" />
     </div>
   )
 }

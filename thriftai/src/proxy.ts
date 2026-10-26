@@ -45,7 +45,7 @@ const RULES: { prefix: string; roles: string[] }[] = [
   { prefix: '/api/v1/keys', roles: ['BRAND', 'ADMIN'] },
 ]
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname
   const isApi = path.startsWith('/api/')
   const rule = RULES.find((r) => path === r.prefix || path.startsWith(`${r.prefix}/`))

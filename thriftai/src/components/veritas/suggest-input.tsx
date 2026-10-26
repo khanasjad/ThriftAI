@@ -33,10 +33,7 @@ export function SuggestInput({ id, defaultValue, placeholder, className }: { id:
 
   React.useEffect(() => {
     const q = value.trim()
-    if (q.length < 2) {
-      setOptions([])
-      return
-    }
+    if (q.length < 2) return // short queries show nothing (see `shown` below)
     const ctrl = new AbortController()
     const t = setTimeout(() => {
       fetch(`/api/v1/suggest?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
@@ -55,27 +52,28 @@ export function SuggestInput({ id, defaultValue, placeholder, className }: { id:
     }
   }, [value])
 
-  const show = open && options.length > 0
+  // Too short a query shows no suggestions, without clearing state inside the effect.
+  const shown = value.trim().length >= 2 ? options : []
+  const show = open && shown.length > 0
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setOpen(true)
-      setActive((a) => (options.length ? (a + 1) % options.length : -1))
+      setActive((a) => (shown.length ? (a + 1) % shown.length : -1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setActive((a) => (options.length ? (a <= 0 ? options.length - 1 : a - 1) : -1))
+      setActive((a) => (shown.length ? (a <= 0 ? shown.length - 1 : a - 1) : -1))
     } else if (e.key === 'Escape') {
       setOpen(false)
       setActive(-1)
-    } else if (e.key === 'Enter' && show && active >= 0) {
+    } else if (e.key === 'Enter' && show && active >= 0 && shown[active]) {
       e.preventDefault()
       setOpen(false)
-      router.push(options[active].href)
+      router.push(shown[active].href)
     }
   }
 
-  let lastKind: Option['kind'] | null = null
   return (
     <div className={cn('relative min-w-0 flex-1', className)}>
       <input
@@ -95,7 +93,7 @@ export function SuggestInput({ id, defaultValue, placeholder, className }: { id:
         aria-autocomplete="list"
         aria-expanded={show}
         aria-controls={listId}
-        aria-activedescendant={show && active >= 0 ? options[active].id : undefined}
+        aria-activedescendant={show && active >= 0 && shown[active] ? shown[active].id : undefined}
         className="h-11 w-full min-w-0 bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"
       />
       <ul
@@ -105,9 +103,8 @@ export function SuggestInput({ id, defaultValue, placeholder, className }: { id:
         hidden={!show}
         className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 max-h-96 min-w-64 overflow-y-auto rounded-xl border border-border bg-surface p-1.5 shadow-lg"
       >
-        {options.map((o, i) => {
-          const header = o.kind !== lastKind ? GROUP[o.kind] : null
-          lastKind = o.kind
+        {shown.map((o, i) => {
+          const header = i === 0 || shown[i - 1].kind !== o.kind ? GROUP[o.kind] : null
           return (
             <React.Fragment key={o.id}>
               {header && (

@@ -11,6 +11,7 @@ export type CollectionDef = {
   title: string
   blurb: string
   category?: 'TOPS' | 'BOTTOMS'
+  kind?: 'tee' | 'shirt' | 'jeans'
   /** Returns the qualifying fact, or null if the item doesn't qualify. */
   rule: (item: CatalogItem) => string | null
 }
@@ -21,10 +22,17 @@ const noPriceWarning = (item: CatalogItem) => !item.tags.some((t) => t.group ===
 export const COLLECTIONS: CollectionDef[] = [
   {
     slug: 'tees-that-hold-up',
-    title: 'Tees that hold up in the wash',
+    title: 'T-shirts that hold up in the wash',
     blurb: 'Owners report no shrinking, fading or twisting after repeated washes.',
-    category: 'TOPS',
+    kind: 'tee',
     rule: (i) => tag(i, 'quality.wash_durability:good')?.detail ?? null,
+  },
+  {
+    slug: 'shirts-that-hold-up',
+    title: 'Shirts that hold up',
+    blurb: 'Button-up shirts owners say keep their shape and colour wash after wash.',
+    kind: 'shirt',
+    rule: (i) => tag(i, 'quality.wash_durability:good', 'quality.longevity:good', 'quality.construction:good')?.detail ?? null,
   },
   {
     slug: 'true-to-size-jeans',
@@ -47,9 +55,9 @@ export const COLLECTIONS: CollectionDef[] = [
   },
   {
     slug: 'best-tees-under-30',
-    title: 'Best tees under $30',
-    blurb: 'The highest-scoring tees at $30 or less, with no fake sale prices.',
-    category: 'TOPS',
+    title: 'Best t-shirts under $30',
+    blurb: 'The highest-scoring t-shirts at $30 or less, with no fake sale prices.',
+    kind: 'tee',
     rule: (i) => (i.price <= 30 && noPriceWarning(i) ? `$${i.price.toFixed(2)}, no price warnings` : null),
   },
   {
@@ -63,7 +71,7 @@ export const COLLECTIONS: CollectionDef[] = [
 export type CollectionResult = { def: CollectionDef; items: { item: CatalogItem; why: string }[] }
 
 export async function loadCollection(def: CollectionDef, limit = 24): Promise<CollectionResult> {
-  const { items } = await searchCatalog({ category: def.category, sort: 'score', limit: 100 })
+  const { items } = await searchCatalog({ category: def.category, kind: def.kind, sort: 'score', limit: 100 })
   const out = items
     .filter((i) => i.score !== null)
     .map((item) => ({ item, why: def.rule(item) }))

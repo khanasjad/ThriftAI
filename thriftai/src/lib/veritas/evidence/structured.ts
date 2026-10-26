@@ -44,7 +44,7 @@ function fabricWeight(b: ProductBundle): EvidenceDraft[] {
   const g = b.product.fabricWeightGsm
   if (!g) return []
   const sub = (b.product.subcategory ?? '').toLowerCase()
-  const [thin, thick] = sub.includes('jean') || b.product.category === 'BOTTOMS' ? [300, 380] : sub.includes('tee') || b.product.category === 'TOPS' ? [140, 180] : [0, Infinity]
+  const [thin, thick] = sub.includes('jean') || b.product.category === 'BOTTOMS' ? [300, 380] : sub === 'shirt' ? [95, 150] : sub.includes('tee') || b.product.category === 'TOPS' ? [140, 180] : [0, Infinity]
   const spec = (signal: string): EvidenceDraft => ({ sourceType: 'SPEC', factor: 'quality.fabric', signal, confidence: 0.5, quote: null, origin: 'code:fabric_weight' })
   if (g < thin) return [spec('thin_fabric')]
   if (g >= thick) return [spec('thick_fabric')]
@@ -114,7 +114,12 @@ function votes(share: number, good: EvidenceDraft, bad: EvidenceDraft): Evidence
 }
 
 /** Typical return rates for the category (dev benchmark, to be replaced by real platform data). */
-export const RETURN_BENCHMARK = { TOPS: { fit: 0.08, quality: 0.03 }, BOTTOMS: { fit: 0.14, quality: 0.03 } } as const
+export const RETURN_BENCHMARK = { tee: { fit: 0.08, quality: 0.03 }, shirt: { fit: 0.1, quality: 0.03 }, jeans: { fit: 0.14, quality: 0.03 } } as const
+/** Benchmark by product type (dev values until real platform data replaces them). */
+export function returnBenchmark(category: string, subcategory?: string | null) {
+  const s = (subcategory ?? '').toLowerCase()
+  return category === 'BOTTOMS' || s.includes('jean') ? RETURN_BENCHMARK.jeans : s === 'shirt' ? RETURN_BENCHMARK.shirt : RETURN_BENCHMARK.tee
+}
 export const MIN_UNITS_FOR_RATE = 50
 const FIT_REASONS = { TOO_SMALL: 'returned_too_small', TOO_LARGE: 'returned_too_large', POOR_FIT: 'returned_poor_fit' } as const
 const QUALITY_REASONS = { POOR_QUALITY: 'returned_poor_quality', DAMAGE_DEFECT: 'returned_defect' } as const
@@ -126,7 +131,7 @@ const QUALITY_REASONS = { POOR_QUALITY: 'returned_poor_quality', DAMAGE_DEFECT: 
 function returnRates(b: ProductBundle): EvidenceDraft[] {
   const units = b.product.unitsSold ?? 0
   if (units < MIN_UNITS_FOR_RATE) return []
-  const bench = RETURN_BENCHMARK[b.product.category === 'BOTTOMS' ? 'BOTTOMS' : 'TOPS']
+  const bench = returnBenchmark(b.product.category, b.product.subcategory)
   const out: EvidenceDraft[] = []
   const rate = (reasons: Record<string, string>, factor: string, good: string, benchmark: number) => {
     const hits = b.returns.filter((r) => r.returnReason in reasons)

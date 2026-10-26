@@ -33,8 +33,8 @@ test('browse filters narrow the catalog and stay in the URL', async ({ page }) =
 
 test('collections: index links to a rule-based page where every item shows why it qualifies', async ({ page }) => {
   await page.goto('/collections')
-  await page.getByRole('link', { name: /Tees that hold up in the wash/ }).click()
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tees that hold up in the wash')
+  await page.getByRole('link', { name: /T-shirts that hold up in the wash/ }).click()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('T-shirts that hold up in the wash')
   await expect(page.getByText(/Nobody pays to be included/)).toBeVisible()
   await expect(page.locator('ol > li').first()).toContainText(/#1 · Scores \d+\/100 from \d+ pieces of evidence/)
 })
@@ -92,4 +92,22 @@ test('unknown product is a real 404, and pages carry a nonce-based CSP', async (
   await page.locator('#q').fill('whi')
   await expect(page.getByRole('listbox', { name: 'Suggestions' })).toBeVisible()
   noErrors()
+})
+
+test('button-up shirts: Shirts tab lists only shirts; "blue flowered shirt" finds floral shirts, not t-shirts', async ({ page }) => {
+  await page.route('**/api/v1/search', (r) => r.abort())
+  await page.goto('/search?kind=shirt')
+  await expect(page.getByRole('navigation', { name: 'Product type' }).getByRole('link', { name: 'Shirts', exact: true })).toHaveAttribute('aria-current', 'page')
+  const results = page.locator('section[aria-labelledby="results-h"] > ul > li')
+  await expect(results.first()).toBeVisible({ timeout: 20_000 })
+  const hrefs = await results.locator('a[href^="/p/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''))
+  expect(hrefs.length).toBeGreaterThan(5)
+  expect(hrefs.every((h) => h.includes('shirt') && !h.endsWith('-tee'))).toBe(true)
+
+  await page.goto('/search?q=blue+flowered+shirt')
+  await expect(results.first()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('status').getByText('Shirts', { exact: true })).toBeVisible()
+  const found = await results.locator('a[href^="/p/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''))
+  expect(found.length).toBeGreaterThan(0)
+  expect(found.every((h) => h.includes('shirt'))).toBe(true)
 })

@@ -11,9 +11,13 @@ function hash(s: string) {
   return (h >>> 0) / 4294967296
 }
 
-/** Tees: 40% solid, 18% striped, 22% floral, 8% polka-dot, 4% plaid, 8% graphic. Jeans: solid denim. */
-export function devPatternFor(slug: string, category: string): Pattern {
+/** Tees: 40% solid, 18% striped, 22% floral, 8% polka-dot, 4% plaid, 8% graphic. Shirts: 35% solid, 25% striped, 20% plaid, 20% floral. Jeans: solid denim. */
+export function devPatternFor(slug: string, category: string, subcategory?: string | null): Pattern {
   if (category === 'BOTTOMS') return 'solid'
+  if (subcategory === 'shirt') {
+    const y = hash(`shirt-pattern:v1:${slug}`)
+    return y < 0.35 ? 'solid' : y < 0.6 ? 'striped' : y < 0.8 ? 'plaid' : 'floral'
+  }
   // Salt v20 chosen so the fictional catalog has every pattern and a couple of navy florals for the demo search.
   const x = hash(`pattern:v20:${slug}`)
   return x < 0.4 ? 'solid' : x < 0.58 ? 'striped' : x < 0.8 ? 'floral' : x < 0.88 ? 'polka-dot' : x < 0.92 ? 'plaid' : 'graphic'

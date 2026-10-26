@@ -3,13 +3,14 @@
  * no model, no cost, and every number comes straight from the data. When there isn't enough evidence,
  * the answer says so.
  */
-import { RETURN_BENCHMARK } from '../evidence/structured'
+import { returnBenchmark } from '../evidence/structured'
 
 /** How many different owners mentioned a factor positively / negatively, and the most common signal on each side. */
 export type FactorMentions = { pos: number; neg: number; topPos: string | null; topNeg: string | null }
 
 export type InstantInputs = {
   category: string
+  subcategory?: string | null
   fit: { small: number; large: number; tts: number; total: number }
   mentions: Record<string, FactorMentions>
   fabricWeightGsm: number | null
@@ -48,7 +49,7 @@ export function instantAnswers(i: InstantInputs): InstantAnswer[] {
 
   const fabric = fromMentions(['quality.fabric'], i.mentions, 'praise the fabric', 'say the fabric is thin or poor')
   const gsm = i.fabricWeightGsm
-  const typical = i.category === 'BOTTOMS' ? '300–380' : '140–180'
+  const typical = i.category === 'BOTTOMS' ? '300–380' : i.subcategory === 'shirt' ? '95–150' : '140–180'
   out.push({
     id: 'fabric',
     question: 'Is the fabric thin?',
@@ -70,7 +71,7 @@ export function instantAnswers(i: InstantInputs): InstantAnswer[] {
   else out.push({ id: 'price', question: 'Is now a good time to buy?', answer: `Yes: the price has been steady for ${i.price.days} days with no fake markdowns.`, enough: true })
 
   // Returns
-  const bench = RETURN_BENCHMARK[i.category === 'BOTTOMS' ? 'BOTTOMS' : 'TOPS']
+  const bench = returnBenchmark(i.category, i.subcategory)
   if (!i.returns.units || i.returns.units < 50) out.push({ id: 'returns', question: 'How often is it sent back?', answer: 'Not enough sales data yet to give a return rate.', enough: false })
   else {
     const f = i.returns.fit / i.returns.units

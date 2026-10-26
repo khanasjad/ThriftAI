@@ -126,7 +126,8 @@ const canon = (want: string[], options: { value: string }[]) =>
 /** Agent filters → intent, keeping only values the catalog actually has. */
 export function filtersToIntent(f: ShopkeeperFilters, facets: Facets): SearchIntent {
   return {
-    category: f.category ?? undefined,
+    category: f.category ?? (f.kind ? (f.kind === 'jeans' ? 'BOTTOMS' : 'TOPS') : undefined),
+    kind: f.kind ?? undefined,
     gender: f.gender ?? undefined,
     minPrice: f.min_price ?? undefined,
     maxPrice: f.max_price ?? undefined,
@@ -147,6 +148,7 @@ export function filtersToIntent(f: ShopkeeperFilters, facets: Facets): SearchInt
 function intentToFilters(i: SearchIntent): ShopkeeperFilters {
   return {
     category: i.category ?? null,
+    kind: i.kind ?? null,
     gender: i.gender ?? null,
     min_price: i.minPrice ?? null,
     max_price: i.maxPrice ?? null,
@@ -175,6 +177,10 @@ function applyChip(slot: string, chip: string, intent: SearchIntent, f: Facets):
       const g = f.genders.find((x) => x.label.toLowerCase() === c.toLowerCase())
       return g ? { ...intent, gender: g.value } : clear ? { ...intent, gender: undefined } : null
     }
+    case 'kind': {
+      const k = f.kinds.find((x) => x.label.toLowerCase() === c.toLowerCase())
+      return k ? { ...intent, kind: k.value, category: k.value === 'jeans' ? 'BOTTOMS' : 'TOPS' } : clear ? { ...intent, kind: undefined } : null
+    }
     case 'category': {
       const k = f.categories.find((x) => x.label.toLowerCase() === c.toLowerCase())
       return k ? { ...intent, category: k.value } : clear ? { ...intent, category: undefined } : null
@@ -202,8 +208,10 @@ function applyChip(slot: string, chip: string, intent: SearchIntent, f: Facets):
         'any length': { length: undefined },
         'any pattern': { patterns: undefined },
         'show all genders': { gender: undefined },
-        'show jeans too': { category: undefined },
-        'show tees too': { category: undefined },
+        'show jeans too': { category: undefined, kind: undefined },
+        'show tees too': { category: undefined, kind: undefined },
+        'show all types': { category: undefined, kind: undefined },
+        'show t-shirts too': { kind: undefined },
       }
       const m = map[c.toLowerCase()]
       return m ? { ...intent, ...m } : null
@@ -232,6 +240,8 @@ function withOptions(q: Question, candidates: Candidate[], intent: SearchIntent,
 /** When the agent's chips don't match the catalog, code builds them from the facets for that slot. */
 function chipsFromFacets(slot: string, f: Facets): string[] {
   switch (slot) {
+    case 'kind':
+      return f.kinds.map((k) => k.label)
     case 'category':
       return f.categories.map((c) => c.label)
     case 'gender':
@@ -257,7 +267,7 @@ function chipsFromFacets(slot: string, f: Facets): string[] {
 function validChips(q: NonNullable<ShopkeeperTurn['next_question']>, f: Facets) {
   if (FREE_SLOTS.has(q.slot)) return q.chips.slice(0, 5)
   const pool = new Set(
-    [...f.colors, ...f.fits, ...f.cuts, ...f.lengths, ...f.patterns].map((x) => x.value.toLowerCase()).concat(f.priceBands.map((b) => b.label.toLowerCase()), f.categories.map((c) => c.label.toLowerCase()), f.genders.map((g) => g.label.toLowerCase())),
+    [...f.colors, ...f.fits, ...f.cuts, ...f.lengths, ...f.patterns].map((x) => x.value.toLowerCase()).concat(f.priceBands.map((b) => b.label.toLowerCase()), f.categories.map((c) => c.label.toLowerCase()), f.kinds.map((k) => k.label.toLowerCase()), f.genders.map((g) => g.label.toLowerCase())),
   )
   return q.chips.filter((c) => pool.has(c.toLowerCase().trim()) || /^(any|no preference|no limit|not sure)/i.test(c)).slice(0, 5)
 }
@@ -369,7 +379,7 @@ export async function runSearch(input: {
       intent.length && 'Any length',
       intent.patterns?.length && 'Any pattern',
       intent.gender && intent.gender !== 'UNISEX' && 'Show all genders',
-      intent.category && (intent.category === 'TOPS' ? 'Show jeans too' : 'Show tees too'),
+      intent.kind === 'shirt' ? 'Show t-shirts too' : intent.kind || intent.category ? 'Show all types' : null,
     ].filter(Boolean) as string[]
     if (widen.length) {
       const n = picks.length

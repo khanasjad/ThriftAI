@@ -1,0 +1,15 @@
+# Uploads from `vercel deploy` (repo root; the Vercel project builds ./thriftai)
+Sentinal.ai
+.claude
+**/node_modules
+**/.next
+**/.next-check
+**/.veritas
+**/test-results
+**/playwright-report
+**/logs
+**/.env*.local
+**/.env.*.bak
+**/.env.legacy.bak
+**/*.bak
+**/.DS_Store

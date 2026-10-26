@@ -37,7 +37,6 @@ export function QuestionCard({
   const options: QuestionOption[] = question.options ?? question.chips.map((label) => ({ label, count: null }))
   const widen = question.slot === 'widen'
 
-  React.useEffect(() => setPicked(null), [question])
   React.useEffect(() => {
     if (autoFocus) titleRef.current?.focus({ preventScroll: true })
   }, [question, autoFocus])

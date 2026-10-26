@@ -535,6 +535,33 @@ Mapped from a search platform's product list. All read stored scores and evidenc
   - CSP follow-up (user report, 2026-10-25): two console errors in dev. (1) Hydration mismatch on the theme `<script nonce>`: browsers hide nonce values from the DOM, so React sees `nonce=""`; neither `suppressHydrationWarning` nor `next/script` silences it, so the theme script moved to `public/theme.js` (same-origin, no nonce needed). (2) `'strict-dynamic'` blocked chunks Next loads during client navigation; the policy is now `script-src 'self' 'nonce-…'` (injected inline and third-party scripts still blocked). The e2e error tracker now fails on console errors too (hydration, CSP), not only uncaught exceptions; that is why the first report slipped through.
   - Also added `npm run org:delete` (preview, then `--yes`) so the one-pager's "deleted on request" is backed by a real command.
 
+### B14 · Next.js 16 upgrade (2026-10-25) — ✅ done
+- [x] next 15.5.4 → **16.4.3**, react 19.1 → 19.3.1, next-auth 4.24.11 → 4.24.15 (supports Next 16), eslint-config-next 16 (flat config, no FlatCompat)
+- [x] `middleware.ts` → `proxy.ts` (`export function proxy`; runs on Node, fine for the auth check and CSP); `--turbopack` flags dropped (default now)
+- [x] New React lint rules fixed in code, not disabled: no setState inside effects (theme toggle reads the saved theme with `useSyncExternalStore`; search conversation and question card rely on their `key` for fresh state; autosuggest derives empty results), no impure calls during render, no reassignment after render
+- **Gate:** ✅ unit 137/137, e2e 87/87, build passes; routes, 404s, auth walls and CSP verified on the dev server.
+
+### B15 · Button-up shirts (product plan change 2026-10-25) — ✅ done
+- [x] Ingest maps shirts (button-up, oxford, flannel, linen, poplin) to TOPS / `shirt`; tees stay `tee`
+- [x] Per-type rules: fabric weight (shirts ~95–150 gsm), return benchmark (dev: tees 8%, shirts 10%, jeans 14% fit returns)
+- [x] Search: product type (tee / shirt / jeans) understood from words ("shirt", "button-up", "oxford"), as a filter, a shopkeeper question and a catalog tab; "shirt" no longer means tees
+- [x] Shirt illustration (collar, buttons, long or short sleeves) and dev images with patterns (plaid, striped, floral)
+- [x] 12 fictional shirts added to the dev dataset without changing the existing 40 (separate random stream); `npm run seed -- --append`; rated live
+- **Gate:** unit + e2e; "blue flowered shirt" returns shirts; shirts rated with cost measured; build passes.
+  - ✅ 2026-10-25: generator adds 12 fictional shirts from a separate random stream; the original 40 products, reviews, returns, prices and trends are byte-identical (verified by diff; one accidental fitType change caught and fixed). `seed -- --append` loaded them without touching ratings.
+  - ✅ Photos: 12 shirt photos read for $0.0035; agreement on all 52 dev images: pattern 100%, colour 100%. Ratings: 12 shirts live for **≈ $0.10** ($0.004–0.014 each); baselines recomputed ($0); eval agreement 100% on 61 labels.
+  - ✅ Live shopkeeper: "I need a blue flowered shirt under $80" → shirts · blue · floral · under $80, asks who it's for (Men 2 · Women 1), picks three floral shirts ranked 79 / 75 / 55. Catalog "blue flowered shirt" → exactly those 3 shirts; Shirts tab lists only shirts.
+  - ✅ Unit 140/140 (new: shirts 3), e2e shirts test passes, build passes.
+
+### B16 · Hosted development (2026-10-25)
+- [x] `DEV_TARGET=hosted` loads `.env.hosted.local` (Supabase dev project); seed and dev accounts allow that database only when it opts in (`ALLOW_HOSTED_DEV_DB=1`), never in production
+- [x] `npm run dev:hosted:copy`: local dev database → hosted dev database with ratings ($0), refuses non-fixture targets
+- [x] Site URL falls back to Vercel's preview address (`siteUrl()`), so previews work without `NEXTAUTH_URL`
+- [x] Runbook section "Hosted development"; `.env.hosted.example`
+- [x] Create the Supabase `veritas-dev` project and the Vercel project, then run the runbook steps (done 2026-10-25 after the user logged in to both CLIs)
+- **Gate:** ✅ 2026-10-25 `db:deploy` applied 8 migrations; `dev:hosted:copy` copied 13.8 MB and the hosted database matches local exactly (52 products incl. 12 shirts, 52 scores, 883 reviews, 52 photo readings); hosted dev sign-ins rotated into their own file. Preview `https://veritas-bb428jt7v-veritas-c5a5.vercel.app` (protected): `smoke:hosted` 14/17 (the 3 expected development differences), Score API returns 52 rated products, "blue flowered shirt" returns the same 3 floral shirts as locally.
+  - Fixes on the way: `pg_dump` rejects Prisma's `?schema=` URL option (stripped); the dump's `DROP/CREATE SCHEMA public` would remove Supabase's grants (filtered, tables are replaced one by one); the dev-accounts script overwrote local passwords when run against hosted (now writes `dev-accounts.hosted.json`); the first CLI deploy went to Production (no variables, failed harmlessly); production builds are now skipped while on hold; `vercel link` added a broad `.env*` ignore rule at the repo root (narrowed to `.env.local`).
+
 ### B8 · Production (~6 h, then the real-data plan)
 **B8a · Ready to deploy (no accounts needed, 2026-10-25) — ✅ done:**
 - [x] Production config fails fast: requires `ANTHROPIC_API_KEY`, `NEXTAUTH_SECRET` (≥ 32 chars), https `NEXTAUTH_URL`, `DIRECT_URL`, `CRON_SECRET`
@@ -552,7 +579,7 @@ Mapped from a search platform's product list. All read stored scores and evidenc
 
 **B8b · Go live (needs accounts):**
 - [ ] Supabase + Vercel setup, prod migrations, spend cap, Langfuse, smoke tests
-- [ ] Real-data plan: CSV/JSON import for pilot brands first (`source` + `licence` required), then licensed feeds
+- [ ] Real-data plan: CSV/JSON import for pilot brands first (`source` + `licence` required), then licensed feeds (import built and tested in B10; waiting for the first real pilot's files)
 - **Gate:** `npm run smoke:prod -- --url <production>` green · `APP_ENV=production npm run prod:check` prints "Ready." (runbook: `05-RUNBOOK-PRODUCTION.md`)
 
 ---

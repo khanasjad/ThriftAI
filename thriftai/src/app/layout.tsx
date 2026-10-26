@@ -3,11 +3,12 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { headers } from 'next/headers'
 import { Providers } from './providers'
+import { siteUrl } from '@/lib/site-url'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(siteUrl()),
   title: { default: 'Veritas — Is it worth buying?', template: '%s · Veritas' },
   description:
     'One trustworthy score for every clothing item: fit, quality, comfort, style, value and ethics, with the evidence behind every number.',

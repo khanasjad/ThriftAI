@@ -33,7 +33,7 @@ for (const theme of ['light', 'dark'] as const) {
         await page.addInitScript((t) => localStorage.setItem('veritas-theme', t), theme)
         const res = await page.goto(path, { waitUntil: 'networkidle' })
         expect(res?.status()).toBe(200)
-        await expect(page.locator('h1').first()).toHaveText(heading)
+        await expect(page.getByRole('heading', { level: 1 }).first()).toHaveText(heading)
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
         await expectAccessible(page)
         await expectNoHorizontalScroll(page)

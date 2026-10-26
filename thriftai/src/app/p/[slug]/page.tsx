@@ -8,6 +8,7 @@ import { PriceHistory } from '@/components/veritas/price-history'
 import { ProductGallery } from '@/components/veritas/product-gallery'
 import { TrendTag } from '@/components/veritas/badges'
 import { CATEGORY, GENDER, RETURN_REASON } from '@/components/veritas/labels'
+import { KIND_LABEL } from '@/lib/veritas/match/facets'
 import { formatPrice, type Pillar } from '@/components/veritas/score'
 import type { EvidenceItem } from '@/components/veritas/evidence-drawer'
 import { FACTOR_TAXONOMY } from '@/lib/veritas/taxonomy/factor-taxonomy'
@@ -44,6 +45,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+/** Launched in the last 30 days (backend plan §6). */
+function isNewLaunch(launchDate: string | null) {
+  return !!launchDate && Date.now() - new Date(launchDate).getTime() < 30 * 864e5
+}
+
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
 export default async function ProductPage({ params }: Props) {
@@ -70,9 +76,15 @@ export default async function ProductPage({ params }: Props) {
             Search
           </Link>
           <ChevronRight className="size-3.5" aria-hidden />
-          <Link href={`/search?category=${product.category}`} className="hover:text-fg">
-            {CATEGORY[product.category] ?? product.category}
-          </Link>
+          {product.subcategory && product.subcategory in KIND_LABEL ? (
+            <Link href={`/search?kind=${product.subcategory}`} className="hover:text-fg">
+              {KIND_LABEL[product.subcategory as keyof typeof KIND_LABEL]}
+            </Link>
+          ) : (
+            <Link href={`/search?category=${product.category}`} className="hover:text-fg">
+              {CATEGORY[product.category] ?? product.category}
+            </Link>
+          )}
           <ChevronRight className="size-3.5" aria-hidden />
           <span className="truncate text-fg-muted" aria-current="page">
             {product.name}
@@ -93,7 +105,7 @@ export default async function ProductPage({ params }: Props) {
                 <Badge tone="neutral">{CATEGORY[product.category] ?? product.category}</Badge>
                 <Badge tone="neutral">{GENDER[product.gender] ?? product.gender}</Badge>
                 {product.trendTag && <TrendTag tag={product.trendTag} />}
-                {product.launchDate && Date.now() - new Date(product.launchDate).getTime() < 30 * 864e5 && <Badge tone="accent">New launch</Badge>}
+                {isNewLaunch(product.launchDate) && <Badge tone="accent">New launch</Badge>}
               </div>
               <h1 className="mt-3 text-balance text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold leading-tight tracking-[-0.025em] text-fg">{product.name}</h1>
               <p className="mt-2 text-lg text-fg">

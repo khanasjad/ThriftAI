@@ -9,8 +9,12 @@ export type Climate = 'hot' | 'mild' | 'cold'
 export type Length = 'cropped' | 'regular' | 'longline'
 export type Gender = 'MENS' | 'WOMENS' | 'UNISEX'
 
+export type Kind = 'tee' | 'shirt' | 'jeans'
+
 export type SearchIntent = {
   category?: 'TOPS' | 'BOTTOMS'
+  /** Product type within the category: tee, button-up shirt or jeans. */
+  kind?: Kind
   /** Who it's for. Unisex products always match. */
   gender?: Gender
   minPrice?: number
@@ -52,6 +56,12 @@ export type ShopperContext = {
 const STOP = new Set(
   'a an and the for with that dont don’t doesnt wont won’t will not under over below less than me my i want need looking something some to of in on is it its are be by from or very really good nice best great one ones which who what out up get go goes am im i’m please find show'.split(' '),
 )
+/** Shopper words → product type. "t-shirt" is a tee; "shirt" on its own means a button-up shirt. */
+export const KIND_WORDS: Record<string, Kind> = {
+  tee: 'tee', tees: 'tee', 't-shirt': 'tee', 't-shirts': 'tee', tshirt: 'tee', tshirts: 'tee',
+  shirt: 'shirt', shirts: 'shirt', 'button-up': 'shirt', 'button-down': 'shirt', buttonup: 'shirt', oxford: 'shirt', flannel: 'shirt', poplin: 'shirt', blouse: 'shirt',
+  jeans: 'jeans', jean: 'jeans', denim: 'jeans',
+}
 const CATEGORY: Record<string, 'TOPS' | 'BOTTOMS'> = {
   tee: 'TOPS', tees: 'TOPS', 't-shirt': 'TOPS', tshirt: 'TOPS', 'tshirts': 'TOPS', shirt: 'TOPS', top: 'TOPS', tops: 'TOPS',
   jeans: 'BOTTOMS', jean: 'BOTTOMS', denim: 'BOTTOMS', pants: 'BOTTOMS', trousers: 'BOTTOMS',
@@ -89,7 +99,10 @@ export function parseIntent(q: string): SearchIntent {
   for (const raw of text.split(/[\s,.;!?]+/)) {
     const w = raw.replace(/[^\p{L}\p{N}-]/gu, '')
     if (w.length < 2 || STOP.has(w)) continue
-    if (CATEGORY[w]) intent.category ??= CATEGORY[w]
+    if (KIND_WORDS[w]) {
+      intent.kind ??= KIND_WORDS[w]
+      intent.category ??= KIND_WORDS[w] === 'jeans' ? 'BOTTOMS' : 'TOPS'
+    } else if (CATEGORY[w]) intent.category ??= CATEGORY[w]
     else if (FIT[w]) intent.fit ??= FIT[w]
     else if (PATTERN_WORDS[w]) intent.patterns = [...new Set([...(intent.patterns ?? []), PATTERN_WORDS[w]])]
     else if (COLOR_WORDS.includes(w)) intent.colors = [...new Set([...(intent.colors ?? []), w === 'gray' ? 'grey' : w])]

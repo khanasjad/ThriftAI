@@ -92,6 +92,7 @@ describe('agent output is validated by code', () => {
     const i = filtersToIntent(
       {
         category: 'BOTTOMS',
+        kind: null,
         gender: 'WOMENS',
         min_price: null,
         max_price: 80,
@@ -118,7 +119,7 @@ describe('agent output is validated by code', () => {
   it('the shopkeeper runs through the harness with a strict schema', async () => {
     const turn = {
       reply: 'Jeans it is. What cut do you like?',
-      filters: { category: 'BOTTOMS', gender: null, min_price: null, max_price: null, colors: [], exclude_colors: [], fit: null, cuts: [], patterns: [], length: null, climate: null, occasion: null, priorities: [], sustainability: false },
+      filters: { category: 'BOTTOMS', kind: null, gender: null, min_price: null, max_price: null, colors: [], exclude_colors: [], fit: null, cuts: [], patterns: [], length: null, climate: null, occasion: null, priorities: [], sustainability: false },
       next_question: { slot: 'cut', question: 'What cut do you like?', chips: ['wide-leg', 'bootcut'] },
       ready: false,
       off_topic: false,

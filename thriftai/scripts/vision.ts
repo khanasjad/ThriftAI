@@ -36,7 +36,7 @@ async function main() {
     // Dev images only: the fixture holds each product's known pattern and catalog colours.
     const fixture = JSON.parse(readFileSync('prisma/fixtures/dev-dataset.json', 'utf8')) as { products: { slug: string; colors: string[]; _truth: { pattern: string } }[] }
     const rows = await prisma.productVisual.findMany({ where: { product: { slug: { in: fixture.products.map((p) => p.slug) } } }, select: { attributes: true, product: { select: { slug: true } } } })
-    const FAMILY: Record<string, string> = { black: 'black', white: 'white', ecru: 'beige', oatmeal: 'beige', 'heather grey': 'grey', navy: 'blue', sage: 'green', 'washed red': 'red', 'light vintage': 'blue', 'mid wash': 'blue', 'indigo rinse': 'blue' }
+    const FAMILY: Record<string, string> = { black: 'black', white: 'white', ecru: 'beige', oatmeal: 'beige', 'heather grey': 'grey', navy: 'blue', sage: 'green', 'washed red': 'red', 'light vintage': 'blue', 'mid wash': 'blue', 'indigo rinse': 'blue', 'light blue': 'blue' }
     let pat = 0
     let col = 0
     const misses: string[] = []

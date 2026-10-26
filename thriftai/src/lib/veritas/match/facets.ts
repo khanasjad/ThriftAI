@@ -9,6 +9,8 @@ import { filterCandidates } from './rank'
 export type Facets = {
   matching: number
   categories: { value: 'TOPS' | 'BOTTOMS'; label: string; count: number }[]
+  /** Product types: tee, shirt (button-up), jeans. */
+  kinds: { value: 'tee' | 'shirt' | 'jeans'; label: string; count: number }[]
   genders: { value: 'MENS' | 'WOMENS' | 'UNISEX'; label: string; count: number }[]
   priceBands: { label: string; min: number | null; max: number | null; count: number }[]
   colors: { value: string; count: number }[]
@@ -18,6 +20,8 @@ export type Facets = {
   /** Surface patterns read from product photos. */
   patterns: { value: string; count: number }[]
 }
+
+export const KIND_LABEL = { tee: 'T-shirts', shirt: 'Shirts', jeans: 'Jeans' } as const
 
 const tally = (xs: (string | null)[]) => {
   const m = new Map<string, number>()
@@ -55,13 +59,17 @@ export function buildFacets(cands: Candidate[], intent: SearchIntent): Facets {
   const forCut = without({ cuts: [] })
   const forLength = without({ length: undefined })
   const forCategory = without({ category: undefined })
+  const forKind = without({ kind: undefined, category: undefined })
   const forGender = without({ gender: undefined })
   const forPattern = without({ patterns: [] })
 
   return {
     matching: all.length,
     categories: (['TOPS', 'BOTTOMS'] as const)
-      .map((v) => ({ value: v, label: v === 'TOPS' ? 'Tees' : 'Jeans', count: forCategory.filter((c) => c.category === v).length }))
+      .map((v) => ({ value: v, label: v === 'TOPS' ? 'Tops' : 'Jeans', count: forCategory.filter((c) => c.category === v).length }))
+      .filter((x) => x.count > 0),
+    kinds: (['tee', 'shirt', 'jeans'] as const)
+      .map((v) => ({ value: v, label: KIND_LABEL[v], count: forKind.filter((c) => (c.subcategory ?? '').toLowerCase() === v).length }))
       .filter((x) => x.count > 0),
     genders: (['WOMENS', 'MENS', 'UNISEX'] as const)
       .map((v) => ({ value: v, label: v === 'MENS' ? 'Men' : v === 'WOMENS' ? 'Women' : 'Unisex', count: forGender.filter((c) => c.gender === v).length }))
@@ -80,7 +88,7 @@ export function facetsText(f: Facets) {
   const list = (xs: { value: string; count: number }[]) => (xs.length ? xs.map((x) => `${x.value} (${x.count})`).join(', ') : 'none')
   return [
     `Products matching so far: ${f.matching}`,
-    `Categories: ${f.categories.map((c) => `${c.label} (${c.count})`).join(', ')}`,
+    `Product types: ${f.kinds.map((k) => `${k.value} = ${k.label} (${k.count})`).join(', ')}`,
     `For (gender): ${f.genders.map((g) => `${g.label} (${g.count})`).join(', ')} (unisex items match everyone)`,
     `Price bands: ${f.priceBands.map((b) => `${b.label} (${b.count})`).join(', ') || 'n/a'}`,
     `Colours: ${list(f.colors)}`,

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { PrintButton } from '@/components/ui/print-button'
+import { siteUrl } from '@/lib/site-url'
 
 export const metadata: Metadata = {
   title: 'Pilot one-pager',
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 }
 
-const base = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+const base = siteUrl()
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (

@@ -18,7 +18,7 @@ export type SuggestProduct = {
 export type SuggestCollection = { slug: string; title: string }
 export type Suggestions = { queries: string[]; products: SuggestProduct[]; collections: SuggestCollection[] }
 
-const ITEM = (p: SuggestProduct) => (p.category === 'BOTTOMS' ? 'jeans' : 'tee')
+const ITEM = (p: SuggestProduct) => (p.category === 'BOTTOMS' ? 'jeans' : p.subcategory === 'shirt' ? 'shirt' : 'tee')
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9$ ]+/g, ' ').replace(/\s+/g, ' ').trim()
 
 /** Phrases a shopper might type, with how many products each would find. */
@@ -30,10 +30,10 @@ export function buildVocabulary(products: SuggestProduct[]): Map<string, number>
   }
   for (const p of products) {
     const item = ITEM(p)
-    add(item === 'tee' ? 't-shirt' : 'jeans')
+    add(item === 'tee' ? 't-shirt' : item)
     for (const c of p.colors) add(`${c} ${item}`)
     if (p.fitType) add(`${p.fitType} ${item}`)
-    if (p.silhouette) add(p.silhouette.includes('tee') ? p.silhouette.replace(/-/g, ' ') : `${p.silhouette.replace(/-/g, ' ')} jeans`)
+    if (p.silhouette) add(p.silhouette.includes('tee') || p.silhouette.includes('shirt') ? p.silhouette.replace(/-/g, ' ') : `${p.silhouette.replace(/-/g, ' ')} jeans`)
     add(p.brand)
   }
   return v
@@ -57,7 +57,7 @@ export function suggest(q: string, products: SuggestProduct[], collections: Sugg
     .slice(0, 5)
     .map(([phrase]) => phrase)
   const prods = products
-    .filter((p) => prefixMatch(query, `${p.brand} ${p.name} ${p.colors.join(' ')} ${p.fitType ?? ''} ${ITEM(p)} ${p.category === 'BOTTOMS' ? 'denim' : 't-shirt shirt top'}`))
+    .filter((p) => prefixMatch(query, `${p.brand} ${p.name} ${p.colors.join(' ')} ${p.fitType ?? ''} ${ITEM(p)} ${p.category === 'BOTTOMS' ? 'denim' : p.subcategory === 'shirt' ? 'shirt button-up top' : 't-shirt top'}`))
     .sort((a, b) => (b.score ?? -1) - (a.score ?? -1) || a.slug.localeCompare(b.slug))
     .slice(0, 4)
   const cols = collections.filter((c) => prefixMatch(query, c.title)).slice(0, 2)

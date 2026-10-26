@@ -50,7 +50,7 @@ If a request conflicts with the product plan (for example a new category, pay-fo
 
 ## Environments
 
-- Two only: **development** (local Postgres `veritas_dev`, dummy fixture data, live Claude with a cap) and **production** (Supabase + Vercel, real data only).
+- Two only: **development** (local Postgres `veritas_dev`, or the hosted dev site: Vercel Preview + Supabase `veritas-dev` project; dummy fixture data, live Claude with a cap) and **production** (Supabase + Vercel, real data only). Commands target the hosted dev database with `DEV_TARGET=hosted` (loads `.env.hosted.local`). Production is on hold (2026-10-25).
 - Config is validated in `src/lib/veritas/env.ts`. Add new variables there and to `.env.example`.
 - Secrets go only in `*.local` files or Vercel. Never commit secrets. Never print secret values in output.
 - Seed and dummy-data scripts must refuse to run when `APP_ENV=production`.
@@ -70,7 +70,7 @@ If a request conflicts with the product plan (for example a new category, pay-fo
 ## Commands
 
 ```bash
-npm run dev            # development (APP_ENV=development)
+npm run dev            # development (APP_ENV=development), Next.js 16
 npm run build          # production build
 NEXT_DIST_DIR=.next-check npm run build   # build check that doesn't touch a running dev server's .next/
 npm run lint
@@ -101,6 +101,11 @@ npm run smoke:prod -- --url <site>         # read-only smoke test of a deployed 
 npm run admin:create -- --email <e> --out <file>   # first admin (password never printed); also ADMIN_PASSWORD=…
 npm run org:create -- --name "<org>" --email <e> [--brand "<b>"] --out <file>   # onboard a pilot customer
 npm run org:delete -- --slug <org> [--yes]  # delete a customer's data on request (preview first)
+npm run seed -- --append                   # add new fixture products only (keeps existing data and ratings)
+npm run dev:hosted:copy -- --yes           # copy local dev DB (with ratings) to the hosted dev DB ($0)
+DEV_TARGET=hosted <any db/seed/rate command>  # run against the hosted dev database
+DEV_TARGET=hosted npm run smoke:hosted -- --url <preview>   # smoke-test a protected Vercel preview
+# Deploy the working copy as a preview (from the repo root): npx vercel deploy --target=preview
 # Production runbook: docs/rpi/05-RUNBOOK-PRODUCTION.md
 ```
 

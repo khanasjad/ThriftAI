@@ -8,6 +8,7 @@ import type { Prisma } from '@prisma/client'
 import { tagsForProducts } from '../read/tags'
 import { topTags } from '../enrich/tags'
 import { adEligibility, priceStatus, scoreTier } from './rules'
+import { siteUrl } from '@/lib/site-url'
 
 export const AD_FEED_COLUMNS = [
   'id', 'title', 'description', 'link', 'image_link', 'price', 'brand', 'availability', 'condition', 'product_type',
@@ -15,7 +16,7 @@ export const AD_FEED_COLUMNS = [
   'veritas_score', 'veritas_ad_eligible', 'veritas_not_eligible_because', 'ad_headline', 'ad_body',
 ] as const
 
-const base = () => (process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+const base = siteUrl
 
 /** `scope` decides whose products: visibleProducts(tenant) for the API, the user's own tenant on the dashboard. */
 export async function loadAdRows(scope: Prisma.ClothingProductWhereInput, opts: { eligibleOnly?: boolean; category?: 'TOPS' | 'BOTTOMS' } = {}) {
@@ -53,7 +54,7 @@ export async function loadAdRows(scope: Prisma.ClothingProductWhereInput, opts: 
         brand: r.brand.name,
         availability: 'in stock',
         condition: 'new',
-        product_type: r.category === 'BOTTOMS' ? 'Apparel > Jeans' : 'Apparel > T-shirts',
+        product_type: r.category === 'BOTTOMS' ? 'Apparel > Jeans' : r.subcategory === 'shirt' ? 'Apparel > Shirts' : 'Apparel > T-shirts',
         custom_label_0: scoreTier(score),
         custom_label_1: highlight ? highlight.key.replace(/[^a-z0-9_]+/gi, '_').toLowerCase() : '',
         custom_label_2: priceStatus(t),

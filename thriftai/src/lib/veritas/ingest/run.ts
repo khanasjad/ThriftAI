@@ -76,7 +76,7 @@ async function ingestCatalog(rows: { row: number; data: CatalogRow }[], ctx: Ctx
   for (const r of rows) {
     const cat = normaliseCategory(r.data.category, r.data.title)
     if (!cat) {
-      errors.push({ row: r.row, field: 'category', message: `"${r.data.category}" is not scored yet (Veritas scores tees and jeans for now)` })
+      errors.push({ row: r.row, field: 'category', message: `"${r.data.category}" is not scored yet (Veritas scores t-shirts, shirts and jeans for now)` })
       continue
     }
     byProduct.set(r.data.external_id, [...(byProduct.get(r.data.external_id) ?? []), r])

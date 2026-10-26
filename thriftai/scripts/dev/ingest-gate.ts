@@ -120,6 +120,8 @@ async function cleanup(tenantId: string) {
   await prisma.clothingProduct.deleteMany({ where: { tenantId } }) // reviews, returns, prices cascade
   await prisma.seller.deleteMany({ where: { tenantId } })
   await prisma.ingestRun.deleteMany({ where: { tenantId } })
+  // Brands the gate's feed created (fictional), once they have no products left.
+  await prisma.brand.deleteMany({ where: { source: 'larkspur-market-feed (fictional)', products: { none: {} } } })
 }
 
 async function main() {

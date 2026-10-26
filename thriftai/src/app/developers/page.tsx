@@ -6,6 +6,7 @@ import { SiteShell } from '@/components/site/shell'
 import { Badge } from '@/components/ui/primitives'
 import { prisma } from '@/lib/prisma'
 import { CopyButton } from './copy-button'
+import { siteUrl } from '@/lib/site-url'
 
 export const metadata: Metadata = { title: 'Developers', description: 'The Veritas Score API: rank clothing by what’s worth buying.' }
 export const dynamic = 'force-dynamic'
@@ -60,7 +61,7 @@ function Code({ code, lang = 'bash' }: { code: string; lang?: string }) {
 export default async function DevelopersPage() {
   const sample = await prisma.clothingProduct.findFirst({ where: PUBLIC_PRODUCTS, orderBy: { slug: 'asc' }, select: { slug: true } })
   const slug = sample?.slug ?? 'your-product-slug'
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const base = siteUrl()
 
   return (
     <SiteShell>
@@ -221,7 +222,7 @@ if (data.rated) {
   "rows": 269, "accepted": 266, "rejected": 3,
   "created": 200, "updated": 0, "unchanged": 0, "productsChanged": 200,
   "errors": [{ "row": 267, "field": "category",
-    "message": "\"Dresses\" is not scored yet (Veritas scores tees and jeans for now)" }]
+    "message": "\"Dresses\" is not scored yet (Veritas scores t-shirts, shirts and jeans for now)" }]
 } }`}
           />
         </div>

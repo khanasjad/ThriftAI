@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { computePriceFacts, type SellerSeries } from '../price/facts'
 import { FACTOR_TAXONOMY } from '../taxonomy/factor-taxonomy'
-import { RETURN_BENCHMARK as BENCH } from '../evidence/structured'
+import { returnBenchmark } from '../evidence/structured'
 import { driversForProducts } from './drivers'
 import { tagsForProducts } from './tags'
 import type { Tag } from '../enrich/tags'
@@ -80,7 +80,7 @@ function headsUpFor(r: Row, series: SellerSeries[]): HeadsUp[] {
   if (facts.fakeDiscount) out.push({ tone: 'warn', text: `The “was” price of $${Math.round(facts.fakeDiscount.listPrice)} was never charged in 90 days` })
   else if (facts.oftenCheaper) out.push({ tone: 'warn', text: `Was $${Math.round(facts.oftenCheaper.lowest)} in the last 90 days; often goes on sale` })
 
-  const bench = BENCH[r.category === 'BOTTOMS' ? 'BOTTOMS' : 'TOPS']
+  const bench = returnBenchmark(r.category, r.subcategory)
   if (r.unitsSold && r.unitsSold >= 50) {
     const fit = r.returns.filter((x) => FIT_REASONS.has(x.returnReason)).length / r.unitsSold
     const quality = r.returns.filter((x) => QUALITY_REASONS.has(x.returnReason)).length / r.unitsSold
@@ -142,13 +142,15 @@ export type StoreSort = 'featured' | 'veritas' | 'price'
 export function readStoreQuery(q: string) {
   const t = q.toLowerCase()
   const category: 'TOPS' | 'BOTTOMS' | undefined = /jean|denim|trouser|pant/.test(t) ? 'BOTTOMS' : /tee|t-shirt|tshirt|shirt|top/.test(t) ? 'TOPS' : undefined
+  // "t-shirt" is a tee; "shirt" on its own (or button-up, oxford…) is a button-up shirt.
+  const kind: 'tee' | 'shirt' | 'jeans' | undefined = category === 'BOTTOMS' ? 'jeans' : /\b(tee|tees|t-shirts?|tshirts?)\b/.test(t) ? 'tee' : /\b(shirts?|button[- ]?(up|down)|oxford|flannel)\b/.test(t) ? 'shirt' : undefined
   const gender = /\b(women|womens|women's|ladies|her)\b/.test(t) ? 'WOMENS' : /\b(men|mens|men's|him|guy)\b/.test(t) ? 'MENS' : undefined
-  return { category, gender, words: t.split(/[^a-z]+/).filter((w) => w.length > 2) }
+  return { category, kind, gender, words: t.split(/[^a-z]+/).filter((w) => w.length > 2) }
 }
 
 export async function storeSearch(q: string, sort: StoreSort) {
-  const { category, gender, words } = readStoreQuery(q)
-  const rows = await loadRows(category ? { category } : {})
+  const { category, kind, gender, words } = readStoreQuery(q)
+  const rows = (await loadRows(category ? { category } : {})).filter((r) => !kind || r.subcategory === kind)
   const tagMap = await tagsForProducts(rows.map((r) => r.id))
   let items = rows.map((r) => ({ ...toListing(r), tags: tagMap.get(r.id) ?? [] })).filter((x) => !gender || x.gender === gender || x.gender === 'UNISEX')
   const wanted = (c: string) => c.toLowerCase().split(' ').every((w) => words.includes(w))

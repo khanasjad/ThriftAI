@@ -3,7 +3,7 @@
  * built by code from stored factor scores and plain counts. Every tag carries the numbers behind it,
  * so it can be shown with its evidence and served through the Score API. No model is involved.
  */
-import { RETURN_BENCHMARK } from '../evidence/structured'
+import { returnBenchmark } from '../evidence/structured'
 
 export type Tag = {
   key: string
@@ -16,6 +16,7 @@ export type Tag = {
 
 export type TagInputs = {
   category: 'TOPS' | 'BOTTOMS' | string
+  subcategory?: string | null
   factors: { factor: string; value: number; evidenceCount: number }[]
   fit: { small: number; large: number; tts: number; total: number }
   returns: { fit: number; quality: number; units: number | null }
@@ -56,7 +57,7 @@ export function buildTags(i: TagInputs): Tag[] {
   }
 
   // Return rates vs. the category benchmark.
-  const bench = RETURN_BENCHMARK[i.category === 'BOTTOMS' ? 'BOTTOMS' : 'TOPS']
+  const bench = returnBenchmark(i.category, i.subcategory)
   if (i.returns.units && i.returns.units >= 50) {
     const fit = i.returns.fit / i.returns.units
     const quality = i.returns.quality / i.returns.units

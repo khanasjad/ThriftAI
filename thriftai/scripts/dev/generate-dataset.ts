@@ -24,7 +24,8 @@ function mulberry32(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
 }
-const rand = mulberry32(20261024)
+// `let`: the button-up shirts at the end use their own stream, so the original 40 products stay identical.
+let rand = mulberry32(20261024)
 const between = (a: number, b: number) => a + (b - a) * rand()
 const int = (a: number, b: number) => Math.floor(between(a, b + 1))
 const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]
@@ -85,7 +86,22 @@ const JEAN_NAMES: Record<string, string[]> = {
   bootcut: ['Bootcut Jean', 'Low Bootcut Jean'],
 }
 const TEE_COLORS = ['White', 'Black', 'Heather Grey', 'Navy', 'Sage', 'Oatmeal', 'Washed Red']
+// Button-up shirts (added 2026-10-25)
+const SHIRT_SILHOUETTES = ['oxford-shirt', 'poplin-shirt', 'flannel-shirt', 'linen-shirt', 'short-sleeve-shirt'] as const
+const SHIRT_NAMES: Record<string, string[]> = {
+  'oxford-shirt': ['Oxford Button-Down Shirt', 'Slim Oxford Shirt'],
+  'poplin-shirt': ['Crisp Poplin Shirt', 'Everyday Poplin Shirt'],
+  'flannel-shirt': ['Brushed Flannel Shirt', 'Heavy Flannel Shirt'],
+  'linen-shirt': ['Relaxed Linen Shirt', 'Linen Camp Shirt'],
+  'short-sleeve-shirt': ['Short-Sleeve Camp Shirt', 'Resort Shirt'],
+}
+const SHIRT_COLORS = ['White', 'Light Blue', 'Navy', 'Sage', 'Ecru', 'Black']
+type Kind = 'tee' | 'jeans' | 'shirt'
+const SILHOUETTES: Record<Kind, readonly string[]> = { tee: TEE_SILHOUETTES, jeans: JEAN_SILHOUETTES, shirt: SHIRT_SILHOUETTES }
+const COLORS: Record<Kind, string[]> = { tee: TEE_COLORS, jeans: [], shirt: SHIRT_COLORS }
 const JEAN_COLORS = ['Indigo Rinse', 'Mid Wash', 'Light Vintage', 'Black', 'Ecru']
+COLORS.jeans = JEAN_COLORS
+const NAMES: Record<Kind, Record<string, string[]>> = { tee: TEE_NAMES, jeans: JEAN_NAMES, shirt: SHIRT_NAMES }
 
 type Truth = {
   fitOffset: number // -1 runs small … +1 runs large
@@ -116,7 +132,7 @@ function maybeTypo(t: string) {
   return t.replace(re, sub)
 }
 
-function fitLine(truth: Truth, kind: 'tee' | 'jeans', bias: number): Line {
+function fitLine(truth: Truth, kind: Kind, bias: number): Line {
   const x = truth.fitOffset + bias
   if (x < -0.55) return pick([
     { text: `Runs really small — I had to size up twice.`, s: -0.9 },
@@ -141,13 +157,13 @@ function fitLine(truth: Truth, kind: 'tee' | 'jeans', bias: number): Line {
   ])
 }
 
-function qualityLines(truth: Truth, kind: 'tee' | 'jeans', washes: number): Line[] {
+function qualityLines(truth: Truth, kind: Kind, washes: number): Line[] {
   const out: Line[] = []
   if (washes >= 3) {
     if (truth.washDurability < 0.45) out.push(pick([
       { text: `After ${washes} washes it shrank and lost its shape.`, s: -0.9 },
       { text: `Faded badly after ${washes} washes, looks old already.`, s: -0.8 },
-      { text: kind === 'tee' ? `The collar went wavy after ${washes} washes.` : `Colour bled onto my other laundry in the first wash.`, s: -0.8 },
+      { text: kind === 'tee' ? `The collar went wavy after ${washes} washes.` : kind === 'shirt' ? `The collar points curled after ${washes} washes.` : `Colour bled onto my other laundry in the first wash.`, s: -0.8 },
     ]))
     else if (truth.washDurability > 0.75) out.push(pick([
       { text: `Holds up great after ${washes} washes, no shrinking or fading.`, s: 0.9 },
@@ -156,16 +172,18 @@ function qualityLines(truth: Truth, kind: 'tee' | 'jeans', washes: number): Line
   }
   if (truth.pillingRisk > 0.6 && washes >= 2) out.push({ text: `Started pilling within a few weeks.`, s: -0.8 })
   if (truth.construction < 0.4 && chance(0.6)) out.push(pick([
-    { text: kind === 'jeans' ? `The button popped off within a month.` : `A side seam came undone after a month.`, s: -0.9 },
+    { text: kind === 'jeans' ? `The button popped off within a month.` : kind === 'shirt' ? `A button came off within a month.` : `A side seam came undone after a month.`, s: -0.9 },
     { text: `Stitching is coming loose at the hem.`, s: -0.8 },
   ]))
   else if (truth.construction > 0.8 && chance(0.4)) out.push({ text: `Seams and stitching feel really solid.`, s: 0.8 })
-  if (truth.fabric > 0.8 && chance(0.5)) out.push({ text: kind === 'jeans' ? `Thick, sturdy denim — feels premium.` : `Fabric has a nice weight to it, not see-through.`, s: 0.8 })
-  else if (truth.fabric < 0.4 && chance(0.6)) out.push({ text: kind === 'tee' ? `Fabric is thin and almost see-through in white.` : `Denim feels thin and flimsy.`, s: -0.8 })
+  if (truth.fabric > 0.8 && chance(0.5)) out.push({ text: kind === 'jeans' ? `Thick, sturdy denim — feels premium.` : kind === 'shirt' ? `Crisp fabric with a nice weight, buttons feel solid.` : `Fabric has a nice weight to it, not see-through.`, s: 0.8 })
+  else if (truth.fabric < 0.4 && chance(0.6)) out.push({ text: kind === 'tee' ? `Fabric is thin and almost see-through in white.` : kind === 'shirt' ? `Fabric is thin and the buttons feel cheap.` : `Denim feels thin and flimsy.`, s: -0.8 })
+  if (kind === 'shirt' && chance(0.45))
+    out.push(truth.washDurability > 0.7 ? { text: `Barely wrinkles, no ironing needed.`, s: 0.7 } : truth.washDurability < 0.45 ? { text: `Wrinkles badly after every wash, needs ironing.`, s: -0.6 } : { text: `Needs a quick iron after washing.`, s: -0.1 })
   return out
 }
 
-function comfortLine(truth: Truth, kind: 'tee' | 'jeans'): Line | null {
+function comfortLine(truth: Truth, kind: Kind): Line | null {
   const r = rand()
   if (r < 0.35) return truth.softness > 0.65 ? { text: `Super soft and comfortable.`, s: 0.9 } : truth.softness < 0.35 ? { text: `Feels stiff and a bit rough.`, s: -0.6 } : null
   if (r < 0.55)
@@ -188,7 +206,7 @@ function photoLine(truth: Truth): Line | null {
   return null
 }
 
-function extraLine(truth: Truth, kind: 'tee' | 'jeans'): Line | null {
+function extraLine(truth: Truth, kind: Kind): Line | null {
   const r = rand()
   if (r < 0.25) {
     if (truth.versatility > 0.7) return pick([{ text: `Goes with everything in my wardrobe.`, s: 0.6 }, { text: `A real staple, I can dress it up or down.`, s: 0.7 }])
@@ -196,6 +214,7 @@ function extraLine(truth: Truth, kind: 'tee' | 'jeans'): Line | null {
   }
   if (r < 0.4 && truth.lengthIssue !== 'none') {
     if (kind === 'jeans') return truth.lengthIssue === 'long' ? { text: `Inseam is really long, needed hemming.`, s: -0.4 } : { text: `Inseam is short, ankle-length on me.`, s: -0.4 }
+    if (kind === 'shirt') return truth.lengthIssue === 'short' ? { text: `Sleeves are too short for me.`, s: -0.5 } : { text: `Sleeves are too long, had to roll them.`, s: -0.4 }
     return truth.lengthIssue === 'short' ? { text: `Body length is short, rides up when I lift my arms.`, s: -0.5 } : { text: `Quite long in the body.`, s: -0.2 }
   }
   if (r < 0.4 && truth.lengthIssue === 'none' && chance(0.5)) return kind === 'jeans' ? { text: `Inseam is spot on for me.`, s: 0.6 } : { text: `Length is just right, not too short or long.`, s: 0.6 }
@@ -270,7 +289,7 @@ const returns: Record<string, unknown>[] = []
 const prices: Record<string, unknown>[] = []
 
 // Assign 40 products: alternate tees/jeans across brands
-const plan: { brand: BrandSpec; kind: 'tee' | 'jeans' }[] = []
+const plan: { brand: BrandSpec; kind: Kind }[] = []
 for (let i = 0; i < 40; i++) plan.push({ brand: BRANDS[i % BRANDS.length], kind: i < 20 ? 'tee' : 'jeans' })
 
 // Special cases (indices into plan)
@@ -281,9 +300,9 @@ const INJECTION_AT = [3, 19, 30] // product index receiving an injection review
 const NON_ENGLISH_AT = [11, 25]
 const usedNames = new Set<string>()
 
-plan.forEach(({ brand, kind }, idx) => {
-  const silhouette = kind === 'tee' ? pick(TEE_SILHOUETTES) : pick(JEAN_SILHOUETTES)
-  let name = pick((kind === 'tee' ? TEE_NAMES : JEAN_NAMES)[silhouette])
+function buildProduct({ brand, kind }: { brand: BrandSpec; kind: Kind }, idx: number) {
+  const silhouette = pick(SILHOUETTES[kind])
+  let name = pick(NAMES[kind][silhouette])
   const baseName = name
   for (let n = 2; usedNames.has(`${brand.name}|${name}`); n++) name = `${baseName} ${['II', 'III', 'IV', 'V'][n - 2]}`
   usedNames.add(`${brand.name}|${name}`)
@@ -299,7 +318,7 @@ plan.forEach(({ brand, kind }, idx) => {
     washDurability: clamp(q + between(-0.25, 0.15)),
     pillingRisk: clamp(1 - q + between(-0.15, 0.25)),
     softness: clamp(between(0.3, 0.95)),
-    breathability: clamp(kind === 'tee' ? between(0.4, 0.95) : between(0.2, 0.6)),
+    breathability: clamp(kind !== 'jeans' ? between(0.4, 0.95) : between(0.2, 0.6)),
     stretch: kind === 'jeans' ? (chance(0.5) ? between(0.5, 0.9) : between(0, 0.3)) : between(0.2, 0.5),
     itch: clamp(between(0, 0.8)),
     photoAccuracy: clamp(brand.photoHonesty + between(-0.15, 0.1)),
@@ -308,7 +327,7 @@ plan.forEach(({ brand, kind }, idx) => {
     notes: [],
   }
 
-  const basePrice = (kind === 'tee' ? between(18, 42) : between(55, 130)) * brand.priceTier
+  const basePrice = (kind === 'tee' ? between(18, 42) : kind === 'shirt' ? between(35, 85) : between(55, 130)) * brand.priceTier
   const currentPrice = Math.round(basePrice) - 0.01
   const isNew = NEW_LAUNCH.has(idx)
   const launchDaysAgo = isNew ? int(4, 25) : int(90, 720)
@@ -316,27 +335,29 @@ plan.forEach(({ brand, kind }, idx) => {
 
   const elastane = kind === 'jeans' ? (truth.stretch > 0.5 ? int(1, 3) : 0) : 0
   const materials: Record<string, number> =
-    kind === 'tee'
+    kind === 'shirt'
+      ? brand.certifications.includes('GOTS') ? { 'organic cotton': 100 } : silhouette === 'linen-shirt' ? { linen: 100 } : chance(0.25) ? { cotton: 97, elastane: 3 } : { cotton: 100 }
+      : kind === 'tee'
       ? brand.certifications.includes('GOTS') ? { 'organic cotton': 100 } : chance(0.3) ? { cotton: 60, polyester: 40 } : { cotton: 100 }
       : elastane ? { cotton: 100 - elastane - (chance(0.3) ? 20 : 0), ...(chance(0.3) ? { polyester: 20 } : {}), elastane } : { cotton: 100 }
 
   products.push({
     slug,
-    sku: `${slugify(brand.name).slice(0, 4).toUpperCase()}-${kind === 'tee' ? 'T' : 'J'}${String(idx + 1).padStart(3, '0')}`,
+    sku: `${slugify(brand.name).slice(0, 4).toUpperCase()}-${{ tee: 'T', shirt: 'S', jeans: 'J' }[kind]}${String(idx + 1).padStart(3, '0')}`,
     brandSlug: slugify(brand.name),
     name,
-    category: kind === 'tee' ? 'TOPS' : 'BOTTOMS',
-    subcategory: kind === 'tee' ? 'tee' : 'jeans',
+    category: kind === 'jeans' ? 'BOTTOMS' : 'TOPS',
+    subcategory: kind,
     gender: pick(['WOMENS', 'MENS', 'UNISEX'] as const),
     description: `${name} by ${brand.name}.`,
     currentPrice: round2(currentPrice),
     originalPrice: null,
-    sizes: kind === 'tee' ? ['XS', 'S', 'M', 'L', 'XL', ...(chance(0.5) ? ['2XL', '3XL'] : [])] : ['24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', ...(chance(0.4) ? ['36', '38'] : [])],
-    colors: Array.from(new Set([pick(kind === 'tee' ? TEE_COLORS : JEAN_COLORS), pick(kind === 'tee' ? TEE_COLORS : JEAN_COLORS)])),
+    sizes: kind !== 'jeans' ? ['XS', 'S', 'M', 'L', 'XL', ...(chance(0.5) ? ['2XL', '3XL'] : [])] : ['24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', ...(chance(0.4) ? ['36', '38'] : [])],
+    colors: Array.from(new Set([pick(COLORS[kind]), pick(COLORS[kind])])),
     materials,
-    fabricWeightGsm: kind === 'tee' ? Math.round(120 + truth.fabric * 140) : Math.round(280 + truth.fabric * 200),
+    fabricWeightGsm: kind === 'tee' ? Math.round(120 + truth.fabric * 140) : kind === 'shirt' ? Math.round((silhouette === 'flannel-shirt' ? 150 : 90) + truth.fabric * 80) : Math.round(280 + truth.fabric * 200),
     elastanePct: elastane,
-    fitType: silhouette.includes('boxy') || silhouette === 'wide-leg' ? 'relaxed' : silhouette === 'skinny' ? 'slim' : 'regular',
+    fitType: silhouette.includes('boxy') || silhouette === 'wide-leg' || silhouette === 'linen-shirt' ? 'relaxed' : silhouette === 'skinny' || (kind === 'shirt' && name.startsWith('Slim')) ? 'slim' : 'regular',
     silhouette,
     careInstructions: pick(['Machine wash cold, tumble dry low', 'Machine wash cold, hang dry', 'Wash inside out, cold, line dry']),
     hasPetite: chance(0.3),
@@ -350,7 +371,7 @@ plan.forEach(({ brand, kind }, idx) => {
     primaryImageUrl: `/dev-images/${slug}.png`,
     images: [`/dev-images/${slug}.png`],
     source: SOURCE,
-    _truth: { ...truth, pattern: devPatternFor(slug, kind === 'tee' ? 'TOPS' : 'BOTTOMS') },
+    _truth: { ...truth, pattern: devPatternFor(slug, kind === 'jeans' ? 'BOTTOMS' : 'TOPS', kind) },
   })
 
   // --- Reviews ---
@@ -374,7 +395,7 @@ plan.forEach(({ brand, kind }, idx) => {
     const shuffled = lines.sort(() => rand() - 0.5).slice(0, 5)
     const avg = shuffled.reduce((a, l) => a + l.s, 0) / shuffled.length
     const rating = Math.max(1, Math.min(5, Math.round(3 + 2 * avg + between(-0.6, 0.6))))
-    const value = avg > 0.4 && currentPrice < (kind === 'tee' ? 35 : 100) ? ' Great value for the price.' : avg < -0.4 && currentPrice > (kind === 'tee' ? 40 : 110) ? ' Not worth the price.' : ''
+    const value = avg > 0.4 && currentPrice < { tee: 35, shirt: 60, jeans: 100 }[kind] ? ' Great value for the price.' : avg < -0.4 && currentPrice > { tee: 40, shirt: 70, jeans: 110 }[kind] ? ' Not worth the price.' : ''
     const fitsAs = truth.fitOffset + reviewerBias < -0.2 ? 'runs_small' : truth.fitOffset + reviewerBias > 0.2 ? 'runs_large' : 'true_to_size'
     reviews.push({
       productSlug: slug,
@@ -382,7 +403,7 @@ plan.forEach(({ brand, kind }, idx) => {
       content: maybeTypo(shuffled.map((l) => l.text).join(' ') + value),
       rating,
       language: 'en',
-      sizePurchased: kind === 'tee' ? pick(['S', 'M', 'L', 'XL']) : pick(['26', '28', '30', '32', '34']),
+      sizePurchased: kind !== 'jeans' ? pick(['S', 'M', 'L', 'XL']) : pick(['26', '28', '30', '32', '34']),
       fitsAs: chance(0.6) ? fitsAs : null,
       heightCm: shares ? int(155, 192) : null,
       weightKg: shares ? int(48, 105) : null,
@@ -412,7 +433,7 @@ plan.forEach(({ brand, kind }, idx) => {
           productSlug: slug,
           returnReason: reason,
           returnCategory: category,
-          sizePurchased: kind === 'tee' ? pick(['S', 'M', 'L']) : pick(['28', '30', '32']),
+          sizePurchased: kind !== 'jeans' ? pick(['S', 'M', 'L']) : pick(['28', '30', '32']),
           purchasePrice: round2(currentPrice),
           returnDate: daysAgo(int(1, 300)).toISOString(),
           source: SOURCE,
@@ -453,7 +474,8 @@ plan.forEach(({ brand, kind }, idx) => {
   }
   if (FAKE_MARKDOWN.has(idx)) truth.notes.push('fake_markdown')
   if (OFTEN_CHEAPER.has(idx)) truth.notes.push('often_cheaper')
-})
+}
+plan.forEach(buildProduct)
 
 // Injection and non-English reviews
 INJECTION_AT.forEach((i, k) => {
@@ -495,6 +517,11 @@ const personas = [
   { key: 'eco-minimalist', heightCm: 165, weightKg: 58, bodyType: 'average', preferredFit: 'regular', sizePreferences: { tops: 'S', bottoms: '27' }, climate: 'mild', budgetMax: 200, occasions: ['office'], stylePreferences: ['minimal'], priorities: { SUSTAINABILITY: 1.5, QUALITY: 1.2 }, brandAllow: [], brandDeny: ['velo-thread'], sustainabilityOn: true },
   { key: 'plus-comfort-first', heightCm: 168, weightKg: 98, bodyType: 'plus', preferredFit: 'relaxed', sizePreferences: { tops: '2XL', bottoms: '36' }, climate: 'varies', budgetMax: 120, occasions: ['weekend', 'work-from-home'], stylePreferences: ['classic'], priorities: { COMFORT: 1.6, FIT: 1.3 }, brandAllow: [], brandDeny: [], sustainabilityOn: false },
 ]
+
+// Button-up shirts (added 2026-10-25): their own random stream, generated last, so everything above is unchanged.
+rand = mulberry32(20261025)
+const shirtPlan: { brand: BrandSpec; kind: Kind }[] = Array.from({ length: 12 }, (_, i) => ({ brand: BRANDS[i % BRANDS.length], kind: 'shirt' as const }))
+shirtPlan.forEach((p, k) => buildProduct(p, 40 + k))
 
 const dataset = {
   meta: {
