@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Invalid request',
-          details: error.errors.map(e => ({
+          details: error.issues.map((e) => ({
             field: e.path.join('.'),
             message: e.message
           }))

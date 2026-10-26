@@ -85,7 +85,7 @@ export async function GET(
         {
           success: false,
           error: 'Invalid request',
-          details: error.errors
+          details: error.issues
         },
         { status: 400 }
       )

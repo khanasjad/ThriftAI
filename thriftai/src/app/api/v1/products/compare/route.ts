@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Invalid request',
-          details: error.errors,
+          details: error.issues,
           hint: 'Provide 2-5 product IDs and optional focus areas (FIT, QUALITY, STYLE_VALUE, COMFORT, SUSTAINABILITY)'
         },
         { status: 400 }

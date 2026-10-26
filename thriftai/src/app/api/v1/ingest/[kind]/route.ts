@@ -35,7 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ kind: s
     rows = parseCsv(await req.text())
   } else {
     const body = await req.json().catch(() => null)
-    const parsed = meta.extend({ rows: z.array(z.record(z.unknown())).max(MAX_ROWS) }).safeParse(body)
+    const parsed = meta.extend({ rows: z.array(z.record(z.string(), z.unknown())).max(MAX_ROWS) }).safeParse(body)
     if (!parsed.success) return zodFail(parsed.error)
     m = parsed.data
     rows = parsed.data.rows

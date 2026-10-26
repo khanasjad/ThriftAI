@@ -41,7 +41,7 @@ export const catalogRow = z.object({
   sizes: list,
   colors: list,
   /** "cotton:95|elastane:5" or {"cotton":95} */
-  materials: z.union([z.record(z.coerce.number()), z.string()]).optional(),
+  materials: z.union([z.record(z.string(), z.coerce.number()), z.string()]).optional(),
   image_url: z.string().trim().url().max(1000).optional().or(z.literal('').transform(() => undefined)),
   care: optStr(300),
   description: optStr(2000),
