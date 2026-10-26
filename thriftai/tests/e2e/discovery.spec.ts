@@ -126,3 +126,25 @@ test('prints from photos: "car t-shirt" finds only tees with a car print; the pr
   await expect(panel).toContainText(/car/i)
   await expect(panel).toContainText(/doesn’t mean the item is official/)
 })
+
+test('looks like (open fashion model): words no photo label has still find the print; product page shows "Looks similar"', async ({ page }) => {
+  test.setTimeout(90_000)
+  await page.route('**/api/v1/search', (r) => r.abort())
+  // First load may wait for the model to load; the search then falls back to labels, so retry until it's warm.
+  await expect(async () => {
+    await page.goto('/search?q=tee+with+an+automobile+on+it')
+    await expect(page.getByRole('status').getByText('Looks like: automobile (from photos)')).toBeVisible({ timeout: 5_000 })
+  }).toPass({ timeout: 60_000 })
+  const results = page.locator('section[aria-labelledby="results-h"] > ul > li')
+  const hrefs = await results.locator('a[href^="/p/"]').evaluateAll((as) => [...new Set(as.map((a) => a.getAttribute('href') ?? ''))])
+  expect(hrefs.sort()).toEqual(['/p/ardent-denim-oversized-boxy-tee', '/p/hollow-pine-supply-soft-v-neck-tee', '/p/velo-thread-everyday-crew-tee'])
+
+  // A print that's in no photo is never a closest guess.
+  await page.goto('/search?q=car+printed+shirt')
+  await expect(page.getByText(/Looks like:/)).toHaveCount(0)
+
+  await page.goto('/p/ardent-denim-oversized-boxy-tee')
+  const similar = page.locator('section[aria-labelledby="similar-h"]')
+  await expect(similar.getByRole('heading', { name: 'Looks similar' })).toBeVisible()
+  await expect(similar.locator('a[href="/p/hollow-pine-supply-soft-v-neck-tee"]').first()).toBeVisible()
+})

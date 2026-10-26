@@ -135,7 +135,8 @@ async function Results({
     ...interpreted.colors.map((c) => c[0].toUpperCase() + c.slice(1)),
     ...interpreted.patterns.map((p) => `${p[0].toUpperCase()}${p.slice(1)} (from photos)`),
     ...(interpreted.prints?.length ? [`Print: ${interpreted.prints.join(' ')}`] : []),
-    ...interpreted.terms.filter((t) => !interpreted.prints?.includes(t)).map((t) => `“${t}”`),
+    ...(interpreted.looks?.filter((t) => !interpreted.prints?.includes(t)).length ? [`Looks like: ${interpreted.looks.filter((t) => !interpreted.prints?.includes(t)).join(' ')} (from photos)`] : []),
+    ...interpreted.terms.filter((t) => !interpreted.prints?.includes(t) && !interpreted.looks?.includes(t)).map((t) => `“${t}”`),
   ].filter(Boolean) as string[]
 
   if (items.length === 0) {

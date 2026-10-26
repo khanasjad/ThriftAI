@@ -37,6 +37,8 @@ export type SearchIntent = {
   occasion?: string
   /** Query words that match prints/logos read from product photos (set by the search graph; shown in Style match). */
   lookTerms?: string[]
+  /** Products whose photo looks like these words (open fashion model, set by the search graph per turn, B18). */
+  lookAlike?: { words: string[]; ids: string[] }
   /** Remaining words, matched against product text. */
   terms: string[]
   offTopic?: boolean

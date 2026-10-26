@@ -36,6 +36,13 @@ const schema = z.object({
     .string()
     .optional()
     .transform((v) => v !== '0' && v !== 'false'),
+  /** Open-source fashion model for "looks like" search and "looks similar" (B18, $0, runs on our server). 0 = off. */
+  VISUAL_SEARCH: z
+    .string()
+    .optional()
+    .transform((v) => v !== '0' && v !== 'false'),
+  /** Hugging Face model id for photo fingerprints (Apache-2.0). Changing it means re-running `npm run embed -- --all`. */
+  VISUAL_MODEL: z.string().default('Marqo/marqo-fashionSigLIP'),
 
   RESEND_API_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),

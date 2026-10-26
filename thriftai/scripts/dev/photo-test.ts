@@ -1,8 +1,9 @@
 /**
  * Live photo test (B17): how well the vision agent reads REAL clothing photos, not our drawings.
- *   npm run photo:test -- --fetch          # download openly licensed photos from Openverse (commercial-use licences)
+ *   npm run photo:test -- --fetch [--set product]   # download openly licensed photos from Openverse (commercial-use licences);
+ *                                                   # --set product = plain product shots (flat lay, hanger, mockup)
  *   npm run photo:test -- --read --yes     # run the vision agent on them (~$0.0004 each)
- *   npm run photo:test -- --score          # compare with hand labels in .veritas/photo-test/truth.json
+ *   npm run photo:test -- --score          # compare with hand labels in .veritas/photo-test/truth.json (split by shot type)
  * Photos, licences and readings stay in .veritas/photo-test/ (gitignored): never served or committed.
  * Every photo records creator, licence and source page (CLAUDE.md: source + licence per record).
  */
@@ -16,10 +17,11 @@ import { prisma } from '../../src/lib/prisma'
 const DIR = join(process.cwd(), '.veritas/photo-test')
 const MANIFEST = join(DIR, 'manifest.json')
 const QUERIES = ['floral shirt', 'hawaiian shirt', 'striped t-shirt', 'plaid flannel shirt', 'polka dot shirt', 'graphic t-shirt', 'car t-shirt', 'football jersey', 'real madrid shirt', 'band t-shirt', 'blue jeans', 'white t-shirt']
+const PRODUCT_QUERIES = ['t-shirt flat lay', 't-shirt on hanger', 'shirt on hanger', 't-shirt mockup', 'printed t-shirt', 'floral shirt hanger', 'hawaiian shirt flat', 'striped shirt folded', 'flannel shirt hanging', 'jersey hanging', 'football shirt display', 'jeans flat lay', 'graphic tee product', 'denim jacket hanger']
 const PER_QUERY = 3
 
-type Photo = { id: string; query: string; title: string; creator: string | null; license: string; licenseUrl: string | null; source: string; landingUrl: string; file: string; reading?: VisualAttributes; costUsd?: number }
-type Truth = Record<string, { garment: 'clothing' | 'not-clothing'; pattern?: string; colorFamily?: string; motifs?: string[]; note?: string }>
+type Photo = { id: string; set?: 'lifestyle' | 'product'; query: string; title: string; creator: string | null; license: string; licenseUrl: string | null; source: string; landingUrl: string; file: string; reading?: VisualAttributes; costUsd?: number }
+type Truth = Record<string, { garment: 'clothing' | 'not-clothing'; pattern?: string; colorFamily?: string; motifs?: string[]; shot?: 'product' | 'lifestyle'; note?: string }>
 
 const load = (): Photo[] => (existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : [])
 const save = (p: Photo[]) => writeFileSync(MANIFEST, JSON.stringify(p, null, 1))
@@ -27,8 +29,9 @@ const save = (p: Photo[]) => writeFileSync(MANIFEST, JSON.stringify(p, null, 1))
 async function fetchPhotos() {
   mkdirSync(DIR, { recursive: true })
   const photos = load()
-  for (const q of QUERIES) {
-    const url = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&license_type=commercial&mature=false&page_size=12`
+  const product = process.argv.includes('product')
+  for (const q of product ? PRODUCT_QUERIES : QUERIES) {
+    const url = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&license_type=commercial&mature=false&page_size=20`
     const res = await fetch(url, { headers: { 'User-Agent': 'veritas-photo-test/1 (internal accuracy test)' } })
     if (!res.ok) {
       console.log(`✗ ${q}: Openverse ${res.status}`)
@@ -45,7 +48,7 @@ async function fetchPhotos() {
       const ext = (img.headers.get('content-type') ?? 'image/jpeg').includes('png') ? 'png' : (img.headers.get('content-type') ?? '').includes('webp') ? 'webp' : 'jpg'
       const file = `${r.id}.${ext}`
       writeFileSync(join(DIR, file), Buffer.from(await img.arrayBuffer()))
-      photos.push({ id: r.id, query: q, title: r.title, creator: r.creator, license: `${r.license} ${r.license_version}`.trim(), licenseUrl: r.license_url, source: r.source, landingUrl: r.foreign_landing_url, file })
+      photos.push({ id: r.id, set: product ? 'product' : 'lifestyle', query: q, title: r.title, creator: r.creator, license: `${r.license} ${r.license_version}`.trim(), licenseUrl: r.license_url, source: r.source, landingUrl: r.foreign_landing_url, file })
       got++
     }
     console.log(`${q}: ${got} photos`)
@@ -77,6 +80,10 @@ async function readPhotos() {
 }
 
 function score() {
+  for (const shot of ['all', 'product', 'lifestyle'] as const) scoreOne(shot)
+}
+
+function scoreOne(shot: 'all' | 'product' | 'lifestyle') {
   const photos = load()
   const truthFile = join(DIR, 'truth.json')
   if (!existsSync(truthFile)) return console.log('No truth.json yet (hand labels).')
@@ -87,6 +94,7 @@ function score() {
     const t = truth[p.id]
     const a = p.reading
     if (!t || !a) continue
+    if (shot !== 'all' && (t.shot ?? 'lifestyle') !== shot) continue
     clothing++
     if ((t.garment === 'clothing') === a.is_clothing) clothingOk++
     else misses.push(`${p.id.slice(0, 8)} (${p.query}): clothing? truth ${t.garment}, read ${a.is_clothing}`)
@@ -110,8 +118,9 @@ function score() {
     }
   }
   const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}% (${a}/${b})` : 'n/a')
+  console.log(`\n[${shot} shots, ${clothing} photos]`)
   console.log(`Clothing or not: ${pct(clothingOk, clothing)} · pattern: ${pct(patOk, pat)} · main colour: ${pct(colOk, col)} · motifs: ${pct(motOk, mot)}`)
-  for (const m of misses) console.log(`  ✗ ${m}`)
+  if (shot !== 'all') for (const m of misses) console.log(`  ✗ ${m}`)
 }
 
 async function main() {

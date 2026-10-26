@@ -98,7 +98,7 @@ Run 1–5 products first (`--product <slug>`), check the product page, then the 
 
 ## 6. Every day after that (automatic)
 
-Product photos are read automatically: right after each catalog upload (new or changed photo links, within the upload's time budget), and by the nightly job for anything left. Our server downloads the vendor's image (https, public hosts, ≤ 5 MB) and only re-reads a photo when its bytes change.
+Product photos are read automatically: right after each catalog upload (new or changed photo links, within the upload's time budget), and by the nightly job for anything left. Our server downloads the vendor's image (https, public hosts, ≤ 5 MB) and only re-reads a photo when its bytes change. Each photo also gets a "looks like" fingerprint from the open-source fashion model ($0, on our server). After the first deploy, backfill existing products once: `APP_ENV=production npm run embed -- --all`. The model (~200 MB) downloads into `/tmp` on a cold start; until it's loaded, search matches by photo labels only.
 
 `/api/cron/nightly` reads photos of new products and re-rates products whose reviews, prices, returns or details changed. Unchanged review text reuses earlier evidence (no model call), so daily price feeds cost almost nothing. On Hobby (60 s) it handles a few paid re-ratings per night and continues the next night; for large daily changes use Pro (raise `maxDuration` in `src/app/api/cron/nightly/route.ts`) or run `npm run rate -- --all --mode full` yourself.
 

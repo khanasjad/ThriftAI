@@ -122,26 +122,26 @@ model ApiKey {
 // =============================================================================
 
 model Brand {
-  id             String   @id @default(cuid())
-  tenantId       String?
-  name           String   @unique
-  slug           String   @unique
-  description    String?
-  website        String?
-  foundedYear    Int?
+  id                 String   @id @default(cuid())
+  tenantId           String?
+  name               String   @unique
+  slug               String   @unique
+  description        String?
+  website            String?
+  foundedYear        Int?
   /// Published certifications claimed by the brand (OEKO-TEX, GOTS, B Corp…)
-  certifications String[] @default([])
+  certifications     String[] @default([])
   /// Has a public supplier list / audits
-  publishesSuppliers Boolean @default(false)
-  hasRepairProgram   Boolean @default(false)
-  hasTakeBack        Boolean @default(false)
+  publishesSuppliers Boolean  @default(false)
+  hasRepairProgram   Boolean  @default(false)
+  hasTakeBack        Boolean  @default(false)
   /// 0–100, computed by the Trend & Brand agent from evidence (not fame). Null until rated.
-  reputationScore Int?
-  logoUrl         String?
-  source          String
-  licence         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  reputationScore    Int?
+  logoUrl            String?
+  source             String
+  licence            String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   tenant       Tenant?           @relation(fields: [tenantId], references: [id])
   products     ClothingProduct[]
@@ -153,16 +153,16 @@ model Brand {
 }
 
 model Seller {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   /// Set for a platform's own vendors (marketplace sellers); null for shared dev/public sellers
   tenantId   String?
   externalId String?
-  name      String
-  slug      String   @unique
-  website   String?
-  source    String
-  licence   String?
-  createdAt DateTime @default(now())
+  name       String
+  slug       String   @unique
+  website    String?
+  source     String
+  licence    String?
+  createdAt  DateTime @default(now())
 
   prices PriceSnapshot[]
 
@@ -189,23 +189,23 @@ model ClothingProduct {
   currency      String   @default("USD")
 
   // Spec (inputs for quality/comfort/new-launch scoring)
-  sizes            String[]
-  colors           String[]
+  sizes             String[]
+  colors            String[]
   /// {"cotton": 95, "elastane": 5}
-  materials        Json
-  fabricWeightGsm  Int?
-  elastanePct      Int?
-  fitType          String? // slim | regular | relaxed | oversized | straight | wide
-  silhouette       String? // boxy-tee, crew-tee, wide-leg, skinny, straight…
-  constructionType String?
-  careInstructions String?
-  hasPetite        Boolean  @default(false)
-  hasTall          Boolean  @default(false)
-  hasPlus          Boolean  @default(false)
-  recycledContent  Int?
-  certifications   String[] @default([])
+  materials         Json
+  fabricWeightGsm   Int?
+  elastanePct       Int?
+  fitType           String? // slim | regular | relaxed | oversized | straight | wide
+  silhouette        String? // boxy-tee, crew-tee, wide-leg, skinny, straight…
+  constructionType  String?
+  careInstructions  String?
+  hasPetite         Boolean  @default(false)
+  hasTall           Boolean  @default(false)
+  hasPlus           Boolean  @default(false)
+  recycledContent   Int?
+  certifications    String[] @default([])
   /// Units sold over the same window as the return events (from the brand or platform). Enables return *rates*.
-  unitsSold        Int?
+  unitsSold         Int?
   /// Median resale price as % of retail, from a licensed resale-data partner. Null when unknown.
   resaleRetainedPct Int?
 
@@ -227,8 +227,8 @@ model ClothingProduct {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  brand          Brand            @relation(fields: [brandId], references: [id])
-  tenant         Tenant?          @relation(fields: [tenantId], references: [id])
+  brand          Brand             @relation(fields: [brandId], references: [id])
+  tenant         Tenant?           @relation(fields: [tenantId], references: [id])
   reviews        ClothingReview[]
   returns        ReturnEvent[]
   evidenceTags   EvidenceTag[]
@@ -239,6 +239,7 @@ model ClothingProduct {
   agentRuns      AgentRun[]
   adCopy         AdCopy?
   visual         ProductVisual?
+  embedding      ProductEmbedding?
 
   @@unique([tenantId, externalId])
   @@index([tenantId])
@@ -253,10 +254,10 @@ model ClothingReview {
   id        String @id @default(cuid())
   productId String
 
-  title   String?
-  content String
-  rating  Int // 1-5
-  language String @default("en")
+  title    String?
+  content  String
+  rating   Int // 1-5
+  language String  @default("en")
 
   fitRating     Int?
   qualityRating Int?
@@ -300,22 +301,22 @@ model ClothingReview {
 }
 
 model ReturnEvent {
-  id             String         @id @default(cuid())
-  productId      String
-  returnReason   ReturnReason
-  returnCategory ReturnCategory
-  detailedReason String?
-  sizePurchased  String?
-  purchasePrice  Decimal?       @db.Decimal(10, 2)
-  purchaseDate   DateTime?
-  returnDate     DateTime       @default(now())
+  id               String         @id @default(cuid())
+  productId        String
+  returnReason     ReturnReason
+  returnCategory   ReturnCategory
+  detailedReason   String?
+  sizePurchased    String?
+  purchasePrice    Decimal?       @db.Decimal(10, 2)
+  purchaseDate     DateTime?
+  returnDate       DateTime       @default(now())
   exchangedForSize String?
   /// The platform's own return id (idempotent ingest)
-  externalId     String?
-  processedAt    DateTime?
-  source         String
-  licence        String?
-  createdAt      DateTime       @default(now())
+  externalId       String?
+  processedAt      DateTime?
+  source           String
+  licence          String?
+  createdAt        DateTime       @default(now())
 
   product      ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   evidenceTags EvidenceTag[]
@@ -327,17 +328,17 @@ model ReturnEvent {
 }
 
 model PriceSnapshot {
-  id        String   @id @default(cuid())
-  productId String
-  sellerId  String?
-  price     Decimal  @db.Decimal(10, 2)
+  id         String   @id @default(cuid())
+  productId  String
+  sellerId   String?
+  price      Decimal  @db.Decimal(10, 2)
   /// The "was" price the seller shows; used for fake-discount detection
-  listPrice Decimal? @db.Decimal(10, 2)
-  isPromo   Boolean  @default(false)
-  currency  String   @default("USD")
+  listPrice  Decimal? @db.Decimal(10, 2)
+  isPromo    Boolean  @default(false)
+  currency   String   @default("USD")
   observedAt DateTime @default(now())
-  source    String
-  licence   String?
+  source     String
+  licence    String?
 
   product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   seller  Seller?         @relation(fields: [sellerId], references: [id])
@@ -380,17 +381,17 @@ model EvidenceTag {
   returnId   String?
   runId      String?
 
-  factor     String // e.g. "fit.true_to_size"
-  pillar     FactorPillar
-  signal     String
-  sentiment  Decimal        @db.Decimal(3, 2) // -1.00 … +1.00
-  confidence Decimal        @db.Decimal(3, 2) // 0.00 … 1.00
-  quote      String?
+  factor        String // e.g. "fit.true_to_size"
+  pillar        FactorPillar
+  signal        String
+  sentiment     Decimal      @db.Decimal(3, 2) // -1.00 … +1.00
+  confidence    Decimal      @db.Decimal(3, 2) // 0.00 … 1.00
+  quote         String?
   /// Quote was found in the source text (guardrail). Ungrounded evidence is never stored as grounded.
-  grounded      Boolean @default(true)
-  injectionFlag Boolean @default(false)
+  grounded      Boolean      @default(true)
+  injectionFlag Boolean      @default(false)
   metadata      Json?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime     @default(now())
 
   product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   review  ClothingReview? @relation(fields: [reviewId], references: [id], onDelete: Cascade)
@@ -517,21 +518,21 @@ model ShopperProfile {
   userId    String? @unique
   sessionId String? @unique
 
-  heightCm        Int?
-  weightKg        Int?
-  bodyType        String?
-  preferredFit    String?
+  heightCm         Int?
+  weightKg         Int?
+  bodyType         String?
+  preferredFit     String?
   /// {"tops": "M", "bottoms": "32"}
-  sizePreferences Json?
-  climate         String? // hot | mild | cold | varies
-  budgetMax       Int?
-  occasions       String[] @default([])
+  sizePreferences  Json?
+  climate          String? // hot | mild | cold | varies
+  budgetMax        Int?
+  occasions        String[] @default([])
   stylePreferences String[] @default([])
   /// Pillar weight overrides, e.g. {"COMFORT": 1.5, "QUALITY": 1.2}
-  priorities      Json?
-  brandAllow      String[] @default([])
-  brandDeny       String[] @default([])
-  sustainabilityOn Boolean @default(false)
+  priorities       Json?
+  brandAllow       String[] @default([])
+  brandDeny        String[] @default([])
+  sustainabilityOn Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -867,18 +868,18 @@ model IngestRun {
 
 /// Verified ad copy for one product (B11). Written by the ad-copy agent from evidence, checked by code and the Verifier.
 model AdCopy {
-  id          String   @id @default(cuid())
-  productId   String   @unique
-  headline    String
-  body        String
+  id         String   @id @default(cuid())
+  productId  String   @unique
+  headline   String
+  body       String
   /// Writer items each line cites (shown as the ad's sources)
-  sources     Json
+  sources    Json
   /// Same writer inputs + versions → same copy (no repeat cost)
-  inputsHash  String
-  costUsd     Decimal  @db.Decimal(10, 6)
-  runIds      String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  inputsHash String
+  costUsd    Decimal  @db.Decimal(10, 6)
+  runIds     String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -934,4 +935,24 @@ model RateLimitHit {
   @@id([key, windowStart])
   @@index([windowStart])
   @@map("rate_limits")
+}
+
+/// "Looks like" fingerprint of the product photo (B18): an image embedding from an open-source fashion model
+/// (Marqo-FashionSigLIP, Apache-2.0), computed on our own server ($0). Used to match shopper words that photo
+/// labels don't contain, and for "looks similar". Never a score. A plain float array (no database extension);
+/// similarity is computed in code, fine for thousands of products. Move to pgvector when catalogs get large.
+model ProductEmbedding {
+  productId String   @id
+  /// Model id + version; a model change means re-embedding
+  model     String
+  /// sha256 of the image bytes; same hash → not re-embedded
+  imageHash String
+  /// 768 numbers, unit length
+  vector    Float[]  @db.Real
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_embeddings")
 }

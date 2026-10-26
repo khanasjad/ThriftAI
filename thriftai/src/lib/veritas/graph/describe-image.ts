@@ -1,7 +1,7 @@
 /**
- * describe-image (B12): product photo → vision agent → normalised attributes → ProductVisual.
- * Vendor images (https) are sent by URL; local dev images (/dev-images/…) as base64. An unchanged image is never
- * re-read (hash of the image source + agent version).
+ * describe-image (B12, B18): product photo → (1) "looks like" fingerprint from the open-source fashion model ($0)
+ * and (2) vision agent → normalised attributes → ProductVisual. Images are downloaded by our server and sent as
+ * base64. An unchanged image is never re-read or re-fingerprinted (hash of the image bytes + model version).
  */
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -13,8 +13,9 @@ import { VISION_VERSION, makeVisionAgent, type VisualAttributes } from '../agent
 import type { LlmClient } from '../harness/llm'
 import { runAgent } from '../harness/loop'
 import type { TraceSink } from '../harness/telemetry'
+import { embedProduct } from '../visual/store'
 
-export type DescribeResult = { slug: string; status: 'described' | 'unchanged' | 'no_image' | 'not_clothing' | 'error'; attributes?: VisualAttributes; costUsd: number; error?: string }
+export type DescribeResult = { slug: string; status: 'described' | 'unchanged' | 'no_image' | 'not_clothing' | 'error'; attributes?: VisualAttributes; costUsd: number; error?: string; fingerprint?: 'embedded' | 'unchanged' | 'off' | 'error' }
 
 const MEDIA: Record<string, 'image/png' | 'image/jpeg' | 'image/webp'> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' }
 
@@ -86,7 +87,7 @@ export function normaliseVisual(a: VisualAttributes): VisualAttributes {
 /** Reads several products' photos within a time budget (after an upload, or nightly). Unchanged photos cost nothing. */
 export async function describeMany(ids: string[], opts: { budgetMs: number; llm?: LlmClient; sink?: TraceSink }) {
   const t0 = Date.now()
-  const out = { read: 0, unchanged: 0, skipped: 0, errors: 0, costUsd: 0, left: 0 }
+  const out = { read: 0, unchanged: 0, skipped: 0, errors: 0, fingerprinted: 0, costUsd: 0, left: 0 }
   for (const [i, id] of ids.entries()) {
     if (Date.now() - t0 > opts.budgetMs) {
       out.left = ids.length - i
@@ -94,6 +95,7 @@ export async function describeMany(ids: string[], opts: { budgetMs: number; llm?
     }
     const r = await describeProduct(id, { llm: opts.llm, sink: opts.sink })
     out.costUsd += r.costUsd
+    if (r.fingerprint === 'embedded') out.fingerprinted++
     if (r.status === 'described') out.read++
     else if (r.status === 'unchanged') out.unchanged++
     else if (r.status === 'error') out.errors++
@@ -107,14 +109,19 @@ export async function describeProduct(slugOrId: string, opts: { llm?: LlmClient;
   if (!p) return { slug: slugOrId, status: 'error', costUsd: 0, error: 'not found' }
   const src = p.primaryImageUrl ? await imageSource(p.primaryImageUrl) : null
   if (!src) return { slug: p.slug, status: 'no_image', costUsd: 0 }
+  // Fingerprint first: free, and independent of whether the vision agent needs to run. Never blocks the reading.
+  const fingerprint = await embedProduct(p.id, Buffer.from((src.block.source as { data: string }).data, 'base64')).catch((e) => {
+    console.error(`[describe-image] fingerprint failed for ${p.slug}:`, e instanceof Error ? e.message : e)
+    return 'error' as const
+  })
   const imageHash = createHash('sha256').update(`${VISION_VERSION}|${src.hash}`).digest('hex')
-  if (!opts.force && p.visual?.imageHash === imageHash) return { slug: p.slug, status: 'unchanged', costUsd: 0 }
+  if (!opts.force && p.visual?.imageHash === imageHash) return { slug: p.slug, status: 'unchanged', costUsd: 0, fingerprint }
 
   const r = await runAgent(makeVisionAgent(), [src.block, { type: 'text', text: 'Describe this product photo, then call finish.' }], { llm: opts.llm, sink: opts.sink, graph: 'describe-image', productId: p.id, inputsHash: imageHash })
-  if (r.status !== 'OK' || !r.finish) return { slug: p.slug, status: 'error', costUsd: r.totals.costUsd, error: r.status }
+  if (r.status !== 'OK' || !r.finish) return { slug: p.slug, status: 'error', costUsd: r.totals.costUsd, error: r.status, fingerprint }
   const attributes = normaliseVisual(r.finish)
-  if (!attributes.is_clothing) return { slug: p.slug, status: 'not_clothing', attributes, costUsd: r.totals.costUsd }
+  if (!attributes.is_clothing) return { slug: p.slug, status: 'not_clothing', attributes, costUsd: r.totals.costUsd, fingerprint }
   const data = { imageUrl: p.primaryImageUrl!, imageHash, attributes: attributes as unknown as Prisma.InputJsonValue, runId: r.runId, costUsd: new Prisma.Decimal(r.totals.costUsd) }
   await prisma.productVisual.upsert({ where: { productId: p.id }, update: data, create: { ...data, productId: p.id } })
-  return { slug: p.slug, status: 'described', attributes, costUsd: r.totals.costUsd }
+  return { slug: p.slug, status: 'described', attributes, costUsd: r.totals.costUsd, fingerprint }
 }

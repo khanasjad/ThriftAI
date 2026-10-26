@@ -19,7 +19,7 @@ import { ScorePanel, type FactorMeta } from './score-panel'
 import { TagChips } from '@/components/veritas/tag-chips'
 import { ProductCard } from '@/components/veritas/product-card'
 import { tagsForProducts } from '@/lib/veritas/read/tags'
-import { loadAlternatives } from '@/lib/veritas/read/alternatives'
+import { loadAlternatives, loadSimilarLooking } from '@/lib/veritas/read/alternatives'
 import { loadInstantAnswers } from '@/lib/veritas/read/qa'
 import { driversForProducts } from '@/lib/veritas/read/drivers'
 import { DriverTiles } from '@/components/veritas/drivers'
@@ -58,7 +58,8 @@ export default async function ProductPage({ params }: Props) {
   const data = await getProductPage(slug)
   if (!data) notFound()
   const { product, brand, score, reported, returns, prices } = data
-  const [tagMap, alternatives, instant, driverMap] = await Promise.all([tagsForProducts([product.id]), loadAlternatives(product.id), loadInstantAnswers(product.id), driversForProducts([product.id])])
+  const [tagMap, alternatives, instant, driverMap, lookalikes] = await Promise.all([tagsForProducts([product.id]), loadAlternatives(product.id), loadInstantAnswers(product.id), driversForProducts([product.id]), loadSimilarLooking(product.id)])
+  const similar = lookalikes.filter((s) => !alternatives.some((a) => a.item.slug === s.slug))
   const drivers = driverMap.get(product.id)
   const tags = tagMap.get(product.id) ?? []
 
@@ -196,6 +197,22 @@ export default async function ProductPage({ params }: Props) {
                 <li key={a.item.slug} className="flex flex-col gap-2">
                   <p className="text-xs font-medium text-accent">{a.reason}</p>
                   <ProductCard item={a.item} className="h-full" />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {similar.length > 0 && (
+          <section aria-labelledby="similar-h" className="mt-14">
+            <h2 id="similar-h" className="text-lg font-semibold text-fg">
+              Looks similar
+            </h2>
+            <p className="mt-1 text-sm text-fg-muted">Chosen by how the product photos look, not by price or brand. Each shows its own score.</p>
+            <ul className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+              {similar.map((item) => (
+                <li key={item.slug}>
+                  <ProductCard item={item} className="h-full" />
                 </li>
               ))}
             </ul>

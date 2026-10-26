@@ -25,6 +25,8 @@ import { chooseQuestion, filterCandidates, lookTermsFor, pickThree, rank, styleM
 import { swatchFor } from '@/components/veritas/colors'
 import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import { checkReply } from '../text/check'
+import { visualWords } from '../visual/look-alike'
+import { lookAlikeIds } from '../visual/store'
 
 export type SearchPick = {
   role: PickResult['role']
@@ -369,7 +371,12 @@ export async function runSearch(input: {
         ? `Got it. ${question.question}`
         : 'Here are the best options for what you’ve told me.'
 
-  intent = { ...intent, lookTerms: lookTermsFor(candidates, intent.terms) }
+  // Looks: photo labels ("car" on the label) plus photo fingerprints for words no label or text has ("automobile").
+  const lookTerms = lookTermsFor(candidates, intent.terms)
+  const pool = candidates.filter((c) => (!intent.category || c.category === intent.category) && (!intent.kind || (c.subcategory ?? '').toLowerCase() === intent.kind))
+  const words = visualWords(intent.terms, lookTerms, (t) => pool.some((c) => c.text.includes(t)))
+  const lookAlike = words.length ? await lookAlikeIds(pool.map((c) => c.id), intent.kind, words) : null
+  intent = { ...intent, lookTerms, lookAlike: lookAlike?.ids.length ? lookAlike : undefined }
   const { ranked, unrated, stretch } = rank(candidates, intent, who)
   const picks = offTopic ? [] : pickThree(ranked, stretch)
 

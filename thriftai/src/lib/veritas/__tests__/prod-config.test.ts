@@ -5,7 +5,7 @@ const good: Env = {
   APP_ENV: 'production', DATABASE_URL: 'postgresql://u:p@db.example.supabase.co:6543/postgres', DIRECT_URL: 'postgresql://u:p@db.example.supabase.co:5432/postgres',
   ANTHROPIC_API_KEY: 'sk-test', NEXTAUTH_SECRET: 'x'.repeat(40), NEXTAUTH_URL: 'https://veritas.example', CRON_SECRET: 'y'.repeat(32),
   LLM_MODE: 'live', LLM_RECORD: false, VERITAS_MODEL_AGENT: 'claude-haiku-5-5', VERITAS_MODEL_ROUTER: 'claude-haiku-5-5', VERITAS_MODEL_JUDGE: 'claude-opus-5-5',
-  SPEND_CAP_USD: 25, SPEND_CAP_WINDOW: 'month', SEARCH_AGENT: true, DEMO_STORE: false,
+  SPEND_CAP_USD: 25, SPEND_CAP_WINDOW: 'month', SEARCH_AGENT: true, DEMO_STORE: false, VISUAL_SEARCH: true, VISUAL_MODEL: 'Marqo/marqo-fashionSigLIP',
 }
 
 describe('production config', () => {

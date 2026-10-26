@@ -1,5 +1,7 @@
 // Unit tests never call the real API (CLAUDE.md: tests run in mock LLM mode).
 process.env.LLM_MODE = 'mock'
+// Unit tests never load the 200 MB fashion model; its matching rule is tested as pure code.
+process.env.VISUAL_SEARCH = '0'
 process.env.APP_ENV = 'development'
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://test@localhost:5432/test'
 delete process.env.ANTHROPIC_API_KEY
