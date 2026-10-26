@@ -55,3 +55,4 @@ Thumbs.db
 .vercel
 # created by `vercel link` (holds VERCEL_OIDC_TOKEN)
 .env.local
+.env*
