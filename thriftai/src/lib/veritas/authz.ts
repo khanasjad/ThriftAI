@@ -1,5 +1,5 @@
 import 'server-only'
-import type { UserRole } from '@prisma/client'
+import type { UserRole } from '@/generated/prisma/client'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'

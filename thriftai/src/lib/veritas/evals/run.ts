@@ -4,7 +4,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Prisma } from '@prisma/client'
+import type { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { env, models } from '../env'
 import { JUDGE_VERSION, judgeAgreement, judgeTask, makeJudgeAgent, type JudgeFinish } from '../agents/judge'

@@ -1,7 +1,7 @@
 import { getServerSession, type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
-import type { UserRole } from '@prisma/client'
+import type { UserRole } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 
 /**

@@ -1,5 +1,5 @@
 import 'server-only'
-import type { AgentRunStatus } from '@prisma/client'
+import type { AgentRunStatus } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 
 /** Read-only queries for the admin trace viewer (frontend plan §5.6). */

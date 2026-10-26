@@ -3,7 +3,7 @@
  * brand-provided data stays private), marked isPrivate by the ingest. Public pages show only public products;
  * a Score API key sees public products plus its own tenant's private ones.
  */
-import type { Prisma } from '@prisma/client'
+import type { Prisma } from '@/generated/prisma/client'
 
 export const PUBLIC_PRODUCTS = { isPrivate: false } satisfies Prisma.ClothingProductWhereInput
 

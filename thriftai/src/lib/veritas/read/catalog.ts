@@ -1,6 +1,6 @@
 import 'server-only'
 import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
-import { Prisma, type ClothingCategory } from '@prisma/client'
+import { Prisma, type ClothingCategory } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { scanInjection } from '../harness/guardrails'
 import { computePriceFacts, type PriceFacts } from '../price/facts'

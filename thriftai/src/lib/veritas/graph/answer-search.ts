@@ -12,7 +12,7 @@ import 'server-only'
  * The agent never ranks or describes products. Cards show stored, verified text and fact-based reasons only;
  * the agent's reply is checked by code (no product names, hype or claims) before it is shown.
  */
-import type { Prisma } from '@prisma/client'
+import type { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { env } from '../env'
 import { MAX_SHOPKEEPER_QUESTIONS, makeShopkeeperAgent, type ShopkeeperFilters, type ShopkeeperTurn } from '../agents/shopkeeper'

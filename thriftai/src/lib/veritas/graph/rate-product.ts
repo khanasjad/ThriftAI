@@ -15,7 +15,7 @@
  * One failed product never throws: the result says what happened.
  */
 import { createHash } from 'node:crypto'
-import type { AgentRunStatus } from '@prisma/client'
+import type { AgentRunStatus } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { env } from '../env'
 import { EVIDENCE_AGENT_VERSION, evidenceTask, makeEvidenceAgent, type EvidenceRunOutput } from '../agents/evidence'

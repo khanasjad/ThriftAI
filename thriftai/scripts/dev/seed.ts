@@ -11,7 +11,8 @@
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { PrismaClient, Prisma } from '@prisma/client'
+import { PrismaClient, Prisma } from '@/generated/prisma/client'
+import { createPrismaClient } from '@/lib/prisma'
 
 const FIXTURE_SOURCE = 'dev-fixture'
 
@@ -26,7 +27,7 @@ async function main() {
   // A hosted dev database (Supabase dev project) is allowed only when .env.hosted.local opts in (DEV_TARGET=hosted).
   if (!/@(localhost|127\.0\.0\.1)(:\d+)?\//.test(url) && process.env.ALLOW_HOSTED_DEV_DB !== '1') fail('DATABASE_URL is not a local database (for the hosted dev database use DEV_TARGET=hosted).')
 
-  const prisma = new PrismaClient()
+  const prisma = createPrismaClient()
   try {
     const foreign = await prisma.clothingProduct.count({ where: { source: { not: FIXTURE_SOURCE } } })
     const foreignBrands = await prisma.brand.count({ where: { source: { not: FIXTURE_SOURCE } } })

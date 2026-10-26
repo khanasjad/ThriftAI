@@ -1,5 +1,5 @@
 /** GET /api/v1/admin/runs?status=&agent=&limit= — agent run list (traces). Admins only. */
-import type { AgentRunStatus } from '@prisma/client'
+import type { AgentRunStatus } from '@/generated/prisma/client'
 import { z } from 'zod'
 import { requireApiRole } from '@/lib/veritas/authz'
 import { ok, zodFail } from '@/lib/veritas/http'

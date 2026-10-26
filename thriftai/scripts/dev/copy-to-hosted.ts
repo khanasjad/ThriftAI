@@ -8,7 +8,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import { PrismaClient } from '@prisma/client'
+import { createPrismaClient } from '@/lib/prisma'
 
 function fail(msg: string): never {
   console.error(`✖ ${msg}`)
@@ -37,7 +37,7 @@ async function main() {
   console.log(`From: local veritas_dev  →  To: hosted dev database at ${host}`)
 
   // Safety: the target may be empty or hold fixture data only.
-  const prisma = new PrismaClient({ datasourceUrl: target })
+  const prisma = createPrismaClient(target)
   try {
     const foreign = await prisma.clothingProduct.count({ where: { source: { not: 'dev-fixture' } } }).catch(() => 0)
     if (foreign > 0) fail(`Target has ${foreign} products that are not fixture data. Refusing (is this production?).`)

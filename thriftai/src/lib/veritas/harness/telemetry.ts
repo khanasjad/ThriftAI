@@ -1,4 +1,4 @@
-import { Prisma, type AgentRunStatus, type StepKind } from '@prisma/client'
+import { Prisma, type AgentRunStatus, type StepKind } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { withLangfuse } from './langfuse'
 

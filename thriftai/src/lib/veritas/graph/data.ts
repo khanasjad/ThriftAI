@@ -3,7 +3,7 @@
  * read stored evidence, and save a rating in one transaction.
  */
 import { createHash } from 'node:crypto'
-import { Prisma } from '@prisma/client'
+import { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { signalSentiment, pillarOf, type EvidenceDraft, type ProductBundle } from '../evidence/types'
 import type { Baseline, ProductScoreResult } from '../scoring/v2'

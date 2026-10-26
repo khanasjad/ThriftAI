@@ -35,9 +35,9 @@ Any command can target the hosted dev database with `DEV_TARGET=hosted` in front
 ## 1. Database (Supabase)
 
 1. Create the project. In **Project settings → Database → Connection string**:
-   - **Pooled** (port 6543, transaction mode) → `DATABASE_URL`, and append `?pgbouncer=true&connection_limit=1`
+   - **Pooled** (port 6543, transaction mode) → `DATABASE_URL` (since Prisma 7 the app connects through the pg driver with a pool of 1 per serverless instance; old `?pgbouncer=true&connection_limit=1` params are harmless)
    - **Direct** (port 5432) → `DIRECT_URL` (used only by migrations)
-2. Nothing else: migrations run on deploy (`vercel-build`).
+2. Nothing else: migrations run on deploy (`vercel-build`), including `CREATE EXTENSION vector` (pgvector, for photo fingerprints). Node 22.12+ is required (Prisma 7); Vercel uses 22.x from `engines`.
 
 ## 2. Hosting (Vercel)
 

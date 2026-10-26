@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import bcrypt from 'bcryptjs'
-import { PrismaClient } from '@prisma/client'
+import { createPrismaClient } from '@/lib/prisma'
 
 function fail(msg: string): never {
   console.error(`✖ refused: ${msg}`)
@@ -19,7 +19,7 @@ function fail(msg: string): never {
 async function main() {
   if (process.env.APP_ENV === 'production') fail('APP_ENV=production. Dev accounts never go to production.')
   if (!/@(localhost|127\.0\.0\.1)(:\d+)?\//.test(process.env.DATABASE_URL ?? '') && process.env.ALLOW_HOSTED_DEV_DB !== '1') fail('DATABASE_URL is not a local database (for the hosted dev database use DEV_TARGET=hosted).')
-  const prisma = new PrismaClient()
+  const prisma = createPrismaClient()
   const pw = () => randomBytes(12).toString('base64url')
   const accounts: { email: string; password: string; role: string; brand?: string }[] = []
   try {

@@ -6,7 +6,7 @@
  * Scores are NOT recomputed here; the rating graph picks up changed inputs via its inputs hash.
  */
 import { createHash } from 'node:crypto'
-import { Prisma } from '@prisma/client'
+import { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { scanInjection } from '../harness/guardrails'
 import {

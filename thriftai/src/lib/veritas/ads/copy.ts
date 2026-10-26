@@ -3,7 +3,7 @@
  * so a daily feed refresh costs nothing. No verified copy → no copy (the feed falls back to code-built highlights).
  */
 import { createHash } from 'node:crypto'
-import { Prisma } from '@prisma/client'
+import { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { AD_COPY_VERSION, adCopyTask, makeAdCopyAgent } from '../agents/ad-copy'
 import { VERIFIER_VERSION, makeVerifierAgent, verifierTask } from '../agents/verifier'

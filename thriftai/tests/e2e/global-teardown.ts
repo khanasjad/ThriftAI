@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { createPrismaClient } from '@/lib/prisma'
 import { loadEnvConfig } from '@next/env'
 
 /**
@@ -10,7 +10,7 @@ export default async function globalTeardown() {
   if (process.env.E2E_BASE_URL || !process.env.E2E_STARTED_AT) return
   loadEnvConfig(process.cwd(), true)
   if (process.env.APP_ENV === 'production' || !/@(localhost|127\.0\.0\.1)(:\d+)?\//.test(process.env.DATABASE_URL ?? '')) return
-  const prisma = new PrismaClient()
+  const prisma = createPrismaClient()
   try {
     const { count } = await prisma.searchSession.deleteMany({ where: { profileId: null, createdAt: { gte: new Date(process.env.E2E_STARTED_AT) } } })
     if (count) console.log(`e2e teardown: removed ${count} test search sessions`)

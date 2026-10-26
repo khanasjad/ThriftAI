@@ -70,6 +70,7 @@ If a request conflicts with the product plan (for example a new category, pay-fo
 ## Commands
 
 ```bash
+# Node 22.12+ (Prisma 7): `nvm use` picks it from .nvmrc. Prisma client is generated into src/generated/prisma (import from '@/generated/prisma/client').
 npm run dev            # development (APP_ENV=development), Next.js 16
 npm run build          # production build
 NEXT_DIST_DIR=.next-check npm run build   # build check that doesn't touch a running dev server's .next/

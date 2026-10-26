@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { AgentRunStatus } from '@prisma/client'
+import type { AgentRunStatus } from '@/generated/prisma/client'
 import type { z } from 'zod/v4'
 import { env } from '../env'
 import { FINISH_TOOL, type AgentDef } from './agent'

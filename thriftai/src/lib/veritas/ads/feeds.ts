@@ -4,7 +4,7 @@
  * The social pack is a ready-to-schedule "Top rated this week" list per category with verified copy.
  */
 import { prisma } from '@/lib/prisma'
-import type { Prisma } from '@prisma/client'
+import type { Prisma } from '@/generated/prisma/client'
 import { tagsForProducts } from '../read/tags'
 import { topTags } from '../enrich/tags'
 import { adEligibility, priceStatus, scoreTier } from './rules'
