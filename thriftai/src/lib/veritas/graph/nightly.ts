@@ -64,6 +64,8 @@ export async function runNightly(opts: { budgetMs: number }): Promise<NightlyRep
       break
     }
   }
+  // Housekeeping: rate-limit windows older than a day.
+  await prisma.rateLimitHit.deleteMany({ where: { windowStart: { lt: new Date(Date.now() - 864e5) } } })
   r.ms = Date.now() - t0
   return r
 }

@@ -521,6 +521,19 @@ Mapped from a search platform's product list. All read stored scores and evidenc
   - ✅ Unit tests 131/131 (new: style 5); e2e 79/79 (new: style from photos); build passes.
   - Decisions: pattern and colour words are filters, not loose terms; "blue" matches colour families (navy, indigo), from catalog names or the photo; a product whose photo hasn't been read never matches a pattern filter (no guessing). Dev images: `npm run dev:images` renders each fictional product with a known pattern (salt chosen so every pattern occurs and two navy florals exist for the demo).
 
+### B13 · Launch prep (2026-10-25) — ✅ done
+- [x] Factor register (`taxonomy/sources.ts`): each of the 27 factors with its data source, how it's measured and whether it's live; shown on /how-it-works; locks the "27-factor definitions and data source" plan item
+- [x] Pilot one-pager: printable `/pilot/one-pager` (problem, what the pilot gives, three feeds, privacy, pricing that matches the plan)
+- [x] Outreach tracker: `OutreachTarget` table and `/admin/outreach` (brand/marketplace, segment, website, status, scorecard sent, notes); target criteria on the page
+- [x] Shared rate limiter in production (Postgres counter, works across server instances); memory in development
+- [x] Content-Security-Policy with a per-request nonce (middleware)
+- [x] Real 404 status for unknown products
+- **Gate:** unit + e2e tests for each; build passes.
+  - ✅ 2026-10-25 unit tests 137/137 (new: factor register 2, shared limiter against Postgres 1: 3 allowed then blocked; a database outage fails open); e2e 87/87 (new: 404 + CSP with no console errors, one-pager pricing, outreach add/status/remove); build passes; `smoke:prod` on local passes 14/17 (the 3 failures are expected development differences).
+  - Found while fixing 404s: the root `loading.tsx` made every `notFound()` answer 200 (streaming starts before the page throws). It now lives only under `/search`; products and collections return real 404s.
+  - Factor register: 24 of 27 factors (≈ 88% of the core score weight) work from the standard catalog + reviews feeds plus roll-ups; returns-based, trend, resale and brand-info factors are "when available".
+  - Also added `npm run org:delete` (preview, then `--yes`) so the one-pager's "deleted on request" is backed by a real command.
+
 ### B8 · Production (~6 h, then the real-data plan)
 **B8a · Ready to deploy (no accounts needed, 2026-10-25) — ✅ done:**
 - [x] Production config fails fast: requires `ANTHROPIC_API_KEY`, `NEXTAUTH_SECRET` (≥ 32 chars), https `NEXTAUTH_URL`, `DIRECT_URL`, `CRON_SECRET`

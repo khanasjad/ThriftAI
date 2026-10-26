@@ -903,3 +903,35 @@ model ProductVisual {
 
   @@map("product_visuals")
 }
+
+/// Sales outreach (B13). Company-level only: no personal contact data is stored here.
+model OutreachTarget {
+  id              String    @id @default(cuid())
+  name            String
+  /// brand | marketplace | retailer
+  kind            String
+  segment         String?
+  website         String?
+  /// target | contacted | replied | pilot | won | lost
+  status          String    @default("target")
+  scorecardSentAt DateTime?
+  nextStep        String?
+  notes           String?
+  owner           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@map("outreach_targets")
+}
+
+/// Shared fixed-window rate-limit counters (production; works across server instances). Old windows are pruned nightly.
+model RateLimitHit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+  @@map("rate_limits")
+}

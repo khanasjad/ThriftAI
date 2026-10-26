@@ -78,6 +78,10 @@ export default function PilotPage() {
             <Link href="/brands/pricing" className="text-accent underline underline-offset-4">
               See pricing
             </Link>
+            {' · '}
+            <Link href="/pilot/one-pager" className="text-accent underline underline-offset-4">
+              One-pager to share or print
+            </Link>
             .
           </p>
         </div>

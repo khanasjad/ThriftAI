@@ -187,7 +187,7 @@ Brands get their own products scored on the same 27 factors, plus the reasons be
 | Starter | Small DTC brands | Scores and insights for up to 500 products, monthly refresh | $299/month |
 | Growth | Growing brands | Up to 2,500 products, weekly refresh, Score API, launch watch | $799/month |
 | Pro | Mid-market | Unlimited products, daily refresh, search integration, trend insights | $2,000/month |
-| Platform | Marketplaces, search vendors, AI agents | Score feed and API at scale | Annual contract |
+| Platform | Marketplaces, search vendors, AI agents | Score feed and API at scale | Annual contract, priced by catalog size ("contact us" until pilots show the value) |
 
 Pilot offer: a free one-time scorecard of a brand's catalog using their own reviews and return reasons.
 
@@ -250,13 +250,13 @@ The full 27-factor model is designed from day one; factors switch on as their da
 
 ## Next 30 days
 
-- [ ] Lock the 27-factor definitions and the data source for each
+- [x] Lock the 27-factor definitions and the data source for each (2026-10-25: `taxonomy/sources.ts`, shown on /how-it-works)
 - [ ] Refactor the codebase to the new score structure (keep tenants, auth, Claude integration)
 - [ ] Build the Evidence agent and Scoring engine for the Fit, Quality and Comfort pillars first
 - [ ] Collect data for 500 tees and jeans; produce the first scores
 - [ ] Compare scores with expert picks and owner sentiment; adjust weights
 - [ ] Make one sample brand scorecard and show it to 3 brand operators (scorecard built 2026-10-25: `/dashboard/scorecard`, printable; showing it to brands is still to do)
-- [ ] Write the pilot one-pager and a 100-brand outreach list
+- [ ] Write the pilot one-pager and a 100-brand outreach list (2026-10-25: one-pager at /pilot/one-pager and an outreach tracker at /admin/outreach are built; adding the 100 brands is the team's job)
 
 ## Change log
 
@@ -266,3 +266,4 @@ The full 27-factor model is designed from day one; factors switch on as their da
 - 2026-10-25 — Pitch changed to "Sales data shows you what sells. Veritas shows you what's worth buying." and a naming rule added: no other company is named in product, marketing, prompt or demo copy. The unsourced-in-public return statistic was removed from the home page. Decided by Asjad.
 - 2026-10-25 — B2B focus (details: 04-PLAN-B2B.md). Primary buyers: multi-vendor marketplaces and large retailers; clothing brands second. The score is shown as three drivers (Product quality from reviews, Price, Brand reputation) on top of the unchanged 27-factor engine. Data in production comes from three simple feeds (catalog with prices, reviews, optional returns) via upload or push API. Ads: the score picks which products may be advertised (ad feed labels, verified ad copy, social posts); on-site sponsored slots are labelled, need score 70+, and never appear in the top 3; paying never changes a score. Decided by Asjad.
 - 2026-10-25 — Fourth parameter: **Style match**. A vision agent reads each product's own photos (vendor-uploaded) into structured attributes (colours, pattern such as floral or striped, neckline, sleeve, shape, style), so a request like "blue flowered shirt under $40" filters to items that look like that, then ranks them by the score. Style match is per search (how well an item matches what was asked), not part of the product score. Decided by Asjad. Note: the catalog is still tees and jeans, so "shirt" means tees until button-up shirts are added as a category.
+- 2026-10-25 — Platform pricing stays "contact us" (annual contract, priced by catalog size) until 2–3 pilots show the value. Competitor analysis stays in this plan as internal-only. Outreach is tracked in an admin tracker; the team adds real brands (no scraped personal contact data). Decided by Asjad.

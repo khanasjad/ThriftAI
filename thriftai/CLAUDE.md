@@ -100,6 +100,7 @@ APP_ENV=production npm run prod:check      # B8 gate: production config, no dev/
 npm run smoke:prod -- --url <site>         # read-only smoke test of a deployed site
 npm run admin:create -- --email <e> --out <file>   # first admin (password never printed); also ADMIN_PASSWORD=…
 npm run org:create -- --name "<org>" --email <e> [--brand "<b>"] --out <file>   # onboard a pilot customer
+npm run org:delete -- --slug <org> [--yes]  # delete a customer's data on request (preview first)
 # Production runbook: docs/rpi/05-RUNBOOK-PRODUCTION.md
 ```
 

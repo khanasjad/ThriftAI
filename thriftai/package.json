@@ -32,7 +32,8 @@
     "admin:create": "node scripts/with-env.mjs tsx scripts/admin-create.ts",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && prisma migrate deploy && next build --turbopack",
-    "org:create": "node scripts/with-env.mjs tsx scripts/org-create.ts"
+    "org:create": "node scripts/with-env.mjs tsx scripts/org-create.ts",
+    "org:delete": "node scripts/with-env.mjs tsx scripts/org-delete.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",

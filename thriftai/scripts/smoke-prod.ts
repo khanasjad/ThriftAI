@@ -38,12 +38,13 @@ async function main() {
   await check('admin API needs sign-in', '/api/v1/admin/runs', (r) => r.status === 401)
   await check('ingest needs an API key', '/api/v1/ingest/catalog', (r) => r.status === 405 || r.status === 401) // GET not allowed
   await check('cron needs its secret', '/api/cron/nightly', (r) => r.status === 401)
+  await check('unknown product is a real 404', '/p/this-product-does-not-exist', (r) => r.status === 404)
   await check('dev UI is off', '/dev/ui', (r) => r.status === 404)
   await check('demo store is off', '/demo/store', (r) => r.status === 404 || 'demo store is on (development, or DEMO_STORE=1)')
   await check('robots allows public, blocks admin', '/robots.txt', (r, b) => r.status === 200 && /Disallow: \/admin/.test(b) && !/Disallow: \/\s*$/m.test(b))
   await check('sitemap', '/sitemap.xml', (r, b) => r.status === 200 && /<urlset/.test(b))
   await check('security headers', '/', (r) => {
-    const missing = ['strict-transport-security', 'x-content-type-options', 'x-frame-options', 'referrer-policy'].filter((h) => !r.headers.get(h))
+    const missing = ['strict-transport-security', 'x-content-type-options', 'x-frame-options', 'referrer-policy', 'content-security-policy'].filter((h) => !r.headers.get(h))
     return missing.length ? `missing ${missing.join(', ')}` : true
   })
   console.log(failures ? `\n${failures} check(s) failed.` : '\nSmoke test passed.')

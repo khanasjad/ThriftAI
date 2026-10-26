@@ -4,6 +4,7 @@ import { ArrowDown, Ban, Bot, Calculator, FileCheck2, Quote, ShieldAlert, Sparkl
 import { SiteShell } from '@/components/site/shell'
 import { Button } from '@/components/ui/button'
 import { PILLARS } from '@/components/veritas/score'
+import { FACTOR_SOURCES } from '@/lib/veritas/taxonomy/sources'
 import { FACTOR_TAXONOMY } from '@/lib/veritas/taxonomy/factor-taxonomy'
 
 export const metadata: Metadata = {
@@ -94,6 +95,10 @@ export default function HowItWorksPage() {
         <h2 id="factors-h" className="text-[clamp(1.5rem,3vw,2.25rem)] font-semibold tracking-[-0.025em] text-fg">
           The 27 factors
         </h2>
+        <p className="mt-3 max-w-3xl text-fg-muted">
+          Each factor says where its data comes from. Most come from reviews, the catalog and price history, which every store has. Factors marked “when available” need
+          extra data (returns, resale or trend data); until a store shares it, the factor is left out and the score says so.
+        </p>
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           {PILLARS.map((p) => {
             const factors = FACTOR_TAXONOMY.filter((f) => f.pillar === p.key)
@@ -119,6 +124,10 @@ export default function HowItWorksPage() {
                         <td className="py-3 pr-4">
                           <span className="font-medium text-fg">{f.name}</span>
                           <span className="mt-0.5 block text-fg-muted">{f.description}</span>
+                          <span className="mt-1 block text-xs text-fg-subtle">
+                            Data: {FACTOR_SOURCES[f.key].source}
+                            {FACTOR_SOURCES[f.key].availability === 'optional' && ' · when available'}
+                          </span>
                         </td>
                         <td className="w-16 py-3 text-right tabular text-fg-muted">
                           {f.weight} <span className="text-xs text-fg-subtle">pts</span>

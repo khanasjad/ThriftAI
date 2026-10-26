@@ -47,3 +47,30 @@ test('brand scorecard: printable page with headline numbers, fixes and pricing t
   await expect(page.getByRole('button', { name: /Print or save as PDF/ })).toBeVisible()
   noErrors()
 })
+
+test('pilot one-pager is printable and its pricing matches the plan', async ({ page }) => {
+  await page.goto('/pilot/one-pager')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('A free scorecard of your catalog')
+  for (const p of ['$299/month', '$799/month', '$2,000/month', 'Annual contract, by catalog size']) await expect(page.getByText(p)).toBeVisible()
+  await expect(page.getByText(/deleted on request/)).toBeVisible()
+})
+
+test('admin outreach tracker: add a company, change its status, remove it', async ({ page }) => {
+  const admin = devAccount('ADMIN')
+  test.skip(!admin, 'run npm run seed:accounts first')
+  await signIn(page, admin!, '/admin/outreach')
+  const name = `E2E Test Co ${Date.now()}`
+  await page.getByLabel('Company').fill(name)
+  await page.getByLabel('Type').selectOption('marketplace')
+  await page.getByRole('button', { name: 'Add' }).click()
+  const row = page.locator('tr', { hasText: name })
+  await expect(row).toBeVisible()
+  const saved = page.waitForResponse((r) => r.url().includes('/api/v1/admin/outreach/') && r.request().method() === 'PATCH')
+  await row.getByLabel(`Status for ${name}`).selectOption('contacted')
+  expect((await saved).status()).toBe(200)
+  await page.reload()
+  await expect(page.locator('tr', { hasText: name }).getByLabel(`Status for ${name}`)).toHaveValue('contacted')
+  page.once('dialog', (d) => d.accept())
+  await page.locator('tr', { hasText: name }).getByRole('button', { name: `Remove ${name}` }).click()
+  await expect(page.locator('tr', { hasText: name })).toHaveCount(0)
+})

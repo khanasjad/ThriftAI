@@ -13,6 +13,7 @@ const PAGES: [string, RegExp][] = [
   ['/brands', /Sales data shows you what sells/],
   ['/brands/pricing', /Pay for insight and freshness/],
   ['/pilot', /See your catalog the way your customers do/],
+  ['/pilot/one-pager', /A free scorecard of your catalog/],
   ['/developers', /The Score API/],
   ['/about', /A clothing purchase is a dozen quiet questions/],
   ['/profile', /Your fit profile/],

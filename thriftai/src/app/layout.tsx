@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { headers } from 'next/headers'
 import { Providers } from './providers'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
@@ -28,11 +29,13 @@ export const viewport: Viewport = {
 // Runs before paint: applies the saved theme (default: follow the system setting) to avoid a flash.
 const themeScript = `(function(){var d=false;try{var t=localStorage.getItem('veritas-theme')||'system';d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches)}catch(e){}document.documentElement.dataset.theme=d?'dark':'light'})()`
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Per-request nonce from the middleware's Content-Security-Policy.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-dvh bg-bg text-fg antialiased">
         <a

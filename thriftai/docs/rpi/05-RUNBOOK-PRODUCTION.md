@@ -52,6 +52,9 @@ Delete `.env.production.local` when done, or keep it only on an encrypted disk.
 
 ## 4. Onboard a pilot customer (production)
 
+To delete a customer's data on request: `APP_ENV=production npm run org:delete -- --slug <org>` (shows what will go), then add `--yes`.
+
+
 ```bash
 APP_ENV=production ORG_PASSWORD='…' npm run org:create -- --name "Their Company" --email ops@their.com --plan pilot [--brand "Their Brand"]
 ```
@@ -93,6 +96,6 @@ Run 1–5 products first (`--product <slug>`), check the product page, then the 
 
 ## 9. Known gaps (planned)
 
-- Rate limits are per server instance (in memory). The spend cap protects money; a shared limiter (e.g. Postgres or Redis) comes with real traffic.
-- No Content-Security-Policy yet (needs nonce support for Next's inline scripts); the other security headers are on.
+- Rate limits count in Postgres in production (shared by all server instances; a database outage fails open). At high traffic, move them to Redis.
+- Content-Security-Policy is on with a per-request nonce (middleware); styles still allow inline (score bars and swatches use style attributes).
 - Next.js 15.5.4 is flagged outdated; upgrade as its own change, then re-run the e2e suite.

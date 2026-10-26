@@ -5,7 +5,7 @@ import { AlertTriangle, ChevronLeft } from 'lucide-react'
 import { formatPrice, scoreBand } from '@/components/veritas/score'
 import { brandForUser, requirePageRole } from '@/lib/veritas/authz'
 import { loadScorecard } from '@/lib/veritas/insights/scorecard'
-import { PrintButton } from './print-button'
+import { PrintButton } from '@/components/ui/print-button'
 
 export const metadata: Metadata = { title: 'Brand scorecard', robots: { index: false } }
 export const dynamic = 'force-dynamic'

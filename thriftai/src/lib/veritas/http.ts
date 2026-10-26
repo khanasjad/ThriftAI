@@ -26,14 +26,15 @@ export async function sessionId() {
   return sid
 }
 
-// Fixed-window limiter, per server instance. Good enough for dev and a single region;
-// production moves this to a shared store (B8).
+// Fixed-window limiter. Production (or RATE_LIMIT_STORE=db) counts in Postgres so every server instance shares
+// one count; development counts in memory. A database error fails open: a limiter must never take the site down.
 const buckets = new Map<string, { count: number; resetAt: number }>()
 
 export async function rateLimit(name: string, limit: number, windowMs: number) {
   const h = await headers()
   const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || 'local'
   const key = `${name}:${ip}`
+  if (process.env.APP_ENV === 'production' || process.env.RATE_LIMIT_STORE === 'db') return dbHit(key, limit, windowMs)
   const now = Date.now()
   const b = buckets.get(key)
   if (!b || b.resetAt < now) {
@@ -42,4 +43,19 @@ export async function rateLimit(name: string, limit: number, windowMs: number) {
   }
   b.count++
   return b.count <= limit
+}
+
+export async function dbHit(key: string, limit: number, windowMs: number) {
+  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs)
+  try {
+    const { prisma } = await import('@/lib/prisma')
+    const rows = await prisma.$queryRaw<{ count: number }[]>`
+      INSERT INTO rate_limits ("key", "windowStart", "count") VALUES (${key}, ${windowStart}, 1)
+      ON CONFLICT ("key", "windowStart") DO UPDATE SET "count" = rate_limits."count" + 1
+      RETURNING "count"`
+    return Number(rows[0]?.count ?? 1) <= limit
+  } catch (err) {
+    console.error('rate limiter unavailable, allowing request', err)
+    return true
+  }
 }
