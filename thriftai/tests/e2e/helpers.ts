@@ -13,9 +13,16 @@ export async function expectNoHorizontalScroll(page: Page) {
 }
 
 /** Collects uncaught page errors; call the returned function to assert none happened. */
+/**
+ * Fails on uncaught exceptions and on console errors (hydration mismatches, CSP violations, React warnings).
+ * Ignored: failed network requests, which some tests cause on purpose by aborting API routes.
+ */
 export function trackErrors(page: Page) {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
+  page.on('console', (m) => {
+    if (m.type() === 'error' && !/Failed to load resource|net::ERR_FAILED|Failed to fetch/.test(m.text())) errors.push(m.text().slice(0, 300))
+  })
   return () => expect(errors).toEqual([])
 }
 

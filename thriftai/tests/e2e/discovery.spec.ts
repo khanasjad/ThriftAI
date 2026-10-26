@@ -83,7 +83,10 @@ test('style from photos: "blue flowered tee" shows only blue floral items, and t
 test('unknown product is a real 404, and pages carry a nonce-based CSP', async ({ page, request }) => {
   expect((await request.get('/p/this-product-does-not-exist')).status()).toBe(404)
   const res = await request.get('/')
-  expect(res.headers()['content-security-policy']).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/)
+  const csp = res.headers()['content-security-policy']
+  expect(csp).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+'/)
+  expect(csp).toContain("frame-ancestors 'none'")
+  expect(csp).toContain("object-src 'none'")
   const noErrors = trackErrors(page) // a blocked script would show up as a console error
   await page.goto('/search')
   await page.locator('#q').fill('whi')

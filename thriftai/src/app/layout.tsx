@@ -27,15 +27,18 @@ export const viewport: Viewport = {
 }
 
 // Runs before paint: applies the saved theme (default: follow the system setting) to avoid a flash.
-const themeScript = `(function(){var d=false;try{var t=localStorage.getItem('veritas-theme')||'system';d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches)}catch(e){}document.documentElement.dataset.theme=d?'dark':'light'})()`
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  // Per-request nonce from the middleware's Content-Security-Policy.
-  const nonce = (await headers()).get('x-nonce') ?? undefined
+  // Reading the request headers keeps pages dynamic, so Next applies the middleware's per-request CSP nonce.
+  await headers()
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Theme before first paint (no flash). A same-origin file instead of an inline script: the CSP allows it
+            without a nonce, and React never sees a nonce attribute (browsers hide nonce values, which React would
+            report as a hydration mismatch). Next adds the nonce to its own inline scripts. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/theme.js" />
       </head>
       <body className="min-h-dvh bg-bg text-fg antialiased">
         <a

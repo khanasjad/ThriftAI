@@ -10,7 +10,9 @@ import { getToken } from 'next-auth/jwt'
 export function cspFor(nonce: string, dev: boolean) {
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
+    // Same-origin scripts (Next loads its code in chunks as you navigate) plus inline scripts carrying the nonce.
+    // Injected inline scripts and third-party scripts are blocked.
+    `script-src 'self' 'nonce-${nonce}'${dev ? " 'unsafe-eval'" : ''}`,
     // Inline style attributes (score bars, swatches) and next/font need inline styles.
     `style-src 'self' 'unsafe-inline'`,
     // Vendor product photos are https images from many hosts.
@@ -70,5 +72,5 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   // Everything except static files (pages get the CSP; protected areas also get the auth check).
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|dev-images/|.*\\.(?:png|jpg|jpeg|svg|ico|webp|txt|xml)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|dev-images/|.*\\.(?:png|jpg|jpeg|svg|ico|webp|txt|xml|js)$).*)'],
 }

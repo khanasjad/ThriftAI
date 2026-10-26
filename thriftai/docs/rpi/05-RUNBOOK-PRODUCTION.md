@@ -97,5 +97,5 @@ Run 1–5 products first (`--product <slug>`), check the product page, then the 
 ## 9. Known gaps (planned)
 
 - Rate limits count in Postgres in production (shared by all server instances; a database outage fails open). At high traffic, move them to Redis.
-- Content-Security-Policy is on with a per-request nonce (middleware); styles still allow inline (score bars and swatches use style attributes).
+- Content-Security-Policy is on: scripts only from our own site or inline with the per-request nonce (Next adds it); styles still allow inline (score bars and swatches use style attributes).
 - Next.js 15.5.4 is flagged outdated; upgrade as its own change, then re-run the e2e suite.
