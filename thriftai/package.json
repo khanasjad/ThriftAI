@@ -28,6 +28,7 @@
     "dev:images": "node scripts/with-env.mjs tsx scripts/dev/render-images.ts",
     "vision": "node scripts/with-env.mjs tsx scripts/vision.ts",
     "embed": "node scripts/with-env.mjs tsx scripts/embed.ts",
+    "calibrate": "node scripts/with-env.mjs tsx scripts/calibrate.ts",
     "visual:eval": "node scripts/with-env.mjs tsx scripts/dev/visual-eval.ts",
     "prod:check": "node scripts/with-env.mjs tsx scripts/prod-check.ts",
     "smoke:prod": "tsx scripts/smoke-prod.ts",

@@ -939,18 +939,18 @@ model RateLimitHit {
 
 /// "Looks like" fingerprint of the product photo (B18): an image embedding from an open-source fashion model
 /// (Marqo-FashionSigLIP, Apache-2.0), computed on our own server ($0). Used to match shopper words that photo
-/// labels don't contain, and for "looks similar". Never a score. A plain float array (no database extension);
-/// similarity is computed in code, fine for thousands of products. Move to pgvector when catalogs get large.
+/// labels don't contain, and for "looks similar". Never a score. Stored as pgvector vector(768) with an HNSW
+/// cosine index; written and read with raw SQL (visual/store.ts) because Prisma can't map the type.
 model ProductEmbedding {
-  productId String   @id
+  productId String                      @id
   /// Model id + version; a model change means re-embedding
   model     String
   /// sha256 of the image bytes; same hash → not re-embedded
   imageHash String
-  /// 768 numbers, unit length
-  vector    Float[]  @db.Real
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  /// 768 numbers, unit length (pgvector)
+  embedding Unsupported("vector(768)")?
+  createdAt DateTime                    @default(now())
+  updatedAt DateTime                    @updatedAt
 
   product ClothingProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 

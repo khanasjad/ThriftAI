@@ -37,6 +37,15 @@ function textSide(): Promise<TextSide> {
   return textP
 }
 
+/** Starts loading the text model (no-op if loading or loaded). Resolves when it's ready. */
+export function warmTextModel(): Promise<unknown> {
+  return textSide().then(() => {
+    textReady = true
+  })
+}
+
+export const textModelReady = () => textReady
+
 /** The text model's load, while it is still loading (null once ready or never started). */
 export function textModelLoading(): Promise<unknown> | null {
   return textReady ? null : textP

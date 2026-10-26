@@ -13,6 +13,7 @@ import { swatchFor } from '@/components/veritas/colors'
 import { cn } from '@/lib/utils'
 import { SortSelect } from './controls'
 import { Conversation } from './conversation'
+import { warmVisual } from '@/lib/veritas/visual/store'
 
 export const metadata: Metadata = { title: 'Search', description: 'Search clothing by what matters: fit, quality, comfort, value.' }
 export const dynamic = 'force-dynamic'
@@ -26,10 +27,15 @@ const KINDS: { value?: 'tee' | 'shirt' | 'jeans'; label: string }[] = [
 const SORTS = ['score', 'reviews', 'price_asc', 'price_desc', 'newest'] as const
 type Sort = (typeof SORTS)[number]
 
-type Params = { q?: string; kind?: string; category?: string; sort?: string; gender?: string; color?: string; fit?: string; min?: string; tag?: string }
+type Params = { warm?: string; q?: string; kind?: string; category?: string; sort?: string; gender?: string; color?: string; fit?: string; min?: string; tag?: string }
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Params> }) {
   const sp = await searchParams
+  // Warm-up ping from the search box: load the fashion model on this server instance, render nothing.
+  if (sp.warm === '1') {
+    warmVisual()
+    return null
+  }
   const q = (sp.q ?? '').slice(0, 200)
   const kind = KINDS.find((c) => c.value === sp.kind)?.value
   // Old links used ?category=TOPS|BOTTOMS; still honoured.

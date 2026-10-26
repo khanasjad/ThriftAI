@@ -7,6 +7,18 @@ import { cn } from '@/lib/utils'
 import type { Suggestions } from '@/lib/veritas/match/suggest'
 import { formatPrice } from './score'
 
+/**
+ * Once per page load, when a shopper focuses a search box: ask both search servers (catalog page and chat) to load
+ * the fashion model, so the first "looks like" search is matched by look. Fire and forget; failures don't matter.
+ */
+let warmed = false
+function warmSearch() {
+  if (warmed) return
+  warmed = true
+  void fetch('/search?warm=1', { priority: 'low' }).catch(() => {})
+  void fetch('/api/v1/search', { priority: 'low' }).catch(() => {})
+}
+
 type Option = { id: string; kind: 'query' | 'product' | 'collection'; label: string; href: string; meta?: string; score?: number | null }
 
 function toOptions(s: Suggestions): Option[] {
@@ -84,7 +96,10 @@ export function SuggestInput({ id, defaultValue, placeholder, className }: { id:
           setValue(e.target.value)
           setOpen(true)
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setOpen(true)
+          warmSearch()
+        }}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onKeyDown={onKeyDown}
         placeholder={placeholder}

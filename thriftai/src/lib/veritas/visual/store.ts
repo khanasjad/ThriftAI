@@ -1,14 +1,17 @@
 /**
  * Photo fingerprints in the database (B18): save at upload, read for search and "looks similar".
- * Similarity is computed in code over the candidate pool (fine for thousands of products).
+ * Stored as pgvector vector(768); similarity is computed by Postgres (cosine), "looks similar" uses the HNSW index.
+ * Raw SQL with bound parameters only (Prisma can't map the vector type).
  */
 import { createHash } from 'node:crypto'
 import { after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { env } from '../env'
-import { PUBLIC_PRODUCTS } from '../scope'
-import { imageEmbedding, textEmbedding, textModelLoading, visualModelVersion } from './fashion-model'
-import { cosine, lookAlike, lookPhrase } from './look-alike'
+import { imageEmbedding, textEmbedding, textModelLoading, textModelReady, visualModelVersion, warmTextModel } from './fashion-model'
+import { lookAlike, lookPhrase } from './look-alike'
+
+/** pgvector text form of a vector: "[0.1,0.2,…]". */
+const toVector = (v: number[]) => `[${v.map((x) => (Number.isFinite(x) ? x : 0)).join(',')}]`
 
 export const visualSearchOn = () => env().VISUAL_SEARCH
 
@@ -19,14 +22,21 @@ export async function embedProduct(productId: string, bytes: Buffer): Promise<'e
   const model = visualModelVersion()
   const have = await prisma.productEmbedding.findUnique({ where: { productId }, select: { imageHash: true, model: true } })
   if (have?.imageHash === imageHash && have.model === model) return 'unchanged'
-  const vector = await imageEmbedding(bytes)
-  await prisma.productEmbedding.upsert({ where: { productId }, update: { model, imageHash, vector }, create: { productId, model, imageHash, vector } })
+  const vec = toVector(await imageEmbedding(bytes))
+  await prisma.$executeRaw`
+    INSERT INTO product_embeddings ("productId", model, "imageHash", embedding, "createdAt", "updatedAt")
+    VALUES (${productId}, ${model}, ${imageHash}, ${vec}::vector, now(), now())
+    ON CONFLICT ("productId") DO UPDATE SET model = EXCLUDED.model, "imageHash" = EXCLUDED."imageHash", embedding = EXCLUDED.embedding, "updatedAt" = now()`
   return 'embedded'
 }
 
-async function vectorsFor(ids: string[]) {
-  const rows = await prisma.productEmbedding.findMany({ where: { productId: { in: ids }, model: visualModelVersion() }, select: { productId: true, vector: true } })
-  return new Map(rows.map((r) => [r.productId, r.vector]))
+/** Cosine similarity of each pool product's photo to a query vector, computed by Postgres. */
+async function similaritiesTo(q: number[], ids: string[]) {
+  const rows = await prisma.$queryRaw<{ productId: string; sim: number }[]>`
+    SELECT "productId", 1 - (embedding <=> ${toVector(q)}::vector) AS sim
+    FROM product_embeddings
+    WHERE model = ${visualModelVersion()} AND embedding IS NOT NULL AND "productId" = ANY(${ids}::text[])`
+  return new Map(rows.map((r) => [r.productId, Number(r.sim)]))
 }
 
 /**
@@ -40,9 +50,8 @@ export async function lookAlikeIds(poolIds: string[], kind: string | undefined, 
     keepAliveWhileLoading()
     return null
   }
-  const vecs = await vectorsFor(poolIds)
-  if (!vecs.size) return null
-  const sims = new Map([...vecs].map(([id, v]) => [id, cosine(q, v)]))
+  const sims = await similaritiesTo(q, poolIds)
+  if (!sims.size) return null
   return { words, ids: lookAlike(sims) }
 }
 
@@ -61,23 +70,40 @@ function keepAliveWhileLoading() {
 }
 
 /**
+ * Warm-up (B18): starts loading the text model on this server instance so the shopper's first "looks like" search
+ * doesn't fall back to labels. Called when someone focuses a search box. Cheap: no model call, nothing written.
+ */
+export function warmVisual(): 'off' | 'loading' | 'ready' {
+  if (!visualSearchOn()) return 'off'
+  if (textModelReady()) return 'ready'
+  warmTextModel().catch(() => {})
+  keepAliveWhileLoading()
+  return 'loading'
+}
+
+/**
  * Minimum photo-to-photo similarity for "looks similar". Dev images (2026-10-26): items with the same print or
  * pattern score 0.835–0.96 with each other; each car tee's two nearest neighbours are the other car tees.
  */
 export const SIMILAR_MIN = 0.8
 
-/** Up to `limit` public products of the same type whose photo looks most like this one's. */
+/**
+ * Up to `limit` public, available products of the same type whose photo looks most like this one's.
+ * Nearest neighbours by cosine distance (HNSW index); public = not private (same rule as scope.ts PUBLIC_PRODUCTS).
+ */
 export async function similarLooking(productId: string, limit = 3): Promise<{ id: string; similarity: number }[]> {
   if (!visualSearchOn()) return []
-  const me = await prisma.productEmbedding.findUnique({ where: { productId }, select: { vector: true, model: true, product: { select: { category: true, subcategory: true } } } })
-  if (!me || me.model !== visualModelVersion()) return []
-  const others = await prisma.productEmbedding.findMany({
-    where: { model: me.model, productId: { not: productId }, product: { ...PUBLIC_PRODUCTS, isAvailable: true, category: me.product.category, ...(me.product.subcategory && { subcategory: me.product.subcategory }) } },
-    select: { productId: true, vector: true },
-  })
-  return others
-    .map((o) => ({ id: o.productId, similarity: cosine(me.vector, o.vector) }))
-    .filter((o) => o.similarity >= SIMILAR_MIN)
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, limit)
+  const rows = await prisma.$queryRaw<{ id: string; sim: number }[]>`
+    WITH me AS (
+      SELECT e.embedding, p.category, p.subcategory FROM product_embeddings e JOIN clothing_products p ON p.id = e."productId"
+      WHERE e."productId" = ${productId} AND e.model = ${visualModelVersion()} AND e.embedding IS NOT NULL
+    )
+    SELECT e."productId" AS id, 1 - (e.embedding <=> me.embedding) AS sim
+    FROM product_embeddings e JOIN clothing_products p ON p.id = e."productId", me
+    WHERE e."productId" <> ${productId} AND e.model = ${visualModelVersion()} AND e.embedding IS NOT NULL
+      AND p."isPrivate" = false AND p."isAvailable" = true AND p.category = me.category
+      AND (me.subcategory IS NULL OR p.subcategory = me.subcategory)
+    ORDER BY e.embedding <=> me.embedding
+    LIMIT ${limit}`
+  return rows.map((r) => ({ id: r.id, similarity: Number(r.sim) })).filter((r) => r.similarity >= SIMILAR_MIN)
 }

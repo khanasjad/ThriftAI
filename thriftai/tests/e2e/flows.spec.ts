@@ -16,6 +16,8 @@ test('shopkeeper chat: question with chips, free-text refinement, picks update (
   const noErrors = trackErrors(page)
   const bodies: unknown[] = []
   await page.route('**/api/v1/search', async (r) => {
+    // Warm-up pings (GET, sent when a search box gets focus) aren't shopkeeper turns.
+    if (r.request().method() !== 'POST') return r.fulfill({ json: { success: true, data: { visual: 'off' } } })
     const body = r.request().postDataJSON()
     bodies.push(body)
     // Answer by message, not by count: in dev, React runs the first effect twice (the first request is cancelled).
@@ -52,6 +54,8 @@ test('shopkeeper chat: question with chips, free-text refinement, picks update (
 
 test('"Just show me" stops the questions', async ({ page }) => {
   await page.route('**/api/v1/search', async (r) => {
+    // Warm-up pings (GET, sent when a search box gets focus) aren't shopkeeper turns.
+    if (r.request().method() !== 'POST') return r.fulfill({ json: { success: true, data: { visual: 'off' } } })
     const body = r.request().postDataJSON()
     if (body.action === 'show') return r.fulfill({ json: turn({ reply: 'Here are the best options for what you’ve told me.', picks: [pick('best_overall', 'a', 'Bootcut Jean II', 44)] }) })
     return r.fulfill({ json: turn({ reply: 'What colour?', question: { slot: 'color', question: 'What colour?', chips: ['Black', 'Ecru'] }, asked: 1, provisional: true }) })

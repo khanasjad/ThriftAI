@@ -6,6 +6,12 @@ import { z } from 'zod'
 import { env } from '@/lib/veritas/env'
 import { runSearch } from '@/lib/veritas/graph/answer-search'
 import { fail, ok, rateLimit, sessionId, zodFail } from '@/lib/veritas/http'
+import { warmVisual } from '@/lib/veritas/visual/store'
+
+/** GET: warm-up ping from the search box (loads the fashion model on this instance; no search, nothing stored). */
+export async function GET() {
+  return ok({ visual: warmVisual() })
+}
 
 const schema = z.union([
   z.object({ message: z.string().trim().min(1).max(300), sessionId: z.string().min(1).max(64).optional() }),
