@@ -3,7 +3,9 @@
  * Body: JSON { source, licence?, rows: [...] }  or  CSV (Content-Type: text/csv) with ?source=…&licence=…
  * Add ?dryRun=1 to validate without writing. Returns the validation report. Max 5,000 rows per request.
  */
+import { after } from 'next/server'
 import { z } from 'zod'
+import { describeMany } from '@/lib/veritas/graph/describe-image'
 import { scoreApiGate } from '@/lib/veritas/apikeys'
 import { fail, ok, zodFail } from '@/lib/veritas/http'
 import { parseCsv } from '@/lib/veritas/ingest/csv'
@@ -11,6 +13,7 @@ import { FEEDS, type FeedKind } from '@/lib/veritas/ingest/contract'
 import { MAX_ROWS, ingest } from '@/lib/veritas/ingest/run'
 
 const meta = z.object({ source: z.string().trim().min(2).max(120), licence: z.string().trim().max(200).optional() })
+export const maxDuration = 60
 const MAX_BYTES = 10 * 1024 * 1024
 
 export async function POST(req: Request, { params }: { params: Promise<{ kind: string }> }) {
@@ -41,7 +44,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ kind: s
   if (rows.length > MAX_ROWS) return fail(413, `Too many rows (max ${MAX_ROWS} per request). Split the file.`)
 
   try {
-    return ok(await ingest({ tenantId: gate.tenantId, kind: kind as FeedKind, rows, source: m.source, licence: m.licence, dryRun }))
+    const { photoProductIds, ...report } = await ingest({ tenantId: gate.tenantId, kind: kind as FeedKind, rows, source: m.source, licence: m.licence, dryRun })
+    // Read new or changed product photos right after responding (vision agent, within this function's time); the nightly job finishes the rest.
+    if (!report.dryRun && photoProductIds.length) after(() => describeMany(photoProductIds, { budgetMs: (maxDuration - 8) * 1000 }).then((r) => console.log('photos read after upload', r)).catch((e) => console.error('photo reading after upload failed', e)))
+    return ok(report)
   } catch (err) {
     console.error('ingest failed', err)
     return fail(500, 'Ingest failed part-way. Rows before the error were saved; re-sending the whole file is safe (nothing is duplicated).')

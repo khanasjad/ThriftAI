@@ -10,6 +10,7 @@ import { loadAdRows, socialPack } from '@/lib/veritas/ads/feeds'
 import { AD_MIN_SCORE } from '@/lib/veritas/ads/rules'
 import { ownProducts } from '@/lib/veritas/scope'
 import { CopyText } from './copy-button'
+import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import { UploadFeed } from './upload'
 
 export const metadata: Metadata = { title: 'Data and ads', robots: { index: false } }
@@ -123,7 +124,7 @@ export default async function AdsPage() {
                       <span className="font-medium uppercase tracking-wide">Ad preview</span>
                       <span>Sponsored</span>
                     </div>
-                    {p && <ProductThumb category={p.category} subcategory={p.subcategory} silhouette={p.silhouette} color={p.colors[0]} pattern={(p.visual?.attributes as { pattern?: string } | undefined)?.pattern} showTag={false} className="aspect-[16/9] rounded-none" />}
+                    {p && <ProductThumb category={p.category} subcategory={p.subcategory} silhouette={p.silhouette} color={p.colors[0]} pattern={thumbPattern(p.visual?.attributes as Parameters<typeof thumbPattern>[0])} showTag={false} className="aspect-[16/9] rounded-none" />}
                     <div className="p-3">
                       <p className="text-sm font-semibold text-fg">{r.feed.ad_headline}</p>
                       <p className="mt-1 text-sm text-fg-muted">{r.feed.ad_body || r.feed.description}</p>

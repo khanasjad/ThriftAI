@@ -34,22 +34,31 @@ async function main() {
 
   if (process.argv.includes('--check')) {
     // Dev images only: the fixture holds each product's known pattern and catalog colours.
-    const fixture = JSON.parse(readFileSync('prisma/fixtures/dev-dataset.json', 'utf8')) as { products: { slug: string; colors: string[]; _truth: { pattern: string } }[] }
+    const fixture = JSON.parse(readFileSync('prisma/fixtures/dev-dataset.json', 'utf8')) as { products: { slug: string; colors: string[]; _truth: { pattern: string; print?: string | null } }[] }
     const rows = await prisma.productVisual.findMany({ where: { product: { slug: { in: fixture.products.map((p) => p.slug) } } }, select: { attributes: true, product: { select: { slug: true } } } })
     const FAMILY: Record<string, string> = { black: 'black', white: 'white', ecru: 'beige', oatmeal: 'beige', 'heather grey': 'grey', navy: 'blue', sage: 'green', 'washed red': 'red', 'light vintage': 'blue', 'mid wash': 'blue', 'indigo rinse': 'blue', 'light blue': 'blue' }
     let pat = 0
     let col = 0
+    let prints = 0
+    let printOk = 0
+    const PRINT_WORDS: Record<string, RegExp> = { car: /\bcar|vehicle/, 'palm-tree': /palm/, guitar: /guitar/, 'football-crest': /crest|shield|badge|\bfc\b/, 'sun-mountains': /mountain|sun/ }
     const misses: string[] = []
     for (const r of rows) {
       const f = fixture.products.find((p) => p.slug === r.product.slug)!
-      const a = r.attributes as { pattern: string; colors: { family: string }[] }
+      const a = r.attributes as { pattern: string; colors: { family: string }[]; motifs?: { label: string }[]; print_text?: string }
+      if (f._truth.print) {
+        prints++
+        const seen = [...(a.motifs ?? []).map((m) => m.label), a.print_text ?? ''].join(' ').toLowerCase()
+        if (PRINT_WORDS[f._truth.print]?.test(seen)) printOk++
+        else misses.push(`${r.product.slug}: print truth ${f._truth.print}, read ${seen || 'nothing'}`)
+      }
       const okP = a.pattern === f._truth.pattern
       const okC = a.colors[0]?.family === FAMILY[f.colors[0].toLowerCase()]
       pat += okP ? 1 : 0
       col += okC ? 1 : 0
       if (!okP || !okC) misses.push(`${r.product.slug}: pattern ${a.pattern} (truth ${f._truth.pattern}), colour ${a.colors[0]?.family} (truth ${FAMILY[f.colors[0].toLowerCase()]})`)
     }
-    console.log(`\nAgreement on ${rows.length} dev images: pattern ${Math.round((100 * pat) / rows.length)}% · main colour family ${Math.round((100 * col) / rows.length)}%`)
+    console.log(`\nAgreement on ${rows.length} dev images: pattern ${Math.round((100 * pat) / rows.length)}% · main colour family ${Math.round((100 * col) / rows.length)}% · prints ${prints ? `${Math.round((100 * printOk) / prints)}% (${printOk}/${prints})` : 'n/a'}`)
     for (const m of misses) console.log(`  ✗ ${m}`)
   }
 }

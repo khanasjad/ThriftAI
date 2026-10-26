@@ -35,7 +35,8 @@
     "org:create": "node scripts/with-env.mjs tsx scripts/org-create.ts",
     "org:delete": "node scripts/with-env.mjs tsx scripts/org-delete.ts",
     "dev:hosted:copy": "tsx scripts/dev/copy-to-hosted.ts",
-    "smoke:hosted": "node scripts/with-env.mjs tsx scripts/smoke-prod.ts"
+    "smoke:hosted": "node scripts/with-env.mjs tsx scripts/smoke-prod.ts",
+    "photo:test": "node scripts/with-env.mjs tsx scripts/dev/photo-test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",

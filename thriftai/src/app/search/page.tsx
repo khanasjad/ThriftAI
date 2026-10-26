@@ -134,7 +134,8 @@ async function Results({
     interpreted.maxPrice && `Under $${interpreted.maxPrice}`,
     ...interpreted.colors.map((c) => c[0].toUpperCase() + c.slice(1)),
     ...interpreted.patterns.map((p) => `${p[0].toUpperCase()}${p.slice(1)} (from photos)`),
-    ...interpreted.terms.map((t) => `“${t}”`),
+    ...(interpreted.prints?.length ? [`Print: ${interpreted.prints.join(' ')}`] : []),
+    ...interpreted.terms.filter((t) => !interpreted.prints?.includes(t)).map((t) => `“${t}”`),
   ].filter(Boolean) as string[]
 
   if (items.length === 0) {

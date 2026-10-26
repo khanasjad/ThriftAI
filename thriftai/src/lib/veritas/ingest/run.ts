@@ -41,6 +41,8 @@ export type IngestReport = {
   unchanged: number
   /** Products whose inputs changed: the next rating run re-scores exactly these. */
   productsChanged: number
+  /** Products with a new or changed photo: the photo agent reads these right after the upload (B17). */
+  photosToRead: number
   errors: IngestError[]
 }
 
@@ -70,6 +72,7 @@ async function ingestCatalog(rows: { row: number; data: CatalogRow }[], ctx: Ctx
   let updated = 0
   let unchanged = 0
   const changed = new Set<string>()
+  const photos = new Set<string>()
 
   // A product may appear once per seller (marketplace offers): product fields from the first row, a price per seller.
   const byProduct = new Map<string, { row: number; data: CatalogRow }[]>()
@@ -138,6 +141,7 @@ async function ingestCatalog(rows: { row: number; data: CatalogRow }[], ctx: Ctx
       productId = p.id
       created++
       changed.add(productId)
+      if (fields.primaryImageUrl) photos.add(productId)
     } else {
       productId = existing.id
       const same =
@@ -151,6 +155,7 @@ async function ingestCatalog(rows: { row: number; data: CatalogRow }[], ctx: Ctx
         await prisma.clothingProduct.update({ where: { id: productId }, data: { ...fields, brandId: brand.id } })
         updated++
         changed.add(productId)
+        if (fields.primaryImageUrl && fields.primaryImageUrl !== existing.primaryImageUrl) photos.add(productId)
       }
     }
 
@@ -181,7 +186,7 @@ async function ingestCatalog(rows: { row: number; data: CatalogRow }[], ctx: Ctx
       changed.add(productId)
     }
   }
-  return { created, updated, unchanged, changed }
+  return { created, updated, unchanged, changed, photos }
 }
 
 // ---------------------------------------------------------------------------
@@ -267,7 +272,7 @@ async function ingestReturns(rows: { row: number; data: ReturnRow }[], ctx: Ctx,
 
 // ---------------------------------------------------------------------------
 
-export async function ingest(input: { tenantId: string; kind: FeedKind; rows: unknown[]; source: string; licence?: string | null; dryRun?: boolean; now?: Date }): Promise<IngestReport> {
+export async function ingest(input: { tenantId: string; kind: FeedKind; rows: unknown[]; source: string; licence?: string | null; dryRun?: boolean; now?: Date }): Promise<IngestReport & { photoProductIds: string[] }> {
   const tenant = await prisma.tenant.findUnique({ where: { id: input.tenantId }, select: { id: true, slug: true, name: true } })
   if (!tenant) throw new Error('Unknown tenant')
   if (input.rows.length > MAX_ROWS) throw new Error(`Too many rows: ${input.rows.length} (max ${MAX_ROWS} per upload; split the file)`)
@@ -293,10 +298,11 @@ export async function ingest(input: { tenantId: string; kind: FeedKind; rows: un
     updated: r.updated,
     unchanged: r.unchanged,
     productsChanged: r.changed.size,
+    photosToRead: 'photos' in r ? (r.photos as Set<string>).size : 0,
     errors: errors.sort((a, b) => a.row - b.row).slice(0, MAX_ERRORS_IN_REPORT),
   }
   const run = await prisma.ingestRun.create({
     data: { tenantId: ctx.tenantId, kind: input.kind, source: ctx.source, licence: ctx.licence, dryRun: ctx.dryRun, rows: report.rows, accepted: report.accepted, rejected: report.rejected, report: report as unknown as Prisma.InputJsonValue },
   })
-  return { ...report, runId: run.id }
+  return { ...report, runId: run.id, photoProductIds: 'photos' in r ? [...(r.photos as Set<string>)] : [] }
 }

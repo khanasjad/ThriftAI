@@ -9,6 +9,9 @@ export type Visual = {
   shape: string
   style_tags: string[]
   description: string
+  /** vision@2+: prints, logos and text on the garment */
+  motifs?: { label: string; kind: string; placement: string }[]
+  print_text?: string
 }
 
 const FAMILY_SWATCH: Record<string, string> = {
@@ -47,6 +50,19 @@ export function VisualPanel({ visual }: { visual: Visual }) {
           </div>
         ))}
       </dl>
+      {visual.motifs && visual.motifs.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs text-fg-subtle">Printed on it</p>
+          <ul className="mt-1 flex flex-wrap gap-1.5">
+            {visual.motifs.map((m) => (
+              <li key={m.label} className="rounded-md border border-border px-2 py-0.5 text-xs text-fg">
+                {m.label} <span className="text-fg-subtle">· {m.placement.replace('-', ' ')}</span>
+              </li>
+            ))}
+          </ul>
+          {visual.print_text && <p className="mt-1.5 text-xs text-fg-muted">Text: “{visual.print_text}”</p>}
+        </div>
+      )}
       {visual.style_tags.length > 0 && (
         <p className="mt-4 flex flex-wrap gap-1.5">
           {visual.style_tags.map((t) => (
@@ -56,7 +72,7 @@ export function VisualPanel({ visual }: { visual: Visual }) {
           ))}
         </p>
       )}
-      <p className="mt-4 text-xs text-fg-subtle">Read from the product photo by AI. It helps you search by look; it never changes the score.</p>
+      <p className="mt-4 text-xs text-fg-subtle">Read from the product photo by AI. It helps you search by look; it never changes the score, and naming a logo doesn’t mean the item is official merchandise.</p>
     </section>
   )
 }

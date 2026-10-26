@@ -19,6 +19,8 @@ export type Facets = {
   lengths: { value: string; count: number }[]
   /** Surface patterns read from product photos. */
   patterns: { value: string; count: number }[]
+  /** Prints and logos read from photos (most common first). */
+  motifs: { value: string; count: number }[]
 }
 
 export const KIND_LABEL = { tee: 'T-shirts', shirt: 'Shirts', jeans: 'Jeans' } as const
@@ -80,6 +82,7 @@ export function buildFacets(cands: Candidate[], intent: SearchIntent): Facets {
     cuts: tally(forCut.map((c) => c.silhouette)),
     lengths: tally(forLength.map((c) => c.length)),
     patterns: tally(forPattern.map((c) => c.pattern)),
+    motifs: tally(all.flatMap((c) => c.motifLabels ?? [])).slice(0, 15),
   }
 }
 
@@ -96,5 +99,6 @@ export function facetsText(f: Facets) {
     `Cuts: ${list(f.cuts)}`,
     `Tee lengths: ${list(f.lengths)}`,
     `Patterns (from product photos): ${list(f.patterns)}`,
+    `Prints and logos seen in product photos: ${list(f.motifs)}`,
   ].join('\n')
 }

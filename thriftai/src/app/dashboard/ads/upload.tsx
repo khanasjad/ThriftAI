@@ -77,6 +77,7 @@ export function UploadFeed() {
             <p className="font-medium text-fg">
               {report.dryRun ? 'Dry run: nothing saved. ' : ''}
               {report.accepted} of {report.rows} rows accepted · {report.created} new · {report.updated} updated · {report.unchanged} unchanged · {report.productsChanged} products to re-score
+              {!report.dryRun && report.photosToRead > 0 && ` · reading ${report.photosToRead} new photo${report.photosToRead === 1 ? '' : 's'} now`}
             </p>
             {report.errors.length > 0 && (
               <ul className="mt-2 flex flex-col gap-1 text-fg-muted">

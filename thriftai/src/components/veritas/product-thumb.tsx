@@ -85,6 +85,65 @@ function shapeFor(category: string, subcategory?: string | null, silhouette?: st
 /** Colour names that are light enough to need a darker outline and darker detail lines. */
 const LIGHT = new Set(['white', 'ecru', 'oatmeal', 'light vintage', 'heather grey', 'sage', 'light blue'])
 
+/** Chest prints for graphic items. Simple shapes, fictional (the crest says "FC", no real club). */
+function ChestPrint({ print, light }: { print?: string | null; light: boolean }) {
+  const ink = light ? '#2f3a6b' : '#f2e6c9'
+  const accent = light ? '#b0524a' : '#9cad8a'
+  switch (print) {
+    case 'car':
+      return (
+        <g>
+          <path d="M38 76 L44 66 L58 63 L70 63 L78 69 L84 70 L84 78 L38 78 Z" fill={accent} />
+          <path d="M46 67 L52 65 L58 65 L58 69 L46 69 Z M61 65 L68 65 L74 69 L61 69 Z" fill={light ? '#dfe7f2' : '#2f3a6b'} />
+          <circle cx="48" cy="79" r="4.5" fill={ink} />
+          <circle cx="75" cy="79" r="4.5" fill={ink} />
+        </g>
+      )
+    case 'palm-tree':
+      return (
+        <g>
+          <path d="M58 90 Q55 76 60 58" stroke={ink} strokeWidth="3.2" fill="none" strokeLinecap="round" />
+          {/* drooping fronds */}
+          <path d="M60 58 Q48 50 38 60 Q49 55 60 60 Z" fill={accent} />
+          <path d="M60 58 Q72 50 82 60 Q71 55 60 60 Z" fill={accent} />
+          <path d="M60 58 Q52 46 44 46 Q53 50 60 59 Z" fill={accent} />
+          <path d="M60 58 Q68 46 76 46 Q67 50 60 59 Z" fill={accent} />
+          <path d="M60 58 Q58 46 62 40 Q61 49 61 58 Z" fill={accent} />
+          <circle cx="57" cy="61" r="2.2" fill={ink} />
+          <circle cx="62" cy="62" r="2.2" fill={ink} />
+          <path d="M42 91 Q60 85 78 91" stroke={ink} strokeWidth="2" fill="none" />
+        </g>
+      )
+    case 'guitar':
+      return (
+        <g transform="rotate(-30 60 70)">
+          <rect x="58" y="44" width="4" height="22" fill={ink} />
+          <rect x="56.5" y="40" width="7" height="6" rx="1" fill={ink} />
+          <circle cx="60" cy="72" r="9" fill={accent} />
+          <circle cx="60" cy="81" r="10.5" fill={accent} />
+          <circle cx="60" cy="75" r="2.6" fill={ink} />
+        </g>
+      )
+    case 'football-crest':
+      return (
+        <g>
+          <path d="M48 56 L72 56 L72 72 Q72 84 60 89 Q48 84 48 72 Z" fill={accent} stroke={ink} strokeWidth="1.5" />
+          <path d="M54 56 L54 85 M60 56 L60 89 M66 56 L66 85" stroke={ink} strokeWidth="1" opacity="0.5" />
+          <text x="60" y="73" textAnchor="middle" fontSize="9" fontWeight="700" fill={light ? '#fff' : '#16161a'} fontFamily="sans-serif">
+            FC
+          </text>
+        </g>
+      )
+    default:
+      return (
+        <g>
+          <circle cx="60" cy="62" r="14" fill={ink} />
+          <path d="M40 86 L52 70 L60 78 L70 64 L82 86 Z" fill={accent} />
+        </g>
+      )
+  }
+}
+
 /** Repeating pattern tiles drawn over the garment colour; ink contrasts with the base colour. */
 function PatternDefs({ id, pattern, light }: { id: string; pattern?: string | null; light: boolean }) {
   const ink = light ? 'rgb(31 42 68 / 0.75)' : 'rgb(255 255 255 / 0.8)'
@@ -136,6 +195,7 @@ export function ProductThumb({
   silhouette,
   color,
   pattern,
+  print,
   label,
   showTag = true,
   className,
@@ -148,12 +208,18 @@ export function ProductThumb({
   color?: string | null
   /** solid | striped | floral | polka-dot | plaid | graphic (from the vision agent, or the dev truth for dev images) */
   pattern?: string | null
+  /** For pattern="graphic": which chest print to draw (car, palm-tree, guitar, sun-mountains, football-crest). */
+  print?: string | null
   /** Accessible name, e.g. the product name. Omit when the image is decorative. */
   label?: string
   showTag?: boolean
   className?: string
 }) {
   const id = useId().replace(/:/g, '')
+  // "graphic:car" = graphic pattern with a car chest print (see thumb-pattern.ts).
+  const [basePattern, printFromPattern] = (pattern ?? '').split(':')
+  const drawPattern = basePattern || null
+  const drawPrint = print ?? (printFromPattern || null)
   const shape = shapeFor(category, subcategory, silhouette)
   const fill = (color && swatchFor(color)) || 'var(--surface-3)'
   const light = !color || LIGHT.has(color.toLowerCase())
@@ -164,7 +230,7 @@ export function ProductThumb({
     <div
       className={cn('relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-surface-2 to-surface-3', className)}
       role={label ? 'img' : undefined}
-      aria-label={label ? `${label}${color ? `, ${color}` : ''}${pattern && pattern !== 'solid' ? `, ${pattern}` : ''} (illustration)` : undefined}
+      aria-label={label ? `${label}${color ? `, ${color}` : ''}${drawPattern && drawPattern !== 'solid' ? `, ${drawPattern}` : ''}${drawPattern === 'graphic' && drawPrint ? ` (${drawPrint.replace('-', ' ')} print)` : ''} (illustration)` : undefined}
       aria-hidden={label ? undefined : true}
     >
       <svg viewBox="0 0 120 146" className="h-[78%] w-[78%] drop-shadow-[0_6px_8px_rgb(0_0_0/0.12)]">
@@ -177,15 +243,14 @@ export function ProductThumb({
           <clipPath id={`body-${id}`}>
             <path d={shape.body} />
           </clipPath>
-          <PatternDefs id={id} pattern={pattern} light={light} />
+          <PatternDefs id={id} pattern={drawPattern} light={light} />
         </defs>
         <ellipse cx="60" cy={shape.floor ?? 139} rx="34" ry="3" fill="rgb(0 0 0 / 0.10)" />
         <path d={shape.body} style={{ fill }} />
-        {pattern && pattern !== 'solid' && pattern !== 'graphic' && <path d={shape.body} fill={`url(#pat-${id})`} />}
-        {pattern === 'graphic' && (
-          <g clipPath={`url(#body-${id})`} opacity="0.85">
-            <circle cx="60" cy="62" r="14" fill={light ? '#2f3a6b' : '#f2e6c9'} />
-            <path d="M40 86 L52 70 L60 78 L70 64 L82 86 Z" fill={light ? '#b0524a' : '#9cad8a'} />
+        {drawPattern && drawPattern !== 'solid' && drawPattern !== 'graphic' && <path d={shape.body} fill={`url(#pat-${id})`} />}
+        {drawPattern === 'graphic' && (
+          <g clipPath={`url(#body-${id})`} opacity="0.9">
+            <ChestPrint print={drawPrint} light={light} />
           </g>
         )}
         <path d={shape.body} fill={`url(#shade-${id})`} />

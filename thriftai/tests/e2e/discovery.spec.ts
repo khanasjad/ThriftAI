@@ -111,3 +111,18 @@ test('button-up shirts: Shirts tab lists only shirts; "blue flowered shirt" find
   expect(found.length).toBeGreaterThan(0)
   expect(found.every((h) => h.includes('shirt'))).toBe(true)
 })
+
+test('prints from photos: "car t-shirt" finds only tees with a car print; the product page lists the print', async ({ page }) => {
+  await page.route('**/api/v1/search', (r) => r.abort())
+  await page.goto('/search?q=car+t-shirt')
+  const results = page.locator('section[aria-labelledby="results-h"] > ul > li')
+  await expect(results.first()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('status').getByText('Print: car')).toBeVisible()
+  const hrefs = await results.locator('a[href^="/p/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''))
+  expect(hrefs.length).toBeGreaterThan(0)
+  await page.goto(hrefs[0])
+  const panel = page.locator('section[aria-labelledby="visual-h"]')
+  await expect(panel.getByText('Printed on it')).toBeVisible()
+  await expect(panel).toContainText(/car/i)
+  await expect(panel).toContainText(/doesn’t mean the item is official/)
+})

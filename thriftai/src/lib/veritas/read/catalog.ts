@@ -6,7 +6,8 @@ import { scanInjection } from '../harness/guardrails'
 import { computePriceFacts, type PriceFacts } from '../price/facts'
 import { tagsForProducts } from './tags'
 import { COLOR_WORDS, KIND_WORDS, PATTERN_WORDS } from '../match/intent'
-import { colorHit } from '../match/rank'
+import { colorHit, lookHas, lookTermsFor } from '../match/rank'
+import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import type { Tag } from '../enrich/tags'
 
 export type { PriceFacts }
@@ -74,7 +75,7 @@ const CATEGORY_WORDS: Record<string, ClothingCategory> = {
   jeans: 'BOTTOMS', jean: 'BOTTOMS', denim: 'BOTTOMS', pants: 'BOTTOMS', trousers: 'BOTTOMS',
 }
 
-export type Interpretation = { category?: ClothingCategory; kind?: 'tee' | 'shirt' | 'jeans'; maxPrice?: number; colors: string[]; patterns: string[]; terms: string[]; matchedAny: boolean }
+export type Interpretation = { category?: ClothingCategory; kind?: 'tee' | 'shirt' | 'jeans'; maxPrice?: number; colors: string[]; patterns: string[]; terms: string[]; matchedAny: boolean; /** Query words matched against prints/logos read from photos. */ prints?: string[] }
 
 /** Turns a free-text query into a category, a price ceiling and search terms. Shown to the user as-is. */
 export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
@@ -147,7 +148,8 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
   const cutoff = Date.now() - NEW_LAUNCH_DAYS * 864e5
   const tagMap = await tagsForProducts(rows.map((r) => r.id))
   let scored = rows.map((r) => {
-    const v = r.visual?.attributes as { pattern?: string; pattern_detail?: string; colors?: { name: string; family: string }[]; style_tags?: string[] } | undefined
+    const v = r.visual?.attributes as { garment?: string; pattern?: string; pattern_detail?: string; colors?: { name: string; family: string }[]; style_tags?: string[]; motifs?: { label: string }[]; print_text?: string } | undefined
+    const look = v ? [v.garment, ...(v.motifs ?? []).map((m) => m.label), v.print_text ?? ''].join(' · ').toLowerCase() : undefined
     const own = [r.name, r.subcategory, r.description, r.fitType, r.silhouette, r.brand.name, ...r.colors, ...Object.keys((r.materials ?? {}) as object), v?.pattern ?? '', v?.pattern_detail ?? '', ...(v?.colors ?? []).flatMap((c) => [c.name, c.family]), ...(v?.style_tags ?? [])]
       .join(' ')
       .toLowerCase()
@@ -165,7 +167,7 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
       subcategory: r.subcategory,
       silhouette: r.silhouette,
       color: r.colors[0] ?? null,
-      pattern: v?.pattern ?? null,
+      pattern: thumbPattern(v),
       price: Number(r.currentPrice),
       currency: r.currency,
       reviewCount: r._count.reviews,
@@ -174,11 +176,14 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
       isNewLaunch: !!r.launchDate && r.launchDate.getTime() > cutoff,
       tags: tagMap.get(r.id) ?? [],
     }
-    return { item, relevance, launch: r.launchDate?.getTime() ?? 0, gender: r.gender, colors: r.colors, fit: r.fitType, look: { colors: r.colors, visualColors: (v?.colors ?? []).map((c) => c.name), colorFamilies: (v?.colors ?? []).map((c) => c.family), pattern: v?.pattern ?? null } }
+    return { item, relevance, launch: r.launchDate?.getTime() ?? 0, gender: r.gender, colors: r.colors, fit: r.fitType, printLook: look, look: { colors: r.colors, visualColors: (v?.colors ?? []).map((c) => c.name), colorFamilies: (v?.colors ?? []).map((c) => c.family), pattern: v?.pattern ?? null } }
   })
 
   const matchedAny = parsed.terms.length === 0 || scored.some((x) => x.relevance > 0)
-  if (parsed.terms.length && matchedAny) scored = scored.filter((x) => x.relevance > 0)
+  // Prints and logos from photos ("car", "palm tree", "real madrid"): when some product shows them, they must all be on the item.
+  const prints = lookTermsFor(scored.map((x) => ({ look: x.printLook })), parsed.terms)
+  if (prints.length) scored = scored.filter((x) => prints.every((t) => lookHas(x.printLook, t)))
+  else if (parsed.terms.length && matchedAny) scored = scored.filter((x) => x.relevance > 0)
   // Look filters from the query: every colour/pattern word must match (catalog data or the product photo).
   if (parsed.colors.length) scored = scored.filter((x) => parsed.colors.some((w) => colorHit(x.look, w)))
   if (parsed.patterns.length) scored = scored.filter((x) => x.look.pattern !== null && parsed.patterns.includes(x.look.pattern))
@@ -218,7 +223,7 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
 
   return {
     items: scored.slice(0, Math.min(limit, 100)).map((x) => x.item),
-    interpreted: { ...parsed, category: cat, kind: k, matchedAny },
+    interpreted: { ...parsed, category: cat, kind: k, matchedAny, prints },
     facets,
   }
 }

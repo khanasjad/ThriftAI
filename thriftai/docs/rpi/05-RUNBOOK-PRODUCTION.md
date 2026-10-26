@@ -98,6 +98,8 @@ Run 1–5 products first (`--product <slug>`), check the product page, then the 
 
 ## 6. Every day after that (automatic)
 
+Product photos are read automatically: right after each catalog upload (new or changed photo links, within the upload's time budget), and by the nightly job for anything left. Our server downloads the vendor's image (https, public hosts, ≤ 5 MB) and only re-reads a photo when its bytes change.
+
 `/api/cron/nightly` reads photos of new products and re-rates products whose reviews, prices, returns or details changed. Unchanged review text reuses earlier evidence (no model call), so daily price feeds cost almost nothing. On Hobby (60 s) it handles a few paid re-ratings per night and continues the next night; for large daily changes use Pro (raise `maxDuration` in `src/app/api/cron/nightly/route.ts`) or run `npm run rate -- --all --mode full` yourself.
 
 ## 7. Money
@@ -119,4 +121,4 @@ Run 1–5 products first (`--product <slug>`), check the product page, then the 
 
 - Rate limits count in Postgres in production (shared by all server instances; a database outage fails open). At high traffic, move them to Redis.
 - Content-Security-Policy is on: scripts only from our own site or inline with the per-request nonce (Next adds it); styles still allow inline (score bars and swatches use style attributes).
-- Next.js 15.5.4 is flagged outdated; upgrade as its own change, then re-run the e2e suite.
+- Next.js is on 16.4.3 (upgraded 2026-10-25, e2e re-run green).

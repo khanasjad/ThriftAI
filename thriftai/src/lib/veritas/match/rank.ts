@@ -26,6 +26,10 @@ export type Candidate = {
   visualColors: string[]
   colorFamilies: string[]
   styleTags: string[]
+  /** What the photo shows printed on it (motif labels, printed text, garment type), lowercase. Empty until read. */
+  look?: string
+  /** Motif labels from the photo, e.g. "palm tree", "real madrid crest". */
+  motifLabels?: string[]
   /** Tees: cropped / regular / longline (from name and silhouette). Null for other categories. */
   length: 'cropped' | 'regular' | 'longline' | null
   gsm: number | null
@@ -164,11 +168,24 @@ export function colorHit(c: Pick<Candidate, 'colors' | 'visualColors' | 'colorFa
   return c.colors.some((pc) => colorMatch(pc, w) || CATALOG_FAMILY[norm(pc)] === w) || c.visualColors.some((vc) => colorMatch(vc, w)) || c.colorFamilies.includes(w)
 }
 
+/** Word-start match with a simple plural strip: "cars" finds "car", "madrid" finds "real madrid crest", "car" doesn't find "card". */
+export function lookHas(look: string | undefined, term: string) {
+  if (!look) return false
+  const t = term.toLowerCase().replace(/s$/, '')
+  return new RegExp(`(^|[^a-z0-9])${t.replace(/[^a-z0-9]/g, '')}s?($|[^a-z0-9])`).test(look)
+}
+
+/** Query words that describe a print some product's photo actually shows: these become filters (B17). */
+export function lookTermsFor(cands: Pick<Candidate, 'look'>[], terms: string[]) {
+  return terms.filter((t) => t.length >= 2 && cands.some((c) => lookHas(c.look, t)))
+}
+
 export function filterCandidates(cands: Candidate[], intent: SearchIntent, who: ShopperContext, budgetFactor = 1) {
   const budget = intent.maxPrice ?? who.budgetMax ?? undefined
   const colors = intent.colors ?? []
   const exclude = intent.excludeColors ?? []
   const cuts = (intent.cuts ?? []).map(norm)
+  const lookTerms = lookTermsFor(cands, intent.terms)
   return cands
     .filter((c) => !intent.category || c.category === intent.category)
     .filter((c) => !intent.kind || (c.subcategory ?? '').toLowerCase() === intent.kind)
@@ -183,6 +200,8 @@ export function filterCandidates(cands: Candidate[], intent: SearchIntent, who: 
     .filter((c) => !intent.length || c.length === null || c.length === intent.length)
     .filter((c) => !(who.brandDeny ?? []).includes(c.brandSlug))
     .filter((c) => !(who.brandAllow ?? []).length || who.brandAllow!.includes(c.brandSlug))
+    // Prints and logos from photos: "car", "palm tree", "real madrid" must all be on the item when any item has them.
+    .filter((c) => lookTerms.every((t) => lookHas(c.look, t)))
     .map((c) => ({ c, relevance: intent.terms.filter((t) => c.text.includes(t)).length }))
     .filter((x) => intent.terms.length === 0 || x.relevance > 0 || intent.category !== undefined)
 }
@@ -198,6 +217,7 @@ export function styleMatch(c: Candidate, intent: SearchIntent): { value: number;
   if (intent.fit) checks.push([`${intent.fit} fit`, fitOf(c) === intent.fit])
   if (intent.cuts?.length) checks.push([intent.cuts.join(' or ').replace(/-/g, ' '), intent.cuts.some((k) => norm(c.silhouette ?? '').includes(norm(k)))])
   if (intent.length) checks.push([`${intent.length} length`, c.length === intent.length])
+  if (intent.lookTerms?.length) checks.push([intent.lookTerms.join(' '), intent.lookTerms.every((t) => lookHas(c.look, t))])
   if (!checks.length) return null
   const matched = checks.filter(([, ok]) => ok).map(([k]) => k)
   return { value: Math.round((100 * matched.length) / checks.length), matched, missed: checks.filter(([, ok]) => !ok).map(([k]) => k) }

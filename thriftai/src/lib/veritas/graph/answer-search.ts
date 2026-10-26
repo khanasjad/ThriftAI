@@ -21,8 +21,9 @@ import { runAgent } from '../harness/loop'
 import { parseIntent, type SearchIntent, type ShopperContext } from '../match/intent'
 import { loadCandidates } from '../match/candidates'
 import { buildFacets, facetsText, type Facets } from '../match/facets'
-import { chooseQuestion, filterCandidates, pickThree, rank, styleMatch, type Candidate, type PickResult } from '../match/rank'
+import { chooseQuestion, filterCandidates, lookTermsFor, pickThree, rank, styleMatch, type Candidate, type PickResult } from '../match/rank'
 import { swatchFor } from '@/components/veritas/colors'
+import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import { checkReply } from '../text/check'
 
 export type SearchPick = {
@@ -83,7 +84,7 @@ function toPick(p: PickResult, intent: SearchIntent): SearchPick {
     subcategory: p.subcategory,
     silhouette: p.silhouette ?? null,
     color: (intent.colors?.length ? p.colors.find((c) => intent.colors!.some((w) => c.toLowerCase().includes(w.toLowerCase()))) : null) ?? p.colors[0] ?? null,
-    pattern: p.pattern,
+    pattern: thumbPattern({ pattern: p.pattern ?? undefined, motifs: (p.motifLabels ?? []).map((label) => ({ label })) }),
     score: p.productScore,
     style: styleMatch(p, intent),
     label: p.label!,
@@ -141,7 +142,8 @@ export function filtersToIntent(f: ShopkeeperFilters, facets: Facets): SearchInt
     occasion: f.occasion ?? undefined,
     priorities: Object.fromEntries(f.priorities.map((p) => [p, 1.5])),
     sustainability: f.sustainability || undefined,
-    terms: [],
+    // Prints the shopper asked for become words matched against what product photos show.
+    terms: [...new Set(f.motifs.flatMap((m) => m.toLowerCase().split(/[^a-z0-9]+/)).filter((w) => w.length >= 2 && !['the', 'and', 'with', 'on', 'of', 'print', 'printed'].includes(w)))],
   }
 }
 
@@ -162,6 +164,7 @@ function intentToFilters(i: SearchIntent): ShopkeeperFilters {
     occasion: i.occasion ?? null,
     priorities: Object.keys(i.priorities) as ShopkeeperFilters['priorities'],
     sustainability: !!i.sustainability,
+    motifs: i.terms,
   }
 }
 
@@ -366,6 +369,7 @@ export async function runSearch(input: {
         ? `Got it. ${question.question}`
         : 'Here are the best options for what you’ve told me.'
 
+  intent = { ...intent, lookTerms: lookTermsFor(candidates, intent.terms) }
   const { ranked, unrated, stretch } = rank(candidates, intent, who)
   const picks = offTopic ? [] : pickThree(ranked, stretch)
 

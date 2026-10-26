@@ -35,6 +35,8 @@ export type SearchIntent = {
   priorities: Partial<Record<PillarKey, number>>
   sustainability?: boolean
   occasion?: string
+  /** Query words that match prints/logos read from product photos (set by the search graph; shown in Style match). */
+  lookTerms?: string[]
   /** Remaining words, matched against product text. */
   terms: string[]
   offTopic?: boolean

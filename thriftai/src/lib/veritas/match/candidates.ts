@@ -41,7 +41,7 @@ export async function loadCandidates(): Promise<Candidate[]> {
     for (const s of r.priceSnapshots) if (!latest.has(s.sellerId ?? 'brand')) latest.set(s.sellerId ?? 'brand', Number(s.price))
     const prices = latest.size ? [...latest.values()] : [Number(r.currentPrice)]
     const ps = r.productScore
-    const v = r.visual?.attributes as { pattern?: string; pattern_detail?: string; colors?: { name: string; family: string }[]; style_tags?: string[] } | undefined
+    const v = r.visual?.attributes as { garment?: string; pattern?: string; pattern_detail?: string; colors?: { name: string; family: string }[]; style_tags?: string[]; motifs?: { label: string }[]; print_text?: string } | undefined
     return {
       id: r.id,
       slug: r.slug,
@@ -56,6 +56,8 @@ export async function loadCandidates(): Promise<Candidate[]> {
       visualColors: (v?.colors ?? []).map((c) => c.name),
       colorFamilies: [...new Set((v?.colors ?? []).map((c) => c.family))],
       styleTags: v?.style_tags ?? [],
+      motifLabels: (v?.motifs ?? []).map((m) => m.label),
+      look: v ? [v.garment, ...(v.motifs ?? []).map((m) => m.label), v.print_text ?? ''].join(' · ').toLowerCase() : undefined,
       fitType: r.fitType,
       silhouette: r.silhouette,
       colors: r.colors,

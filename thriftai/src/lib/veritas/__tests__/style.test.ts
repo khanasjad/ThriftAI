@@ -1,7 +1,7 @@
 /** @jest-environment node */
 import { parseIntent } from '../match/intent'
 import { colorHit, filterCandidates, styleMatch, type Candidate } from '../match/rank'
-import { imageSource, normaliseVisual } from '../graph/describe-image'
+import { imageSource, isPrivateAddress, normaliseVisual } from '../graph/describe-image'
 import { devPatternFor } from '../dev/patterns'
 
 const cand = (over: Partial<Candidate>): Candidate =>
@@ -35,13 +35,21 @@ describe('style from photos', () => {
   it('cleans agent output and only reads local images from public/dev-images', () => {
     const n = normaliseVisual({
       is_clothing: true, garment: 't-shirt', colors: [{ name: ' Navy ', family: 'blue' }, { name: 'navy', family: 'blue' }], pattern: 'floral', pattern_detail: 'small pink flowers',
-      neckline: 'v-neck', sleeve: 'short', shape: 'regular', style_tags: ['Summer', 'summer', 'Casual!', 'a-very-long-tag-name-that-goes-on'], description: 'A navy tee.', confidence: 'high',
+      neckline: 'v-neck', sleeve: 'short', shape: 'regular', motifs: [{ label: ' Roses ', kind: 'flower', placement: 'all-over' }, { label: 'roses', kind: 'flower', placement: 'all-over' }], print_text: '', style_tags: ['Summer', 'summer', 'Casual!', 'a-very-long-tag-name-that-goes-on'], description: 'A navy tee.', confidence: 'high',
     })
     expect(n.colors).toEqual([{ name: 'navy', family: 'blue' }])
     expect(n.style_tags).toEqual(['summer', 'casual'])
-    expect(imageSource('/dev-images/../../.env.local')).toBeNull()
-    expect(imageSource('http://insecure.example/a.png')).toBeNull()
-    expect(imageSource('https://cdn.example/a.jpg')?.block.source).toEqual({ type: 'url', url: 'https://cdn.example/a.jpg' })
+    expect(n.motifs).toEqual([{ label: 'roses', kind: 'flower', placement: 'all-over' }])
+    return Promise.all([imageSource('/dev-images/../../.env.local'), imageSource('http://insecure.example/a.png')]).then(([a, b]) => {
+      expect(a).toBeNull()
+      expect(b).toBeNull()
+      expect(isPrivateAddress('127.0.0.1')).toBe(true)
+      expect(isPrivateAddress('10.1.2.3')).toBe(true)
+      expect(isPrivateAddress('192.168.0.5')).toBe(true)
+      expect(isPrivateAddress('169.254.169.254')).toBe(true) // cloud metadata endpoint
+      expect(isPrivateAddress('::1')).toBe(true)
+      expect(isPrivateAddress('93.184.216.34')).toBe(false)
+    })
   })
 
   it('dev patterns are stable and jeans stay solid', () => {

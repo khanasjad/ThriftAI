@@ -219,7 +219,8 @@
     "versatility": 0.7607378474902362,
     "flattering": 0.20945856617763636,
     "notes": [],
-    "pattern": "graphic"
+    "pattern": "graphic",
+    "print": "car"
    }
   },
   {
@@ -282,7 +283,8 @@
     "versatility": 0.6000750856008381,
     "flattering": 0.6653140533249825,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -345,7 +347,8 @@
     "versatility": 0.5549475325504318,
     "flattering": 0.7021116574993357,
     "notes": [],
-    "pattern": "striped"
+    "pattern": "striped",
+    "print": null
    }
   },
   {
@@ -408,7 +411,8 @@
     "notes": [
      "has_injection_review"
     ],
-    "pattern": "floral"
+    "pattern": "floral",
+    "print": null
    }
   },
   {
@@ -475,7 +479,8 @@
     "versatility": 0.441354160499759,
     "flattering": 0.5657677634386346,
     "notes": [],
-    "pattern": "striped"
+    "pattern": "striped",
+    "print": null
    }
   },
   {
@@ -538,7 +543,8 @@
     "notes": [
      "new_launch"
     ],
-    "pattern": "plaid"
+    "pattern": "plaid",
+    "print": null
    }
   },
   {
@@ -603,7 +609,8 @@
     "versatility": 0.3652151749236509,
     "flattering": 0.44595553297549484,
     "notes": [],
-    "pattern": "floral"
+    "pattern": "floral",
+    "print": null
    }
   },
   {
@@ -665,7 +672,8 @@
     "versatility": 0.7952933305175975,
     "flattering": 0.7211555011104792,
     "notes": [],
-    "pattern": "striped"
+    "pattern": "striped",
+    "print": null
    }
   },
   {
@@ -728,7 +736,8 @@
     "notes": [
      "fake_markdown"
     ],
-    "pattern": "solid"
+    "pattern": "graphic",
+    "print": "palm-tree"
    }
   },
   {
@@ -791,7 +800,8 @@
     "versatility": 0.310430256370455,
     "flattering": 0.41482999224681405,
     "notes": [],
-    "pattern": "floral"
+    "pattern": "floral",
+    "print": null
    }
   },
   {
@@ -855,7 +865,8 @@
     "versatility": 0.43683058239985256,
     "flattering": 0.4900092847179621,
     "notes": [],
-    "pattern": "polka-dot"
+    "pattern": "polka-dot",
+    "print": null
    }
   },
   {
@@ -918,7 +929,8 @@
     "notes": [
      "has_es_review"
     ],
-    "pattern": "solid"
+    "pattern": "graphic",
+    "print": "car"
    }
   },
   {
@@ -983,7 +995,8 @@
     "versatility": 0.6302966380724684,
     "flattering": 0.45573112976271657,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "graphic",
+    "print": "football-crest"
    }
   },
   {
@@ -1046,7 +1059,8 @@
     "versatility": 0.5048604931915179,
     "flattering": 0.5192581594688818,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "graphic",
+    "print": "sun-mountains"
    }
   },
   {
@@ -1111,7 +1125,8 @@
     "notes": [
      "often_cheaper"
     ],
-    "pattern": "floral"
+    "pattern": "floral",
+    "print": null
    }
   },
   {
@@ -1172,7 +1187,8 @@
     "versatility": 0.7795227685594,
     "flattering": 0.4263249403098598,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "graphic",
+    "print": "car"
    }
   },
   {
@@ -1236,7 +1252,8 @@
     "versatility": 0.3223285537213087,
     "flattering": 0.5510734762297943,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1299,7 +1316,8 @@
     "versatility": 0.7965892276726663,
     "flattering": 0.3981983304489404,
     "notes": [],
-    "pattern": "floral"
+    "pattern": "floral",
+    "print": null
    }
   },
   {
@@ -1363,7 +1381,8 @@
     "versatility": 0.6908194717951119,
     "flattering": 0.8434893436729908,
     "notes": [],
-    "pattern": "striped"
+    "pattern": "striped",
+    "print": null
    }
   },
   {
@@ -1427,7 +1446,8 @@
     "notes": [
      "has_injection_review"
     ],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1497,7 +1517,8 @@
     "versatility": 0.762174807593692,
     "flattering": 0.7963701556669548,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1567,7 +1588,8 @@
     "versatility": 0.49283146795351057,
     "flattering": 0.6467073078034445,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1643,7 +1665,8 @@
     "notes": [
      "new_launch"
     ],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1712,7 +1735,8 @@
     "versatility": 0.5415979970246554,
     "flattering": 0.45708549665287135,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1782,7 +1806,8 @@
     "versatility": 0.7628990401979536,
     "flattering": 0.29914076302666215,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1855,7 +1880,8 @@
     "notes": [
      "has_fr_review"
     ],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1922,7 +1948,8 @@
     "versatility": 0.7946798207238317,
     "flattering": 0.5278244653251022,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -1992,7 +2019,8 @@
     "notes": [
      "fake_markdown"
     ],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2063,7 +2091,8 @@
     "versatility": 0.8095835279556922,
     "flattering": 0.39477061773650346,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2132,7 +2161,8 @@
     "versatility": 0.6328004502691329,
     "flattering": 0.4090434985933825,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2204,7 +2234,8 @@
     "notes": [
      "has_injection_review"
     ],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2277,7 +2308,8 @@
     "versatility": 0.5951407105429098,
     "flattering": 0.5062188743846491,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2345,7 +2377,8 @@
     "versatility": 0.3800271742045879,
     "flattering": 0.6414588453713804,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2418,7 +2451,8 @@
     "notes": [
      "new_launch"
     ],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2490,7 +2524,8 @@
     "versatility": 0.5037482978776098,
     "flattering": 0.383584198099561,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2556,7 +2591,8 @@
     "versatility": 0.89327112310566,
     "flattering": 0.5305784815223887,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2627,7 +2663,8 @@
     "versatility": 0.5524632073473186,
     "flattering": 0.7670374154346064,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2699,7 +2736,8 @@
     "versatility": 0.9353293880005367,
     "flattering": 0.4192412864882499,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2767,7 +2805,8 @@
     "versatility": 0.668702550418675,
     "flattering": 0.7168130350997671,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2837,7 +2876,8 @@
     "versatility": 0.5533376100473106,
     "flattering": 0.3854569990886375,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -2900,7 +2940,8 @@
     "versatility": 0.4988758996594697,
     "flattering": 0.4896589581854641,
     "notes": [],
-    "pattern": "floral"
+    "pattern": "floral",
+    "print": null
    }
   },
   {
@@ -2965,7 +3006,8 @@
     "versatility": 0.6662217323435471,
     "flattering": 0.7852722617331892,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -3027,7 +3069,8 @@
     "versatility": 0.7752145794918761,
     "flattering": 0.3961866058176383,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -3090,7 +3133,8 @@
     "versatility": 0.552747550373897,
     "flattering": 0.49258960739243773,
     "notes": [],
-    "pattern": "striped"
+    "pattern": "striped",
+    "print": null
    }
   },
   {
@@ -3154,7 +3198,8 @@
     "versatility": 0.6936490784399212,
     "flattering": 0.7696631007362157,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -3217,7 +3262,8 @@
     "versatility": 0.5544697504490614,
     "flattering": 0.7960715820314362,
     "notes": [],
-    "pattern": "floral"
+    "pattern": "floral",
+    "print": null
    }
   },
   {
@@ -3280,7 +3326,8 @@
     "versatility": 0.7823763604508713,
     "flattering": 0.48709494040813295,
     "notes": [],
-    "pattern": "striped"
+    "pattern": "striped",
+    "print": null
    }
   },
   {
@@ -3343,7 +3390,8 @@
     "versatility": 0.7854060341604054,
     "flattering": 0.529108189069666,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -3405,7 +3453,8 @@
     "versatility": 0.5372510412242264,
     "flattering": 0.7234206741210073,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   },
   {
@@ -3468,7 +3517,8 @@
     "versatility": 0.7676574566401542,
     "flattering": 0.7604931711917743,
     "notes": [],
-    "pattern": "floral"
+    "pattern": "floral",
+    "print": null
    }
   },
   {
@@ -3532,7 +3582,8 @@
     "versatility": 0.5875906402477995,
     "flattering": 0.5260093276388943,
     "notes": [],
-    "pattern": "striped"
+    "pattern": "striped",
+    "print": null
    }
   },
   {
@@ -3596,7 +3647,8 @@
     "versatility": 0.7780494581209496,
     "flattering": 0.8220803525997326,
     "notes": [],
-    "pattern": "solid"
+    "pattern": "solid",
+    "print": null
    }
   }
  ],

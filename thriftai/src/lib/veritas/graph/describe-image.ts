@@ -18,9 +18,39 @@ export type DescribeResult = { slug: string; status: 'described' | 'unchanged' |
 
 const MEDIA: Record<string, 'image/png' | 'image/jpeg' | 'image/webp'> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' }
 
-/** Builds the image block and a hash of the image. Local files must sit under public/dev-images (no path tricks). */
-export function imageSource(url: string): { block: Anthropic.ImageBlockParam; hash: string } | null {
-  if (/^https:\/\//i.test(url)) return { block: { type: 'image', source: { type: 'url', url } }, hash: createHash('sha256').update(url).digest('hex') }
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const FETCH_TIMEOUT_MS = 10_000
+
+/** True for loopback, private, link-local and other non-public addresses (SSRF guard). */
+export function isPrivateAddress(ip: string): boolean {
+  if (ip.includes(':')) {
+    const v6 = ip.toLowerCase()
+    return v6 === '::1' || v6 === '::' || v6.startsWith('fc') || v6.startsWith('fd') || v6.startsWith('fe80') || v6.startsWith('::ffff:') && isPrivateAddress(v6.slice(7))
+  }
+  const [a, b] = ip.split('.').map(Number)
+  return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224
+}
+
+/**
+ * Builds the image block and a hash of the image bytes. Vendor images (https) are downloaded by our server
+ * (the Claude API's own URL fetch respects robots.txt, which some image hosts disallow): https only, public
+ * addresses only, ≤ 5 MB, image types only, 10 s timeout. Local dev images must sit under public/dev-images.
+ */
+export async function imageSource(url: string): Promise<{ block: Anthropic.ImageBlockParam; hash: string } | null> {
+  if (/^https:\/\//i.test(url)) {
+    const host = new URL(url).hostname
+    const { lookup } = await import('node:dns/promises')
+    const addrs = await lookup(host, { all: true }).catch(() => [])
+    if (!addrs.length || addrs.some((a) => isPrivateAddress(a.address))) return null
+    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), redirect: 'follow', headers: { 'User-Agent': 'VeritasPhotoReader/1 (reads vendor-supplied product images)' } }).catch(() => null)
+    if (!res?.ok) return null
+    const type = (res.headers.get('content-type') ?? '').split(';')[0].trim()
+    const media = ({ 'image/jpeg': 'image/jpeg', 'image/png': 'image/png', 'image/webp': 'image/webp', 'image/gif': 'image/gif' } as const)[type as 'image/jpeg']
+    if (!media || Number(res.headers.get('content-length') ?? 0) > MAX_IMAGE_BYTES) return null
+    const bytes = Buffer.from(await res.arrayBuffer())
+    if (bytes.length > MAX_IMAGE_BYTES) return null
+    return { block: { type: 'image', source: { type: 'base64', media_type: media, data: bytes.toString('base64') } }, hash: createHash('sha256').update(bytes).digest('hex') }
+  }
   if (url.startsWith('/dev-images/')) {
     const file = normalize(join(process.cwd(), 'public', url))
     if (!file.startsWith(join(process.cwd(), 'public', 'dev-images'))) return null
@@ -43,15 +73,39 @@ export function normaliseVisual(a: VisualAttributes): VisualAttributes {
       .filter((c) => c.name && !seen.has(c.name) && seen.add(c.name))
       .slice(0, 3),
     pattern_detail: a.pattern_detail.trim().slice(0, 80),
+    motifs: a.motifs
+      .map((m) => ({ ...m, label: m.label.trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 40) }))
+      .filter((m, i, all) => m.label && all.findIndex((x) => x.label === m.label) === i)
+      .slice(0, 5),
+    print_text: a.print_text.trim().slice(0, 120),
     style_tags: [...new Set(a.style_tags.map((t) => t.trim().toLowerCase().replace(/[^a-z -]/g, '')).filter((t) => t && t.length <= 20))].slice(0, 5),
     description: a.description.trim().split(/\s+/).slice(0, 24).join(' '),
   }
 }
 
+/** Reads several products' photos within a time budget (after an upload, or nightly). Unchanged photos cost nothing. */
+export async function describeMany(ids: string[], opts: { budgetMs: number; llm?: LlmClient; sink?: TraceSink }) {
+  const t0 = Date.now()
+  const out = { read: 0, unchanged: 0, skipped: 0, errors: 0, costUsd: 0, left: 0 }
+  for (const [i, id] of ids.entries()) {
+    if (Date.now() - t0 > opts.budgetMs) {
+      out.left = ids.length - i
+      break
+    }
+    const r = await describeProduct(id, { llm: opts.llm, sink: opts.sink })
+    out.costUsd += r.costUsd
+    if (r.status === 'described') out.read++
+    else if (r.status === 'unchanged') out.unchanged++
+    else if (r.status === 'error') out.errors++
+    else out.skipped++
+  }
+  return out
+}
+
 export async function describeProduct(slugOrId: string, opts: { llm?: LlmClient; sink?: TraceSink; force?: boolean } = {}): Promise<DescribeResult> {
   const p = await prisma.clothingProduct.findFirst({ where: { OR: [{ slug: slugOrId }, { id: slugOrId }] }, select: { id: true, slug: true, primaryImageUrl: true, visual: { select: { imageHash: true } } } })
   if (!p) return { slug: slugOrId, status: 'error', costUsd: 0, error: 'not found' }
-  const src = p.primaryImageUrl ? imageSource(p.primaryImageUrl) : null
+  const src = p.primaryImageUrl ? await imageSource(p.primaryImageUrl) : null
   if (!src) return { slug: p.slug, status: 'no_image', costUsd: 0 }
   const imageHash = createHash('sha256').update(`${VISION_VERSION}|${src.hash}`).digest('hex')
   if (!opts.force && p.visual?.imageHash === imageHash) return { slug: p.slug, status: 'unchanged', costUsd: 0 }

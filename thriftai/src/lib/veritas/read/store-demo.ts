@@ -11,6 +11,7 @@ import { computePriceFacts, type SellerSeries } from '../price/facts'
 import { FACTOR_TAXONOMY } from '../taxonomy/factor-taxonomy'
 import { returnBenchmark } from '../evidence/structured'
 import { driversForProducts } from './drivers'
+import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import { tagsForProducts } from './tags'
 import type { Tag } from '../enrich/tags'
 
@@ -115,7 +116,7 @@ function toListing(r: Row): StoreListing {
     subcategory: r.subcategory,
     silhouette: r.silhouette,
     colors: r.colors,
-    pattern: ((r.visual?.attributes as { pattern?: string } | undefined)?.pattern ?? null),
+    pattern: thumbPattern(r.visual?.attributes as Parameters<typeof thumbPattern>[0]),
     gender: r.gender,
     stars: r.reviews.length ? r.reviews.reduce((s, x) => s + x.rating, 0) / r.reviews.length : null,
     reviewCount: r.reviews.length,

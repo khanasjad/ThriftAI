@@ -2,6 +2,7 @@ import 'server-only'
 import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { prisma } from '@/lib/prisma'
 import { alternativesFor } from '../match/alternatives'
+import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import { tagsForProducts } from './tags'
 import type { CatalogItem } from './catalog'
 
@@ -58,7 +59,7 @@ export async function loadAlternatives(productId: string): Promise<{ item: Catal
       subcategory: r.subcategory,
       silhouette: r.silhouette,
       color: r.colors[0] ?? null,
-      pattern: ((r.visual?.attributes as { pattern?: string } | undefined)?.pattern ?? null),
+      pattern: thumbPattern(r.visual?.attributes as Parameters<typeof thumbPattern>[0]),
       price: Number(r.currentPrice),
       currency: r.currency,
       reviewCount: r._count.reviews,

@@ -10,7 +10,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { devPatternFor } from '../../src/lib/veritas/dev/patterns'
+import { devPatternFor, devPrintFor } from '../../src/lib/veritas/dev/patterns'
 
 // ---------------------------------------------------------------------------
 // Deterministic randomness
@@ -282,7 +282,7 @@ const brands = BRANDS.map((b) => ({
 
 const sellers = SELLERS.map((name) => ({ slug: slugify(name), name, website: `https://${slugify(name)}.example`, source: SOURCE }))
 
-type Product = Record<string, unknown> & { slug: string; _truth: Truth & { notes: string[]; pattern?: string } }
+type Product = Record<string, unknown> & { slug: string; _truth: Truth & { notes: string[]; pattern?: string; print?: string | null } }
 const products: Product[] = []
 const reviews: Record<string, unknown>[] = []
 const returns: Record<string, unknown>[] = []
@@ -371,7 +371,7 @@ function buildProduct({ brand, kind }: { brand: BrandSpec; kind: Kind }, idx: nu
     primaryImageUrl: `/dev-images/${slug}.png`,
     images: [`/dev-images/${slug}.png`],
     source: SOURCE,
-    _truth: { ...truth, pattern: devPatternFor(slug, kind === 'jeans' ? 'BOTTOMS' : 'TOPS', kind) },
+    _truth: { ...truth, pattern: devPatternFor(slug, kind === 'jeans' ? 'BOTTOMS' : 'TOPS', kind), print: devPrintFor(slug, kind === 'jeans' ? 'BOTTOMS' : 'TOPS', kind) },
   })
 
   // --- Reviews ---

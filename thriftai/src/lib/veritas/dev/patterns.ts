@@ -20,5 +20,28 @@ export function devPatternFor(slug: string, category: string, subcategory?: stri
   }
   // Salt v20 chosen so the fictional catalog has every pattern and a couple of navy florals for the demo search.
   const x = hash(`pattern:v20:${slug}`)
+  // A third of plain tees get a chest print (B17), so print search ("car t-shirt") has something to find.
+  if (x < 0.4) return hash(`print:${slug}`) < 0.35 ? 'graphic' : 'solid'
   return x < 0.4 ? 'solid' : x < 0.58 ? 'striped' : x < 0.8 ? 'floral' : x < 0.88 ? 'polka-dot' : x < 0.92 ? 'plaid' : 'graphic'
 }
+
+/** Dev only: the chest print drawn on a fictional graphic item. The football crest is made up ("FC"), not a real club. */
+export const DEV_PRINTS = ['car', 'palm-tree', 'guitar', 'sun-mountains', 'football-crest'] as const
+export type DevPrint = (typeof DEV_PRINTS)[number]
+export function devPrintFor(slug: string, category: string, subcategory?: string | null): DevPrint | null {
+  if (devPatternFor(slug, category, subcategory) !== 'graphic') return null
+  // Salt v10 chosen so the six printed tees include cars, a palm tree and the crest (demo searches).
+  return DEV_PRINTS[Math.floor(hash(`print-kind:v10:${slug}`) * DEV_PRINTS.length)]
+}
+
+/** Picks the drawing for a print from what the photo agent read ("red race car" → car). */
+export function printFromMotifs(labels: string[]): DevPrint | null {
+  const t = labels.join(' ').toLowerCase()
+  if (/\bcar|vehicle|truck/.test(t)) return 'car'
+  if (/palm/.test(t)) return 'palm-tree'
+  if (/guitar/.test(t)) return 'guitar'
+  if (/crest|shield|badge|club/.test(t)) return 'football-crest'
+  if (/mountain|sun/.test(t)) return 'sun-mountains'
+  return null
+}
+
