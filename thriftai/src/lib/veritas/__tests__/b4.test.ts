@@ -19,6 +19,8 @@ const peer = (over: Partial<PeerStat> = {}): PeerStat => ({
   category: 'TOPS',
   subcategory: 'tee',
   price: 30,
+  isPrivate: false,
+  tenantId: null,
   fit: null,
   quality: null,
   overall: null,

@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
         category: p.category,
         subcategory: p.subcategory,
         brand: p.brand,
-        currentPrice: Number(p.currentPrice),
+        currentPrice: p.currentPrice === null ? null : Number(p.currentPrice),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
         currency: p.currency,
         images: p.images,

@@ -1,5 +1,6 @@
 /**
- * Creates dev sign-in accounts: one admin, and one tenant + brand user per fictional brand.
+ * Creates dev sign-in accounts: one admin, one tenant + brand user per fictional brand, and one for the
+ * open-data (CC0) tenant when it has been imported.
  *   npm run seed:accounts
  * Passwords are generated and written to .veritas/dev-accounts.json (gitignored), never printed.
  * For the hosted dev database (DEV_TARGET=hosted) they go to .veritas/dev-accounts.hosted.json instead.
@@ -50,6 +51,18 @@ async function main() {
       accounts.push({ email, password: p, role: 'BRAND', brand: b.name })
     }
 
+    // Real open data (CC0) imported by `npm run open-data`: one sign-in for its private tenant, if present.
+    const open = await prisma.tenant.findUnique({ where: { slug: 'open-data-cc0' } })
+    if (open) {
+      const email = 'open-data@veritas.test'
+      const p = pw()
+      await prisma.user.upsert({
+        where: { email },
+        create: { email, firstName: 'Open data', role: 'BRAND', tenantId: open.id, passwordHash: await bcrypt.hash(p, 10) },
+        update: { role: 'BRAND', tenantId: open.id, passwordHash: await bcrypt.hash(p, 10) },
+      })
+      accounts.push({ email, password: p, role: 'BRAND', brand: 'Open data (CC0)' })
+    }
     const dir = join(process.cwd(), '.veritas')
     mkdirSync(dir, { recursive: true })
     const name = process.env.DEV_TARGET === 'hosted' ? 'dev-accounts.hosted.json' : 'dev-accounts.json'

@@ -24,6 +24,8 @@ export function computeDrivers(input: {
   reviewCount: number
   /** Published scores of the brand's other products (same pool), for brand reputation. */
   brandScores: number[]
+  /** False when the source has no price (open review data): value then comes only from what reviewers say. */
+  priceKnown?: boolean
 }): Drivers {
   const q = QUALITY_PILLARS.filter(([k]) => typeof input.pillars[k] === 'number')
   const qw = q.reduce((s, [, w]) => s + w, 0)
@@ -34,7 +36,17 @@ export function computeDrivers(input: {
   const p = PRICE_FACTORS.filter(([k]) => typeof input.factors[k] === 'number')
   const pw = p.reduce((s, [, w]) => s + w, 0)
   const price: Driver = pw
-    ? { value: Math.round(p.reduce((s, [k, w]) => s + input.factors[k] * w, 0) / pw), basis: p.length === 2 ? 'Price history (real discounts) and value vs. similar items' : p[0][0] === 'style_value.price_fairness' ? 'Price history (real discounts)' : 'Value vs. similar items' }
+    ? {
+        value: Math.round(p.reduce((s, [k, w]) => s + input.factors[k] * w, 0) / pw),
+        basis:
+          input.priceKnown === false
+            ? 'What reviewers say about value (no price in the source)'
+            : p.length === 2
+              ? 'Price history (real discounts) and value vs. similar items'
+              : p[0][0] === 'style_value.price_fairness'
+                ? 'Price history (real discounts)'
+                : 'Value vs. similar items',
+      }
     : { value: null, basis: 'Not enough price history yet' }
 
   const n = input.brandScores.length

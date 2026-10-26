@@ -26,6 +26,7 @@ import { DriverTiles } from '@/components/veritas/drivers'
 import { VisualPanel } from '@/components/veritas/visual-panel'
 import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import { ProductQA } from './product-qa'
+import { productScopeForViewer } from '@/lib/veritas/authz'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,12 +34,14 @@ type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const data = await getProductPage(slug)
+  const data = await getProductPage(slug, await productScopeForViewer())
   // Throwing here (metadata resolves before the body streams) gives a real 404 status, not 200.
   if (!data) notFound()
   const { product, brand, score } = data
   return {
     title: `${product.name} · ${brand.name}`,
+    // An organisation's private products are visible only to its own users: never indexed.
+    ...(product.isPrivate && { robots: { index: false, follow: false } }),
     alternates: { canonical: `/p/${product.slug}` },
     description: score
       ? `Veritas Score ${score.overall}/100 for ${product.name}, with the evidence behind every number.`
@@ -55,7 +58,7 @@ const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params
-  const data = await getProductPage(slug)
+  const data = await getProductPage(slug, await productScopeForViewer())
   if (!data) notFound()
   const { product, brand, score, reported, returns, prices } = data
   const [tagMap, alternatives, instant, driverMap, lookalikes] = await Promise.all([tagsForProducts([product.id]), loadAlternatives(product.id), loadInstantAnswers(product.id), driversForProducts([product.id]), loadSimilarLooking(product.id)])
@@ -108,6 +111,7 @@ export default async function ProductPage({ params }: Props) {
                 <Badge tone="neutral">{GENDER[product.gender] ?? product.gender}</Badge>
                 {product.trendTag && <TrendTag tag={product.trendTag} />}
                 {isNewLaunch(product.launchDate) && <Badge tone="accent">New launch</Badge>}
+                {product.isPrivate && <Badge tone="neutral">Private · only your organisation sees this</Badge>}
               </div>
               <h1 className="mt-3 text-balance text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold leading-tight tracking-[-0.025em] text-fg">{product.name}</h1>
               <p className="mt-2 text-lg text-fg">
@@ -119,7 +123,11 @@ export default async function ProductPage({ params }: Props) {
                     <span className="text-sm text-fg-muted"> across {priceRange.sellers} sellers</span>
                   </>
                 ) : (
-                  <span className="font-semibold tabular">{formatPrice(product.price, product.currency)}</span>
+                  product.price === null ? (
+                    <span className="text-sm text-fg-muted">No price in the source</span>
+                  ) : (
+                    <span className="font-semibold tabular">{formatPrice(product.price, product.currency)}</span>
+                  )
                 )}
               </p>
               <p className="mt-1 text-sm text-fg-muted">by {brand.name}</p>
@@ -448,10 +456,11 @@ function SpecCard({ data }: { data: ProductPageData }) {
   const rows: [string, React.ReactNode][] = [
     ['Materials', materials || '—'],
     ['Fabric weight', p.fabricWeightGsm ? `${p.fabricWeightGsm} gsm` : '—'],
-    ['Stretch', p.elastanePct ? `${p.elastanePct}% elastane` : 'No elastane'],
+    // Unknown (null) is not the same as none (0): open data has no materials.
+    ['Stretch', p.elastanePct ? `${p.elastanePct}% elastane` : p.elastanePct === 0 ? 'No elastane' : '—'],
     ['Fit', [p.fitType, p.silhouette].filter(Boolean).join(' · ') || '—'],
     ['Sizes', p.sizes.join(', ') || '—'],
-    ['Extended sizes', ranges || 'None'],
+    ['Extended sizes', ranges || (p.sizes.length ? 'None' : '—')],
     ['Care', p.careInstructions ?? '—'],
     ['Recycled content', p.recycledContent ? `${p.recycledContent}%` : '—'],
     ['Certifications', p.certifications.length ? p.certifications.join(', ') : 'None listed'],

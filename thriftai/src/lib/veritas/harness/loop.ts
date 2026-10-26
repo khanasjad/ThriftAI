@@ -73,6 +73,7 @@ export async function runAgent<F extends z.ZodObject>(
   let toolErrors = 0
   let nudged = false
   let truncRetried = false
+  let thinkingOff = false
   let maxTokens = agent.maxTokens
   let lastCallCost = 0
   let finish: z.infer<F> | undefined
@@ -103,7 +104,7 @@ export async function runAgent<F extends z.ZodObject>(
         }
       }
 
-      const req = buildRequest(agent, messages, maxTokens)
+      const req = buildRequest(agent, messages, maxTokens, { thinkingOff })
       const t0 = Date.now()
       let res: Anthropic.Message
       try {
@@ -151,11 +152,14 @@ export async function runAgent<F extends z.ZodObject>(
         }
         case 'max_tokens':
         case 'model_context_window_exceeded': {
-          // A truncated tool input can parse as valid JSON, so never run it. Retry once, larger.
+          // A truncated tool input can parse as valid JSON, so never run it. Retry once, larger. If the reply used
+          // thinking, the retry also turns thinking off so the whole budget goes to the answer: seen on real review
+          // data, where reading 40 reviews led to ~6k tokens of thinking, then a cut-off tool call (2026-10-26).
           if (res.stop_reason === 'max_tokens' && !truncRetried && maxTokens < MAX_TOKENS_CEILING) {
             truncRetried = true
             maxTokens = Math.min(maxTokens * 2, MAX_TOKENS_CEILING)
-            await guard('retry.max_tokens', { newMaxTokens: maxTokens })
+            thinkingOff = res.content.some((b) => b.type === 'thinking' || b.type === 'redacted_thinking')
+            await guard('retry.max_tokens', { newMaxTokens: maxTokens, thinkingOff })
             break
           }
           stop = { status: 'TRUNCATED', error: `${res.stop_reason}${truncRetried ? ' (after one retry)' : ''}` }

@@ -312,9 +312,10 @@ export async function listProductReviews(slugOrId: string, offset: number, limit
 }
 
 /** Accepts a slug or an id (old /products/:id links redirect here). */
-export async function getProductPage(slugOrId: string) {
+/** `scope`: which products the viewer may open (default public; see authz.productScopeForViewer). */
+export async function getProductPage(slugOrId: string, scope: Prisma.ClothingProductWhereInput = PUBLIC_PRODUCTS) {
   const p = await prisma.clothingProduct.findFirst({
-    where: { OR: [{ slug: slugOrId }, { id: slugOrId }], ...PUBLIC_PRODUCTS },
+    where: { AND: [{ OR: [{ slug: slugOrId }, { id: slugOrId }] }, scope] },
     include: {
       brand: true,
       productScore: true,
@@ -379,8 +380,10 @@ export async function getProductPage(slugOrId: string) {
       category: p.category,
       subcategory: p.subcategory,
       gender: p.gender,
-      price: Number(p.currentPrice),
+      /** Null when the source has no price (open review data). */
+      price: p.currentPrice === null ? null : Number(p.currentPrice),
       originalPrice: num(p.originalPrice),
+      isPrivate: p.isPrivate,
       currency: p.currency,
       sizes: p.sizes,
       colors: p.colors,

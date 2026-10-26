@@ -38,6 +38,8 @@ export async function loadBundle(slugOrId: string): Promise<ProductBundle | null
   return {
     product: {
       id: p.id,
+      tenantId: p.tenantId,
+      isPrivate: p.isPrivate,
       slug: p.slug,
       name: p.name,
       category: p.category,
@@ -311,6 +313,8 @@ export async function loadPeerStats(): Promise<import('../evidence/rollups').Pee
       category: true,
       subcategory: true,
       currentPrice: true,
+      isPrivate: true,
+      tenantId: true,
       productScore: { select: { overall: true, fit: true, quality: true } },
       reviews: { select: { fitsAs: true } },
     },
@@ -320,7 +324,9 @@ export async function loadPeerStats(): Promise<import('../evidence/rollups').Pee
     brandId: r.brandId,
     category: r.category,
     subcategory: r.subcategory,
-    price: Number(r.currentPrice),
+    price: r.currentPrice === null ? null : Number(r.currentPrice),
+    isPrivate: r.isPrivate,
+    tenantId: r.tenantId,
     fit: r.productScore?.fit ?? null,
     quality: r.productScore?.quality ?? null,
     overall: r.productScore?.overall ?? null,

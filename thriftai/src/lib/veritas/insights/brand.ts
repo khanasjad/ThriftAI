@@ -15,7 +15,8 @@ export type InsightProduct = {
   name: string
   category: string
   subcategory: string | null
-  price: number
+  /** Null when the source has no price. */
+  price: number | null
   launchDate: Date | null
   trendTag: string | null
   score: { overall: number; label: string; pillars: Partial<Record<PillarKey, number | null>> } | null
@@ -23,7 +24,7 @@ export type InsightProduct = {
   returns: { reason: string; sizePurchased: string | null; price: number | null }[]
 }
 
-export type PeerProduct = { slug: string; name: string; category: string; subcategory: string | null; price: number; overall: number | null; pillars: Partial<Record<PillarKey, number | null>> }
+export type PeerProduct = { slug: string; name: string; category: string; subcategory: string | null; price: number | null; overall: number | null; pillars: Partial<Record<PillarKey, number | null>> }
 
 /** Share of an item's price a return costs the brand (shipping, handling, resale loss). Stated assumption, editable per tenant. */
 export const DEFAULT_RETURN_COST_SHARE = 0.3
@@ -89,7 +90,7 @@ export function buildBrandInsights(products: InsightProduct[], peers: PeerProduc
       if (!PROBLEM[r.reason]) continue
       const e = byReason.get(r.reason) ?? { returns: 0, cost: 0, products: new Map() }
       e.returns++
-      e.cost += (r.price ?? p.price) * share
+      e.cost += (r.price ?? p.price ?? 0) * share // no price known: the return still counts, its cost doesn't
       const pe = e.products.get(p.slug) ?? { slug: p.slug, name: p.name, count: 0 }
       pe.count++
       e.products.set(p.slug, pe)
@@ -145,22 +146,24 @@ export function buildBrandInsights(products: InsightProduct[], peers: PeerProduc
   sizeFixes.sort((a, b) => b.strength - a.strength)
 
   // --- Price position vs. peers in the same subcategory ---
-  const pricePosition = products.map((p) => {
+  // Products without a price (open review data) have no price position.
+  const pricePosition = products.flatMap((p) => {
+    if (p.price === null) return []
     const group = peers.filter((x) => sameGroup(x, p))
-    const medPrice = median(group.map((x) => x.price))
+    const medPrice = median(group.map((x) => x.price).filter((v): v is number => v !== null))
     const medScore = median(group.map((x) => x.overall).filter((v): v is number => v !== null))
     const score = p.score?.overall ?? null
     const pricier = medPrice !== null && p.price > medPrice
     const better = score !== null && medScore !== null ? score >= medScore : null
     const quadrant = better === null ? 'not_rated' : better ? (pricier ? 'premium' : 'best_value') : pricier ? 'overpriced' : 'budget'
-    return { slug: p.slug, name: p.name, price: p.price, score, medianPeerPrice: medPrice, medianPeerScore: medScore, quadrant }
+    return [{ slug: p.slug, name: p.name, price: p.price, score, medianPeerPrice: medPrice, medianPeerScore: medScore, quadrant }]
   })
 
   // --- Score vs. price index (100 = peer median price): this brand's rated products + other brands' as context ---
   const own = new Set(products.map((p) => p.slug))
-  const priceIndex = (x: { category: string; subcategory: string | null; price: number }) => {
-    const m = median(peers.filter((q) => sameGroup(q, x)).map((q) => q.price))
-    return m ? (x.price / m) * 100 : null
+  const priceIndex = (x: { category: string; subcategory: string | null; price: number | null }) => {
+    const m = median(peers.filter((q) => sameGroup(q, x)).map((q) => q.price).filter((v): v is number => v !== null))
+    return m && x.price !== null ? (x.price / m) * 100 : null
   }
   const scatter = [
     ...rated.map((p) => ({ name: p.name, brand: true, priceIndex: priceIndex(p), score: p.score!.overall })),

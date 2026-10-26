@@ -5,6 +5,9 @@ import type { SellerSeries } from '../price/facts'
 export type ProductBundle = {
   product: {
     id: string
+    /** Owner tenant for private (imported) products; public products have none. */
+    tenantId?: string | null
+    isPrivate?: boolean
     slug: string
     name: string
     category: string

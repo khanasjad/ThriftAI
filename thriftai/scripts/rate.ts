@@ -34,9 +34,14 @@ async function main() {
 
   let slugs: string[]
   if (arg('product')) slugs = [arg('product')!]
-  else if (flag('all')) slugs = (await prisma.clothingProduct.findMany({ orderBy: { slug: 'asc' }, select: { slug: true }, take: limit })).map((p) => p.slug)
+  else if (arg('tenant')) {
+    // One tenant's products (e.g. the open-data tenant), by tenant slug.
+    const t = await prisma.tenant.findUnique({ where: { slug: arg('tenant')! }, select: { id: true } })
+    if (!t) throw new Error(`No tenant ${arg('tenant')}`)
+    slugs = (await prisma.clothingProduct.findMany({ where: { tenantId: t.id }, orderBy: { slug: 'asc' }, select: { slug: true }, take: limit })).map((p) => p.slug)
+  } else if (flag('all')) slugs = (await prisma.clothingProduct.findMany({ orderBy: { slug: 'asc' }, select: { slug: true }, take: limit })).map((p) => p.slug)
   else {
-    console.log('Usage: npm run rate -- --product <slug> | --all [--mode structured|full] [--force] [--dry-run] [--limit N] [--baselines] [--yes]')
+    console.log('Usage: npm run rate -- --product <slug> | --tenant <slug> | --all [--mode structured|full] [--force] [--dry-run] [--limit N] [--baselines] [--yes]')
     return
   }
 

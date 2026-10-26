@@ -50,11 +50,12 @@ If a request conflicts with the product plan (for example a new category, pay-fo
 
 ## Environments
 
-- Two only: **development** (local Postgres `veritas_dev`, or the hosted dev site: Vercel Preview + Supabase `veritas-dev` project; dummy fixture data, live Claude with a cap) and **production** (Supabase + Vercel, real data only). Commands target the hosted dev database with `DEV_TARGET=hosted` (loads `.env.hosted.local`). Production is on hold (2026-10-25).
+- Two only: **development** (local Postgres `veritas_dev`, or the hosted dev site: Vercel Preview + Supabase `veritas-dev` project; dummy fixture data, live Claude with a cap; plus licensed open data in its own private tenant, see below) and **production** (Supabase + Vercel, real data only). Commands target the hosted dev database with `DEV_TARGET=hosted` (loads `.env.hosted.local`). Production is on hold (2026-10-25).
 - Config is validated in `src/lib/veritas/env.ts`. Add new variables there and to `.env.example`.
 - Secrets go only in `*.local` files or Vercel. Never commit secrets. Never print secret values in output.
 - Seed and dummy-data scripts must refuse to run when `APP_ENV=production`.
 - Dummy data uses **fictional** brands, sellers and people only.
+- Real open data in development (decided 2026-10-26): only public-domain or openly licensed datasets whose terms allow our use, with no real company names, imported into a **private tenant** (`open-data-cc0`) so the fictional demo, search and tests are unaffected. Every record carries `source` + `licence`. Today: Women's E-Commerce Clothing Reviews (CC0), `npm run open-data`.
 - Real data later: only from brands directly or sources whose terms allow it. Record `source` + `licence` per record. No scraping of sites that forbid it.
 
 ## Frontend rules
@@ -100,7 +101,8 @@ npm run vision -- --all --yes [--check]    # read product photos into style attr
 npm run photo:test -- --fetch [--set product] | --read --yes | --score   # accuracy on real, openly licensed photos (kept in .veritas/, never served)
 npm run embed -- --all                     # "looks like" photo fingerprints, open-source fashion model on this machine ($0; uploads do this automatically)
 npm run visual:eval                        # fashion model vs. hand labels and dev search ($0)
-npm run calibrate [-- --experts picks.csv | --simulate-experts]   # scores vs. owner stars, returns, expert picks; suggests weights, never applies ($0)
+npm run calibrate [-- --experts picks.csv | --simulate-experts] [--tenant <slug>]   # scores vs. owner stars, returns, expert picks; suggests weights, never applies ($0)
+npm run open-data -- --download | --dry-run   # real CC0 reviews (anonymised retailer) into the private open-data tenant ($0); then: npm run rate -- --tenant open-data-cc0 --mode full --yes
 APP_ENV=production npm run prod:check      # B8 gate: production config, no dev/fictional rows, migrations (fails on dev data by design)
 npm run smoke:prod -- --url <site>         # read-only smoke test of a deployed site
 npm run admin:create -- --email <e> --out <file>   # first admin (password never printed); also ADMIN_PASSWORD=…

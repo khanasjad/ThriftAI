@@ -7,7 +7,7 @@ export async function driversForProducts(ids: string[]): Promise<Map<string, Dri
   if (!ids.length) return new Map()
   const products = await prisma.clothingProduct.findMany({
     where: { id: { in: ids } },
-    select: { id: true, brandId: true, tenantId: true, isPrivate: true, productScore: { select: { fit: true, quality: true, comfort: true, reviewCount: true } } },
+    select: { id: true, brandId: true, tenantId: true, isPrivate: true, currentPrice: true, productScore: { select: { fit: true, quality: true, comfort: true, reviewCount: true } } },
   })
   const [factors, brandRows] = await Promise.all([
     prisma.factorScore.findMany({ where: { productId: { in: ids }, version: 'v2', factor: { in: ['style_value.price_fairness', 'style_value.value_for_money'] } }, select: { productId: true, factor: true, value: true } }),
@@ -25,6 +25,7 @@ export async function driversForProducts(ids: string[]): Promise<Map<string, Dri
         pillars: { FIT: s?.fit ?? null, QUALITY: s?.quality ?? null, COMFORT: s?.comfort ?? null },
         factors: Object.fromEntries(factors.filter((f) => f.productId === p.id).map((f) => [f.factor, Number(f.value)])),
         reviewCount: s?.reviewCount ?? 0,
+        priceKnown: p.currentPrice !== null,
         brandScores: brandRows.filter((b) => b.brandId === p.brandId && b.id !== p.id && (!b.isPrivate || b.tenantId === p.tenantId)).map((b) => b.productScore!.overall),
       }),
     )

@@ -253,7 +253,7 @@ The full 27-factor model is designed from day one; factors switch on as their da
 - [x] Lock the 27-factor definitions and the data source for each (2026-10-25: `taxonomy/sources.ts`, shown on /how-it-works)
 - [x] Refactor the codebase to the new score structure (keep tenants, auth, Claude integration) (done 2026-10-24/25, backend phases B0–B7)
 - [x] Build the Evidence agent and Scoring engine for the Fit, Quality and Comfort pillars first (done 2026-10-25, all five pillars, B3–B4)
-- [ ] Collect data for 500 tees and jeans; produce the first scores
+- [ ] Collect data for 500 tees and jeans; produce the first scores (2026-10-26: first real scores: 68 products, 8,587 real reviews from a public-domain dataset in a private dev tenant; see backend plan B20)
 - [ ] Compare scores with expert picks and owner sentiment; adjust weights (2026-10-26: tool built, `npm run calibrate`: rank agreement with owner stars, keep-vs-return and an expert-picks file, per pillar and per category, biggest disagreements, and nearby weights (±10 points) that would agree better, tuned on independent references only and never applied automatically. Dev check with a fictional expert panel: ρ 0.78, comfort barely tracks any reference, best nearby weights gain 0.045 → keep today's. Needs real expert picks and real data.)
 - [ ] Make one sample brand scorecard and show it to 3 brand operators (scorecard built 2026-10-25: `/dashboard/scorecard`, printable; showing it to brands is still to do)
 - [ ] Write the pilot one-pager and a 100-brand outreach list (2026-10-25: one-pager at /pilot/one-pager and an outreach tracker at /admin/outreach are built; adding the 100 brands is the team's job)

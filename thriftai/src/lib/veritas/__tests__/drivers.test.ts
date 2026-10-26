@@ -18,4 +18,9 @@ describe('three drivers', () => {
     expect(d.price.basis).toBe('Not enough price history yet')
     expect(d.brand.value).toBeNull()
   })
+
+  it('says where value comes from when the source has no price (open review data)', () => {
+    const d = computeDrivers({ pillars: { FIT: 60, QUALITY: 70, COMFORT: 80 }, factors: { 'style_value.value_for_money': 40 }, reviewCount: 50, brandScores: [], priceKnown: false })
+    expect(d.price).toEqual({ value: 40, basis: 'What reviewers say about value (no price in the source)' })
+  })
 })

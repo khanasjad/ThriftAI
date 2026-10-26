@@ -251,7 +251,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                           </span>
                         )}
                       </TD>
-                      <TD className="text-right tabular">{formatPrice(c.price)}</TD>
+                      <TD className="text-right tabular">{c.price === null ? <span className="text-fg-subtle">no price</span> : formatPrice(c.price)}</TD>
                       <TD className="text-right tabular">{c.reviews}</TD>
                       <TD className="text-right tabular">{c.avgRating ?? '—'}</TD>
                       <TD className="text-right tabular">{c.returns}</TD>

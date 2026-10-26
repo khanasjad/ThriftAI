@@ -60,7 +60,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const score = product.productScore
     const tags = (await tagsForProducts([product.id])).get(product.id) ?? []
     const drivers = score ? (await driversForProducts([product.id])).get(product.id) ?? null : null
-    const current = Number(product.currentPrice)
+    const current = product.currentPrice === null ? null : Number(product.currentPrice)
     const original = product.originalPrice ? Number(product.originalPrice) : null
 
     return NextResponse.json({
@@ -76,7 +76,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         currentPrice: current,
         originalPrice: original,
         currency: product.currency,
-        discount: original ? Math.round((1 - current / original) * 100) : null,
+        discount: original && current !== null ? Math.round((1 - current / original) * 100) : null,
         sku: product.sku,
         gender: product.gender,
         sizes: product.sizes,

@@ -85,7 +85,9 @@ function targetStat(bundle: ProductBundle, peers: PeerStat[]): PeerStat {
       brandId: bundle.brand.id,
       category: bundle.product.category,
       subcategory: bundle.product.subcategory,
-      price: bundle.prices.at(-1)?.points.at(-1)?.price ?? 0,
+      price: bundle.prices.at(-1)?.points.at(-1)?.price ?? null,
+      isPrivate: bundle.product.isPrivate ?? false,
+      tenantId: bundle.product.tenantId ?? null,
       fit: null,
       quality: null,
       overall: null,
@@ -110,7 +112,8 @@ export async function rateProduct(slugOrId: string, opts: RateOptions = {}): Pro
   const bundle = await data.loadBundle(slugOrId)
   if (!bundle) return { slug: slugOrId, status: 'NOT_FOUND', costUsd: 0 }
   const slug = bundle.product.slug
-  const peers = opts.peers ?? (await data.loadPeerStats())
+  // Public products compare only with public ones; a private product with public ones and its own tenant's.
+  const peers = (opts.peers ?? (await data.loadPeerStats())).filter((p) => !p.isPrivate || (!!bundle.product.tenantId && p.tenantId === bundle.product.tenantId))
   const target = targetStat(bundle, peers)
   const inputsHash = data.hashInputs(bundle, { ...GRAPH_VERSIONS, mode, peers: peerDigest(target, peers) })
 
@@ -294,7 +297,8 @@ function countBy(xs: string[]) {
  */
 export async function refreshBaselines() {
   const rows = await prisma.factorScore.findMany({
-    where: { version: 'v2', rawValue: { not: null } },
+    // Baselines come from public products only: a tenant's private data never shifts other products' scores.
+    where: { version: 'v2', rawValue: { not: null }, product: { isPrivate: false } },
     select: { factor: true, rawValue: true, productId: true, product: { select: { category: true, subcategory: true } } },
   })
   const groups = new Map<string, { category: string; subcategory: string; byProduct: Map<string, { factor: string; raw: number }[]> }>()

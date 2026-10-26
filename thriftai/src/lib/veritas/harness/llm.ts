@@ -104,8 +104,12 @@ export function getLlm(): LlmClient {
   return defaultClient
 }
 
-/** Builds the request. Order and bytes of system + tools are fixed so prompt caching hits. */
-export function buildRequest(agent: AgentDef, messages: Anthropic.MessageParam[], maxTokens: number): LlmRequest {
+/**
+ * Builds the request. Order and bytes of system + tools are fixed so prompt caching hits.
+ * `thinkingOff`: only for the truncation retry (Haiku 5.5 thinks by default and thinking counts toward max_tokens;
+ * disabling is accepted at effort ≤ high, and agents run at low).
+ */
+export function buildRequest(agent: AgentDef, messages: Anthropic.MessageParam[], maxTokens: number, opts: { thinkingOff?: boolean } = {}): LlmRequest {
   const finishTool = toAnthropicTool({ name: FINISH_TOOL, description: agent.finish.description, schema: agent.finish.schema })
   return {
     model: agent.model(),
@@ -114,6 +118,7 @@ export function buildRequest(agent: AgentDef, messages: Anthropic.MessageParam[]
     tools: [...agent.tools.map(toAnthropicTool), finishTool],
     tool_choice: { type: 'auto' },
     output_config: { effort: agent.effort },
+    ...(opts.thinkingOff && { thinking: { type: 'disabled' as const } }),
     // Automatic caching: moves the breakpoint forward as the loop's history grows.
     cache_control: { type: 'ephemeral' },
     messages,

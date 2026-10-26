@@ -187,7 +187,8 @@ model ClothingProduct {
   description String?
 
   // Pricing (brand-direct list; per-seller history lives in PriceSnapshot)
-  currentPrice  Decimal  @db.Decimal(10, 2)
+  /// Null when the source has no price (e.g. open review datasets): value factors then have no evidence, never a guess.
+  currentPrice  Decimal? @db.Decimal(10, 2)
   originalPrice Decimal? @db.Decimal(10, 2)
   currency      String   @default("USD")
 

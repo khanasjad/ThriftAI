@@ -3,6 +3,7 @@
  *   npm run calibrate                                   # owner stars + keep-vs-return (automatic, from the database)
  *   npm run calibrate -- --experts picks.csv            # + expert picks (columns: product, rating, source[, note])
  *   npm run calibrate -- --simulate-experts             # dev only: a fictional expert panel built from the dataset's hidden truth
+ *   npm run calibrate -- --tenant open-data-cc0         # one tenant's products (default: the public catalog)
  * Writes .veritas/calibration/report-<date>.json. Never changes weights; it suggests, a person decides.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -30,8 +31,11 @@ const ExpertRow = z.object({
 })
 
 async function main() {
+  const tenantSlug = arg('--tenant')
+  const tenant = tenantSlug ? await prisma.tenant.findUnique({ where: { slug: tenantSlug }, select: { id: true, name: true } }) : null
+  if (tenantSlug && !tenant) throw new Error(`No tenant ${tenantSlug}`)
   const rows = await prisma.clothingProduct.findMany({
-    where: { productScore: { isNot: null } },
+    where: { productScore: { isNot: null }, ...(tenant ? { tenantId: tenant.id } : { isPrivate: false }) },
     select: {
       id: true,
       slug: true,
@@ -111,7 +115,7 @@ async function main() {
 
   const report = calibrate(products, refs)
   const pct = (x: number | null) => (x === null ? 'n/a' : x.toFixed(2))
-  console.log(`\nCalibration · ${products.length} scored products · re-weigh check: max ${report.reweighCheck.maxDiff} points off stored scores (${report.reweighCheck.n} products)\n`)
+  console.log(`\nCalibration · ${tenant ? tenant.name : 'public catalog'} · ${products.length} scored products · re-weigh check: max ${report.reweighCheck.maxDiff} points off stored scores (${report.reweighCheck.n} products)\n`)
   for (const r of report.references) {
     console.log(`${r.label}${r.independent ? '' : ' (partly built in)'} · n=${r.n} · agreement ρ=${pct(r.rho)}${r.topAgreement ? ` · top ${r.topAgreement.k}: ${r.topAgreement.shared} shared` : ''}`)
     console.log(`  per category: ${r.perCategory.map((c) => `${c.category} ${pct(c.rho)} (n=${c.n})`).join(' · ')}`)

@@ -1,9 +1,10 @@
 import 'server-only'
-import type { UserRole } from '@/generated/prisma/client'
+import type { Prisma, UserRole } from '@/generated/prisma/client'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { fail } from './http'
+import { PUBLIC_PRODUCTS, visibleProducts } from './scope'
 
 /**
  * Authorization (B7). Middleware rejects anonymous requests early; these helpers do the real checks
@@ -16,6 +17,17 @@ async function currentUser(): Promise<SessionUser | null> {
   const s = await getSession()
   if (!s?.user?.id) return null
   return { id: s.user.id, email: s.user.email ?? '', role: s.user.role, tenantId: s.user.tenantId }
+}
+
+/**
+ * Which products the current viewer may open: shoppers see public products; a signed-in organisation user also
+ * sees its own private (imported) products; admins see all. Product pages use this; listings stay public.
+ */
+export async function productScopeForViewer(): Promise<Prisma.ClothingProductWhereInput> {
+  const u = await currentUser().catch(() => null)
+  if (!u) return PUBLIC_PRODUCTS
+  if (u.role === 'ADMIN') return {}
+  return visibleProducts(u.tenantId)
 }
 
 /** Server components / layouts: redirect to sign-in when not allowed. */

@@ -13,7 +13,11 @@ export type PeerStat = {
   brandId: string
   category: string
   subcategory: string | null
-  price: number
+  /** Null when the source has no price: such products never count in price comparisons. */
+  price: number | null
+  /** Private (tenant) products only compare with public products and their own tenant's. */
+  isPrivate: boolean
+  tenantId: string | null
   /** Published pillar scores (null when the product has no published score). */
   fit: number | null
   quality: number | null
@@ -72,11 +76,11 @@ function percentile(x: number, xs: number[]) {
  * peers in the same subcategory (≥ 4). Needs the target's own published fit + quality.
  */
 export function valueForMoney(target: PeerStat, peers: PeerStat[]): EvidenceDraft[] {
-  if (!published(target)) return []
-  const group = peers.filter((p) => published(p) && sameGroup(p, target))
+  if (!published(target) || target.price === null) return []
+  const group = peers.filter((p) => published(p) && sameGroup(p, target) && p.price !== null)
   if (group.length < 4) return []
   const qualityRank = percentile(fq(target), group.map(fq))
-  const priceRank = percentile(target.price, group.map((p) => p.price))
+  const priceRank = percentile(target.price, group.map((p) => p.price!))
   const diff = qualityRank - priceRank
   const ev = (signal: string, confidence: number): EvidenceDraft => ({ sourceType: 'PRICE', factor: 'style_value.value_for_money', signal, confidence, quote: null, origin: 'code:value_vs_peers' })
   if (diff >= 0.25) return [ev('great_value', 0.6)]
@@ -100,9 +104,9 @@ export function earlyScore(target: PeerStat, peers: PeerStat[], specValues: numb
   const brandSimilar = mean(basisSet.map((p) => p.overall!))
 
   const spec = specValues.length ? mean(specValues) : null
-  const priced = peers.filter((p) => p.overall !== null && sameGroup(p, target) && p.productId !== target.productId).map((p) => p.price)
+  const priced = peers.filter((p) => p.overall !== null && sameGroup(p, target) && p.productId !== target.productId && p.price !== null).map((p) => p.price!)
   let priceVsPeers: number | null = null
-  if (priced.length >= 3) {
+  if (priced.length >= 3 && target.price !== null) {
     const median = [...priced].sort((a, b) => a - b)[Math.floor(priced.length / 2)]
     priceVsPeers = Math.max(0, Math.min(100, 50 + (50 * (median - target.price)) / median))
   }

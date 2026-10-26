@@ -43,7 +43,7 @@ export async function loadBrandInsights(brandId: string) {
     name: r.name,
     category: r.category,
     subcategory: r.subcategory,
-    price: Number(r.currentPrice),
+    price: r.currentPrice === null ? null : Number(r.currentPrice),
     launchDate: r.launchDate,
     trendTag: r.trendTag,
     score: r.productScore ? { overall: r.productScore.overall, label: r.productScore.confidenceLabel, pillars: pillarsOf(r.productScore) } : null,
@@ -55,7 +55,7 @@ export async function loadBrandInsights(brandId: string) {
     name: r.name,
     category: r.category,
     subcategory: r.subcategory,
-    price: Number(r.currentPrice),
+    price: r.currentPrice === null ? null : Number(r.currentPrice),
     overall: r.productScore?.overall ?? null,
     pillars: r.productScore ? pillarsOf(r.productScore) : {},
   }))

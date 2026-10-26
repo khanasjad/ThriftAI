@@ -20,7 +20,8 @@ const base = siteUrl
 
 /** `scope` decides whose products: visibleProducts(tenant) for the API, the user's own tenant on the dashboard. */
 export async function loadAdRows(scope: Prisma.ClothingProductWhereInput, opts: { eligibleOnly?: boolean; category?: 'TOPS' | 'BOTTOMS' } = {}) {
-  const where: Prisma.ClothingProductWhereInput = { AND: [scope, { isAvailable: true }, opts.category ? { category: opts.category } : {}] }
+  // Ads need a price: products from sources without one (open review data) are never in a feed.
+  const where: Prisma.ClothingProductWhereInput = { AND: [scope, { isAvailable: true }, { currentPrice: { not: null } }, opts.category ? { category: opts.category } : {}] }
   const rows = await prisma.clothingProduct.findMany({
     where,
     select: {
@@ -50,7 +51,7 @@ export async function loadAdRows(scope: Prisma.ClothingProductWhereInput, opts: 
         description: r.adCopy?.body ?? highlight?.detail ?? '',
         link: r.url ?? `${base()}/p/${r.slug}`,
         image_link: r.primaryImageUrl ?? `${base()}/p/${r.slug}/opengraph-image`,
-        price: `${Number(r.currentPrice).toFixed(2)} ${r.currency}`,
+        price: `${Number(r.currentPrice ?? 0).toFixed(2)} ${r.currency}`,
         brand: r.brand.name,
         availability: 'in stock',
         condition: 'new',
