@@ -23,6 +23,8 @@ export type ProductBundle = {
     fitType: string | null
     silhouette: string | null
     careInstructions: string | null
+    /** Expert inspection of a physical item (second-hand open data). Pilling: 1 = severe … 5 = none. */
+    inspection?: { pilling?: number | null; condition?: number | null; stains?: boolean | null; damage?: string | null } | null
     certifications: string[]
     recycledContent: number | null
     /** Units sold over the returns window (brand/platform data). Enables return rates. */
@@ -54,7 +56,7 @@ export type ProductBundle = {
   trendPhase: 'EMERGING' | 'PEAK' | 'DECLINING' | 'CLASSIC' | null
 }
 
-export type EvidenceSourceType = 'REVIEW' | 'RETURN' | 'SPEC' | 'PRICE' | 'TREND' | 'BRAND'
+export type EvidenceSourceType = 'REVIEW' | 'RETURN' | 'SPEC' | 'PRICE' | 'TREND' | 'BRAND' | 'MANUAL'
 
 /**
  * A proposed piece of evidence. Sentiment is NOT chosen by whoever proposes it:

@@ -55,7 +55,7 @@ If a request conflicts with the product plan (for example a new category, pay-fo
 - Secrets go only in `*.local` files or Vercel. Never commit secrets. Never print secret values in output.
 - Seed and dummy-data scripts must refuse to run when `APP_ENV=production`.
 - Dummy data uses **fictional** brands, sellers and people only.
-- Real open data in development (decided 2026-10-26): only public-domain or openly licensed datasets whose terms allow our use, with no real company names, imported into a **private tenant** (`open-data-cc0`) so the fictional demo, search and tests are unaffected. Every record carries `source` + `licence`. Today: Women's E-Commerce Clothing Reviews (CC0), `npm run open-data`.
+- Real open data in development (decided 2026-10-26): only public-domain or openly licensed datasets whose terms allow our use, with no real company names, imported into a **private tenant** (`open-data-cc0`) so the fictional demo, search and tests are unaffected. Every record carries `source` + `licence`. Today: Women's E-Commerce Clothing Reviews (CC0), `npm run open-data`; and real photographed second-hand garments with expert grades (CC BY 4.0, credit shown on every photo, source brands never imported, items with a readable brand removed), `npm run open-photos`.
 - Real data later: only from brands directly or sources whose terms allow it. Record `source` + `licence` per record. No scraping of sites that forbid it.
 
 ## Frontend rules
@@ -98,6 +98,8 @@ npm run ingest:gate                        # B10 gate: fictional marketplace fee
 npm run ads -- --eligible [--limit N] --yes   # verified ad copy for ad-eligible products (live; estimate first)
 npm run dev:images                         # dev only: render product PNGs with known patterns (needs npm run dev)
 npm run vision -- --all --yes [--check]    # read product photos into style attributes (live; unchanged photos $0; --check = accuracy on dev images)
+npm run open-photos -- [--dry-run]           # dev only: real photographed second-hand items (CC BY 4.0) into the open-data tenant
+npm run vision -- --tenant <slug> --yes      # read one tenant's product photos (live; estimate first)
 npm run photo:test -- --fetch [--set product] | --read --yes | --score   # accuracy on real, openly licensed photos (kept in .veritas/, never served)
 npm run embed -- --all                     # "looks like" photo fingerprints, open-source fashion model on this machine ($0; uploads do this automatically)
 npm run visual:eval                        # fashion model vs. hand labels and dev search ($0)

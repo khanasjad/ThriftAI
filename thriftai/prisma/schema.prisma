@@ -218,6 +218,11 @@ model ClothingProduct {
   isAvailable     Boolean   @default(true)
   images          String[]  @default([])
   primaryImageUrl String?
+  /// Credit line for a licensed photo (e.g. CC BY), shown with the photo. Null for a vendor's own photos.
+  imageCredit     String?
+  /// Expert inspection of a physical item (open second-hand data): { pilling 1-5, condition 1-5, stains, damage, priceBand, by }.
+  /// Pilling feeds the wear-resistance factor; the rest is shown as facts (wear history unknown).
+  inspection      Json?
 
   /// Private to its tenant (imported platform data). Public pages never show private products.
   isPrivate  Boolean @default(false)

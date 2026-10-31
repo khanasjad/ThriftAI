@@ -7,6 +7,7 @@ import { ScoreRing } from './score-ring'
 import { ConfidenceBadge } from './badges'
 import { ProductThumb } from './product-thumb'
 import { PILLARS, formatPrice, type ConfidenceLabel, type Pillar } from './score'
+import type { Photo } from './photo'
 
 export type PickRole = 'best_overall' | 'best_value' | 'wildcard'
 const ROLE = {
@@ -25,6 +26,7 @@ export type Pick = {
   silhouette?: string | null
   color?: string | null
   pattern?: string | null
+  photo?: Photo | null
   /** 4th parameter: how many of the looks the shopper asked for this item has (photo + catalog). */
   style?: { value: number; matched: string[]; missed: string[] } | null
   score: number
@@ -61,7 +63,7 @@ export function PickCard({ pick, index = 0 }: { pick: Pick; index?: number }) {
       </div>
 
       <div className="flex gap-4 p-5">
-        <ProductThumb category={pick.category} subcategory={pick.subcategory} silhouette={pick.silhouette} color={pick.color} pattern={pick.pattern} showTag={false} className="w-24 shrink-0" />
+        <ProductThumb category={pick.category} subcategory={pick.subcategory} silhouette={pick.silhouette} color={pick.color} pattern={pick.pattern} photo={pick.photo} showTag={false} className="w-24 shrink-0" />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold leading-snug text-fg">
             <Link href={pick.href} className="after:absolute after:inset-0 focus-visible:outline-none">

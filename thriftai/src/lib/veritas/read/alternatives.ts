@@ -6,6 +6,7 @@ import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import { tagsForProducts } from './tags'
 import { similarLooking } from '../visual/store'
 import type { CatalogItem } from './catalog'
+import { displayPhoto } from '@/components/veritas/photo'
 
 const NEW_LAUNCH_DAYS = 30
 
@@ -23,6 +24,8 @@ const CARD_SELECT = {
   launchDate: true,
   brand: { select: { name: true } },
   visual: { select: { attributes: true } },
+  primaryImageUrl: true,
+  imageCredit: true,
   productScore: { select: { overall: true, confidenceLabel: true, fit: true, quality: true, styleValue: true, comfort: true } },
   _count: { select: { reviews: true } },
 } as const
@@ -53,6 +56,7 @@ function toCard(r: CardRow, tags: CatalogItem['tags']): CatalogItem {
     silhouette: r.silhouette,
     color: r.colors[0] ?? null,
     pattern: thumbPattern(r.visual?.attributes as Parameters<typeof thumbPattern>[0]),
+    photo: displayPhoto(r.primaryImageUrl, r.imageCredit),
     price: Number(r.currentPrice),
     currency: r.currency,
     reviewCount: r._count.reviews,

@@ -27,4 +27,18 @@ test.describe('open data (private tenant)', () => {
     await expect(page.getByText('No price in the source', { exact: true })).toBeVisible()
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)
   })
+
+  test('second-hand items show the real photo with its credit and the expert inspection', async ({ page, request }) => {
+    test.setTimeout(60_000)
+    const slug = 'secondhand-tee-20221201132514'
+    expect((await request.get(`/p/${slug}`)).status()).toBe(404)
+    await signIn(page, account!, '/dashboard')
+    await page.goto(`/p/${slug}`)
+    const photo = page.locator('img[src^="/open-images/secondhand/"]').first()
+    await expect(photo).toBeVisible()
+    expect(await photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
+    await expect(page.getByText('Photo: Wargön Innovation / RISE · CC BY 4.0').first()).toBeVisible()
+    await expect(page.getByText('Expert inspection', { exact: true })).toBeVisible()
+    await expect(page.getByText('Pilling', { exact: true }).first()).toBeVisible()
+  })
 })

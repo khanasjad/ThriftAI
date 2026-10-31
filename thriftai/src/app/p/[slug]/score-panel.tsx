@@ -51,11 +51,12 @@ export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inp
           <ScoreRing score={null} size="lg" caption="Veritas Score" />
           <div className="min-w-0 flex-1">
             <h2 id="score-h" className="text-lg font-semibold text-fg">
-              Not rated yet
+              {inputs.reviews === 0 ? 'Not enough evidence' : 'Not rated yet'}
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
-              The rating agents haven’t read this product’s evidence yet, so there is no score. We don’t guess. Everything below is counted directly from the
-              data.
+              {inputs.reviews === 0
+                ? 'An overall score needs what owners say after wearing it, and there are no reviews of this item yet. We don’t guess. Everything below is counted directly from the data.'
+                : 'The rating agents haven’t read this product’s evidence yet, so there is no score. We don’t guess. Everything below is counted directly from the data.'}
             </p>
             <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
               {[
@@ -69,7 +70,7 @@ export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inp
                 </div>
               ))}
             </dl>
-            <p className="mt-3 text-xs text-fg-subtle">Waiting to be read by the evidence, price and trend agents.</p>
+            {inputs.reviews > 0 && <p className="mt-3 text-xs text-fg-subtle">Waiting to be read by the evidence, price and trend agents.</p>}
           </div>
         </div>
         <div className="mt-6 border-t border-border pt-5">

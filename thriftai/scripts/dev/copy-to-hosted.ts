@@ -4,7 +4,7 @@
  *   npm run dev:hosted:copy            # shows what would happen
  *   npm run dev:hosted:copy -- --yes   # replaces the hosted dev database's contents with the local copy
  * Needs pg_dump + psql, and .env.hosted.local with DIRECT_URL (Supabase direct connection) and ALLOW_HOSTED_DEV_DB=1.
- * Refuses if the target holds anything that isn't fixture data, or looks like production.
+ * Refuses if the target holds anything that isn't fixture or open data (dev-only importers), or looks like production.
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -36,11 +36,11 @@ async function main() {
   const host = new URL(target).hostname
   console.log(`From: local veritas_dev  →  To: hosted dev database at ${host}`)
 
-  // Safety: the target may be empty or hold fixture data only.
+  // Safety: the target may be empty or hold fixture data and open data (both come from dev-only scripts).
   const prisma = createPrismaClient(target)
   try {
-    const foreign = await prisma.clothingProduct.count({ where: { source: { not: 'dev-fixture' } } }).catch(() => 0)
-    if (foreign > 0) fail(`Target has ${foreign} products that are not fixture data. Refusing (is this production?).`)
+    const foreign = await prisma.clothingProduct.count({ where: { AND: [{ source: { not: 'dev-fixture' } }, { NOT: { source: { startsWith: 'open-data:' } } }] } }).catch(() => 0)
+    if (foreign > 0) fail(`Target has ${foreign} products that are neither fixture nor open data. Refusing (is this production?).`)
   } finally {
     await prisma.$disconnect()
   }

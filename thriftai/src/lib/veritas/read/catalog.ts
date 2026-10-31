@@ -11,6 +11,7 @@ import { visualWords } from '../visual/look-alike'
 import { lookAlikeIds } from '../visual/store'
 import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import type { Tag } from '../enrich/tags'
+import { displayPhoto, type Photo } from '@/components/veritas/photo'
 
 export type { PriceFacts }
 
@@ -22,6 +23,9 @@ export type { PriceFacts }
 
 const num = (d: Prisma.Decimal | null | undefined) => (d == null ? null : Number(d))
 
+/** Expert inspection of a physical second-hand item (open data, B21). */
+export type Inspection = { pilling?: number | null; condition?: number | null; stains?: boolean | null; damage?: string | null; priceBand?: string | null; by?: string | null }
+
 export type CatalogItem = {
   slug: string
   name: string
@@ -32,6 +36,8 @@ export type CatalogItem = {
   color: string | null
   /** From the product photo (vision agent), when read. */
   pattern?: string | null
+  /** A real photo to show (vendor or licensed open data); null → the drawn illustration. */
+  photo?: Photo | null
   price: number
   currency: string
   reviewCount: number
@@ -141,6 +147,8 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
       launchDate: true,
       brand: { select: { name: true } },
       visual: { select: { attributes: true } },
+      primaryImageUrl: true,
+      imageCredit: true,
       productScore: { select: { overall: true, confidenceLabel: true } },
       reviews: parsed.terms.length ? { select: { content: true } } : false,
       _count: { select: { reviews: true } },
@@ -173,6 +181,7 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
       silhouette: r.silhouette,
       color: r.colors[0] ?? null,
       pattern: thumbPattern(v),
+      photo: displayPhoto(r.primaryImageUrl, r.imageCredit),
       price: Number(r.currentPrice),
       currency: r.currency,
       reviewCount: r._count.reviews,
@@ -384,6 +393,8 @@ export async function getProductPage(slugOrId: string, scope: Prisma.ClothingPro
       price: p.currentPrice === null ? null : Number(p.currentPrice),
       originalPrice: num(p.originalPrice),
       isPrivate: p.isPrivate,
+      photo: displayPhoto(p.primaryImageUrl, p.imageCredit),
+      inspection: (p.inspection ?? null) as Inspection | null,
       currency: p.currency,
       sizes: p.sizes,
       colors: p.colors,

@@ -52,9 +52,11 @@ export async function imageSource(url: string): Promise<{ block: Anthropic.Image
     if (bytes.length > MAX_IMAGE_BYTES) return null
     return { block: { type: 'image', source: { type: 'base64', media_type: media, data: bytes.toString('base64') } }, hash: createHash('sha256').update(bytes).digest('hex') }
   }
-  if (url.startsWith('/dev-images/')) {
+  // Local images: generated dev images, and licensed open-data photos (public/open-images, B21).
+  if (url.startsWith('/dev-images/') || url.startsWith('/open-images/')) {
+    const dir = url.startsWith('/dev-images/') ? 'dev-images' : 'open-images'
     const file = normalize(join(process.cwd(), 'public', url))
-    if (!file.startsWith(join(process.cwd(), 'public', 'dev-images'))) return null
+    if (!file.startsWith(join(process.cwd(), 'public', dir) + '/')) return null
     const ext = url.split('.').pop()?.toLowerCase() ?? ''
     const media = MEDIA[ext]
     if (!media) return null

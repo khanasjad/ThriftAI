@@ -4,14 +4,15 @@ import * as React from 'react'
 import { ProductThumb } from '@/components/veritas/product-thumb'
 import { swatchFor } from '@/components/veritas/colors'
 import { cn } from '@/lib/utils'
+import type { Photo } from './photo'
 
 /** Product illustration with one swatch per colourway. Switching colour only changes the picture. */
-export function ProductGallery({ name, category, subcategory, silhouette, colors, pattern }: { name: string; category: string; subcategory: string | null; silhouette: string | null; colors: string[]; pattern?: string | null }) {
+export function ProductGallery({ name, category, subcategory, silhouette, colors, pattern, photo }: { name: string; category: string; subcategory: string | null; silhouette: string | null; colors: string[]; pattern?: string | null; photo?: Photo | null }) {
   const [color, setColor] = React.useState(colors[0] ?? null)
   return (
     <div>
-      <ProductThumb category={category} subcategory={subcategory} silhouette={silhouette} color={color} pattern={pattern} label={name} className="rounded-2xl" />
-      {colors.length > 0 && (
+      <ProductThumb category={category} subcategory={subcategory} silhouette={silhouette} color={color} pattern={pattern} photo={photo} label={name} className="rounded-2xl" />
+      {colors.length > 0 && !photo && (
         <fieldset className="mt-3">
           <legend className="text-sm text-fg-muted">
             Colour: <span className="font-medium text-fg">{color}</span>

@@ -1,0 +1,3 @@
+Photos: Clothing Dataset for Second-Hand Fashion, Farrukh Nauman (RISE Research Institutes of Sweden) with Wargön Innovation AB.
+https://zenodo.org/records/8386668 · Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+Changes: front photos only, resized to 640 px, metadata removed. Brand names withheld.

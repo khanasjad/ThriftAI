@@ -56,7 +56,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
   const data = (await loadBrandInsights(brand.id))!
   const { insights: x } = data
-  const allBrands = user.role === 'ADMIN' ? await prisma.brand.findMany({ orderBy: { name: 'asc' }, select: { slug: true, name: true } }) : []
+  // Admins pick any brand; an organisation's users switch between their own brands (e.g. open data: reviews + photos).
+  const allBrands =
+    user.role === 'ADMIN'
+      ? await prisma.brand.findMany({ orderBy: { name: 'asc' }, select: { slug: true, name: true } })
+      : user.tenantId
+        ? await prisma.brand.findMany({ where: { tenantId: user.tenantId }, orderBy: { name: 'asc' }, select: { slug: true, name: true } })
+        : []
   const totalCost = x.problems.reduce((s, p) => s + p.estCost, 0)
   const maxCost = Math.max(1, ...x.problems.map((p) => p.estCost))
   const ratedForScatter = x.scatter.filter((p) => p.brand).length
@@ -78,7 +84,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <Link href="/dashboard/ads" className="inline-flex h-9 items-center rounded-lg border border-border-strong px-3 text-sm font-medium text-fg hover:bg-surface-2">
               Data and ads →
             </Link>
-            {user.role === 'ADMIN' && <BrandSwitcher brands={allBrands} current={data.brand.slug} />}
+            {allBrands.length > 1 && <BrandSwitcher brands={allBrands} current={data.brand.slug} />}
           </div>
         </div>
 

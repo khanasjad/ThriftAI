@@ -55,6 +55,7 @@ export async function loadBundle(slugOrId: string): Promise<ProductBundle | null
       fitType: p.fitType,
       silhouette: p.silhouette,
       careInstructions: p.careInstructions,
+      inspection: (p.inspection ?? null) as ProductBundle['product']['inspection'],
       certifications: p.certifications,
       recycledContent: p.recycledContent,
       unitsSold: p.unitsSold,

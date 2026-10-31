@@ -1,6 +1,8 @@
 import { useId } from 'react'
 import { cn } from '@/lib/utils'
 import { swatchFor } from './colors'
+import type { Photo } from './photo'
+import { ProductPhoto } from './product-photo'
 
 /**
  * Generated product illustration for dev products (frontend plan §3: no stock photos, no fake photos).
@@ -199,6 +201,7 @@ export function ProductThumb({
   label,
   showTag = true,
   className,
+  photo,
 }: {
   category: string
   subcategory?: string | null
@@ -214,6 +217,8 @@ export function ProductThumb({
   label?: string
   showTag?: boolean
   className?: string
+  /** A real photo (vendor or licensed open data). Shown instead of the drawing; the drawing is the fallback. */
+  photo?: Photo | null
 }) {
   const id = useId().replace(/:/g, '')
   // "graphic:car" = graphic pattern with a car chest print (see thumb-pattern.ts).
@@ -226,13 +231,8 @@ export function ProductThumb({
   const line = light ? 'rgb(0 0 0 / 0.28)' : 'rgb(255 255 255 / 0.22)'
   const outline = light ? 'rgb(0 0 0 / 0.35)' : 'rgb(0 0 0 / 0.55)'
 
-  return (
-    <div
-      className={cn('relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-surface-2 to-surface-3', className)}
-      role={label ? 'img' : undefined}
-      aria-label={label ? `${label}${color ? `, ${color}` : ''}${drawPattern && drawPattern !== 'solid' ? `, ${drawPattern}` : ''}${drawPattern === 'graphic' && drawPrint ? ` (${drawPrint.replace('-', ' ')} print)` : ''} (illustration)` : undefined}
-      aria-hidden={label ? undefined : true}
-    >
+  const drawingEl = (
+    <>
       <svg viewBox="0 0 120 146" className="h-[78%] w-[78%] drop-shadow-[0_6px_8px_rgb(0_0_0/0.12)]">
         <defs>
           <linearGradient id={`shade-${id}`} x1="0" y1="0" x2="1" y2="1">
@@ -267,6 +267,23 @@ export function ProductThumb({
       </svg>
       {showTag && (
         <span className="absolute bottom-2 left-2 rounded bg-surface/85 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-fg-subtle">Illustration</span>
+      )}
+    </>
+  )
+
+  return (
+    <div
+      className={cn('relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-surface-2 to-surface-3', className)}
+      role={label && !photo ? 'img' : undefined}
+      aria-label={label && !photo ? `${label}${color ? `, ${color}` : ''}${drawPattern && drawPattern !== 'solid' ? `, ${drawPattern}` : ''}${drawPattern === 'graphic' && drawPrint ? ` (${drawPrint.replace('-', ' ')} print)` : ''} (illustration)` : undefined}
+      aria-hidden={label || photo ? undefined : true}
+    >
+      {photo ? (
+        <ProductPhoto url={photo.url} alt={label ? `${label}${color ? `, ${color}` : ''} (photo)` : ''} credit={photo.credit} showTag={showTag}>
+          {drawingEl}
+        </ProductPhoto>
+      ) : (
+        drawingEl
       )}
     </div>
   )

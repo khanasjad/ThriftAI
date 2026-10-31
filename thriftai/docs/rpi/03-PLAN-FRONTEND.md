@@ -233,6 +233,8 @@ Frontend phases follow the backend phases that supply their data.
 
 **Question card (2026-10-25, user feedback: "make it like a flash card"):** each shopkeeper question pops up as a card (`search/question-card.tsx`): a progress bar ("Question 2 of 4"), a large question, and big option tiles showing how many products each choice leaves ("Men · 12 products"), colour swatches for colours, dashed tiles for "No preference" / "No limit", options with 0 matches disabled, number keys 1–9, "Just show me", and the free-text box right below. The API returns `question.options` with counts computed by applying each choice to the current filters.
 
+**Real photos (B21, 2026-10-30):** where a product has a real, licensed photo (https, or `/open-images/` from an open dataset), cards, picks, the gallery and collections show it with a "Photo: <credit>" tag; dev-generated PNGs are never shown as photos, and a photo that fails to load falls back to the illustration. Second-hand items also show an "Expert inspection" card (pilling, condition, stains, damage, suggested resale band).
+
 **Product illustrations (2026-10-25, user request "add some images"):** `ProductThumb` draws each product from its own data: the cut (crew, v-neck, boxy, longline tee; straight, wide-leg, skinny, slim-taper, bootcut jean) in its catalog colour, labelled "Illustration" so it's never mistaken for a photo. The product page gets colour swatches that switch the illustration (`product-gallery.tsx`).
 
 **All frontend phases are built.** Pages that depend on scores (search picks, score panels, dashboard scores and the scatter) are verified with temporary data and fill in when products are rated live (B3).

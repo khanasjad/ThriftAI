@@ -33,6 +33,7 @@
     "embed": "node scripts/with-env.mjs tsx scripts/embed.ts",
     "calibrate": "node scripts/with-env.mjs tsx scripts/calibrate.ts",
     "open-data": "node scripts/with-env.mjs tsx scripts/dev/import-open-data.ts",
+    "open-photos": "node scripts/with-env.mjs tsx scripts/dev/import-open-photos.ts",
     "visual:eval": "node scripts/with-env.mjs tsx scripts/dev/visual-eval.ts",
     "prod:check": "node scripts/with-env.mjs tsx scripts/prod-check.ts",
     "smoke:prod": "tsx scripts/smoke-prod.ts",

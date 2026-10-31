@@ -27,6 +27,7 @@ import { thumbPattern } from '@/components/veritas/thumb-pattern'
 import { checkReply } from '../text/check'
 import { visualWords } from '../visual/look-alike'
 import { lookAlikeIds } from '../visual/store'
+import { displayPhoto, type Photo } from '@/components/veritas/photo'
 
 export type SearchPick = {
   role: PickResult['role']
@@ -39,6 +40,8 @@ export type SearchPick = {
   color: string | null
   /** From the product photo (vision agent). */
   pattern: string | null
+  /** A real photo to show; null → drawn illustration. */
+  photo: Photo | null
   score: number
   /** 4th parameter, per search: how many of the asked-for looks this item has. */
   style: { value: number; matched: string[]; missed: string[] } | null
@@ -87,6 +90,7 @@ function toPick(p: PickResult, intent: SearchIntent): SearchPick {
     silhouette: p.silhouette ?? null,
     color: (intent.colors?.length ? p.colors.find((c) => intent.colors!.some((w) => c.toLowerCase().includes(w.toLowerCase()))) : null) ?? p.colors[0] ?? null,
     pattern: thumbPattern({ pattern: p.pattern ?? undefined, motifs: (p.motifLabels ?? []).map((label) => ({ label })) }),
+    photo: displayPhoto(p.photoUrl, p.photoCredit),
     score: p.productScore,
     style: styleMatch(p, intent),
     label: p.label!,

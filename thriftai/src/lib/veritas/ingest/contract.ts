@@ -164,3 +164,14 @@ export function silhouetteFromTitle(title: string, sub: Subcategory): string | n
   if (sub === 'tee') return /v-?neck/.test(t) ? 'v-neck-tee' : /boxy|oversized/.test(t) ? 'boxy-tee' : /longline|long line/.test(t) ? 'longline-tee' : /crew/.test(t) ? 'crew-tee' : 'crew-tee'
   return /wide/.test(t) ? 'wide-leg' : /bootcut|boot cut|flare/.test(t) ? 'bootcut' : /skinny/.test(t) ? 'skinny' : /taper/.test(t) ? 'slim-taper' : /straight/.test(t) ? 'straight' : null
 }
+
+/** Free-text material labels: "95% cotton 5% elastane", "100%viscose" → { cotton: 95, elastane: 5 }. */
+export function parseMaterialText(s: string | undefined): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const m of (s ?? '').toLowerCase().matchAll(/(\d{1,3})\s*%\s*([a-z][a-z -]*?)(?=\s*\d|,|$)/g)) {
+    const pct = Number(m[1])
+    const name = m[2].trim()
+    if (pct > 0 && pct <= 100 && name) out[name] = pct
+  }
+  return out
+}

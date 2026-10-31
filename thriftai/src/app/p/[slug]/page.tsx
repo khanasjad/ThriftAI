@@ -99,8 +99,9 @@ export default async function ProductPage({ params }: Props) {
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
           {/* Left column */}
           <aside className="order-2 flex flex-col gap-6 lg:order-none lg:sticky lg:top-24 lg:self-start">
-            <ProductGallery name={product.name} category={product.category} subcategory={product.subcategory} silhouette={product.silhouette} colors={product.colors} pattern={thumbPattern(data.visual)} />
+            <ProductGallery name={product.name} category={product.category} subcategory={product.subcategory} silhouette={product.silhouette} colors={product.colors} pattern={thumbPattern(data.visual)} photo={product.photo} />
             <SpecCard data={data} />
+            {data.product.inspection && <InspectionCard inspection={data.product.inspection} />}
           </aside>
 
           {/* Right column */}
@@ -241,7 +242,7 @@ function groupEvidence(evidence: ProductPageData['evidence']) {
       quote: e.quote ?? e.signal.replace(/_/g, ' '),
       signal: e.signal.replace(/_/g, ' '),
       sentiment: e.sentiment,
-      source: `${e.verified ? 'Verified review' : e.sourceType === 'REVIEW' ? 'Review' : e.sourceType.toLowerCase()} · ${fmtDate(e.date)}`,
+      source: e.sourceType === 'MANUAL' ? 'Expert inspection (open data)' : `${e.verified ? 'Verified review' : e.sourceType === 'REVIEW' ? 'Review' : e.sourceType.toLowerCase()} · ${fmtDate(e.date)}`,
       flagged: e.injectionFlag,
     })
   }
@@ -431,7 +432,9 @@ function ReviewsSection({ data }: { data: ProductPageData }) {
   return (
     <Section id="reviews-h" title={`Reviews (${total})`} aside={avg != null ? `Average ${avg.toFixed(1)} of 5 · most helpful first` : undefined}>
       {total === 0 ? (
-        <p className="text-sm text-fg-muted">No reviews yet. New launches get an early score from the brand’s record, the spec and the price.</p>
+        <p className="text-sm text-fg-muted">
+          {product.inspection ? 'The source has no reviews of this item. It was graded by experts instead (see Expert inspection).' : 'No reviews yet. New launches get an early score from the brand’s record, the spec and the price.'}
+        </p>
       ) : (
         <>
           <div className="divide-y divide-border">
@@ -443,6 +446,35 @@ function ReviewsSection({ data }: { data: ProductPageData }) {
         </>
       )}
     </Section>
+  )
+}
+
+/** Expert inspection of this physical item (second-hand open data). Pilling feeds wear resistance; the rest are facts. */
+function InspectionCard({ inspection: x }: { inspection: NonNullable<ProductPageData['product']['inspection']> }) {
+  const grade = (g: number | null | undefined, words: string[]) => (g ? `${g}/5 · ${words[g - 1]}` : '—')
+  const rows: [string, string][] = [
+    ['Pilling', grade(x.pilling, ['severe', 'heavy', 'some', 'slight', 'none'])],
+    ['Condition', grade(x.condition, ['poor', 'worn', 'fair', 'good', 'like new'])],
+    ['Stains', x.stains == null ? '—' : x.stains ? 'Yes' : 'None'],
+    ['Damage', x.damage?.trim() || 'None noted'],
+    ['Suggested resale price', x.priceBand ? `${x.priceBand} SEK (band)` : '—'],
+  ]
+  return (
+    <section aria-labelledby="inspection-h" className="mt-4 rounded-2xl border border-border bg-surface p-5 shadow-sm">
+      <h2 id="inspection-h" className="text-sm font-semibold text-fg">
+        Expert inspection
+      </h2>
+      <p className="mt-2 text-sm leading-relaxed text-fg-muted">This exact item was graded by trained sorters at a textile sorting facility. Pilling counts toward wear resistance; condition, stains and damage depend on the previous owner, so they aren’t scored.</p>
+      <dl className="mt-4 divide-y divide-border text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[8.5rem_1fr] gap-3 py-2">
+            <dt className="text-fg-subtle">{k}</dt>
+            <dd className="text-fg">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {x.by && <p className="mt-4 text-xs text-fg-subtle">{x.by}</p>}
+    </section>
   )
 }
 

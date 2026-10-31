@@ -156,6 +156,19 @@ function resale(b: ProductBundle): EvidenceDraft[] {
   return votes((pct - 10) / 40, draft('holds_value'), draft('no_resale_value'))
 }
 
+/**
+ * Expert inspection (B21, second-hand open data): pilling graded 1–5 by trained sorters (1 = severe, 5 = none).
+ * Real evidence about this item's fabric after wear; condition, stains and damage depend on the previous owner,
+ * so they are shown as facts, never scored.
+ */
+const PILLING_SIGNAL: Record<number, [string, number]> = { 5: ['no_pilling', 0.8], 4: ['no_pilling', 0.5], 3: ['pills_moderate', 0.5], 2: ['pills_moderate', 0.8], 1: ['pills_immediately', 0.8] }
+function inspection(b: ProductBundle): EvidenceDraft[] {
+  const g = b.product.inspection?.pilling
+  if (!g || !PILLING_SIGNAL[g]) return []
+  const [signal, confidence] = PILLING_SIGNAL[g]
+  return [{ sourceType: 'MANUAL', factor: 'quality.wear_resistance', signal, confidence, quote: `Pilling graded ${g}/5 by trained sorters (5 = none, 1 = severe)`, origin: 'code:expert_inspection' }]
+}
+
 const TREND_SIGNAL = { EMERGING: 'on_trend', PEAK: 'on_trend', CLASSIC: 'timeless', DECLINING: 'dated' } as const
 
 function trend(b: ProductBundle): EvidenceDraft[] {
@@ -169,7 +182,7 @@ export function trendTagFor(phase: ProductBundle['trendPhase']): 'TRENDING' | 'C
   return phase === 'CLASSIC' ? 'CLASSIC' : phase === 'DECLINING' ? 'FADING' : 'TRENDING'
 }
 
-export const STRUCTURED_RULES = { fitAnswers, sizeRange, fabricWeight, stretch, careLabel, sustainability, priceFairness, returnRates, resale, trend }
+export const STRUCTURED_RULES = { fitAnswers, sizeRange, fabricWeight, stretch, careLabel, sustainability, priceFairness, returnRates, resale, trend, inspection }
 
 export function extractStructuredEvidence(b: ProductBundle): EvidenceDraft[] {
   return Object.values(STRUCTURED_RULES).flatMap((rule) => rule(b))

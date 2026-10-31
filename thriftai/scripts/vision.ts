@@ -1,6 +1,6 @@
 /**
  * Read product photos into style attributes (B12):
- *   npm run vision -- --product <slug> [--yes]      |   npm run vision -- --all [--limit N] [--yes] [--force]
+ *   npm run vision -- --product <slug> [--yes]  |  --tenant <slug>  |  --all [--limit N] [--yes] [--force]
  * Prints an estimate first; unchanged images cost $0. With --check, compares dev images with their known pattern.
  */
 import { readFileSync } from 'node:fs'
@@ -16,9 +16,16 @@ const EST = 0.0004
 async function main() {
   const one = arg('product')
   const limit = Number(arg('limit') ?? 10_000)
-  const slugs = one ? [one] : process.argv.includes('--all') ? (await prisma.clothingProduct.findMany({ where: { primaryImageUrl: { not: null } }, select: { slug: true }, orderBy: { slug: 'asc' } })).map((p) => p.slug).slice(0, limit) : []
+  const tenantSlug = arg('tenant')
+  const tenant = tenantSlug ? await prisma.tenant.findUnique({ where: { slug: tenantSlug }, select: { id: true } }) : null
+  if (tenantSlug && !tenant) throw new Error(`No tenant ${tenantSlug}`)
+  const slugs = one
+    ? [one]
+    : process.argv.includes('--all') || tenant
+      ? (await prisma.clothingProduct.findMany({ where: { primaryImageUrl: { not: null }, ...(tenant && { tenantId: tenant.id }) }, select: { slug: true }, orderBy: { slug: 'asc' } })).map((p) => p.slug).slice(0, limit)
+      : []
   if (!slugs.length) {
-    console.error('Usage: npm run vision -- --product <slug> | --all [--limit N] [--yes] [--force] [--check]')
+    console.error('Usage: npm run vision -- --product <slug> | --tenant <slug> | --all [--limit N] [--yes] [--force] [--check]')
     process.exit(1)
   }
   console.log(`${slugs.length} image(s) · estimate ≤ $${(slugs.length * EST).toFixed(4)} (unchanged ones cost $0)`)

@@ -30,6 +30,9 @@ export type Candidate = {
   look?: string
   /** Motif labels from the photo, e.g. "palm tree", "real madrid crest". */
   motifLabels?: string[]
+  /** Stored photo link and its credit (shown only when it's a real photo, see components/veritas/photo.ts). */
+  photoUrl?: string | null
+  photoCredit?: string | null
   /** Tees: cropped / regular / longline (from name and silhouette). Null for other categories. */
   length: 'cropped' | 'regular' | 'longline' | null
   gsm: number | null
