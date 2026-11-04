@@ -5,6 +5,7 @@ import { ChevronRight, ListChecks } from 'lucide-react'
 import { SiteShell } from '@/components/site/shell'
 import { ProductCard } from '@/components/veritas/product-card'
 import { collectionBySlug, loadCollection } from '@/lib/veritas/read/collections'
+import { productScopeForViewer } from '@/lib/veritas/authz'
 
 export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ slug: string }> }
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CollectionPage({ params }: Props) {
   const def = collectionBySlug((await params).slug)
   if (!def) notFound()
-  const { items } = await loadCollection(def)
+  const { items } = await loadCollection(def, 24, await productScopeForViewer())
   return (
     <SiteShell>
       <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6">

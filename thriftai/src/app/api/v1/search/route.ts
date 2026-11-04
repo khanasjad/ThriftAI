@@ -7,6 +7,7 @@ import { env } from '@/lib/veritas/env'
 import { runSearch } from '@/lib/veritas/graph/answer-search'
 import { fail, ok, rateLimit, sessionId, zodFail } from '@/lib/veritas/http'
 import { warmVisual } from '@/lib/veritas/visual/store'
+import { productScopeForViewer } from '@/lib/veritas/authz'
 
 /** GET: warm-up ping from the search box (loads the fashion model on this instance; no search, nothing stored). */
 export async function GET() {
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
       await runSearch({
         ...('action' in b ? { sessionId: b.sessionId, action: 'show' as const } : { message: b.message, sessionId: b.sessionId }),
         shopperSid: await sessionId(),
+        scope: await productScopeForViewer(),
         useAgent: env().SEARCH_AGENT,
       }),
     )

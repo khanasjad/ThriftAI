@@ -2,6 +2,8 @@
 import { z } from 'zod'
 import { scoreApiGate } from '@/lib/veritas/apikeys'
 import { listProductReviews } from '@/lib/veritas/read/catalog'
+import { productScopeForViewer } from '@/lib/veritas/authz'
+import { visibleProducts } from '@/lib/veritas/scope'
 import { fail, ok, zodFail } from '@/lib/veritas/http'
 
 const query = z.object({
@@ -15,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params
   const parsed = query.safeParse(Object.fromEntries(new URL(req.url).searchParams))
   if (!parsed.success) return zodFail(parsed.error)
-  const page = await listProductReviews(id, parsed.data.offset, parsed.data.limit)
+  const page = await listProductReviews(id, parsed.data.offset, parsed.data.limit, gate.keyId ? visibleProducts(gate.tenantId) : await productScopeForViewer())
   if (!page) return fail(404, 'Product not found')
   return ok(page)
 }

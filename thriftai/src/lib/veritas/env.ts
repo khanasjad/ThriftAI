@@ -31,6 +31,14 @@ const schema = z.object({
     .string()
     .optional()
     .transform((v) => v === '1' || v === 'true'),
+  /**
+   * Development only: everyone (also signed out) sees the open-data tenant's real items in the shopper pages,
+   * labelled "Open data". On by default in development; ignored in production. 0 = only its own users see them.
+   */
+  OPEN_DATA_PUBLIC: z
+    .string()
+    .optional()
+    .transform((v) => v !== '0' && v !== 'false'),
   /** Shopkeeper agent on searches (live model call, ~$0.001 per turn). On by default; 0 = code-only questions. */
   SEARCH_AGENT: z
     .string()
@@ -85,6 +93,8 @@ export function productionProblems(e: Env): string[] {
 }
 
 export const isProduction = () => env().APP_ENV === 'production'
+/** Open data shown to every viewer (development demo only; never in production). */
+export const openDataIsPublic = () => !isProduction() && env().OPEN_DATA_PUBLIC
 
 /** Model IDs come only from here; never hardcode them elsewhere. */
 export const models = {

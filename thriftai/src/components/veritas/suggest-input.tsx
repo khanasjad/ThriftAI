@@ -24,7 +24,7 @@ type Option = { id: string; kind: 'query' | 'product' | 'collection'; label: str
 function toOptions(s: Suggestions): Option[] {
   return [
     ...s.queries.map((q, i) => ({ id: `sq-${i}`, kind: 'query' as const, label: q, href: `/search?q=${encodeURIComponent(q)}` })),
-    ...s.products.map((p) => ({ id: `sp-${p.slug}`, kind: 'product' as const, label: p.name, meta: `${p.brand} · ${formatPrice(p.price)}`, score: p.score, href: `/p/${p.slug}` })),
+    ...s.products.map((p) => ({ id: `sp-${p.slug}`, kind: 'product' as const, label: p.name, meta: p.price === null ? p.brand : `${p.brand} · ${formatPrice(p.price)}`, score: p.score, href: `/p/${p.slug}` })),
     ...s.collections.map((c) => ({ id: `sc-${c.slug}`, kind: 'collection' as const, label: c.title, href: `/collections/${c.slug}` })),
   ]
 }

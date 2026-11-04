@@ -1,5 +1,6 @@
 import 'server-only'
-import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
+import { PUBLIC_PRODUCTS, isOpenData } from '@/lib/veritas/scope'
+import { gradeOf, type Grade } from '@/components/veritas/grade'
 import { Prisma, type ClothingCategory } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { scanInjection } from '../harness/guardrails'
@@ -38,12 +39,18 @@ export type CatalogItem = {
   pattern?: string | null
   /** A real photo to show (vendor or licensed open data); null → the drawn illustration. */
   photo?: Photo | null
-  price: number
+  /** Null when the source has no price (open data). */
+  price: number | null
   currency: string
   reviewCount: number
   score: number | null
   confidenceLabel: 'HIGH' | 'MEDIUM' | 'LOW' | 'NEW_LAUNCH' | null
   isNewLaunch: boolean
+  /** Only this organisation sees it (shown to its own signed-in users). */
+  isPrivate?: boolean
+  /** From a licensed open dataset (labelled "Open data"). */
+  openData?: boolean
+  grade?: Grade | null
   tags: Tag[]
 }
 
@@ -71,6 +78,8 @@ export type CatalogQuery = CatalogFilters & {
   kind?: 'tee' | 'shirt' | 'jeans'
   sort?: 'score' | 'price_asc' | 'price_desc' | 'reviews' | 'newest'
   limit?: number
+  /** Which products the viewer may see (default public; see authz.productScopeForViewer). */
+  scope?: Prisma.ClothingProductWhereInput
 }
 
 const NEW_LAUNCH_DAYS = 30 // backend plan §6: launched < 30 days ago
@@ -123,13 +132,16 @@ export function interpretQuery(q: string): Omit<Interpretation, 'matchedAny'> {
  * Interim keyword search (replaced by the answer-search graph in B5).
  * Ranks by how many query terms appear in the product's own fields (×3) or in its reviews (×1).
  */
-export async function searchCatalog({ q, category, kind, sort = 'score', limit = 48, ...filters }: CatalogQuery = {}): Promise<{ items: CatalogItem[]; interpreted: Interpretation; facets: CatalogFacets }> {
+/** Up to this many real photographed, unscored items are listed in their own row on search. */
+const PHOTOGRAPHED_MAX = 8
+
+export async function searchCatalog({ q, category, kind, sort = 'score', limit = 48, scope = PUBLIC_PRODUCTS, ...filters }: CatalogQuery = {}): Promise<{ items: CatalogItem[]; photographed: CatalogItem[]; interpreted: Interpretation; facets: CatalogFacets }> {
   const parsed = interpretQuery(q ?? '')
   const k = kind ?? parsed.kind
   const cat = category ?? parsed.category ?? (k ? (k === 'jeans' ? 'BOTTOMS' : 'TOPS') : undefined)
 
   const rows = await prisma.clothingProduct.findMany({
-    where: { isAvailable: true, ...PUBLIC_PRODUCTS, ...(cat && { category: cat }), ...(k && { subcategory: k }), ...(parsed.maxPrice && { currentPrice: { lte: parsed.maxPrice } }) },
+    where: { AND: [scope], isAvailable: true, ...(cat && { category: cat }), ...(k && { subcategory: k }), ...(parsed.maxPrice && { currentPrice: { lte: parsed.maxPrice } }) },
     select: {
       id: true,
       slug: true,
@@ -149,6 +161,9 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
       visual: { select: { attributes: true } },
       primaryImageUrl: true,
       imageCredit: true,
+      isPrivate: true,
+      source: true,
+      inspection: true,
       productScore: { select: { overall: true, confidenceLabel: true } },
       reviews: parsed.terms.length ? { select: { content: true } } : false,
       _count: { select: { reviews: true } },
@@ -182,12 +197,15 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
       color: r.colors[0] ?? null,
       pattern: thumbPattern(v),
       photo: displayPhoto(r.primaryImageUrl, r.imageCredit),
-      price: Number(r.currentPrice),
+      price: r.currentPrice === null ? null : Number(r.currentPrice),
       currency: r.currency,
       reviewCount: r._count.reviews,
       score: r.productScore?.overall ?? null,
       confidenceLabel: r.productScore?.confidenceLabel ?? null,
       isNewLaunch: !!r.launchDate && r.launchDate.getTime() > cutoff,
+      isPrivate: r.isPrivate,
+      openData: isOpenData(r.source),
+      grade: gradeOf(r.inspection),
       tags: tagMap.get(r.id) ?? [],
     }
     return { id: r.id, item, relevance, launch: r.launchDate?.getTime() ?? 0, gender: r.gender, colors: r.colors, fit: r.fitType, printLook: look, look: { colors: r.colors, visualColors: (v?.colors ?? []).map((c) => c.name), colorFamilies: (v?.colors ?? []).map((c) => c.family), pattern: v?.pattern ?? null } }
@@ -234,14 +252,19 @@ export async function searchCatalog({ q, category, kind, sort = 'score', limit =
   const cmp: Record<NonNullable<CatalogQuery['sort']>, (a: (typeof scored)[number], b: (typeof scored)[number]) => number> = {
     score: (a, b) => (b.item.score ?? -1) - (a.item.score ?? -1) || b.item.reviewCount - a.item.reviewCount,
     reviews: (a, b) => b.item.reviewCount - a.item.reviewCount,
-    price_asc: (a, b) => a.item.price - b.item.price,
-    price_desc: (a, b) => b.item.price - a.item.price,
+    // Unknown prices sort last either way.
+    price_asc: (a, b) => (a.item.price ?? Infinity) - (b.item.price ?? Infinity),
+    price_desc: (a, b) => (b.item.price ?? -Infinity) - (a.item.price ?? -Infinity),
     newest: (a, b) => b.launch - a.launch,
   }
   scored.sort((a, b) => (parsed.terms.length ? b.relevance - a.relevance : 0) || cmp[sort](a, b) || a.item.slug.localeCompare(b.item.slug))
 
+  // Real photographed items without a score would sort past the limit; return the best matches separately.
+  const photographed = scored.filter((x) => x.item.photo && x.item.score === null).slice(0, PHOTOGRAPHED_MAX).map((x) => x.item)
+  const shown = new Set(photographed.map((i) => i.slug))
   return {
-    items: scored.slice(0, Math.min(limit, 100)).map((x) => x.item),
+    items: scored.filter((x) => !shown.has(x.item.slug)).slice(0, Math.min(limit, 100)).map((x) => x.item),
+    photographed,
     interpreted: { ...parsed, category: cat, kind: k, matchedAny: matchedAny || !!looks, prints, looks },
     facets,
   }
@@ -305,8 +328,8 @@ function toProductReview(r: ReviewRow): ProductReview {
 }
 
 /** A page of reviews, most helpful first (same order as the product page). */
-export async function listProductReviews(slugOrId: string, offset: number, limit: number) {
-  const product = await prisma.clothingProduct.findFirst({ where: { OR: [{ slug: slugOrId }, { id: slugOrId }], ...PUBLIC_PRODUCTS }, select: { id: true } })
+export async function listProductReviews(slugOrId: string, offset: number, limit: number, scope: Prisma.ClothingProductWhereInput = PUBLIC_PRODUCTS) {
+  const product = await prisma.clothingProduct.findFirst({ where: { AND: [{ OR: [{ slug: slugOrId }, { id: slugOrId }] }, scope] }, select: { id: true } })
   if (!product) return null
   const [rows, total] = await Promise.all([
     prisma.clothingReview.findMany({
@@ -393,6 +416,7 @@ export async function getProductPage(slugOrId: string, scope: Prisma.ClothingPro
       price: p.currentPrice === null ? null : Number(p.currentPrice),
       originalPrice: num(p.originalPrice),
       isPrivate: p.isPrivate,
+      openData: isOpenData(p.source),
       photo: displayPhoto(p.primaryImageUrl, p.imageCredit),
       inspection: (p.inspection ?? null) as Inspection | null,
       currency: p.currency,

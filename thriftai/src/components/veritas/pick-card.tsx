@@ -39,8 +39,9 @@ export type Pick = {
   summary?: string | null
   sizeAdvice?: string | null
   downside?: string | null
-  priceMin: number
-  priceMax: number
+  /** Null when the source has no price. */
+  priceMin: number | null
+  priceMax: number | null
   sellerCount: number
   wildcardReason?: string
   overBudget?: boolean
@@ -145,7 +146,13 @@ export function PickCard({ pick, index = 0 }: { pick: Pick; index?: number }) {
         )}
         <div className="mt-auto flex flex-wrap items-baseline justify-between gap-2 pt-2 text-fg">
           <span className="text-lg font-semibold tabular">
-            {pick.priceMin === pick.priceMax ? formatPrice(pick.priceMin) : `${formatPrice(pick.priceMin)}–${formatPrice(pick.priceMax)}`}
+            {pick.priceMin === null || pick.priceMax === null ? (
+              <span className="text-sm font-normal text-fg-muted">No price in the source</span>
+            ) : pick.priceMin === pick.priceMax ? (
+              formatPrice(pick.priceMin)
+            ) : (
+              `${formatPrice(pick.priceMin)}–${formatPrice(pick.priceMax)}`
+            )}
             {pick.overBudget && (
               <Badge tone="warning" className="ml-2 align-middle">
                 Over budget

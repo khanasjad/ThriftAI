@@ -12,7 +12,7 @@ export type SuggestProduct = {
   silhouette: string | null
   fitType: string | null
   colors: string[]
-  price: number
+  price: number | null
   score: number | null
 }
 export type SuggestCollection = { slug: string; title: string }

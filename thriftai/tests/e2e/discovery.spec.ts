@@ -10,11 +10,11 @@ test('autosuggest: type, arrow down, Enter opens the suggestion', async ({ page 
   await box.fill('whi')
   const list = page.getByRole('listbox', { name: 'Suggestions' })
   await expect(list).toBeVisible()
-  await expect(list.getByRole('option').first()).toHaveText(/white tee/i)
+  await expect(list.getByRole('option').first()).toHaveText(/white (tee|shirt)/i)
   await box.press('ArrowDown')
   await expect(box).toHaveAttribute('aria-activedescendant', /sq-0/)
   await box.press('Enter')
-  await expect(page).toHaveURL(/\/search\?q=white\+tee|q=white%20tee/)
+  await expect(page).toHaveURL(/\/search\?q=white(\+|%20)(tee|shirt)/)
   noErrors()
 })
 
@@ -102,7 +102,8 @@ test('button-up shirts: Shirts tab lists only shirts; "blue flowered shirt" find
   await expect(results.first()).toBeVisible({ timeout: 20_000 })
   const hrefs = await results.locator('a[href^="/p/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''))
   expect(hrefs.length).toBeGreaterThan(5)
-  expect(hrefs.every((h) => h.includes('shirt') && !h.endsWith('-tee'))).toBe(true)
+  // Blouses (open data) count as shirts.
+  expect(hrefs.every((h) => /shirt|blouse/.test(h) && !h.endsWith('-tee'))).toBe(true)
 
   await page.goto('/search?q=blue+flowered+shirt')
   await expect(results.first()).toBeVisible({ timeout: 20_000 })

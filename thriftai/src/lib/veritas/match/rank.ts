@@ -40,8 +40,9 @@ export type Candidate = {
   breathability: number | null
   trendTag: 'TRENDING' | 'CLASSIC' | 'FADING' | null
   launchDate: Date | null
-  priceMin: number
-  priceMax: number
+  /** Null when the source has no price. */
+  priceMin: number | null
+  priceMax: number | null
   sellerCount: number
   score: number | null
   scoreWithSustainability: number | null
@@ -114,7 +115,7 @@ export function climateFit(c: Candidate, climate: Climate | null | undefined): M
 }
 
 export function budgetFit(c: Candidate, budget: number | null | undefined): MatchPart | null {
-  if (!budget) return null
+  if (!budget || c.priceMin === null) return null
   const ratio = c.priceMin / budget
   // ≤ 70% of budget scores 100, at budget 70; over budget is filtered out before matching.
   const value = ratio <= 0.7 ? 100 : clamp(100 - ((ratio - 0.7) / 0.3) * 30)
@@ -196,8 +197,9 @@ export function filterCandidates(cands: Candidate[], intent: SearchIntent, who: 
     .filter((c) => !intent.category || c.category === intent.category)
     .filter((c) => !intent.kind || (c.subcategory ?? '').toLowerCase() === intent.kind)
     .filter((c) => !intent.gender || c.gender === intent.gender || c.gender === 'UNISEX')
-    .filter((c) => !budget || c.priceMin <= budget * budgetFactor)
-    .filter((c) => !intent.minPrice || c.priceMax >= intent.minPrice)
+    // A budget can only be checked against a known price.
+    .filter((c) => !budget || (c.priceMin !== null && c.priceMin <= budget * budgetFactor))
+    .filter((c) => !intent.minPrice || (c.priceMax !== null && c.priceMax >= intent.minPrice))
     .filter((c) => !colors.length || colors.some((w) => colorHit(c, w)))
     .filter((c) => !intent.patterns?.length || (c.pattern !== null && intent.patterns.includes(c.pattern)))
     // Excluding a colour removes a product only when every colour it comes in is excluded.
@@ -242,10 +244,10 @@ export function rank(cands: Candidate[], intent: SearchIntent, who: ShopperConte
   const budget = intent.maxPrice ?? who.budgetMax ?? undefined
   const stretch = budget
     ? score(
-        filterCandidates(cands, intent, who, BUDGET_STRETCH).filter(({ c }) => c.score !== null && c.priceMin > budget),
+        filterCandidates(cands, intent, who, BUDGET_STRETCH).filter(({ c }) => c.score !== null && c.priceMin !== null && c.priceMin > budget),
         intent,
         who,
-      ).sort((a, b) => a.priceMin - b.priceMin || b.final - a.final)
+      ).sort((a, b) => (a.priceMin ?? 0) - (b.priceMin ?? 0) || b.final - a.final)
     : []
   return { ranked, unrated: filtered.length - rated.length, stretch }
 }
@@ -279,9 +281,9 @@ export function pickThree(ranked: Ranked[], stretch: Ranked[] = []): PickResult[
   // Best overall: highest final (ranked is already sorted by relevance, then final).
   picks.push({ ...ranked[0], role: 'best_overall' })
 
-  // Best value: most score per dollar, among products scoring at least 85% of the best overall.
+  // Best value: most score per dollar, among priced products scoring at least 85% of the best overall.
   const floor = picks[0].final * 0.85
-  const value = ranked.filter((c) => ok(c) && c.final >= floor).sort((a, b) => b.productScore / b.priceMin - a.productScore / a.priceMin)[0]
+  const value = ranked.filter((c) => ok(c) && c.final >= floor && !!c.priceMin).sort((a, b) => b.productScore / b.priceMin! - a.productScore / a.priceMin!)[0]
   if (value) picks.push({ ...value, role: 'best_value' })
 
   // Wildcard: trending, strong on sustainability, or a promising new launch; else the next best.

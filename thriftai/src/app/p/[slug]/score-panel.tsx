@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { gradeText, type Grade } from '@/components/veritas/grade'
 import Link from 'next/link'
 import { Info } from 'lucide-react'
 import { Switch } from '@/components/ui/toggle'
@@ -34,11 +35,13 @@ export type ScorePanelProps = {
   factorValues: Record<string, { value: number; evidenceCount: number }>
   evidenceByFactor: Record<string, EvidenceItem[]>
   inputs: { reviews: number; returns: number; prices: number }
+  /** Expert grades of a second-hand item (shown in place of a score; never turned into one). */
+  grade?: Grade | null
   showTraceLink: boolean
   productId: string
 }
 
-export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inputs, showTraceLink, productId }: ScorePanelProps) {
+export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inputs, grade, showTraceLink, productId }: ScorePanelProps) {
   const [sustainability, setSustainability] = React.useState(false)
   const [pillar, setPillar] = React.useState<Pillar>('FIT')
   const [open, setOpen] = React.useState<FactorMeta | null>(null)
@@ -70,6 +73,14 @@ export function ScorePanel({ score, factors, factorValues, evidenceByFactor, inp
                 </div>
               ))}
             </dl>
+            {grade && (
+              <p className="mt-3 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-fg">
+                <span className="font-semibold">Expert grade:</span> {gradeText(grade)}.{' '}
+                <a href="#inspection-h" className="text-accent underline underline-offset-4">
+                  See the inspection
+                </a>
+              </p>
+            )}
             {inputs.reviews > 0 && <p className="mt-3 text-xs text-fg-subtle">Waiting to be read by the evidence, price and trend agents.</p>}
           </div>
         </div>

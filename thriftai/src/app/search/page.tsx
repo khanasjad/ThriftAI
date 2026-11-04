@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { Info, Search, SearchX } from 'lucide-react'
+import { Camera, Info, Search, SearchX } from 'lucide-react'
 import type { ClothingCategory } from '@/generated/prisma/client'
 import { SiteShell } from '@/components/site/shell'
 import { SuggestInput } from '@/components/veritas/suggest-input'
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { SortSelect } from './controls'
 import { Conversation } from './conversation'
 import { warmVisual } from '@/lib/veritas/visual/store'
+import { productScopeForViewer } from '@/lib/veritas/authz'
 
 export const metadata: Metadata = { title: 'Search', description: 'Search clothing by what matters: fit, quality, comfort, value.' }
 export const dynamic = 'force-dynamic'
@@ -133,7 +134,7 @@ async function Results({
   href: (patch: Partial<Params>) => string
   clearHref: string
 }) {
-  const { items, interpreted, facets } = await searchCatalog({ q, kind, category, sort, ...filters })
+  const { items, photographed, interpreted, facets } = await searchCatalog({ q, kind, category, sort, ...filters, scope: await productScopeForViewer() })
   const filterBar = <FilterBar facets={facets} filters={filters} href={href} />
   const chips = [
     interpreted.kind ? ({ tee: 'T-shirts', shirt: 'Shirts', jeans: 'Jeans' } as const)[interpreted.kind] : interpreted.category && (interpreted.category === 'TOPS' ? 'Tops' : 'Jeans'),
@@ -145,7 +146,7 @@ async function Results({
     ...interpreted.terms.filter((t) => !interpreted.prints?.includes(t) && !interpreted.looks?.includes(t)).map((t) => `“${t}”`),
   ].filter(Boolean) as string[]
 
-  if (items.length === 0) {
+  if (items.length + photographed.length === 0) {
     return (
       <>
       {filterBar}
@@ -168,7 +169,7 @@ async function Results({
       </h3>
       <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-fg-subtle" role="status">
         <span>
-          {items.length} {items.length === 1 ? 'product' : 'products'}
+          {items.length + photographed.length} {items.length + photographed.length === 1 ? 'product' : 'products'}
         </span>
         {chips.length > 0 && (
           <>
@@ -184,6 +185,22 @@ async function Results({
       </div>
       {!interpreted.matchedAny && (
         <p className="mt-2 text-sm text-fg-muted">No product or review mentions those words, so here is everything that fits the category and budget.</p>
+      )}
+      {photographed.length > 0 && (
+        <section aria-labelledby="photographed-h" className="mt-5 rounded-xl border border-border bg-surface-2/50 p-3 sm:p-4">
+          <h4 id="photographed-h" className="flex items-center gap-2 text-sm font-semibold text-fg">
+            <Camera className="size-4 text-fg-subtle" aria-hidden />
+            Real photographed items
+          </h4>
+          <p className="mt-1 text-xs text-fg-muted">Real second-hand garments, photographed and graded at a sorting facility (open data, CC BY 4.0). No reviews yet, so no overall score: each shows the sorters’ condition grade instead.</p>
+          <ul className="mt-3 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {photographed.map((it) => (
+              <li key={it.slug}>
+                <ProductCard item={it} className="h-full" />
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <ul className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
         {items.map((it) => (

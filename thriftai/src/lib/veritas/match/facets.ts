@@ -41,7 +41,7 @@ export function buildFacets(cands: Candidate[], intent: SearchIntent): Facets {
   const without = (patch: Partial<SearchIntent>) => filterCandidates(cands, { ...intent, ...patch }, {}).map((x) => x.c)
   const all = filterCandidates(cands, intent, {}).map((x) => x.c)
 
-  const forPrice = without({ minPrice: undefined, maxPrice: undefined })
+  const forPrice = without({ minPrice: undefined, maxPrice: undefined }).filter((c): c is Candidate & { priceMin: number } => c.priceMin !== null)
   const prices = forPrice.map((c) => c.priceMin).sort((a, b) => a - b)
   const q = (p: number) => (prices.length ? roundTo(prices[Math.floor((prices.length - 1) * p)]) : 0)
   const [b1, b2, b3] = [q(0.33), q(0.66), q(0.9)]

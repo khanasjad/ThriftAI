@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { SiteShell } from '@/components/site/shell'
 import { ProductThumb } from '@/components/veritas/product-thumb'
 import { loadCollections } from '@/lib/veritas/read/collections'
+import { productScopeForViewer } from '@/lib/veritas/authz'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 export default async function CollectionsPage() {
-  const all = await loadCollections()
+  const all = await loadCollections(await productScopeForViewer())
   return (
     <SiteShell>
       <div className="mx-auto max-w-6xl px-4 pb-24 pt-10 sm:px-6">

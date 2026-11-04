@@ -52,8 +52,8 @@ export type SearchPick = {
   summary: string | null
   sizeAdvice: string | null
   downside: string | null
-  priceMin: number
-  priceMax: number
+  priceMin: number | null
+  priceMax: number | null
   sellerCount: number
   wildcardReason?: string
   overBudget: boolean
@@ -291,7 +291,7 @@ Questions asked so far: ${asked} of ${MAX_SHOPKEEPER_QUESTIONS}
 Catalog facets for products still matching:
 ${facetsText(facets)}
 
-Current top picks (for refinements like "cheaper"): ${current.map((c) => `${c.name}, $${Math.round(c.priceMin)}, colours ${c.colors.join('/')}`).join('; ') || 'none yet'}
+Current top picks (for refinements like "cheaper"): ${current.map((c) => `${c.name}, ${c.priceMin === null ? 'no price' : `$${Math.round(c.priceMin)}`}, colours ${c.colors.join('/')}`).join('; ') || 'none yet'}
 
 Shopper's latest message: ${latest}`
 }
@@ -302,6 +302,8 @@ export async function runSearch(input: {
   /** "Just show me": stop asking and show the best picks for what we know. */
   action?: 'show'
   shopperSid: string
+  /** Which products the viewer may see (default public; see authz.productScopeForViewer). */
+  scope?: Prisma.ClothingProductWhereInput
   useAgent?: boolean
   llm?: LlmClient
 }): Promise<SearchResponse> {
@@ -317,7 +319,7 @@ export async function runSearch(input: {
   let asked = prev.asked ?? 0
   const message = input.action === 'show' ? 'Just show me the best options.' : input.message!.trim()
 
-  const candidates = await loadCandidates()
+  const candidates = await loadCandidates(input.scope)
   const productNames = candidates.map((c) => c.name)
   let reply: string | null = null
   let question: Question | null = null

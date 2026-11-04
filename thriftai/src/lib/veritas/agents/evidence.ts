@@ -64,10 +64,31 @@ const evidenceItem = z.object({
   confidence: z.number().min(0).max(1).describe('How clearly the quote shows the signal, 0-1'),
 })
 
+const byHelpful = (a: ProductBundle['reviews'][number], b: ProductBundle['reviews'][number]) =>
+  b.helpfulVotes - a.helpfulVotes || b.date.getTime() - a.date.getTime() || a.id.localeCompare(b.id)
+
+/**
+ * Which reviews the agent reads when there are more than `max` (B20 finding): the same mix of star ratings as all
+ * reviews (largest-remainder shares per star level), most helpful first within each level, then listed most
+ * helpful first. Reading only the most helpful skewed the sample (0.15 stars lower on products with ≥ 100 reviews).
+ */
+export function pickReviewsToRead(all: ProductBundle['reviews'], max: number): ProductBundle['reviews'] {
+  if (all.length <= max) return [...all].sort(byHelpful)
+  const levels = new Map<number, ProductBundle['reviews']>()
+  for (const r of all) levels.set(r.rating, [...(levels.get(r.rating) ?? []), r])
+  const shares = [...levels].map(([rating, rs]) => {
+    const exact = (rs.length / all.length) * max
+    return { rating, rs: rs.sort(byHelpful), take: Math.floor(exact), rest: exact - Math.floor(exact) }
+  })
+  let left = max - shares.reduce((s, x) => s + x.take, 0)
+  for (const x of [...shares].sort((a, b) => b.rest - a.rest || b.rating - a.rating)) if (left-- > 0) x.take++
+  return shares.flatMap((x) => x.rs.slice(0, x.take)).sort(byHelpful)
+}
+
 /** Builds the agent for one product. Tool names, descriptions and schemas are identical every time. */
 export function makeEvidenceAgent(bundle: ProductBundle, out: EvidenceRunOutput) {
-  const reviews = [...bundle.reviews].sort((a, b) => b.helpfulVotes - a.helpfulVotes || b.date.getTime() - a.date.getTime() || a.id.localeCompare(b.id))
-  const readable = reviews.slice(0, MAX_REVIEWS_READ)
+  const reviews = [...bundle.reviews].sort(byHelpful)
+  const readable = pickReviewsToRead(bundle.reviews, MAX_REVIEWS_READ)
   const sources = new Map<string, { text: string; kind: 'REVIEW' | 'RETURN'; fitsAs: string | null }>()
   for (const r of reviews) sources.set(r.id, { text: `${r.title ?? ''}\n${r.content}`, kind: 'REVIEW', fitsAs: r.fitsAs })
   for (const r of bundle.returns) if (r.detailedReason) sources.set(r.id, { text: r.detailedReason, kind: 'RETURN', fitsAs: null })
@@ -212,4 +233,4 @@ Read the reviews and written return reasons and record evidence.`
 }
 
 /** Version of the prompt + tools, part of the inputs hash: changing the agent re-rates products. */
-export const EVIDENCE_AGENT_VERSION = 'evidence@2' // @2: oversized record_evidence calls are processed in part, not rejected
+export const EVIDENCE_AGENT_VERSION = 'evidence@3' // @2: oversized record_evidence calls are processed in part, not rejected · @3: reviews read match the star mix

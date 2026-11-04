@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { fail } from './http'
-import { PUBLIC_PRODUCTS, visibleProducts } from './scope'
+import { scopeForViewer } from './scope'
+import { openDataIsPublic } from './env'
 
 /**
  * Authorization (B7). Middleware rejects anonymous requests early; these helpers do the real checks
@@ -21,13 +22,12 @@ async function currentUser(): Promise<SessionUser | null> {
 
 /**
  * Which products the current viewer may open: shoppers see public products; a signed-in organisation user also
- * sees its own private (imported) products; admins see all. Product pages use this; listings stay public.
+ * sees its own private (imported) products; admins see all. Product pages and the shopper listings (search,
+ * picks, collections, autosuggest) use this; sitemap, share images and home-page counts stay public.
+ * In development with OPEN_DATA_PUBLIC (default on), everyone also sees the open-data tenant (never other tenants).
  */
 export async function productScopeForViewer(): Promise<Prisma.ClothingProductWhereInput> {
-  const u = await currentUser().catch(() => null)
-  if (!u) return PUBLIC_PRODUCTS
-  if (u.role === 'ADMIN') return {}
-  return visibleProducts(u.tenantId)
+  return scopeForViewer(await currentUser().catch(() => null), openDataIsPublic())
 }
 
 /** Server components / layouts: redirect to sign-in when not allowed. */

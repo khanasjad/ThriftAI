@@ -1,4 +1,5 @@
 import 'server-only'
+import type { Prisma } from '@/generated/prisma/client'
 import { searchCatalog, type CatalogItem } from './catalog'
 import type { Tag } from '../enrich/tags'
 
@@ -58,7 +59,7 @@ export const COLLECTIONS: CollectionDef[] = [
     title: 'Best t-shirts under $30',
     blurb: 'The highest-scoring t-shirts at $30 or less, with no fake sale prices.',
     kind: 'tee',
-    rule: (i) => (i.price <= 30 && noPriceWarning(i) ? `$${i.price.toFixed(2)}, no price warnings` : null),
+    rule: (i) => (i.price !== null && i.price <= 30 && noPriceWarning(i) ? `$${i.price.toFixed(2)}, no price warnings` : null),
   },
   {
     slug: 'honest-prices',
@@ -70,8 +71,8 @@ export const COLLECTIONS: CollectionDef[] = [
 
 export type CollectionResult = { def: CollectionDef; items: { item: CatalogItem; why: string }[] }
 
-export async function loadCollection(def: CollectionDef, limit = 24): Promise<CollectionResult> {
-  const { items } = await searchCatalog({ category: def.category, kind: def.kind, sort: 'score', limit: 100 })
+export async function loadCollection(def: CollectionDef, limit = 24, scope?: Prisma.ClothingProductWhereInput): Promise<CollectionResult> {
+  const { items } = await searchCatalog({ category: def.category, kind: def.kind, sort: 'score', limit: 100, scope })
   const out = items
     .filter((i) => i.score !== null)
     .map((item) => ({ item, why: def.rule(item) }))
@@ -80,8 +81,8 @@ export async function loadCollection(def: CollectionDef, limit = 24): Promise<Co
   return { def, items: out }
 }
 
-export async function loadCollections() {
-  return Promise.all(COLLECTIONS.map((d) => loadCollection(d)))
+export async function loadCollections(scope?: Prisma.ClothingProductWhereInput) {
+  return Promise.all(COLLECTIONS.map((d) => loadCollection(d, 24, scope)))
 }
 
 export const collectionBySlug = (slug: string) => COLLECTIONS.find((c) => c.slug === slug) ?? null

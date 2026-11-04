@@ -1,4 +1,5 @@
 import 'server-only'
+import type { Prisma } from '@/generated/prisma/client'
 import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
 import { prisma } from '@/lib/prisma'
 import type { Candidate } from './rank'
@@ -6,10 +7,11 @@ import type { Candidate } from './rank'
 /**
  * Loads search candidates with their stored scores (online search reads stored scores only; plan §4.3).
  * Fit answers come with the reviewer's height/build so Personal Match can use similar shoppers.
+ * `scope`: which products the viewer may see (default public; see authz.productScopeForViewer).
  */
-export async function loadCandidates(): Promise<Candidate[]> {
+export async function loadCandidates(scope: Prisma.ClothingProductWhereInput = PUBLIC_PRODUCTS): Promise<Candidate[]> {
   const rows = await prisma.clothingProduct.findMany({
-    where: { isAvailable: true, ...PUBLIC_PRODUCTS },
+    where: { AND: [scope], isAvailable: true },
     select: {
       id: true,
       slug: true,
@@ -41,7 +43,8 @@ export async function loadCandidates(): Promise<Candidate[]> {
     // Latest price per seller.
     const latest = new Map<string, number>()
     for (const s of r.priceSnapshots) if (!latest.has(s.sellerId ?? 'brand')) latest.set(s.sellerId ?? 'brand', Number(s.price))
-    const prices = latest.size ? [...latest.values()] : [Number(r.currentPrice)]
+    // No price in the source (open data): stays null, never $0.
+    const prices = latest.size ? [...latest.values()] : r.currentPrice === null ? [] : [Number(r.currentPrice)]
     const ps = r.productScore
     const v = r.visual?.attributes as { garment?: string; pattern?: string; pattern_detail?: string; colors?: { name: string; family: string }[]; style_tags?: string[]; motifs?: { label: string }[]; print_text?: string } | undefined
     return {
@@ -74,8 +77,8 @@ export async function loadCandidates(): Promise<Candidate[]> {
       })(),
       trendTag: r.trendTag,
       launchDate: r.launchDate,
-      priceMin: Math.min(...prices),
-      priceMax: Math.max(...prices),
+      priceMin: prices.length ? Math.min(...prices) : null,
+      priceMax: prices.length ? Math.max(...prices) : null,
       sellerCount: latest.size || 1,
       score: ps?.overall ?? null,
       scoreWithSustainability: ps?.overallWithSustainability ?? null,

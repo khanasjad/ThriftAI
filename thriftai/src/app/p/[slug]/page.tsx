@@ -16,6 +16,7 @@ import { getProductPage, type ProductPageData } from '@/lib/veritas/read/catalog
 import { ReviewCard } from '@/components/veritas/review-card'
 import { MoreReviews } from './more-reviews'
 import { ScorePanel, type FactorMeta } from './score-panel'
+import { CONDITION_WORDS, PILLING_WORDS, gradeOf } from '@/components/veritas/grade'
 import { TagChips } from '@/components/veritas/tag-chips'
 import { ProductCard } from '@/components/veritas/product-card'
 import { tagsForProducts } from '@/lib/veritas/read/tags'
@@ -112,7 +113,11 @@ export default async function ProductPage({ params }: Props) {
                 <Badge tone="neutral">{GENDER[product.gender] ?? product.gender}</Badge>
                 {product.trendTag && <TrendTag tag={product.trendTag} />}
                 {isNewLaunch(product.launchDate) && <Badge tone="accent">New launch</Badge>}
-                {product.isPrivate && <Badge tone="neutral">Private · only your organisation sees this</Badge>}
+                {product.openData ? (
+                  <Badge tone="neutral">Open data · development preview</Badge>
+                ) : (
+                  product.isPrivate && <Badge tone="neutral">Private · only your organisation sees this</Badge>
+                )}
               </div>
               <h1 className="mt-3 text-balance text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold leading-tight tracking-[-0.025em] text-fg">{product.name}</h1>
               <p className="mt-2 text-lg text-fg">
@@ -142,6 +147,7 @@ export default async function ProductPage({ params }: Props) {
               factorValues={factorValues}
               evidenceByFactor={evidenceByFactor}
               inputs={{ reviews: reported.reviewCount, returns: returns.total, prices: prices.series.reduce((s, x) => s + x.points.length, 0) }}
+              grade={gradeOf(product.inspection)}
               showTraceLink={process.env.APP_ENV !== 'production'}
               productId={product.id}
             />
@@ -451,10 +457,10 @@ function ReviewsSection({ data }: { data: ProductPageData }) {
 
 /** Expert inspection of this physical item (second-hand open data). Pilling feeds wear resistance; the rest are facts. */
 function InspectionCard({ inspection: x }: { inspection: NonNullable<ProductPageData['product']['inspection']> }) {
-  const grade = (g: number | null | undefined, words: string[]) => (g ? `${g}/5 · ${words[g - 1]}` : '—')
+  const grade = (g: number | null | undefined, words: readonly string[]) => (g ? `${g}/5 · ${words[g - 1]}` : '—')
   const rows: [string, string][] = [
-    ['Pilling', grade(x.pilling, ['severe', 'heavy', 'some', 'slight', 'none'])],
-    ['Condition', grade(x.condition, ['poor', 'worn', 'fair', 'good', 'like new'])],
+    ['Pilling', grade(x.pilling, PILLING_WORDS)],
+    ['Condition', grade(x.condition, CONDITION_WORDS)],
     ['Stains', x.stains == null ? '—' : x.stains ? 'Yes' : 'None'],
     ['Damage', x.damage?.trim() || 'None noted'],
     ['Suggested resale price', x.priceBand ? `${x.priceBand} SEK (band)` : '—'],

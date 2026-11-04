@@ -1,5 +1,6 @@
 import 'server-only'
-import { PUBLIC_PRODUCTS } from '@/lib/veritas/scope'
+import { PUBLIC_PRODUCTS, isOpenData, visibleProducts } from '@/lib/veritas/scope'
+import { gradeOf } from '@/components/veritas/grade'
 import { prisma } from '@/lib/prisma'
 import { alternativesFor } from '../match/alternatives'
 import { thumbPattern } from '@/components/veritas/thumb-pattern'
@@ -26,6 +27,9 @@ const CARD_SELECT = {
   visual: { select: { attributes: true } },
   primaryImageUrl: true,
   imageCredit: true,
+  isPrivate: true,
+  source: true,
+  inspection: true,
   productScore: { select: { overall: true, confidenceLabel: true, fit: true, quality: true, styleValue: true, comfort: true } },
   _count: { select: { reviews: true } },
 } as const
@@ -37,7 +41,8 @@ const CARD_SELECT = {
 export async function loadSimilarLooking(productId: string): Promise<CatalogItem[]> {
   const near = await similarLooking(productId, 3).catch(() => [])
   if (!near.length) return []
-  const rows = await prisma.clothingProduct.findMany({ where: { id: { in: near.map((n) => n.id) }, isAvailable: true, ...PUBLIC_PRODUCTS }, select: CARD_SELECT })
+  // similarLooking already limits neighbours to public + this product's organisation.
+  const rows = await prisma.clothingProduct.findMany({ where: { id: { in: near.map((n) => n.id) }, isAvailable: true }, select: CARD_SELECT })
   const tags = await tagsForProducts(rows.map((r) => r.id))
   const byId = new Map(rows.map((r) => [r.id, r]))
   return near.flatMap((n) => (byId.has(n.id) ? [toCard(byId.get(n.id)!, tags.get(n.id) ?? [])] : []))
@@ -57,20 +62,26 @@ function toCard(r: CardRow, tags: CatalogItem['tags']): CatalogItem {
     color: r.colors[0] ?? null,
     pattern: thumbPattern(r.visual?.attributes as Parameters<typeof thumbPattern>[0]),
     photo: displayPhoto(r.primaryImageUrl, r.imageCredit),
-    price: Number(r.currentPrice),
+    price: r.currentPrice === null ? null : Number(r.currentPrice),
     currency: r.currency,
     reviewCount: r._count.reviews,
     score: r.productScore?.overall ?? null,
     confidenceLabel: r.productScore?.confidenceLabel ?? null,
     isNewLaunch: !!r.launchDate && r.launchDate.getTime() > cutoff,
+    isPrivate: r.isPrivate,
+    openData: isOpenData(r.source),
+    grade: gradeOf(r.inspection),
     tags,
   }
 }
 
 /** Up to 3 better-scoring alternatives for a product page, as catalog cards with a one-line reason. */
 export async function loadAlternatives(productId: string): Promise<{ item: CatalogItem; reason: string }[]> {
+  // Compared on price, so only priced products. Public ones; a private product also gets its own organisation's.
+  const me = await prisma.clothingProduct.findUnique({ where: { id: productId }, select: { tenantId: true, isPrivate: true, currentPrice: true } })
+  if (!me || me.currentPrice === null) return []
   const rows = await prisma.clothingProduct.findMany({
-    where: { isAvailable: true, ...PUBLIC_PRODUCTS },
+    where: { AND: [me.isPrivate ? visibleProducts(me.tenantId) : PUBLIC_PRODUCTS], isAvailable: true, currentPrice: { not: null } },
     select: CARD_SELECT,
   })
   const toAlt = (r: (typeof rows)[number]) => ({

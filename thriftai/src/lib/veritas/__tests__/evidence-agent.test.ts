@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import type Anthropic from '@anthropic-ai/sdk'
-import { EVIDENCE_SYSTEM_PROMPT, MAX_REVIEWS_READ, evidenceTask, makeEvidenceAgent, type EvidenceRunOutput } from '../agents/evidence'
+import { EVIDENCE_SYSTEM_PROMPT, MAX_REVIEWS_READ, evidenceTask, makeEvidenceAgent, pickReviewsToRead, type EvidenceRunOutput } from '../agents/evidence'
 import { MockClient, buildRequest, mockMessage, mockToolUse, type MockResponder } from '../harness/llm'
 import { runAgent } from '../harness/loop'
 import { MemorySink } from '../harness/telemetry'
@@ -114,5 +114,26 @@ describe('evidence agent tools', () => {
     expect(JSON.stringify([a.system, a.tools])).toBe(JSON.stringify([b.system, b.tools]))
     // Long enough for Haiku 5.5 prompt caching (512-token minimum); ~3.5 chars per token.
     expect(EVIDENCE_SYSTEM_PROMPT.length / 3.5).toBeGreaterThan(1000)
+  })
+})
+
+describe('pickReviewsToRead (star mix)', () => {
+  const mk = (i: number, rating: number, helpfulVotes: number) =>
+    ({ id: `r${i}`, rating, helpfulVotes, date: new Date(2024, 0, 1 + (i % 28)), title: null, content: 'x', fitsAs: null }) as unknown as Parameters<typeof pickReviewsToRead>[0][number]
+
+  it('reads everything when there are few reviews', () => {
+    const rs = [mk(1, 5, 0), mk(2, 1, 9)]
+    expect(pickReviewsToRead(rs, 40).map((r) => r.id)).toEqual(['r2', 'r1'])
+  })
+
+  it('matches the star mix instead of only the most helpful', () => {
+    // 80 five-star (no votes), 20 one-star (many votes): most-helpful-first would read all 20 one-star reviews.
+    const rs = [...Array.from({ length: 80 }, (_, i) => mk(i, 5, 0)), ...Array.from({ length: 20 }, (_, i) => mk(100 + i, 1, 50 + i))]
+    const picked = pickReviewsToRead(rs, 40)
+    expect(picked).toHaveLength(40)
+    expect(picked.filter((r) => r.rating === 1)).toHaveLength(8)
+    expect(picked.filter((r) => r.rating === 5)).toHaveLength(32)
+    // Within a star level, the most helpful are kept; the list is most helpful first.
+    expect(picked[0].id).toBe('r119')
   })
 })

@@ -88,20 +88,21 @@ export function warmVisual(): 'off' | 'loading' | 'ready' {
 export const SIMILAR_MIN = 0.8
 
 /**
- * Up to `limit` public, available products of the same type whose photo looks most like this one's.
- * Nearest neighbours by cosine distance (HNSW index); public = not private (same rule as scope.ts PUBLIC_PRODUCTS).
+ * Up to `limit` available products of the same type whose photo looks most like this one's: public ones, plus,
+ * only when this product is itself private, private ones of its own organisation (a public page never lists them). Nearest
+ * neighbours by cosine distance (HNSW index).
  */
 export async function similarLooking(productId: string, limit = 3): Promise<{ id: string; similarity: number }[]> {
   if (!visualSearchOn()) return []
   const rows = await prisma.$queryRaw<{ id: string; sim: number }[]>`
     WITH me AS (
-      SELECT e.embedding, p.category, p.subcategory FROM product_embeddings e JOIN clothing_products p ON p.id = e."productId"
+      SELECT e.embedding, p.category, p.subcategory, p."tenantId", p."isPrivate" FROM product_embeddings e JOIN clothing_products p ON p.id = e."productId"
       WHERE e."productId" = ${productId} AND e.model = ${visualModelVersion()} AND e.embedding IS NOT NULL
     )
     SELECT e."productId" AS id, 1 - (e.embedding <=> me.embedding) AS sim
     FROM product_embeddings e JOIN clothing_products p ON p.id = e."productId", me
     WHERE e."productId" <> ${productId} AND e.model = ${visualModelVersion()} AND e.embedding IS NOT NULL
-      AND p."isPrivate" = false AND p."isAvailable" = true AND p.category = me.category
+      AND (p."isPrivate" = false OR (me."isPrivate" AND p."tenantId" = me."tenantId")) AND p."isAvailable" = true AND p.category = me.category
       AND (me.subcategory IS NULL OR p.subcategory = me.subcategory)
     ORDER BY e.embedding <=> me.embedding
     LIMIT ${limit}`
