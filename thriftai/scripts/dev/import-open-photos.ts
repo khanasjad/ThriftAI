@@ -11,13 +11,11 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import sharp from 'sharp'
 import { prisma } from '../../src/lib/prisma'
 import { env } from '../../src/lib/veritas/env'
 import { parseMaterialText as parseMaterial } from '../../src/lib/veritas/ingest/contract'
+import { ARCHIVE, WORK, framed } from './lib/secondhand'
 
-const ARCHIVE = join(process.cwd(), '.veritas/real-data/circular/circular_fashion_v1.tar.gz')
-const WORK = join(process.cwd(), '.veritas/real-data/circular/extract')
 const OUT = join(process.cwd(), 'public/open-images/secondhand')
 const SOURCE = 'open-data: Clothing Dataset for Second-Hand Fashion (RISE / Wargön Innovation, Zenodo 8386668)'
 const LICENCE = 'CC-BY-4.0'
@@ -47,19 +45,6 @@ const EXCLUDE = new Set([
 ])
 
 const arg = (n: string) => (process.argv.includes(n) ? process.argv[process.argv.indexOf(n) + 1] : undefined)
-
-/**
- * The sorting-table camera shoots garments lying sideways (collar or waistband to the right), with the table
- * edge, cables and a bracket in frame. Crop to the work area, turn upright, resize to 640 px, drop metadata.
- */
-async function framed(src: string, dest: string) {
-  const img = sharp(src).rotate()
-  const { width = 0, height = 0 } = await img.metadata()
-  const left = Math.round(width * 0.14)
-  const area = { left, top: 0, width: Math.round(width * 0.92) - left, height: Math.round(height * 0.84) }
-  const cropped = await img.extract(area).toBuffer()
-  await sharp(cropped).rotate(270).resize({ width: 640, height: 640, fit: 'inside' }).jpeg({ quality: 80, mozjpeg: true }).toFile(dest)
-}
 
 function listArchive(): string[] {
   return execFileSync('tar', ['-tzf', ARCHIVE], { maxBuffer: 256 * 1024 * 1024 }).toString().split('\n').filter(Boolean)

@@ -101,6 +101,7 @@ npm run vision -- --all --yes [--check]    # read product photos into style attr
 npm run open-photos -- [--dry-run]           # dev only: real photographed second-hand items (CC BY 4.0) into the open-data tenant
 npm run vision -- --tenant <slug> --yes      # read one tenant's product photos (live; estimate first)
 npm run photo:test -- --fetch [--set product] | --read --yes | --score   # accuracy on real, openly licensed photos (kept in .veritas/, never served)
+npm run photo:condition -- --pick | --read --yes | --score   # can the condition agent see what sorters graded (stains, damage, pilling)? measuring only, ~$0.0004/item
 npm run embed -- --all                     # "looks like" photo fingerprints, open-source fashion model on this machine ($0; uploads do this automatically)
 npm run visual:eval                        # fashion model vs. hand labels and dev search ($0)
 npm run calibrate [-- --experts picks.csv | --simulate-experts] [--tenant <slug>]   # scores vs. owner stars, returns, expert picks; suggests weights, never applies ($0)
